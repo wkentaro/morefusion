@@ -1,4 +1,6 @@
 -e git+https://github.com/wkentaro/imgviz@master#egg=imgviz[all]
+chainer
+chainercv
 gdown>=3.7.0
 opencv-python
 scipy
