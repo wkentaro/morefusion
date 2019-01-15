@@ -1,0 +1,2 @@
+-e git+https://github.com/wkentaro/imgviz@master#egg=imgviz[all]
+scipy
