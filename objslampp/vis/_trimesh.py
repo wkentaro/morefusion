@@ -4,7 +4,7 @@ import trimesh
 
 
 def box_to_wired_box(
-    box: trimesh.primitives.Box = None
+    box: trimesh.primitives.Box
 ) -> typing.List[trimesh.base.Geometry]:
     '''Returns wired box for the given box.'''
     indices = [0, 1, 3, 2, 0, 4, 5, 7, 6, 4, 0, 2, 6, 7, 3, 1, 5]
