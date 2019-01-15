@@ -10,4 +10,5 @@ make install
 
 ## Links
 
+- System Overview: https://drive.google.com/open?id=1DYLpbQKHsJ-UNOR013bDz3W4RomlYsA8
 - Dataset Synthesizing: https://github.com/wkentaro/scenenetrgb-d/tree/master/python/examples#object-level-slam-full-recon-and-physical-sim-for-navi-and-manip-in-heavy-clutter
