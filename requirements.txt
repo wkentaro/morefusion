@@ -1,3 +1,4 @@
 -e git+https://github.com/wkentaro/imgviz@master#egg=imgviz[all]
 gdown>=3.7.0
+opencv-python
 scipy
