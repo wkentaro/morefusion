@@ -1,4 +1,5 @@
 import pathlib
+import shutil
 
 import gdown
 import imgviz
@@ -61,11 +62,11 @@ class YCBVideoModels(object):
 
     @classmethod
     def download(cls):
-        url = 'https://drive.google.com/uc?id=1gmcDD-5bkJfcMKLZb3zGgH_HUFbulQWu'
+        url = 'https://drive.google.com/uc?id=1gmcDD-5bkJfcMKLZb3zGgH_HUFbulQWu'  # NOQA
         md5 = 'd3efe74e77fe7d7ca216dde4b7d217fa'
 
         def postprocess(path):
-            contrib.data.extractall(path)
+            gdown.extractall(path)
             path_extracted = path.parent / 'models'
             shutil.move(
                 str(path_extracted),
