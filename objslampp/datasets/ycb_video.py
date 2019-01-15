@@ -11,7 +11,8 @@ class YCBVideoDataset(object):
     root_dir = pathlib.Path.home() / 'data/datasets/YCB/YCB_Video_Dataset'
 
     def __init__(self):
-        pass
+        if not self.root_dir.exists():
+            self.download()
 
     @classmethod
     def download(cls):
