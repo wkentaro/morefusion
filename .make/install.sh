@@ -36,7 +36,10 @@ pip install -U flake8 pytest ipython ipdb pycd
 echo_bold "==> Installing python modules"
 pip install -r requirements.txt
 
-# pip install -e .
+# trimesh dependency
+conda_check_installed libspatialindex || conda install libspatialindex -y
+
+pip install -e .
 
 # ---------------------------------------------------------------------------------------
 
