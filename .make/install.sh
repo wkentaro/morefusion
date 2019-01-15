@@ -28,13 +28,10 @@ source .anaconda3/bin/activate
 echo_bold "==> Installing latest pip and setuptools"
 pip install -U pip setuptools wheel
 
-echo_bold "==> Installing dev tool like flake8, pytest and ipython"
-pip install -U flake8 pytest ipython ipdb pycd
-
 # ---------------------------------------------------------------------------------------
 
-echo_bold "==> Installing python modules"
-pip install -r requirements.txt
+echo_bold "==> Installing with requirements-dev.txt"
+pip install -r requirements-dev.txt
 
 # trimesh dependency
 conda_check_installed libspatialindex || conda install libspatialindex -y
@@ -46,4 +43,5 @@ pip install -e .
 echo_bold "\nAll is well! You can start using this!
 
   $ source .anaconda3/bin/activate
+  $ python examples/ycb_video/ycb_video.py
 "
