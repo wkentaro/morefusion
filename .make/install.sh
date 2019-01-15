@@ -28,8 +28,8 @@ source .anaconda3/bin/activate
 echo_bold "==> Installing latest pip and setuptools"
 pip install -U pip setuptools wheel
 
-echo_bold "==> Installing dev tool: flake8 and pytest"
-pip install -U flake8 pytest
+echo_bold "==> Installing dev tool like flake8, pytest and ipython"
+pip install -U flake8 pytest ipython ipdb pycd
 
 # ---------------------------------------------------------------------------------------
 
