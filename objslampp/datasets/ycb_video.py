@@ -61,6 +61,10 @@ class YCBVideoModels(object):
 
     root_dir = pathlib.Path.home() / 'data/datasets/YCB/YCB_Video_Models'
 
+    def __init__(self):
+        if not self.root_dir.exists():
+            self.download()
+
     @classmethod
     def download(cls):
         url = 'https://drive.google.com/uc?id=1gmcDD-5bkJfcMKLZb3zGgH_HUFbulQWu'  # NOQA
