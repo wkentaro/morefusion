@@ -4,6 +4,7 @@ import argparse
 
 import imgviz
 import numpy as np
+import termcolor
 
 import objslampp
 
@@ -20,30 +21,38 @@ class MainApp(object):
         self.dataset = objslampp.datasets.YCBVideoDataset()
 
     def run(self):
-        index = 0
+        index = 1000
         imageset = self.dataset.imageset('train')
 
         play = False
         while True:
             image_id = imageset[index]
-            image = self.process_frame(image_id)
+            termcolor.cprint(f'[{index}] {image_id}', attrs={'bold': True})
+
+            frame = self.dataset.get_frame(image_id)
+            image = self.process_frame(frame)
 
             imgviz.io.cv_imshow(image, __file__)
 
             if play:
                 key = imgviz.io.cv_waitkey(1)
-                index += 1
+                index += 15
             else:
                 key = imgviz.io.cv_waitkey()
 
-            if key == ord('s'):
+            if key >= 0:
+                try:
+                    key = chr(key)
+                except Exception:
+                    pass
+                print(f'key: {key}')
+
+            if key == 's':
                 play = not play
-            elif key == ord('q'):
+            elif key == 'q':
                 break
 
-    def process_frame(self, image_id):
-        frame = self.dataset.get_frame(image_id)
-
+    def process_frame(self, frame):
         meta = frame['meta']
         color = frame['color']
 
@@ -101,7 +110,7 @@ class MainApp(object):
             roi_viz_label,
             np.zeros_like(color),
         ], shape=(3, 4), border=(255, 255, 255))
-        viz = imgviz.resize(viz, height=1000)
+        viz = imgviz.resize(viz, height=500)
 
         return viz
 
