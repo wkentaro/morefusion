@@ -10,7 +10,7 @@
 
 ## `voxel_mapping.py`
 
-<img src="https://drive.google.com/uc?id=1jiVYGYW0_WhLbgVx2uokaLM5T-_o3P6Y" height="200px" /> <img src="https://drive.google.com/uc?id=1eB84PSEMXX0BeVW9_di4UHAanYTWSsFq" height="200px" />
+<img src="https://drive.google.com/uc?id=1nvTvif4lUCcteGUOJHN_2ey7uhJb09LS" height="200px" /> <img src="https://drive.google.com/uc?id=1SDO8oo3qgdONvPOP6Bms0xBZ1RKYTmNe" height="200px" />
 
 ## `ycb_models.py`
 
