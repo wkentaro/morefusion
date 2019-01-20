@@ -45,7 +45,8 @@ class MainApp(object):
                     key = chr(key)
                 except Exception:
                     pass
-                print(f'key: {key}')
+                if key in list('qs'):
+                    print(f'key: {key}')
 
             if key == 's':
                 play = not play

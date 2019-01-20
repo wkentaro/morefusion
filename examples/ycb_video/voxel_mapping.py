@@ -92,13 +92,15 @@ class MainApp(object):
 
         @window.event
         def on_key_press(symbol, modifiers):
-            key = symbol
+            key = None
             if symbol == pyglet.window.key.Q:
                 key = 'q'
                 window.close()
             elif symbol == pyglet.window.key.S:
                 key = 's'
                 scene.pause = not scene.pause
+            else:
+                return
             print(f'key: {key}')
 
         if args.feature == 'rgb':

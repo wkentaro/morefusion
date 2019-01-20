@@ -68,9 +68,17 @@ class MainApp(object):
             else:
                 key = imgviz.io.cv_waitkey()
 
-            if key == ord('s'):
+            try:
+                key = chr(key)
+            except Exception:
+                pass
+
+            if key in list('qs'):
+                print(f'key: {key}')
+
+            if key == 's':
                 play = not play
-            elif key == ord('q'):
+            elif key == 'q':
                 break
 
     def process_frame(self, frame):
