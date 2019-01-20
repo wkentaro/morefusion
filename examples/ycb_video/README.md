@@ -15,3 +15,7 @@
 ## `ycb_models.py`
 
 <img src="https://drive.google.com/uc?id=13DDCKVNjYu2zO7_EctS2leTpxvcIZxq5" height="200px" />
+
+## `voxel_size.py`
+
+<img src=".readme/voxel_size.jpg" height="200px" />
