@@ -19,3 +19,7 @@
 ## `voxel_size.py`
 
 <img src=".readme/voxel_size.jpg" height="200px" />
+
+## `cad_voxel_mapping.py`
+
+<img src="https://drive.google.com/uc?id=1-q4BqV3deGfuPXwbmNsO5h8vZDVCE7p6" height="200px" />
