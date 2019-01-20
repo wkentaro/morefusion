@@ -6,6 +6,7 @@ from chainer.backends import cuda
 from chainercv.links.model.resnet import ResNet50
 import imgviz
 import numpy as np
+import termcolor
 
 import objslampp
 
@@ -21,18 +22,20 @@ class MainApp(object):
 
         self.dataset = objslampp.datasets.YCBVideoDataset()
 
-        cuda.get_device_from_id(args.gpu).use()
+        if args.gpu >= 0:
+            cuda.get_device_from_id(args.gpu).use()
         self.resnet = ResNet50(pretrained_model='imagenet', arch='he')
         self.resnet.pick = ['res4']
-        self.resnet.to_gpu()
-
+        if args.gpu >= 0:
+            self.resnet.to_gpu()
         self.nchannel2rgb = imgviz.Nchannel2RGB()
 
     def extract_feature(self, rgb):
         x = rgb.transpose(2, 0, 1)
         x = x - self.resnet.mean
         x = x[None]
-        x = cuda.to_gpu(x)
+        if self.resnet.xp != np:
+            x = cuda.to_gpu(x)
         feat, = self.resnet(x)
         feat = cuda.to_cpu(feat[0].array)
         return feat.transpose(1, 2, 0)
@@ -52,13 +55,16 @@ class MainApp(object):
         play = False
         while True:
             image_id = imageset[index]
-            image = self.process_frame(image_id)
+            termcolor.cprint(f'[{index}] {image_id}', attrs={'bold': True})
+
+            frame = self.dataset.get_frame(image_id)
+            image = self.process_frame(frame)
 
             imgviz.io.cv_imshow(image, __file__)
 
             if play:
                 key = imgviz.io.cv_waitkey(1)
-                index += 1
+                index += 15
             else:
                 key = imgviz.io.cv_waitkey()
 
@@ -67,9 +73,7 @@ class MainApp(object):
             elif key == ord('q'):
                 break
 
-    def process_frame(self, image_id):
-        frame = self.dataset.get_frame(image_id)
-
+    def process_frame(self, frame):
         meta = frame['meta']
         color = frame['color']
 
@@ -135,7 +139,7 @@ class MainApp(object):
             roi_viz_label,
             roi_viz_feat,
         ], shape=(3, 4), border=(255, 255, 255))
-        viz = imgviz.resize(viz, height=1000)
+        viz = imgviz.resize(viz, height=500)
 
         return viz
 
