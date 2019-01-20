@@ -1,12 +1,19 @@
 #!/usr/bin/env python
 
+import pathlib
+
 import imgviz
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas
+import pybullet  # NOQA
+import tqdm
 import trimesh
 
 import objslampp
+
+
+here = pathlib.Path(__file__).resolve().parent
 
 
 def main():
@@ -14,7 +21,7 @@ def main():
 
     top_images = []
     data = []
-    for model_dir in sorted(models.root_dir.iterdir()):
+    for model_dir in tqdm.tqdm(sorted(models.root_dir.iterdir())):
         cad_file = model_dir / f'textured_simple.obj'
 
         top_image = objslampp.sim.pybullet.get_top_image(cad_file)
@@ -26,11 +33,14 @@ def main():
         bbox_max_size = np.sqrt((extents ** 2).sum())
         voxel_size = bbox_max_size / 32.
 
-        data.append((model_dir.name, bbox_max_size, voxel_size))
+        data.append((model_dir.name, extents, bbox_max_size, voxel_size))
 
     df = pandas.DataFrame(
-        data=data, columns=['name', 'bbox_max_size', 'voxel_size']
+        data=data, columns=['name', 'extents', 'bbox_max_size', 'voxel_size']
     )
+    csv_file = here / 'data/voxel_size.csv'
+    df.to_csv(str(csv_file))
+    print(f'Saved to: {csv_file}')
 
     argsort = df['voxel_size'].argsort()[::-1]
     df = df.iloc[argsort]

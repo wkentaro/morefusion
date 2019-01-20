@@ -9,3 +9,4 @@ pandas
 pybullet
 scipy
 termcolor
+tqdm
