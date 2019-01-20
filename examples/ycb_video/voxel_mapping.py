@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 
-from chainer.backends import cuda
-from chainercv.links.model.resnet import ResNet50
 import imgviz
 import numpy as np
 import open3d
+import pyglet
 import scipy.cluster.hierarchy
+import termcolor
 import trimesh
+import trimesh.viewer
 
 import objslampp
 
@@ -24,12 +25,9 @@ def get_aabb_points(points):
     cluster_ids, cluster_counts = np.unique(
         fclusterdata, return_counts=True
     )
-    # print('cluster_ids:', cluster_ids, 'cluster_counts:', cluster_counts)
     cluster_id = cluster_ids[np.argmax(cluster_counts)]
     keep = fclusterdata == cluster_id
-    # print('pcd_roi_flat:', pcd_roi_flat.shape)
     pcd_roi_flat_down = pcd_roi_flat_down[keep]
-    # print('pcd_roi_flat_down:', pcd_roi_flat_down.shape)
     aabb_min = pcd_roi_flat_down.min(axis=0)
     aabb_max = pcd_roi_flat_down.max(axis=0)
     return aabb_min, aabb_max
@@ -52,95 +50,105 @@ class MainApp(object):
     def __init__(self):
         self.dataset = objslampp.datasets.YCBVideoDataset()
 
-        self.scene = None
-
         self.class_id = None
         self.origin = None
         self.matrix = None
         self.matrix_values = None
+        self.camera_transform = None
 
-        cuda.get_device_from_id(0).use()
-        self.resnet = ResNet50(pretrained_model='imagenet', arch='he')
-        self.resnet.pick = ['res4']
-        self.resnet.remove_unused()
-        self.resnet.to_gpu()
+        scene = trimesh.Scene()
+        scene.add_geometry(
+            trimesh.creation.axis(origin_size=0.01),
+            node_name='a',
+            geom_name='a',
+        )
+        window = trimesh.viewer.SceneViewer(
+            scene=scene,
+            callback=self.callback,
+            callback_period=0.1,
+            start_loop=False,
+        )
+        self.window = window
 
-        self.nchannel2rgb = imgviz.Nchannel2RGB()
+        scene.pause = True
+        scene.index = 1000
+
+        @window.event
+        def on_key_press(symbol, modifiers):
+            key = symbol
+            if symbol == pyglet.window.key.Q:
+                key = 'q'
+                window.close()
+            elif symbol == pyglet.window.key.S:
+                key = 's'
+                scene.pause = not scene.pause
+            print(f'key: {key}')
+
+    def run(self):
+        pyglet.app.run()
 
     @property
     def voxel_bbox_extents(self):
         return np.array((self.voxel_size * self.pitch,) * 3, dtype=float)
 
-    @property
-    def image_ids(self):
-        image_id1 = self.dataset.imageset('train')[1000]
-        image_id2 = self.dataset.imageset('train')[1500]
-        return [image_id1, image_id2]
+    def callback(self, scene):
+        if scene.pause:
+            return
 
-    def extract_feature(self, rgb):
-        x = rgb.transpose(2, 0, 1)
-        x = x - self.resnet.mean
-        x = x[None]
-        x = cuda.to_gpu(x)
-        feat, = self.resnet(x)
-        feat = cuda.to_cpu(feat[0].array)
-        return feat.transpose(1, 2, 0)
+        image_id = self.dataset.imageset('train')[scene.index]
 
-    def feature2rgb(self, feat, mask_fg):
-        dst = self.nchannel2rgb(feat, dtype=float)
-        H, W = mask_fg.shape[:2]
-        dst = imgviz.resize(dst, height=H, width=W)
-        dst = (dst * 255).astype(np.uint8)
-        dst[~mask_fg] = 0
-        return dst
-
-    def run(self):
-        # world coordinates
-        self.scene = trimesh.Scene()
-
-        for image_id in self.image_ids:
+        try:
             frame = self.dataset.get_frame(image_id)
-            self.process_frame(frame)
+            pcd_roi_flat, rgb_roi_flat = self.process_frame(frame)
+        except Exception:
+            scene.pause = True
+            return
 
-            feat = self.extract_feature(frame['color'])
-            feat_viz = self.feature2rgb(feat, frame['label'] != 0)
-            rgb_roi_viz = frame['color'].copy()
-            rgb_roi_viz[frame['label'] != self.class_id] = 0
-            feat_roi_viz = feat_viz.copy()
-            feat_roi_viz[frame['label'] != self.class_id] = 0
-            viz = imgviz.tile(
-                [frame['color'], feat_viz, rgb_roi_viz, feat_roi_viz],
-                border=(255, 255, 255),
+        termcolor.cprint(f'[{scene.index}] {image_id}', attrs={'bold': True})
+
+        if 0:
+            # point cloud
+            geom = trimesh.PointCloud(
+                vertices=pcd_roi_flat, color=rgb_roi_flat
             )
-            imgviz.io.pyglet_imshow(viz)
-
-            self.show(show_voxel=1)
-
-    def show(self, show_voxel=True, **kwargs):
-        scene = self.scene.copy()
-
-        if show_voxel:
-            # voxel origin
-            geom = trimesh.creation.axis()
-            geom.apply_translation(self.origin)
             scene.add_geometry(geom)
 
-            # voxel
-            geom = trimesh.voxel.Voxel(self.matrix, self.pitch, self.origin)
-            geom = geom.as_boxes()
-            I, J, K = zip(*np.argwhere(self.matrix))
-            geom.visual.face_colors = \
-                self.matrix_values[I, J, K].repeat(12, axis=0)
-            scene.add_geometry(geom)
+        # voxel origin
+        geom = trimesh.creation.axis(origin_size=0.01)
+        geom.apply_translation(self.origin)
+        if 'a' in scene.geometry:
+            scene.geometry['a'] = geom
+        else:
+            scene.add_geometry(geom, node_name='a', geom_name='a')
+        # scene.add_geometry(geom, node_name='a', geom_name='a')
 
-            # voxel bbox
+        geom = trimesh.creation.axis(origin_size=0.01)
+        geom.apply_transform(self.camera_transform)
+        scene.add_geometry(geom)
+
+        # voxel
+        geom = trimesh.voxel.Voxel(self.matrix, self.pitch, self.origin)
+        geom = geom.as_boxes()
+        I, J, K = zip(*np.argwhere(self.matrix))
+        geom.visual.face_colors = \
+            self.matrix_values[I, J, K].repeat(12, axis=0)
+        if 'b' in scene.geometry:
+            scene.geometry['b'] = geom
+        else:
+            scene.add_geometry(geom, node_name='b', geom_name='b')
+
+        # voxel bbox
+        if 'c' not in scene.geometry:
             geom = objslampp.vis.trimesh.wired_box(
                 self.voxel_bbox_extents,
                 translation=self.origin + self.voxel_bbox_extents / 2,
             )
-            scene.add_geometry(geom)
+            scene.add_geometry(geom, node_name='c', geom_name='c')
 
-        scene.show(**kwargs)
+        scene.set_camera()  # to adjust camera location
+        self.window.on_resize(None, None)  # to adjust zfar
+
+        scene.index += 15
 
     def process_frame(self, frame):
         meta = frame['meta']
@@ -159,13 +167,7 @@ class MainApp(object):
             depth, fx=K[0][0], fy=K[1][1], cx=K[0][2], cy=K[1][2]
         )
 
-        if 0:
-            rgb_roi = rgb[mask]
-        else:
-            feat = self.extract_feature(rgb)
-            feat_viz = self.feature2rgb(feat, label != 0)
-            rgb_roi = feat_viz[mask]
-
+        rgb_roi = rgb[mask]
         rgb_roi_flat = rgb_roi.reshape(-1, 3)
         pcd_roi = pcd[mask]
         pcd_roi_flat = pcd_roi.reshape(-1, 3)
@@ -175,10 +177,13 @@ class MainApp(object):
         rgb_roi_flat = rgb_roi_flat[keep]
         pcd_roi_flat = pcd_roi_flat[keep]
 
-        # world -> camera
         T = meta['rotation_translation_matrix']
         T = np.r_[T, [[0, 0, 0, 1]]]
-        pcd_roi_flat = trimesh.transform_points(pcd_roi_flat, np.linalg.inv(T))
+        self.camera_transform = np.linalg.inv(T)
+        # camera frame -> world frame
+        pcd_roi_flat = trimesh.transform_points(
+            pcd_roi_flat, self.camera_transform
+        )
 
         aabb_min, aabb_max = get_aabb_points(pcd_roi_flat)
 
@@ -204,21 +209,7 @@ class MainApp(object):
         # TODO(wkentaro): replace with average or max of feature
         self.matrix_values[I, J, K] = rgb_roi_flat[keep].astype(float) / 255
 
-        # ---------------------------------------------------------------------
-
-        geom = trimesh.PointCloud(vertices=pcd_roi_flat, color=rgb_roi_flat)
-        self.scene.add_geometry(geom)
-
-        geom = trimesh.creation.axis(origin_size=0.02)
-        geom.apply_transform(np.linalg.inv(T))
-        self.scene.add_geometry(geom)
-
-        extents = aabb_max - aabb_min
-        geom = objslampp.vis.trimesh.wired_box(
-            extents=extents,
-            translation=extents / 2 + aabb_min,
-        )
-        self.scene.add_geometry(geom)
+        return pcd_roi_flat, rgb_roi_flat
 
 
 if __name__ == '__main__':
