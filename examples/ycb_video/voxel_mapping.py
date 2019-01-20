@@ -7,6 +7,7 @@ from chainercv.links.model.resnet import ResNet50
 import imgviz
 import numpy as np
 import open3d
+import pandas
 import pyglet
 import scipy.cluster.hierarchy
 import termcolor
@@ -47,7 +48,6 @@ def voxel_down_sample(points, voxel_size):
 
 class MainApp(object):
 
-    pitch = 4. / 512  # 0.0078125
     voxel_size = 32
     D = 3  # RGB
 
@@ -68,6 +68,7 @@ class MainApp(object):
         self.dataset = objslampp.datasets.YCBVideoDataset()
 
         self.class_id = None
+        self.pitch = None
         self.origin = None
         self.matrix = None
         self.matrix_values = None
@@ -149,6 +150,7 @@ class MainApp(object):
             frame = self.dataset.get_frame(image_id)
             pcd_roi_flat, rgb_roi_flat = self.process_frame(frame)
         except Exception as e:
+            print('An error occurs. Stopping..')
             print(e)
             scene.pause = True
             return
@@ -208,6 +210,13 @@ class MainApp(object):
 
         if self.class_id is None:
             self.class_id = meta['cls_indexes'][2]
+            print(f'Initialized class_id: {self.class_id}')
+
+            assert self.pitch is None
+            df = pandas.read_csv('data/voxel_size.csv')
+            pitch = df['voxel_size'][df['class_id'] == self.class_id]
+            self.pitch = float(pitch)
+            print(f'Initialized pitch: {self.pitch}')
 
         mask = label == self.class_id
         bbox = imgviz.instances.mask_to_bbox([mask])[0]
