@@ -29,14 +29,17 @@ def main():
 
         cad = trimesh.load(str(cad_file), file_type='obj', process=False)
 
+        name = model_dir.name
+        class_id = int(name.split('_')[0])
         extents = cad.bounding_box.extents
         bbox_max_size = np.sqrt((extents ** 2).sum())
         voxel_size = bbox_max_size / 32.
 
-        data.append((model_dir.name, extents, bbox_max_size, voxel_size))
+        data.append((class_id, name, extents, bbox_max_size, voxel_size))
 
     df = pandas.DataFrame(
-        data=data, columns=['name', 'extents', 'bbox_max_size', 'voxel_size']
+        data=data,
+        columns=['class_id', 'name', 'extents', 'bbox_max_size', 'voxel_size'],
     )
     csv_file = here / 'data/voxel_size.csv'
     df.to_csv(str(csv_file))
