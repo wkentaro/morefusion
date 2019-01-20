@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import imgviz
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas
@@ -11,11 +12,15 @@ import objslampp
 def main():
     models = objslampp.datasets.YCBVideoModels()
 
+    top_images = []
     data = []
     for model_dir in sorted(models.root_dir.iterdir()):
         cad_file = model_dir / f'textured_simple.obj'
+
+        top_image = objslampp.sim.pybullet.get_top_image(cad_file)
+        top_images.append(top_image)
+
         cad = trimesh.load(str(cad_file), file_type='obj', process=False)
-        cad.visual = cad.visual.to_color()  # texture visualization is slow
 
         extents = cad.bounding_box.extents
         bbox_max_size = np.sqrt((extents ** 2).sum())
@@ -26,17 +31,34 @@ def main():
     df = pandas.DataFrame(
         data=data, columns=['name', 'bbox_max_size', 'voxel_size']
     )
+
+    argsort = df['voxel_size'].argsort()[::-1]
+    df = df.iloc[argsort]
+    top_images = [top_images[i] for i in argsort]
+
     print(df)
 
-    df = df.sort_values('voxel_size')[::-1]
+    # -------------------------------------------------------------------------
+
+    fig, axes = plt.subplots(2, 1)
+
     df.plot.bar(
         x='name',
         y='voxel_size',
         color=(0.1, 0.1, 0.1, 0.1),
         edgecolor='red',
         rot=45,
+        ax=axes[0],
     )
-    plt.title('Voxel size of YCB_Video_Models')
+    axes[0].set_xlabel(None)
+
+    top_images = imgviz.tile(top_images, shape=(1, len(top_images)))
+    axes[1].imshow(top_images)
+    axes[1].get_xaxis().set_visible(False)
+    axes[1].get_yaxis().set_visible(False)
+
+    plt.suptitle('Voxel size of YCB_Video_Models')
+    # plt.tight_layout()
     plt.show()
 
 

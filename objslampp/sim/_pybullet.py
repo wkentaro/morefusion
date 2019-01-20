@@ -48,6 +48,7 @@ def add_model(
     orientation=None,
     mesh_scale=None,
     com_position=None,
+    register=True,
 ):
     import pybullet
 
@@ -96,7 +97,8 @@ def add_model(
         baseOrientation=orientation,
         useMaximalCoordinates=False,
     )
-    unique_ids.append(unique_id)
+    if register:
+        unique_ids.append(unique_id)
     return unique_id
 
 
@@ -190,3 +192,30 @@ def aabb_contained_ratio(aabb1=None, aabb2=None):
     if ratio < 0:
         ratio = 0
     return ratio
+
+
+def get_top_image(visual_file):
+    import pybullet
+
+    pybullet.connect(pybullet.DIRECT)
+
+    add_model(visual_file=visual_file, register=False)
+
+    view_matrix = pybullet.computeViewMatrix(
+        cameraEyePosition=[0.15, 0.15, 0.15],
+        cameraTargetPosition=[0, 0, 0],
+        cameraUpVector=[0, -1, 0],
+    )
+    projection_matrix = pybullet.computeProjectionMatrixFOV(
+        fov=60, aspect=1, nearVal=0.01, farVal=100,
+    )
+    H, W, rgba, *_ = pybullet.getCameraImage(
+        256, 256, viewMatrix=view_matrix, projectionMatrix=projection_matrix
+    )
+
+    pybullet.disconnect()
+
+    rgba = np.asarray(rgba, dtype=np.uint8).reshape(H, W, 4)
+    rgb = rgba[:, :, :3]
+
+    return rgb
