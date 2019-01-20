@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+import argparse
+
+from chainer.backends import cuda
+from chainercv.links.model.resnet import ResNet50
 import imgviz
 import numpy as np
 import open3d
@@ -48,6 +52,19 @@ class MainApp(object):
     D = 3  # RGB
 
     def __init__(self):
+        parser = argparse.ArgumentParser(
+            formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        )
+        parser.add_argument('--gpu', type=int, default=0, help='gpu id')
+        parser.add_argument(
+            '--feature',
+            choices=['rgb', 'res'],
+            default='rgb',
+            help='feature to fuse'
+        )
+        args = parser.parse_args()
+        self.args = args
+
         self.dataset = objslampp.datasets.YCBVideoDataset()
 
         self.class_id = None
@@ -84,6 +101,35 @@ class MainApp(object):
                 scene.pause = not scene.pause
             print(f'key: {key}')
 
+        if args.feature == 'rgb':
+            return
+
+        if args.gpu >= 0:
+            cuda.get_device_from_id(args.gpu).use()
+        self.resnet = ResNet50(pretrained_model='imagenet', arch='he')
+        self.resnet.pick = ['res4']
+        if args.gpu >= 0:
+            self.resnet.to_gpu()
+        self.nchannel2rgb = imgviz.Nchannel2RGB()
+
+    def extract_feature(self, rgb):
+        x = rgb.transpose(2, 0, 1)
+        x = x - self.resnet.mean
+        x = x[None]
+        if self.resnet.xp != np:
+            x = cuda.to_gpu(x)
+        feat, = self.resnet(x)
+        feat = cuda.to_cpu(feat[0].array)
+        return feat.transpose(1, 2, 0)
+
+    def feature2rgb(self, feat, mask_fg):
+        dst = self.nchannel2rgb(feat, dtype=float)
+        H, W = mask_fg.shape[:2]
+        dst = imgviz.resize(dst, height=H, width=W)
+        dst = (dst * 255).astype(np.uint8)
+        dst[~mask_fg] = 0
+        return dst
+
     def run(self):
         pyglet.app.run()
 
@@ -100,7 +146,8 @@ class MainApp(object):
         try:
             frame = self.dataset.get_frame(image_id)
             pcd_roi_flat, rgb_roi_flat = self.process_frame(frame)
-        except Exception:
+        except Exception as e:
+            print(e)
             scene.pause = True
             return
 
@@ -148,7 +195,7 @@ class MainApp(object):
         scene.set_camera()  # to adjust camera location
         self.window.on_resize(None, None)  # to adjust zfar
 
-        scene.index += 15
+        scene.index += 50
 
     def process_frame(self, frame):
         meta = frame['meta']
@@ -160,15 +207,22 @@ class MainApp(object):
         if self.class_id is None:
             self.class_id = meta['cls_indexes'][2]
 
-        mask = frame['label'] == self.class_id
+        mask = label == self.class_id
         bbox = imgviz.instances.mask_to_bbox([mask])[0]
         y1, x1, y2, x2 = bbox.round().astype(int)
         pcd = objslampp.geometry.pointcloud_from_depth(
             depth, fx=K[0][0], fy=K[1][1], cx=K[0][2], cy=K[1][2]
         )
 
-        rgb_roi = rgb[mask]
+        if self.args.feature == 'rgb':
+            rgb_roi = rgb[mask]
+        else:
+            assert self.args.feature == 'res'
+            feat = self.extract_feature(rgb)
+            feat_viz = self.feature2rgb(feat, label != 0)
+            rgb_roi = feat_viz[mask]
         rgb_roi_flat = rgb_roi.reshape(-1, 3)
+
         pcd_roi = pcd[mask]
         pcd_roi_flat = pcd_roi.reshape(-1, 3)
 
