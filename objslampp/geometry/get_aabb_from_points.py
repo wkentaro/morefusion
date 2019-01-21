@@ -11,7 +11,7 @@ def voxel_down_sample(points, voxel_size):
     return dst_points
 
 
-def get_aabb_points(points):
+def get_aabb_from_points(points):
     # getting aabb
     pcd_roi_flat_down = voxel_down_sample(
         points=points, voxel_size=0.01
