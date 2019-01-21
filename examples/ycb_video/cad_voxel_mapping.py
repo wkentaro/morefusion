@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D  # NOQA
 import numpy as np
 import pandas
-import pybullet
 import trimesh
 
 import objslampp
@@ -42,6 +41,8 @@ def get_uniform_points_on_sphere(radius=1, n_sample=10):
 
 
 def get_rendered(visual_file, eyes, targets, height=256, width=256, gui=False):
+    import pybullet
+
     if gui:
         pybullet.connect(pybullet.GUI)
     else:
