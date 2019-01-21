@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-from chainer.backends import cuda
-from chainercv.links.model.resnet import ResNet50
 import imgviz
 import numpy as np
 import pandas
@@ -12,14 +10,15 @@ import trimesh.viewer
 
 import objslampp
 
+from tmp import ResNetFeatureExtractor
 from tmp import VoxelMapper
 
 
 class MainApp(object):
 
-    def __init__(self, gpu=0, channel='rgb'):
-        assert isinstance(gpu, int), 'gpu must be integer'
+    def __init__(self, channel='rgb', gpu=0):
         assert channel in ['rgb', 'res'], "channel must be 'rgb' or 'res'"
+        assert isinstance(gpu, int), 'gpu must be integer'
 
         self._channel = channel
 
@@ -61,33 +60,9 @@ class MainApp(object):
             print(f'key: {key}')
 
         if channel == 'res':
-            if gpu >= 0:
-                cuda.get_device_from_id(gpu).use()
-            self._resnet = ResNet50(pretrained_model='imagenet', arch='he')
-            self._resnet.pick = ['res4']
-            if gpu >= 0:
-                self._resnet.to_gpu()
-            self._nchannel2rgb = imgviz.Nchannel2RGB()
+            self._res = ResNetFeatureExtractor(gpu=gpu)
 
         pyglet.app.run()
-
-    def _extract_feature(self, rgb):
-        x = rgb.transpose(2, 0, 1)
-        x = x - self._resnet.mean
-        x = x[None]
-        if self._resnet.xp != np:
-            x = cuda.to_gpu(x)
-        feat, = self._resnet(x)
-        feat = cuda.to_cpu(feat[0].array)
-        return feat.transpose(1, 2, 0)
-
-    def _feature2rgb(self, feat, mask_fg):
-        dst = self._nchannel2rgb(feat, dtype=float)
-        H, W = mask_fg.shape[:2]
-        dst = imgviz.resize(dst, height=H, width=W)
-        dst = (dst * 255).astype(np.uint8)
-        dst[~mask_fg] = 0
-        return dst
 
     def _callback(self, scene):
         if scene.pause:
@@ -171,8 +146,8 @@ class MainApp(object):
             rgb_roi = rgb[mask]
         else:
             assert self._channel == 'res'
-            feat = self._extract_feature(rgb)
-            feat_viz = self._feature2rgb(feat, label != 0)
+            feat = self._res.extract_feature(rgb)
+            feat_viz = self._res.feature2rgb(feat, label != 0)
             rgb_roi = feat_viz[mask]
         rgb_roi_flat = rgb_roi.reshape(-1, 3)
 
