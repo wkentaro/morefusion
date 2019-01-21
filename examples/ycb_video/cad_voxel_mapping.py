@@ -16,7 +16,7 @@ from tmp import VoxelMapper
 
 def get_uniform_points_on_sphere(radius=1, n_sample=10):
     elevation = np.linspace(-90, 90, n_sample)
-    azimuth = np.linspace(-180, 180, n_sample)
+    azimuth = np.linspace(-180, 180, n_sample, endpoint=False)
     elevation, azimuth = np.meshgrid(elevation, azimuth)
 
     # if elevation is -90 or 90, azimuth has no effect
