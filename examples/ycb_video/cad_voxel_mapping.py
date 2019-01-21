@@ -62,6 +62,7 @@ def get_rendered(visual_file, eyes, targets, height=256, width=256):
         rgba = np.asarray(rgba, dtype=np.uint8).reshape(H, W, 4)
         rgb = rgba[:, :, :3]
         depth = np.asarray(depth, dtype=np.float32).reshape(H, W)
+        depth[segm == -1] = np.nan
         segm = np.asarray(segm, dtype=np.int32)
         rendered.append((rgb, depth, segm))
 
@@ -108,10 +109,15 @@ class MainApp(object):
         targets = np.tile([[0, 0, 0]], (len(eyes), 1))
         rendered = get_rendered(visual_file, eyes, targets)
 
-        rgbs = list(zip(*rendered))[0]
-        viz = imgviz.tile(rgbs, shape=(5, int(np.ceil(len(rgbs) / 5.))))
+        viz = []
+        for rgb, depth, segm in rendered:
+            depth_viz = imgviz.depth2rgb(depth)
+            mask = (segm == 0).astype(np.uint8) * 255
+            viz.append(imgviz.tile([rgb, depth_viz, mask]))
+
+        viz = imgviz.tile(viz, border=(127, 127, 127))
         viz = imgviz.resize(viz, height=500)
-        imgviz.io.cv_imshow(viz)
+        imgviz.io.cv_imshow(viz, __file__)
         while imgviz.io.cv_waitkey() != ord('q'):
             pass
 
