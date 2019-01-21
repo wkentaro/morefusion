@@ -2,5 +2,5 @@
 flake8
 ipdb
 ipython
-pytest
 pycd
+pytest
