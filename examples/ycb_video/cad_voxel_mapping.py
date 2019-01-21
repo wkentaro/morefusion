@@ -10,13 +10,26 @@ import trimesh
 import objslampp
 
 
-def get_uniform_points_on_sphere(radius=1, n_points=10 * 10):
-    n_points_sqrt = int(np.sqrt(n_points).round())
-    elevation = np.linspace(-90, 90, n_points_sqrt)
-    azimuth = np.linspace(-180, 180, n_points_sqrt)
+def get_uniform_points_on_sphere(radius=1, n_sample=10):
+    elevation = np.linspace(-90, 90, n_sample)
+    azimuth = np.linspace(-180, 180, n_sample)
     elevation, azimuth = np.meshgrid(elevation, azimuth)
+
+    # if elevation is -90 or 90, azimuth has no effect
+    keep = elevation != -90
+    keep[np.argmin(keep)] = True
+    azimuth = azimuth[keep]
+    elevation = elevation[keep]
+
+    keep = elevation != 90
+    keep[np.argmin(keep)] = True
+    azimuth = azimuth[keep]
+    elevation = elevation[keep]
+
     elevation = elevation.flatten()
     azimuth = azimuth.flatten()
+
+    n_points = len(elevation)
     distance = np.full((n_points,), radius, dtype=float)
     points = objslampp.geometry.get_points_from_angles(
         distance, elevation, azimuth
@@ -40,7 +53,7 @@ def get_rendered(visual_file, eyes, targets, height=256, width=256):
             cameraTargetPosition=target,
             cameraUpVector=[0, -1, 0],
         )
-        H, W, rgba, *_ = pybullet.getCameraImage(
+        H, W, rgba, depth, segm = pybullet.getCameraImage(
             height,
             width,
             viewMatrix=view_matrix,
@@ -48,8 +61,9 @@ def get_rendered(visual_file, eyes, targets, height=256, width=256):
         )
         rgba = np.asarray(rgba, dtype=np.uint8).reshape(H, W, 4)
         rgb = rgba[:, :, :3]
-        mask = rgba[:, :, 3] != 0
-        rendered.append((rgb, mask))
+        depth = np.asarray(depth, dtype=np.float32).reshape(H, W)
+        segm = np.asarray(segm, dtype=np.int32)
+        rendered.append((rgb, depth, segm))
 
     pybullet.disconnect()
 
@@ -59,7 +73,8 @@ def get_rendered(visual_file, eyes, targets, height=256, width=256):
 class MainApp(object):
 
     def _get_eyes(self):
-        return get_uniform_points_on_sphere(radius=0.3, n_points=10 * 10)
+        eyes = get_uniform_points_on_sphere(radius=0.3, n_sample=10)
+        return eyes
 
     def plot_eyes(self):
         eyes = self._get_eyes()
@@ -94,7 +109,7 @@ class MainApp(object):
         rendered = get_rendered(visual_file, eyes, targets)
 
         rgbs = list(zip(*rendered))[0]
-        viz = imgviz.tile(rgbs, shape=(5, 20))
+        viz = imgviz.tile(rgbs, shape=(5, int(np.ceil(len(rgbs) / 5.))))
         viz = imgviz.resize(viz, height=500)
         imgviz.io.cv_imshow(viz)
         while imgviz.io.cv_waitkey() != ord('q'):
