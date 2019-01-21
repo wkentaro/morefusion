@@ -16,64 +16,78 @@ import objslampp
 here = pathlib.Path(__file__).resolve().parent
 
 
-def main():
-    models = objslampp.datasets.YCBVideoModels()
+class MainApp(object):
 
-    top_images = []
-    data = []
-    for model_dir in tqdm.tqdm(sorted(models.root_dir.iterdir())):
-        cad_file = model_dir / f'textured_simple.obj'
+    def _get_data(self):
+        models = objslampp.datasets.YCBVideoModels()
 
-        top_image = objslampp.sim.pybullet.get_top_image(cad_file)
-        top_images.append(top_image)
+        top_images = []
+        data = []
+        for model_dir in tqdm.tqdm(sorted(models.root_dir.iterdir())):
+            cad_file = model_dir / f'textured_simple.obj'
 
-        cad = trimesh.load(str(cad_file), file_type='obj', process=False)
+            top_image = objslampp.sim.pybullet.get_top_image(cad_file)
+            top_images.append(top_image)
 
-        name = model_dir.name
-        class_id = int(name.split('_')[0])
-        extents = cad.bounding_box.extents
-        bbox_max_size = np.sqrt((extents ** 2).sum())
-        voxel_size = bbox_max_size / 32.
+            cad = trimesh.load(str(cad_file), file_type='obj', process=False)
 
-        data.append((class_id, name, extents, bbox_max_size, voxel_size))
+            name = model_dir.name
+            class_id = int(name.split('_')[0])
+            extents = cad.bounding_box.extents
+            bbox_max_size = np.sqrt((extents ** 2).sum())
+            voxel_size = bbox_max_size / 32.
 
-    df = pandas.DataFrame(
-        data=data,
-        columns=['class_id', 'name', 'extents', 'bbox_max_size', 'voxel_size'],
-    )
-    csv_file = here / 'data/voxel_size.csv'
-    df.to_csv(str(csv_file))
-    print(f'Saved to: {csv_file}')
+            data.append((class_id, name, extents, bbox_max_size, voxel_size))
 
-    argsort = df['voxel_size'].argsort()[::-1]
-    df = df.iloc[argsort]
-    top_images = [top_images[i] for i in argsort]
+        df = pandas.DataFrame(
+            data=data,
+            columns=[
+                'class_id', 'name', 'extents', 'bbox_max_size', 'voxel_size'
+            ],
+        )
+        csv_file = here / 'data/voxel_size.csv'
+        df.to_csv(str(csv_file))
+        print(f'Saved to: {csv_file}')
 
-    print(df)
+        argsort = df['voxel_size'].argsort()[::-1]
+        df = df.iloc[argsort]
+        top_images = [top_images[i] for i in argsort]
 
-    # -------------------------------------------------------------------------
+        print(df)
+        return df, top_images
 
-    fig, axes = plt.subplots(2, 1)
+    def _plot(self, y='voxel_size', color='red'):
+        df, top_images = self._get_data()
 
-    df.plot.bar(
-        x='name',
-        y='voxel_size',
-        color=(0.1, 0.1, 0.1, 0.1),
-        edgecolor='red',
-        rot=45,
-        ax=axes[0],
-    )
-    axes[0].set_xlabel(None)
+        fig, axes = plt.subplots(2, 1)
 
-    top_images = imgviz.tile(top_images, shape=(1, len(top_images)))
-    axes[1].imshow(top_images)
-    axes[1].get_xaxis().set_visible(False)
-    axes[1].get_yaxis().set_visible(False)
+        df.plot.bar(
+            x='name',
+            y=y,
+            color=(0.1, 0.1, 0.1, 0.1),
+            edgecolor=color,
+            rot=45,
+            ax=axes[0],
+        )
+        axes[0].set_xlabel(None)
 
-    plt.suptitle('Voxel size of YCB_Video_Models')
-    # plt.tight_layout()
-    plt.show()
+        top_images = imgviz.tile(top_images, shape=(1, len(top_images)))
+        axes[1].imshow(top_images)
+        axes[1].get_xaxis().set_visible(False)
+        axes[1].get_yaxis().set_visible(False)
+
+        plt.suptitle(f'{y.capitalize()} of YCB_Video_Models')
+        # plt.tight_layout()
+        plt.show()
+
+    def plot_voxel_size(self):
+        self._plot(y='voxel_size', color='red')
+
+    def plot_bbox_max_size(self):
+        self._plot(y='bbox_max_size', color='blue')
 
 
 if __name__ == '__main__':
-    main()
+    import fire
+
+    fire.Fire(MainApp)

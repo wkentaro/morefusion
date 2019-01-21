@@ -18,7 +18,7 @@
 
 ## `voxel_size.py`
 
-<img src=".readme/voxel_size.jpg" height="200px" />
+<img src=".readme/voxel_size.jpg" height="200px" /> <img src=".readme/bbox_max_size.jpg" height="200px" />
 
 ## `cad_voxel_mapping.py`
 
