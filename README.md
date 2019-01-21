@@ -1,5 +1,7 @@
 # objslampp: Volumetric fusion and CAD alignment for object-level SLAM
 
+[![Build Status](https://travis-ci.com/wkentaro/objslampp.svg?token=zM5rExyvuRoJThsnqHAF&branch=master)](https://travis-ci.com/wkentaro/objslampp)
+
 
 ## Installation
 
