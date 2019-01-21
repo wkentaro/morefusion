@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-import argparse
-
 from chainer.backends import cuda
 from chainercv.links.model.resnet import ResNet50
 import imgviz
@@ -14,34 +12,23 @@ import trimesh.viewer
 
 import objslampp
 
+from tmp import VoxelMapper
+
 
 class MainApp(object):
 
-    voxel_size = 32
-    D = 3  # RGB
+    def __init__(self, gpu=0, channel='rgb'):
+        assert isinstance(gpu, int), 'gpu must be integer'
+        assert channel in ['rgb', 'res'], "channel must be 'rgb' or 'res'"
 
-    def __init__(self):
-        parser = argparse.ArgumentParser(
-            formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        self._channel = channel
+
+        self._dataset = objslampp.datasets.YCBVideoDataset()
+
+        self._class_id = None
+        self._mapper = VoxelMapper(
+            origin=None, pitch=None, voxel_size=32, nchannel=3
         )
-        parser.add_argument('--gpu', type=int, default=0, help='gpu id')
-        parser.add_argument(
-            '--feature',
-            choices=['rgb', 'res'],
-            default='rgb',
-            help='feature to fuse'
-        )
-        args = parser.parse_args()
-        self.args = args
-
-        self.dataset = objslampp.datasets.YCBVideoDataset()
-
-        self.class_id = None
-        self.pitch = None
-        self.origin = None
-        self.matrix = None
-        self.matrix_values = None
-        self.camera_transform = None
 
         scene = trimesh.Scene()
         scene.add_geometry(
@@ -51,11 +38,11 @@ class MainApp(object):
         )
         window = trimesh.viewer.SceneViewer(
             scene=scene,
-            callback=self.callback,
+            callback=self._callback,
             callback_period=0.1,
             start_loop=False,
         )
-        self.window = window
+        self._window = window
 
         scene.pause = True
         scene.index = 1000
@@ -73,51 +60,45 @@ class MainApp(object):
                 return
             print(f'key: {key}')
 
-        if args.feature == 'rgb':
-            return
+        if channel == 'res':
+            if gpu >= 0:
+                cuda.get_device_from_id(gpu).use()
+            self._resnet = ResNet50(pretrained_model='imagenet', arch='he')
+            self._resnet.pick = ['res4']
+            if gpu >= 0:
+                self._resnet.to_gpu()
+            self._nchannel2rgb = imgviz.Nchannel2RGB()
 
-        if args.gpu >= 0:
-            cuda.get_device_from_id(args.gpu).use()
-        self.resnet = ResNet50(pretrained_model='imagenet', arch='he')
-        self.resnet.pick = ['res4']
-        if args.gpu >= 0:
-            self.resnet.to_gpu()
-        self.nchannel2rgb = imgviz.Nchannel2RGB()
+        pyglet.app.run()
 
-    def extract_feature(self, rgb):
+    def _extract_feature(self, rgb):
         x = rgb.transpose(2, 0, 1)
-        x = x - self.resnet.mean
+        x = x - self._resnet.mean
         x = x[None]
-        if self.resnet.xp != np:
+        if self._resnet.xp != np:
             x = cuda.to_gpu(x)
-        feat, = self.resnet(x)
+        feat, = self._resnet(x)
         feat = cuda.to_cpu(feat[0].array)
         return feat.transpose(1, 2, 0)
 
-    def feature2rgb(self, feat, mask_fg):
-        dst = self.nchannel2rgb(feat, dtype=float)
+    def _feature2rgb(self, feat, mask_fg):
+        dst = self._nchannel2rgb(feat, dtype=float)
         H, W = mask_fg.shape[:2]
         dst = imgviz.resize(dst, height=H, width=W)
         dst = (dst * 255).astype(np.uint8)
         dst[~mask_fg] = 0
         return dst
 
-    def run(self):
-        pyglet.app.run()
-
-    @property
-    def voxel_bbox_extents(self):
-        return np.array((self.voxel_size * self.pitch,) * 3, dtype=float)
-
-    def callback(self, scene):
+    def _callback(self, scene):
         if scene.pause:
             return
 
-        image_id = self.dataset.imageset('train')[scene.index]
+        image_id = self._dataset.imageset('train')[scene.index]
 
         try:
-            frame = self.dataset.get_frame(image_id)
-            pcd_roi_flat, rgb_roi_flat = self.process_frame(frame)
+            frame = self._dataset.get_frame(image_id)
+            camera_transform, pcd_roi_flat, rgb_roi_flat = \
+                self._process_frame(frame)
         except Exception as e:
             print('An error occurs. Stopping..')
             print(e)
@@ -135,23 +116,18 @@ class MainApp(object):
 
         # voxel origin
         geom = trimesh.creation.axis(origin_size=0.01)
-        geom.apply_translation(self.origin)
+        geom.apply_translation(self._mapper.origin)
         if 'a' in scene.geometry:
             scene.geometry['a'] = geom
         else:
             scene.add_geometry(geom, node_name='a', geom_name='a')
-        # scene.add_geometry(geom, node_name='a', geom_name='a')
 
         geom = trimesh.creation.axis(origin_size=0.01)
-        geom.apply_transform(self.camera_transform)
+        geom.apply_transform(camera_transform)
         scene.add_geometry(geom)
 
         # voxel
-        geom = trimesh.voxel.Voxel(self.matrix, self.pitch, self.origin)
-        geom = geom.as_boxes()
-        I, J, K = zip(*np.argwhere(self.matrix))
-        geom.visual.face_colors = \
-            self.matrix_values[I, J, K].repeat(12, axis=0)
+        geom = self._mapper.as_boxes()
         if 'b' in scene.geometry:
             scene.geometry['b'] = geom
         else:
@@ -159,47 +135,44 @@ class MainApp(object):
 
         # voxel bbox
         if 'c' not in scene.geometry:
-            geom = objslampp.vis.trimesh.wired_box(
-                self.voxel_bbox_extents,
-                translation=self.origin + self.voxel_bbox_extents / 2,
-            )
+            geom = self._mapper.as_bbox()
             scene.add_geometry(geom, node_name='c', geom_name='c')
 
         scene.set_camera()  # to adjust camera location
-        self.window.on_resize(None, None)  # to adjust zfar
+        self._window.on_resize(None, None)  # to adjust zfar
 
         scene.index += 50
 
-    def process_frame(self, frame):
+    def _process_frame(self, frame):
         meta = frame['meta']
         K = meta['intrinsic_matrix']
         rgb = frame['color']
         depth = frame['depth']
         label = frame['label']
 
-        if self.class_id is None:
-            self.class_id = meta['cls_indexes'][2]
-            print(f'Initialized class_id: {self.class_id}')
+        if self._class_id is None:
+            self._class_id = meta['cls_indexes'][2]
+            print(f'Initialized class_id: {self._class_id}')
 
-            assert self.pitch is None
+            assert self._mapper.pitch is None
             df = pandas.read_csv('data/voxel_size.csv')
-            pitch = df['voxel_size'][df['class_id'] == self.class_id]
-            self.pitch = float(pitch)
-            print(f'Initialized pitch: {self.pitch}')
+            pitch = float(df['voxel_size'][df['class_id'] == self._class_id])
+            self._mapper.pitch = pitch
+            print(f'Initialized pitch: {self._mapper.pitch}')
 
-        mask = label == self.class_id
+        mask = label == self._class_id
         bbox = imgviz.instances.mask_to_bbox([mask])[0]
         y1, x1, y2, x2 = bbox.round().astype(int)
         pcd = objslampp.geometry.pointcloud_from_depth(
             depth, fx=K[0][0], fy=K[1][1], cx=K[0][2], cy=K[1][2]
         )
 
-        if self.args.feature == 'rgb':
+        if self._channel == 'rgb':
             rgb_roi = rgb[mask]
         else:
-            assert self.args.feature == 'res'
-            feat = self.extract_feature(rgb)
-            feat_viz = self.feature2rgb(feat, label != 0)
+            assert self._channel == 'res'
+            feat = self._extract_feature(rgb)
+            feat_viz = self._feature2rgb(feat, label != 0)
             rgb_roi = feat_viz[mask]
         rgb_roi_flat = rgb_roi.reshape(-1, 3)
 
@@ -213,38 +186,26 @@ class MainApp(object):
 
         T = meta['rotation_translation_matrix']
         T = np.r_[T, [[0, 0, 0, 1]]]
-        self.camera_transform = np.linalg.inv(T)
+        camera_transform = np.linalg.inv(T)
         # camera frame -> world frame
         pcd_roi_flat = trimesh.transform_points(
-            pcd_roi_flat, self.camera_transform
+            pcd_roi_flat, camera_transform
         )
 
-        aabb_min, aabb_max = objslampp.geometry.get_aabb_points(pcd_roi_flat)
-
-        # TODO(wkentaro): origin should be adjusted while scan
-        if self.origin is None:
+        if self._mapper.origin is None:
+            aabb_min, aabb_max = objslampp.geometry.get_aabb_from_points(
+                pcd_roi_flat
+            )
             aabb_extents = aabb_max - aabb_min
             aabb_center = aabb_extents / 2 + aabb_min
-            self.origin = aabb_center - self.voxel_bbox_extents / 2
-            assert self.matrix is None
-            assert self.matrix_values is None
-            self.matrix = np.zeros((self.voxel_size,) * 3, dtype=bool)
-            self.matrix_values = np.zeros(
-                (self.voxel_size,) * 3 + (self.D,), dtype=float
-            )
+            origin = aabb_center - self._mapper.voxel_bbox_extents / 2
+            self._mapper.origin = origin
+        self._mapper.add(pcd_roi_flat, rgb_roi_flat.astype(float) / 255)
 
-        indices = trimesh.voxel.points_to_indices(
-            pcd_roi_flat, self.pitch, self.origin
-        )
-        keep = ((indices >= 0) & (indices < self.voxel_size)).all(axis=1)
-        indices = indices[keep]
-        I, J, K = zip(*indices)
-        self.matrix[I, J, K] = True
-        # TODO(wkentaro): replace with average or max of feature
-        self.matrix_values[I, J, K] = rgb_roi_flat[keep].astype(float) / 255
-
-        return pcd_roi_flat, rgb_roi_flat
+        return camera_transform, pcd_roi_flat, rgb_roi_flat
 
 
 if __name__ == '__main__':
-    MainApp().run()
+    import fire
+
+    fire.Fire(MainApp)
