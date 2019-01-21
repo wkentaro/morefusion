@@ -22,4 +22,4 @@
 
 ## `cad_voxel_mapping.py`
 
-<img src="https://drive.google.com/uc?id=1eM9qyzKt1DFXh56V02hXuFlAYhNBs2g-" height="200px" />
+<img src="https://drive.google.com/uc?id=15MPxpoPrv2GlJaBKaSl_OaaC1_hv4PpS" height="200px" /> <img src="https://drive.google.com/uc?id=1EFC-7Vv4ci2nHcVbqySkpvVm43Eq-FYt" height="200px" /> <img src="https://drive.google.com/uc?id=10WeOMEh5qIdcdZcgbUHOW4D7aFkFisRd" height="200px" /> <img src="https://drive.google.com/uc?id=1yYwpKwQVTS61qagDauGkjjq_wTPpl-ea" height="200px" />
