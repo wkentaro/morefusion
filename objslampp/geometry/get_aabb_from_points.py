@@ -1,9 +1,11 @@
+import typing
+
 import numpy as np
 import open3d
 import scipy.cluster.hierarchy
 
 
-def voxel_down_sample(points, voxel_size):
+def voxel_down_sample(points: np.ndarray, voxel_size: float) -> np.ndarray:
     pcd = open3d.PointCloud()
     pcd.points = open3d.Vector3dVector(points)
     pcd = open3d.voxel_down_sample(pcd, voxel_size=voxel_size)
@@ -11,8 +13,9 @@ def voxel_down_sample(points, voxel_size):
     return dst_points
 
 
-def get_aabb_from_points(points):
-    # getting aabb
+def get_aabb_from_points(
+    points: np.ndarray
+) -> typing.Tuple[np.ndarray, np.ndarray]:
     pcd_roi_flat_down = voxel_down_sample(
         points=points, voxel_size=0.01
     )

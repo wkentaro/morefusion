@@ -2,6 +2,7 @@ import copy
 import math
 import typing
 
+import numpy as np
 import trimesh
 
 
@@ -13,7 +14,11 @@ def box_to_wired_box(
     return trimesh.load_path(box.vertices[indices])
 
 
-def wired_box(extents, transform=None, translation=None):
+def wired_box(
+    extents: typing.Union[tuple, list, np.ndarray],
+    transform: typing.Optional[np.ndarray] = None,
+    translation: typing.Optional[np.ndarray] = None,
+) -> typing.List[typing.Any]:
     box = trimesh.creation.box(extents=extents)
     if transform is not None:
         assert translation is None
@@ -24,7 +29,7 @@ def wired_box(extents, transform=None, translation=None):
     return box_to_wired_box(box.bounding_box)
 
 
-def _get_tile_shape(num):
+def _get_tile_shape(num: int) -> typing.Tuple[int, int]:
     x_num = int(math.sqrt(num))  # floor
     y_num = 0
     while x_num * y_num < num:
@@ -32,7 +37,10 @@ def _get_tile_shape(num):
     return x_num, y_num
 
 
-def tile_meshes(meshes, shape=None):
+def tile_meshes(
+    meshes: typing.List[typing.Any],
+    shape: typing.Optional[tuple] = None,
+) -> trimesh.Scene:
     meshes = copy.deepcopy(meshes)
 
     if shape is None:

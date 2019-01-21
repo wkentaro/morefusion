@@ -1,4 +1,5 @@
 import pathlib
+import typing
 
 import numpy as np
 import trimesh
@@ -10,7 +11,7 @@ from ..vis._trimesh import wired_box
 unique_ids = []
 
 
-def init_world(up='z'):
+def init_world(up: str = 'z') -> None:
     import pybullet
     import pybullet_data
 
@@ -30,7 +31,8 @@ def init_world(up='z'):
         raise ValueError(f'Unsupported up direction: {up}')
 
 
-def get_debug_visualizer_image():
+def get_debug_visualizer_image(
+) -> typing.Tuple[np.ndarrray, np.ndarray, np.ndarray]:
     import pybullet
 
     width, height, *_ = pybullet.getDebugVisualizerCamera()
@@ -42,22 +44,21 @@ def get_debug_visualizer_image():
 
 
 def add_model(
-    visual_file,
-    collision_file=None,
-    position=None,
-    orientation=None,
-    mesh_scale=None,
-    com_position=None,
-    register=True,
+    visual_file: typing.Union[str, pathlib.Path],
+    collision_file: typing.Optional[typing.Union[str, pathlib.Path]] = None,
+    position: typing.Optional[typing.Sequence] = None,
+    orientation: typing.Optional[typing.Sequence] = None,
+    mesh_scale:
+        typing.Optional[typing.Union[int, float, typing.Sequence]] = None,
+    com_position: typing.Optional[typing.Sequence] = None,
+    register: bool = True,
 ):
     import pybullet
 
-    if isinstance(visual_file, pathlib.Path):
-        visual_file = str(visual_file)
-    if isinstance(collision_file, pathlib.Path):
-        collision_file = str(collision_file)
+    visual_file = str(visual_file)
     if collision_file is None:
         collision_file = visual_file
+    collision_file = str(collision_file)
 
     if com_position is None:
         import trimesh
@@ -116,7 +117,7 @@ def shape_id_to_str(shape_id):
     return id_to_str[shape_id]
 
 
-def get_trimesh_scene(axis=False, bbox=False):
+def get_trimesh_scene(axis: bool = False, bbox: bool = False) -> trimesh.Scene:
     """Returns trimesh scene."""
     import pybullet
 
@@ -127,7 +128,7 @@ def get_trimesh_scene(axis=False, bbox=False):
         mesh_file = mesh_file.decode()
         if pybullet.GEOM_MESH != shape_id:
             raise ValueError(
-                f'Unsupported shape_id: {shape_id_to_str[shape_id]}'
+                f'Unsupported shape_id: {shape_id_to_str(shape_id)}'
             )
 
         pos, ori = pybullet.getBasePositionAndOrientation(unique_id)
@@ -158,7 +159,7 @@ def get_trimesh_scene(axis=False, bbox=False):
     return scene
 
 
-def aabb_contained_ratio(aabb1=None, aabb2=None):
+def aabb_contained_ratio(aabb1, aabb2) -> float:
     """Returns how much aabb2 is contained by aabb1."""
     import pybullet
 
@@ -194,7 +195,7 @@ def aabb_contained_ratio(aabb1=None, aabb2=None):
     return ratio
 
 
-def get_top_image(visual_file):
+def get_top_image(visual_file: typing.Union[str, pathlib.Path]) -> np.ndarray:
     import pybullet
 
     pybullet.connect(pybullet.DIRECT)

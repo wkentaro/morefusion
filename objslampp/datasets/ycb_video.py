@@ -1,8 +1,10 @@
 import pathlib
 import shutil
+import typing
 
 import gdown
 import imgviz
+import numpy as np
 import scipy.io
 
 
@@ -15,7 +17,7 @@ class YCBVideoDataset(object):
             self.download()
 
     @classmethod
-    def download(cls):
+    def download(cls) -> None:
         url = 'https://drive.google.com/uc?id=1if4VoEXNx9W3XCn0Y7Fp15B4GpcYbyYi'  # NOQA
         md5 = None  # 'c9122e177a766a9691cab13c5cda41a9'
         gdown.cached_download(
@@ -25,29 +27,29 @@ class YCBVideoDataset(object):
             postprocess=gdown.extractall,
         )
 
-    def imageset(self, split):
+    def imageset(self, split: str) -> typing.List[str]:
         assert split in ['train', 'val', 'trainval']
-        imageset_file = self.root_dir / f'image_sets/{split}.txt'
+        imageset_file: pathlib.Path = self.root_dir / f'image_sets/{split}.txt'
         with open(imageset_file) as f:
             imageset = [l.strip() for l in f.readlines()]
         return imageset
 
-    def get_frame(self, image_id):
+    def get_frame(self, image_id: str) -> dict:
         meta_file = self.root_dir / 'data' / (image_id + '-meta.mat')
         meta = scipy.io.loadmat(
             meta_file, squeeze_me=True, struct_as_record=True
         )
 
         color_file = self.root_dir / 'data' / (image_id + '-color.png')
-        color = imgviz.io.imread(color_file)
+        color: np.ndarray = imgviz.io.imread(color_file)
 
         depth_file = self.root_dir / 'data' / (image_id + '-depth.png')
-        depth = imgviz.io.imread(depth_file)
+        depth: np.ndarray = imgviz.io.imread(depth_file)
         depth = depth.astype(float) / meta['factor_depth']
         depth[depth == 0] = float('nan')
 
         label_file = self.root_dir / 'data' / (image_id + '-label.png')
-        label = imgviz.io.imread(label_file)
+        label: np.ndarray = imgviz.io.imread(label_file)
 
         return dict(
             meta=meta,
@@ -66,11 +68,11 @@ class YCBVideoModels(object):
             self.download()
 
     @classmethod
-    def download(cls):
+    def download(cls) -> None:
         url = 'https://drive.google.com/uc?id=1gmcDD-5bkJfcMKLZb3zGgH_HUFbulQWu'  # NOQA
         md5 = 'd3efe74e77fe7d7ca216dde4b7d217fa'
 
-        def postprocess(path):
+        def postprocess(path: pathlib.Path):
             gdown.extractall(path)
             path_extracted = path.parent / 'models'
             shutil.move(

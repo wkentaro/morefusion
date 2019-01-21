@@ -1,4 +1,8 @@
+import typing
+
 import numpy as np
+
+from .get_homography_Rt import get_homography_Rt
 
 
 def normalize(x: np.ndarray) -> np.ndarray:
@@ -6,19 +10,11 @@ def normalize(x: np.ndarray) -> np.ndarray:
     return x / np.linalg.norm(x)
 
 
-def get_homography_Rt(R=None, t=None):
-    assert R.shape == (3, 3), 'rotation matrix R must be (3, 3) float'
-    assert t.shape == (3,), 'translation vector t must be (3,) float'
-
-    transform = np.eye(4)
-    if R is not None:
-        transform[:3, :3] = R
-    if t is not None:
-        transform[:3, 3] = t
-    return transform
-
-
-def look_at(eye, at=None, up=None):
+def look_at(
+    eye,
+    at: typing.Optional[typing.Any] = None,
+    up: typing.Optional[typing.Any] = None,
+) -> np.ndarray:
     """Returns transformation matrix with eye, at and up.
 
     Parameters
@@ -46,15 +42,17 @@ def look_at(eye, at=None, up=None):
                 y, np.linalg.inv(T_cam2world)
             )
     """
+    eye = np.asarray(eye, dtype=float)
+
     if at is None:
         at = np.array([0, 0, 0], dtype=float)
     else:
-        at = np.array(at, dtype=float)
+        at = np.asarray(at, dtype=float)
 
     if up is None:
         up = np.array([0, 1, 0], dtype=float)
     else:
-        up = np.array(up, dtype=float)
+        up = np.asarray(up, dtype=float)
 
     assert eye.shape == (3,), 'eye must be (3,) float'
     assert at.shape == (3,), 'at must be (3,) float'

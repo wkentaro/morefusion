@@ -1,8 +1,15 @@
+import typing
+
 import chainer
 import numpy as np
 
 
-def get_points_from_angles(distance, elevation, azimuth, degrees=True):
+def get_points_from_angles(
+    distance: typing.Any,
+    elevation: typing.Any,
+    azimuth: typing.Any,
+    degrees: bool = True,
+):
     if isinstance(distance, float) or isinstance(distance, int):
         if degrees:
             elevation = np.radians(elevation)

@@ -7,8 +7,8 @@ def pointcloud_from_depth(
     fy: float,
     cx: float,
     cy: float,
-    depth_type: str='z',
-):
+    depth_type: str = 'z',
+) -> np.ndarray:
     assert depth_type in ['z', 'euclidean'], 'Unexpected depth_type'
     assert depth.dtype.kind == 'f', 'depth must be float and have meter values'
 
