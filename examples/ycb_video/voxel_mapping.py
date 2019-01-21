@@ -11,7 +11,6 @@ import trimesh.viewer
 import objslampp
 
 from tmp import ResNetFeatureExtractor
-from tmp import VoxelMapper
 
 
 class MainApp(object):
@@ -25,7 +24,7 @@ class MainApp(object):
         self._dataset = objslampp.datasets.YCBVideoDataset()
 
         self._class_id = None
-        self._mapper = VoxelMapper(
+        self._mapping = objslampp.geometry.VoxelMapping(
             origin=None, pitch=None, voxel_size=32, nchannel=3
         )
 
@@ -91,7 +90,7 @@ class MainApp(object):
 
         # voxel origin
         geom = trimesh.creation.axis(origin_size=0.01)
-        geom.apply_translation(self._mapper.origin)
+        geom.apply_translation(self._mapping.origin)
         if 'a' in scene.geometry:
             scene.geometry['a'] = geom
         else:
@@ -102,7 +101,7 @@ class MainApp(object):
         scene.add_geometry(geom)
 
         # voxel
-        geom = self._mapper.as_boxes()
+        geom = self._mapping.as_boxes()
         if 'b' in scene.geometry:
             scene.geometry['b'] = geom
         else:
@@ -110,7 +109,7 @@ class MainApp(object):
 
         # voxel bbox
         if 'c' not in scene.geometry:
-            geom = self._mapper.as_bbox()
+            geom = self._mapping.as_bbox()
             scene.add_geometry(geom, node_name='c', geom_name='c')
 
         scene.set_camera()  # to adjust camera location
@@ -129,11 +128,11 @@ class MainApp(object):
             self._class_id = meta['cls_indexes'][2]
             print(f'Initialized class_id: {self._class_id}')
 
-            assert self._mapper.pitch is None
+            assert self._mapping.pitch is None
             df = pandas.read_csv('data/voxel_size.csv')
             pitch = float(df['voxel_size'][df['class_id'] == self._class_id])
-            self._mapper.pitch = pitch
-            print(f'Initialized pitch: {self._mapper.pitch}')
+            self._mapping.pitch = pitch
+            print(f'Initialized pitch: {self._mapping.pitch}')
 
         mask = label == self._class_id
         bbox = imgviz.instances.mask_to_bbox([mask])[0]
@@ -167,15 +166,15 @@ class MainApp(object):
             pcd_roi_flat, camera_transform
         )
 
-        if self._mapper.origin is None:
+        if self._mapping.origin is None:
             aabb_min, aabb_max = objslampp.geometry.get_aabb_from_points(
                 pcd_roi_flat
             )
             aabb_extents = aabb_max - aabb_min
             aabb_center = aabb_extents / 2 + aabb_min
-            origin = aabb_center - self._mapper.voxel_bbox_extents / 2
-            self._mapper.origin = origin
-        self._mapper.add(pcd_roi_flat, rgb_roi_flat.astype(float) / 255)
+            origin = aabb_center - self._mapping.voxel_bbox_extents / 2
+            self._mapping.origin = origin
+        self._mapping.add(pcd_roi_flat, rgb_roi_flat.astype(float) / 255)
 
         return camera_transform, pcd_roi_flat, rgb_roi_flat
 

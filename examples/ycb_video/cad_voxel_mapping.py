@@ -10,7 +10,6 @@ import trimesh
 import objslampp
 
 from tmp import ResNetFeatureExtractor
-from tmp import VoxelMapper
 
 
 def get_uniform_points_on_sphere(radius=1, n_sample=10):
@@ -214,7 +213,7 @@ class MainApp(object):
         df = pandas.read_csv('data/voxel_size.csv')
         pitch = float(df['voxel_size'][df['class_id'] == class_id])
 
-        mapper = VoxelMapper(
+        mapping = objslampp.geometry.VoxelMapping(
             origin=(-16 * pitch,) * 3,
             pitch=pitch,
             voxel_size=32,
@@ -241,20 +240,20 @@ class MainApp(object):
 
             points = trimesh.transform_points(points, T)
 
-            mapper.add(points=points, values=colors / 255.)
+            mapping.add(points=points, values=colors / 255.)
 
         scene = trimesh.Scene()
 
         scene.add_geometry(trimesh.creation.axis(0.01))
 
         geom = trimesh.creation.axis(0.01)
-        geom.apply_translation(mapper.origin)
+        geom.apply_translation(mapping.origin)
         scene.add_geometry(geom)
 
-        geom = mapper.as_boxes()
+        geom = mapping.as_boxes()
         scene.add_geometry(geom)
 
-        geom = mapper.as_bbox()
+        geom = mapping.as_bbox()
         scene.add_geometry(geom)
 
         scene.show()
