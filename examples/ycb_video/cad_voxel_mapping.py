@@ -112,7 +112,10 @@ class MainApp(object):
 
         scene.show()
 
-    def plot_views(self):
+    def plot_views(self, res=False, gpu=0):
+        if res:
+            res = ResNetFeatureExtractor(gpu=gpu)
+
         models = objslampp.datasets.YCBVideoModels()
         visual_file = (
             models.root_dir / '002_master_chef_can/textured_simple.obj'
@@ -127,7 +130,14 @@ class MainApp(object):
         for rgb, depth, segm in rendered:
             depth_viz = depth2rgb(depth)
             mask = (segm == 0).astype(np.uint8) * 255
-            viz.append(imgviz.tile([rgb, depth_viz, mask]))
+            if res:
+                feat = res.extract_feature(rgb)
+                feat_viz = res.feature2rgb(feat, segm != -1)
+                viz.append(
+                    imgviz.tile([rgb, depth_viz, mask, feat_viz], (1, 4))
+                )
+            else:
+                viz.append(imgviz.tile([rgb, depth_viz, mask]))
 
         viz = imgviz.tile(viz, border=(127, 127, 127))
         viz = imgviz.resize(viz, height=500)
