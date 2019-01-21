@@ -16,8 +16,8 @@ def pointcloud_from_depth(
     c, r = np.meshgrid(np.arange(cols), np.arange(rows), sparse=True)
     valid = ~np.isnan(depth)
     z = np.where(valid, depth, np.nan)
-    x = np.where(valid, z * (c - cx) / fx, 0)
-    y = np.where(valid, z * (r - cy) / fy, 0)
+    x = np.where(valid, z * (c - cx) / fx, np.nan)
+    y = np.where(valid, z * (r - cy) / fy, np.nan)
     pc = np.dstack((x, y, z))
 
     if depth_type == 'euclidean':
