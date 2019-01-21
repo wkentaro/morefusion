@@ -32,7 +32,7 @@ def init_world(up: str = 'z') -> None:
 
 
 def get_debug_visualizer_image(
-) -> typing.Tuple[np.ndarrray, np.ndarray, np.ndarray]:
+) -> typing.Tuple[np.ndarray, np.ndarray, np.ndarray]:
     import pybullet
 
     width, height, *_ = pybullet.getDebugVisualizerCamera()
