@@ -38,12 +38,19 @@ def get_uniform_points_on_sphere(radius=1, n_sample=10):
 
 
 def get_rendered(visual_file, eyes, targets, height=256, width=256):
-    pybullet.connect(pybullet.DIRECT)
+    opengl = 0
+
+    if opengl:
+        pybullet.connect(pybullet.GUI)
+    else:
+        pybullet.connect(pybullet.DIRECT)
 
     objslampp.sim.pybullet.add_model(visual_file=visual_file, register=False)
 
+    near = 0.01
+    far = 1000.
     projection_matrix = pybullet.computeProjectionMatrixFOV(
-        fov=60, aspect=1. * width / height, nearVal=0.01, farVal=100,
+        fov=60, aspect=1. * width / height, nearVal=near, farVal=far
     )
 
     rendered = []
@@ -51,7 +58,7 @@ def get_rendered(visual_file, eyes, targets, height=256, width=256):
         view_matrix = pybullet.computeViewMatrix(
             cameraEyePosition=eye,
             cameraTargetPosition=target,
-            cameraUpVector=[0, -1, 0],
+            cameraUpVector=[0, 1, 0],
         )
         H, W, rgba, depth, segm = pybullet.getCameraImage(
             height,
@@ -61,9 +68,13 @@ def get_rendered(visual_file, eyes, targets, height=256, width=256):
         )
         rgba = np.asarray(rgba, dtype=np.uint8).reshape(H, W, 4)
         rgb = rgba[:, :, :3]
-        depth = np.asarray(depth, dtype=np.float32).reshape(H, W)
-        depth[segm == -1] = np.nan
+
         segm = np.asarray(segm, dtype=np.int32)
+
+        depth = np.asarray(depth, dtype=np.float32).reshape(H, W)
+        depth = far * near / (far - (far - near) * depth)
+        depth[segm == -1] = np.nan
+
         rendered.append((rgb, depth, segm))
 
     pybullet.disconnect()
@@ -74,7 +85,7 @@ def get_rendered(visual_file, eyes, targets, height=256, width=256):
 class MainApp(object):
 
     def _get_eyes(self):
-        eyes = get_uniform_points_on_sphere(radius=0.3, n_sample=10)
+        eyes = get_uniform_points_on_sphere(radius=0.3, n_sample=5)
         return eyes
 
     def plot_eyes(self):
@@ -110,8 +121,9 @@ class MainApp(object):
         rendered = get_rendered(visual_file, eyes, targets)
 
         viz = []
+        depth2rgb = imgviz.Depth2RGB()
         for rgb, depth, segm in rendered:
-            depth_viz = imgviz.depth2rgb(depth)
+            depth_viz = depth2rgb(depth)
             mask = (segm == 0).astype(np.uint8) * 255
             viz.append(imgviz.tile([rgb, depth_viz, mask]))
 
@@ -120,6 +132,53 @@ class MainApp(object):
         imgviz.io.cv_imshow(viz, __file__)
         while imgviz.io.cv_waitkey() != ord('q'):
             pass
+
+    def plot_pointcloud(self):
+        models = objslampp.datasets.YCBVideoModels()
+        visual_file = (
+            models.root_dir / '002_master_chef_can/textured_simple.obj'
+        )
+
+        eyes = self._get_eyes()
+        targets = np.tile([[0, 0, 0]], (len(eyes), 1))
+        rendered = get_rendered(visual_file, eyes, targets)
+
+        # ---------------------------------------------------------------------
+
+        scene = trimesh.Scene()
+
+        # world origin
+        geom = trimesh.creation.axis(
+            origin_size=0.01, origin_color=(255, 0, 0)
+        )
+        scene.add_geometry(geom)
+
+        camera = trimesh.scene.Camera(resolution=(256, 256), fov=(60, 60))
+        K = camera.K
+        for eye, target, (rgb, depth, segm) in zip(eyes, targets, rendered):
+
+            # it transforms: camera frame -> world frame
+            T = objslampp.geometry.look_at(eye, target, up=[0, -1, 0])
+
+            # camera origin
+            geom = trimesh.creation.axis(origin_size=0.01)
+            geom.apply_transform(T)
+            scene.add_geometry(geom)
+
+            points = objslampp.geometry.pointcloud_from_depth(
+                depth, fx=K[0, 0], fy=K[1, 1], cx=K[0, 2], cy=K[1, 2]
+            )
+
+            valid = ~np.isnan(depth)
+            colors = rgb[valid]
+            points = points[valid]
+
+            points = trimesh.transform_points(points, T)
+
+            geom = trimesh.PointCloud(vertices=points, color=colors)
+            scene.add_geometry(geom)
+
+        scene.show()
 
 
 if __name__ == '__main__':
