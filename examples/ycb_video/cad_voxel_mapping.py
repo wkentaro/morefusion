@@ -37,10 +37,8 @@ def get_uniform_points_on_sphere(radius=1, n_sample=10):
     return points
 
 
-def get_rendered(visual_file, eyes, targets, height=256, width=256):
-    opengl = 0
-
-    if opengl:
+def get_rendered(visual_file, eyes, targets, height=256, width=256, gui=False):
+    if gui:
         pybullet.connect(pybullet.GUI)
     else:
         pybullet.connect(pybullet.DIRECT)
