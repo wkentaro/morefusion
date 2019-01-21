@@ -4,10 +4,14 @@ import imgviz
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D  # NOQA
 import numpy as np
+import pandas
 import pybullet
 import trimesh
 
 import objslampp
+
+from tmp import ResNetFeatureExtractor
+from tmp import VoxelMapper
 
 
 def get_uniform_points_on_sphere(radius=1, n_sample=10):
@@ -175,6 +179,72 @@ class MainApp(object):
 
             geom = trimesh.PointCloud(vertices=points, color=colors)
             scene.add_geometry(geom)
+
+        scene.show()
+
+    def voxel_mapping(self, channel='rgb', gpu=0):
+        assert channel in ['rgb', 'res']
+
+        if channel == 'res':
+            res = ResNetFeatureExtractor(gpu=gpu)
+
+        models = objslampp.datasets.YCBVideoModels()
+        visual_file = (
+            models.root_dir / '002_master_chef_can/textured_simple.obj'
+        )
+
+        eyes = self._get_eyes()
+        targets = np.tile([[0, 0, 0]], (len(eyes), 1))
+        rendered = get_rendered(visual_file, eyes, targets)
+
+        # ---------------------------------------------------------------------
+
+        class_id = 2
+        df = pandas.read_csv('data/voxel_size.csv')
+        pitch = float(df['voxel_size'][df['class_id'] == class_id])
+
+        mapper = VoxelMapper(
+            origin=(-16 * pitch,) * 3,
+            pitch=pitch,
+            voxel_size=32,
+            nchannel=3,
+        )
+
+        camera = trimesh.scene.Camera(resolution=(256, 256), fov=(60, 60))
+        K = camera.K
+        for eye, target, (rgb, depth, segm) in zip(eyes, targets, rendered):
+            if channel == 'res':
+                feat = res.extract_feature(rgb)
+                rgb = res.feature2rgb(feat, segm != -1)
+
+            # it transforms: camera frame -> world frame
+            T = objslampp.geometry.look_at(eye, target, up=[0, -1, 0])
+
+            points = objslampp.geometry.pointcloud_from_depth(
+                depth, fx=K[0, 0], fy=K[1, 1], cx=K[0, 2], cy=K[1, 2]
+            )
+
+            valid = ~np.isnan(depth)
+            colors = rgb[valid]
+            points = points[valid]
+
+            points = trimesh.transform_points(points, T)
+
+            mapper.add(points=points, values=colors / 255.)
+
+        scene = trimesh.Scene()
+
+        scene.add_geometry(trimesh.creation.axis(0.01))
+
+        geom = trimesh.creation.axis(0.01)
+        geom.apply_translation(mapper.origin)
+        scene.add_geometry(geom)
+
+        geom = mapper.as_boxes()
+        scene.add_geometry(geom)
+
+        geom = mapper.as_bbox()
+        scene.add_geometry(geom)
 
         scene.show()
 
