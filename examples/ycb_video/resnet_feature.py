@@ -1,64 +1,33 @@
 #!/usr/bin/env python
 
-import argparse
-
-from chainer.backends import cuda
-from chainercv.links.model.resnet import ResNet50
 import imgviz
 import numpy as np
 import termcolor
 
 import objslampp
 
+from tmp import ResNetFeatureExtractor
+
 
 class MainApp(object):
 
-    def __init__(self):
-        parser = argparse.ArgumentParser(
-            formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        )
-        parser.add_argument('--gpu', type=int, default=0, help='gpu id')
-        args = parser.parse_args()
+    def __init__(self, gpu=0):
+        self._dataset = objslampp.datasets.YCBVideoDataset()
+        self._res = ResNetFeatureExtractor(gpu=gpu)
 
-        self.dataset = objslampp.datasets.YCBVideoDataset()
+        self._mainloop()
 
-        if args.gpu >= 0:
-            cuda.get_device_from_id(args.gpu).use()
-        self.resnet = ResNet50(pretrained_model='imagenet', arch='he')
-        self.resnet.pick = ['res4']
-        if args.gpu >= 0:
-            self.resnet.to_gpu()
-        self.nchannel2rgb = imgviz.Nchannel2RGB()
-
-    def extract_feature(self, rgb):
-        x = rgb.transpose(2, 0, 1)
-        x = x - self.resnet.mean
-        x = x[None]
-        if self.resnet.xp != np:
-            x = cuda.to_gpu(x)
-        feat, = self.resnet(x)
-        feat = cuda.to_cpu(feat[0].array)
-        return feat.transpose(1, 2, 0)
-
-    def feature2rgb(self, feat, mask_fg):
-        dst = self.nchannel2rgb(feat, dtype=float)
-        H, W = mask_fg.shape[:2]
-        dst = imgviz.resize(dst, height=H, width=W)
-        dst = (dst * 255).astype(np.uint8)
-        dst[~mask_fg] = 0
-        return dst
-
-    def run(self):
+    def _mainloop(self):
         index = 0
-        imageset = self.dataset.imageset('train')
+        imageset = self._dataset.imageset('train')
 
         play = False
         while True:
             image_id = imageset[index]
             termcolor.cprint(f'[{index}] {image_id}', attrs={'bold': True})
 
-            frame = self.dataset.get_frame(image_id)
-            image = self.process_frame(frame)
+            frame = self._dataset.get_frame(image_id)
+            image = self._process_frame(frame)
 
             imgviz.io.cv_imshow(image, __file__)
 
@@ -81,7 +50,7 @@ class MainApp(object):
             elif key == 'q':
                 break
 
-    def process_frame(self, frame):
+    def _process_frame(self, frame):
         meta = frame['meta']
         color = frame['color']
 
@@ -106,8 +75,8 @@ class MainApp(object):
         vert_viz_y = imgviz.depth2rgb(vertmap[:, :, 1])
         vert_viz_z = imgviz.depth2rgb(vertmap[:, :, 2])
 
-        feat = self.extract_feature(color)
-        feat_viz = self.feature2rgb(feat, label != 0)
+        feat = self._res.extract_feature(color)
+        feat_viz = self._res.feature2rgb(feat, label != 0)
 
         roi_viz_color = []
         roi_viz_depth = []
@@ -153,4 +122,6 @@ class MainApp(object):
 
 
 if __name__ == '__main__':
-    MainApp().run()
+    import fire
+
+    fire.Fire(MainApp)
