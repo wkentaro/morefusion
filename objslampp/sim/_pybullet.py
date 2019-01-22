@@ -52,7 +52,7 @@ def add_model(
         typing.Optional[typing.Union[int, float, typing.Sequence]] = None,
     com_position: typing.Optional[typing.Sequence] = None,
     register: bool = True,
-):
+) -> int:
     import pybullet
 
     visual_file = str(visual_file)
@@ -103,7 +103,7 @@ def add_model(
     return unique_id
 
 
-def shape_id_to_str(shape_id):
+def shape_id_to_str(shape_id: int) -> str:
     import pybullet
 
     id_to_str = {
