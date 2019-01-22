@@ -59,13 +59,13 @@ def look_at(
     assert up.shape == (3,), 'at must be (3,) float'
 
     # create new axes
-    z_axis = normalize(at - eye)
-    x_axis = normalize(np.cross(up, z_axis))
-    y_axis = normalize(np.cross(z_axis, x_axis))
+    z_axis: np.ndarray = normalize(at - eye)
+    x_axis: np.ndarray = normalize(np.cross(up, z_axis))
+    y_axis: np.ndarray = normalize(np.cross(z_axis, x_axis))
 
     # create rotation matrix: [bs, 3, 3]
-    R = np.vstack((x_axis, y_axis, z_axis))
-    t = eye
+    R: np.ndarray = np.vstack((x_axis, y_axis, z_axis))
+    t: np.ndarray = eye
 
-    T_cam2world = get_homography_Rt(R=R.T, t=t)
+    T_cam2world: np.ndarray = get_homography_Rt(R=R.T, t=t)
     return T_cam2world
