@@ -1,14 +1,14 @@
 from __future__ import print_function
 
 import inspect
-import sys
+import types
 import typing
 
 import contextlib
 import time
 
 
-def find_caller(frame):
+def find_caller(frame: types.FrameType):
     co = frame.f_code
     func_name = co.co_name
 
@@ -26,14 +26,17 @@ def find_caller(frame):
 def timer(name: typing.Optional[str] = None) -> typing.Iterator:
     t0 = time.time()
     yield
-    caller = find_caller(inspect.currentframe().f_back.f_back)
-    if name is None:
-        print(
-            f'[INFO] [{caller}] elapsed time: {time.time() - t0} [s]',
-            file=sys.stderr,
-        )
+
+    frame = inspect.currentframe()
+    if frame is None:
+        caller = None
     else:
-        print(
-            f'[INFO] [{caller}] [{name}] elapsed time: {time.time() - t0} [s]',
-            file=sys.stderr,
-        )
+        caller = find_caller(frame.f_back.f_back)
+
+    msg = '[INFO]'
+    if caller:
+        msg += f' [{caller}]'
+    if name:
+        msg += f' [{name}]'
+    msg += f' elapsed time: {time.time() - t0} [s]'
+    print(msg)
