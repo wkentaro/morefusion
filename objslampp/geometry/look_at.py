@@ -28,15 +28,10 @@ def look_at(
 
     Returns
     -------
-    R, t: (3, 3) float, (3,) float (if return_homography is False)
-        Rotation matrix and translation vector.
-        Points are transformed like below:
-            y = (x - t) @ R.T  (transform points world -> camera)
-            x = (y @ R) + t    (transform points camera -> world)
-
     T_cam2world: (4, 4) float (if return_homography is True)
         Homography transformation matrix from camera to world.
         Points are transformed like below:
+            # x: camera coordinate, y: world coordinate
             y = trimesh.transforms.transform_points(x, T_cam2world)
             x = trimesh.transforms.transform_points(
                 y, np.linalg.inv(T_cam2world)
