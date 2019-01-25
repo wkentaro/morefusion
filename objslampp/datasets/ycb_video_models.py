@@ -1,7 +1,10 @@
 import pathlib
 import shutil
+import typing
 
 import gdown
+
+from .ycb import class_id_to_name
 
 
 class YCBVideoModelsDataset(object):
@@ -31,3 +34,20 @@ class YCBVideoModelsDataset(object):
     def __init__(self):
         if not self.root_dir.exists():
             self.download()
+
+    def get_model(
+        self,
+        class_id: typing.Optional[int] = None,
+        class_name: typing.Optional[str] = None,
+    ):
+        if class_name is None:
+            if class_id is None:
+                raise ValueError(
+                    'either class_id or class_name must not be None'
+                )
+            else:
+                class_name = class_id_to_name[class_id]
+
+        return {
+            'cad_simple': self.root_dir / class_name / 'textured_simple.obj'
+        }
