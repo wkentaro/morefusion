@@ -21,7 +21,7 @@ class MainApp(object):
 
         self._channel = channel
 
-        self._dataset = objslampp.datasets.YCBVideoDataset()
+        self._dataset = objslampp.datasets.YCBVideoDataset(split='train')
 
         self._class_id = None
         self._mapping = objslampp.geometry.VoxelMapping(
@@ -67,10 +67,10 @@ class MainApp(object):
         if scene.pause:
             return
 
-        image_id = self._dataset.imageset('train')[scene.index]
+        image_id = self._dataset.imageset[scene.index]
 
         try:
-            frame = self._dataset.get_frame(image_id)
+            frame = self._dataset[scene.index]
             camera_transform, pcd_roi_flat, rgb_roi_flat = \
                 self._process_frame(frame)
         except Exception as e:
