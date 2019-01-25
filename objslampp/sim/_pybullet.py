@@ -265,13 +265,16 @@ def render_views(visual_file, eyes, targets, height=256, width=256, gui=False):
         rgbs.append(rgb)
         depths.append(depth)
         segms.append(segm)
+    rgbs = np.asarray(rgbs)
+    depths = np.asarray(depths)
+    segms = np.asarray(segms)
 
     pybullet.disconnect()
 
     K = trimesh.scene.Camera(resolution=(256, 256), fov=(60, 60)).K
-    Ts_cam2world = [
+    Ts_cam2world = np.asarray([
         geometry.look_at(eye, target, up=[0, -1, 0])
         for eye, target in zip(eyes, targets)
-    ]
+    ])
 
     return K, Ts_cam2world, rgbs, depths, segms
