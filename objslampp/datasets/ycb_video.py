@@ -13,6 +13,17 @@ class YCBVideoDataset(object):
     root_dir: pathlib.Path = \
         pathlib.Path.home() / 'data/datasets/YCB/YCB_Video_Dataset'
 
+    @staticmethod
+    def get_image_id(
+        scene_id: typing.Union[int, str],
+        frame_id: typing.Union[int, str],
+    ) -> str:
+        if isinstance(scene_id, int):
+            scene_id = f'{scene_id:04d}'
+        if isinstance(frame_id, int):
+            frame_id = f'{frame_id:06d}'
+        return f'{scene_id:s}/{frame_id:s}'
+
     @classmethod
     def download(cls) -> None:
         url: str = 'https://drive.google.com/uc?id=1if4VoEXNx9W3XCn0Y7Fp15B4GpcYbyYi'  # NOQA
