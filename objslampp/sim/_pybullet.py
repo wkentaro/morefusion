@@ -238,7 +238,9 @@ def render_views(visual_file, eyes, targets, height=256, width=256, gui=False):
         fov=60, aspect=1. * width / height, nearVal=near, farVal=far
     )
 
-    rendered = []
+    rgbs = []
+    depths = []
+    segms = []
     for eye, target in zip(eyes, targets):
         view_matrix = pybullet.computeViewMatrix(
             cameraEyePosition=eye,
@@ -260,8 +262,16 @@ def render_views(visual_file, eyes, targets, height=256, width=256, gui=False):
         depth = far * near / (far - (far - near) * depth)
         depth[segm == -1] = np.nan
 
-        rendered.append((rgb, depth, segm))
+        rgbs.append(rgb)
+        depths.append(depth)
+        segms.append(segm)
 
     pybullet.disconnect()
 
-    return rendered
+    K = trimesh.scene.Camera(resolution=(256, 256), fov=(60, 60)).K
+    Ts_cam2world = [
+        geometry.look_at(eye, target, up=[0, -1, 0])
+        for eye, target in zip(eyes, targets)
+    ]
+
+    return K, Ts_cam2world, rgbs, depths, segms

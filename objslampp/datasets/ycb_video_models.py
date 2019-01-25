@@ -62,12 +62,7 @@ class YCBVideoModelsDataset(object):
         )
         targets = np.tile([[0, 0, 0]], (len(eyes), 1))
 
-        views = sim.pybullet.render_views(visual_file, eyes, targets)
-        rgbs, depths, segms = zip(*views)
-
-        Ts_cam2world = [
-            geometry.look_at(eye, target, up=[0, -1, 0])
-            for eye, target in zip(eyes, targets)
-        ]
-
-        return Ts_cam2world, rgbs, depths, segms
+        K, Ts_cam2world, rgbs, depths, segms = sim.pybullet.render_views(
+            visual_file, eyes, targets
+        )
+        return K, Ts_cam2world, rgbs, depths, segms
