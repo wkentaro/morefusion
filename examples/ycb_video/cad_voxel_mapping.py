@@ -12,82 +12,12 @@ import objslampp
 from tmp import ResNetFeatureExtractor
 
 
-def get_uniform_points_on_sphere(radius=1, n_sample=10):
-    elevation = np.linspace(-90, 90, n_sample)
-    azimuth = np.linspace(-180, 180, n_sample, endpoint=False)
-    elevation, azimuth = np.meshgrid(elevation, azimuth)
-
-    # if elevation is -90 or 90, azimuth has no effect
-    keep = elevation != -90
-    keep[np.argmin(keep)] = True
-    azimuth = azimuth[keep]
-    elevation = elevation[keep]
-
-    keep = elevation != 90
-    keep[np.argmin(keep)] = True
-    azimuth = azimuth[keep]
-    elevation = elevation[keep]
-
-    elevation = elevation.flatten()
-    azimuth = azimuth.flatten()
-
-    n_points = len(elevation)
-    distance = np.full((n_points,), radius, dtype=float)
-    points = objslampp.geometry.get_points_from_angles(
-        distance, elevation, azimuth
-    )
-    return points
-
-
-def get_rendered(visual_file, eyes, targets, height=256, width=256, gui=False):
-    import pybullet
-
-    if gui:
-        pybullet.connect(pybullet.GUI)
-    else:
-        pybullet.connect(pybullet.DIRECT)
-
-    objslampp.sim.pybullet.add_model(visual_file=visual_file, register=False)
-
-    near = 0.01
-    far = 1000.
-    projection_matrix = pybullet.computeProjectionMatrixFOV(
-        fov=60, aspect=1. * width / height, nearVal=near, farVal=far
-    )
-
-    rendered = []
-    for eye, target in zip(eyes, targets):
-        view_matrix = pybullet.computeViewMatrix(
-            cameraEyePosition=eye,
-            cameraTargetPosition=target,
-            cameraUpVector=[0, 1, 0],
-        )
-        H, W, rgba, depth, segm = pybullet.getCameraImage(
-            height,
-            width,
-            viewMatrix=view_matrix,
-            projectionMatrix=projection_matrix,
-        )
-        rgba = np.asarray(rgba, dtype=np.uint8).reshape(H, W, 4)
-        rgb = rgba[:, :, :3]
-
-        segm = np.asarray(segm, dtype=np.int32)
-
-        depth = np.asarray(depth, dtype=np.float32).reshape(H, W)
-        depth = far * near / (far - (far - near) * depth)
-        depth[segm == -1] = np.nan
-
-        rendered.append((rgb, depth, segm))
-
-    pybullet.disconnect()
-
-    return rendered
-
-
 class MainApp(object):
 
     def _get_eyes(self):
-        eyes = get_uniform_points_on_sphere(radius=0.3, n_sample=5)
+        eyes = objslampp.geometry.get_uniform_points_on_sphere(
+            n_sample=5, radius=0.3
+        )
         return eyes
 
     def plot_eyes(self):
@@ -123,7 +53,9 @@ class MainApp(object):
 
         eyes = self._get_eyes()
         targets = np.tile([[0, 0, 0]], (len(eyes), 1))
-        rendered = get_rendered(visual_file, eyes, targets)
+        rendered = objslampp.sim.pybullet.render_views(
+            visual_file, eyes, targets
+        )
 
         viz = []
         depth2rgb = imgviz.Depth2RGB()
@@ -153,7 +85,9 @@ class MainApp(object):
 
         eyes = self._get_eyes()
         targets = np.tile([[0, 0, 0]], (len(eyes), 1))
-        rendered = get_rendered(visual_file, eyes, targets)
+        rendered = objslampp.sim.pybullet.render_views(
+            visual_file, eyes, targets
+        )
 
         # ---------------------------------------------------------------------
 
@@ -205,7 +139,9 @@ class MainApp(object):
 
         eyes = self._get_eyes()
         targets = np.tile([[0, 0, 0]], (len(eyes), 1))
-        rendered = get_rendered(visual_file, eyes, targets)
+        rendered = objslampp.sim.pybullet.render_views(
+            visual_file, eyes, targets
+        )
 
         # ---------------------------------------------------------------------
 

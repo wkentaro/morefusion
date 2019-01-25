@@ -220,3 +220,48 @@ def get_top_image(visual_file: typing.Union[str, pathlib.Path]) -> np.ndarray:
     rgb = rgba[:, :, :3]
 
     return rgb
+
+
+def render_views(visual_file, eyes, targets, height=256, width=256, gui=False):
+    import pybullet
+
+    if gui:
+        pybullet.connect(pybullet.GUI)
+    else:
+        pybullet.connect(pybullet.DIRECT)
+
+    add_model(visual_file=visual_file, register=False)
+
+    near = 0.01
+    far = 1000.
+    projection_matrix = pybullet.computeProjectionMatrixFOV(
+        fov=60, aspect=1. * width / height, nearVal=near, farVal=far
+    )
+
+    rendered = []
+    for eye, target in zip(eyes, targets):
+        view_matrix = pybullet.computeViewMatrix(
+            cameraEyePosition=eye,
+            cameraTargetPosition=target,
+            cameraUpVector=[0, 1, 0],
+        )
+        H, W, rgba, depth, segm = pybullet.getCameraImage(
+            height,
+            width,
+            viewMatrix=view_matrix,
+            projectionMatrix=projection_matrix,
+        )
+        rgba = np.asarray(rgba, dtype=np.uint8).reshape(H, W, 4)
+        rgb = rgba[:, :, :3]
+
+        segm = np.asarray(segm, dtype=np.int32)
+
+        depth = np.asarray(depth, dtype=np.float32).reshape(H, W)
+        depth = far * near / (far - (far - near) * depth)
+        depth[segm == -1] = np.nan
+
+        rendered.append((rgb, depth, segm))
+
+    pybullet.disconnect()
+
+    return rendered
