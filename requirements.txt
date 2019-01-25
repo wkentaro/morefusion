@@ -2,6 +2,7 @@
 chainer
 chainercv
 fire
+frozendict
 gdown>=3.7.0
 imgviz[all]>=0.2.4
 open3d-python
