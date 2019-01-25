@@ -1,17 +1,21 @@
 #!/usr/bin/env python
 
+import tqdm
 import trimesh
 
 import objslampp
 
 
 def main():
-    models = objslampp.datasets.YCBVideoModelsDataset()
+    dataset = objslampp.datasets.YCBVideoModelsDataset()
+    class_names = objslampp.datasets.ycb.class_names
 
     cads = []
     min_z = float('inf')
-    for model_dir in sorted(models.root_dir.iterdir()):
-        cad_file = model_dir / f'textured_simple.obj'
+    for class_name in tqdm.tqdm(class_names):
+        model = dataset.get_model(class_name=class_name)
+        cad_file = model['cad_simple']
+
         cad = trimesh.load(str(cad_file), file_type='obj', process=False)
         cad.visual = cad.visual.to_color()  # texture visualization is slow
 
