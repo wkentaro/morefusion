@@ -103,6 +103,7 @@ class YCBVideoDataset(object):
 
 
 class_names = (
+    '__background__',
     '002_master_chef_can',
     '003_cracker_box',
     '004_sugar_box',
