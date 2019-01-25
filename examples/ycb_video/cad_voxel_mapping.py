@@ -116,7 +116,7 @@ class MainApp(object):
         if res:
             res = ResNetFeatureExtractor(gpu=gpu)
 
-        models = objslampp.datasets.YCBVideoModels()
+        models = objslampp.datasets.YCBVideoModelsDataset()
         visual_file = (
             models.root_dir / '002_master_chef_can/textured_simple.obj'
         )
@@ -146,7 +146,7 @@ class MainApp(object):
             pass
 
     def plot_pointcloud(self):
-        models = objslampp.datasets.YCBVideoModels()
+        models = objslampp.datasets.YCBVideoModelsDataset()
         visual_file = (
             models.root_dir / '002_master_chef_can/textured_simple.obj'
         )
@@ -198,7 +198,7 @@ class MainApp(object):
         if channel == 'res':
             res = ResNetFeatureExtractor(gpu=gpu)
 
-        models = objslampp.datasets.YCBVideoModels()
+        models = objslampp.datasets.YCBVideoModelsDataset()
         visual_file = (
             models.root_dir / '002_master_chef_can/textured_simple.obj'
         )

@@ -6,7 +6,7 @@ import objslampp
 
 
 def main():
-    models = objslampp.datasets.YCBVideoModels()
+    models = objslampp.datasets.YCBVideoModelsDataset()
 
     cads = []
     min_z = float('inf')

@@ -19,7 +19,7 @@ here = pathlib.Path(__file__).resolve().parent
 class MainApp(object):
 
     def _get_data(self):
-        models = objslampp.datasets.YCBVideoModels()
+        models = objslampp.datasets.YCBVideoModelsDataset()
 
         top_images = []
         data = []
