@@ -56,7 +56,8 @@ class YCBVideoModelsDataset(object):
                 self.root_dir / class_name / 'textured_simple.obj',
         }
 
-    def get_spherical_views(self, visual_file, n_sample=5, radius=0.3):
+    @staticmethod
+    def get_spherical_views(visual_file, n_sample=5, radius=0.3):
         eyes = geometry.get_uniform_points_on_sphere(
             n_sample=n_sample, radius=radius
         )
@@ -66,3 +67,12 @@ class YCBVideoModelsDataset(object):
             visual_file, eyes, targets
         )
         return K, Ts_cam2world, rgbs, depths, segms
+
+    @staticmethod
+    def get_bbox_diagonal(mesh_file=None, mesh=None):
+        if mesh is None:
+            mesh = trimesh.load(str(mesh_file), process=False)
+
+        extents = mesh.bounding_box.extents
+        bbox_diagonal = np.sqrt((extents ** 2).sum())
+        return bbox_diagonal
