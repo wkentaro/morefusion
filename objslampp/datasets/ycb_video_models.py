@@ -4,6 +4,7 @@ import typing
 
 import gdown
 import numpy as np
+import trimesh
 
 from .. import geometry
 from .. import sim

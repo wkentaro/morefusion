@@ -1,13 +1,12 @@
 #!/usr/bin/env python
 
+import concurrent.futures
 import pathlib
 
 import imgviz
 import matplotlib.pyplot as plt
 import pandas
 import pybullet  # NOQA
-import tqdm
-import trimesh
 
 import objslampp
 
@@ -21,28 +20,36 @@ class MainApp(object):
         class_names = objslampp.datasets.ycb_video.class_names
         models = objslampp.datasets.YCBVideoModelsDataset()
 
-        top_images = []
+        cad_files = [
+            models.get_model(class_name=name)['textured_simple']
+            for name in class_names[1:]
+        ]
+
+        with concurrent.futures.ProcessPoolExecutor() as p:
+            top_images = []
+            for cad_file in cad_files:
+                top_images.append(
+                    p.submit(objslampp.sim.pybullet.get_top_image, cad_file)
+                )
+
+            bbox_diagonals = []
+            for cad_file in cad_files:
+                bbox_diagonals.append(
+                    p.submit(models.get_bbox_diagonal, mesh_file=cad_file)
+                )
+        top_images = [future.result() for future in top_images]
+        bbox_diagonals = [future.result() for future in bbox_diagonals]
+
         data = []
-        for class_name in tqdm.tqdm(class_names[1:]):
-            model = models.get_model(class_name=class_name)
-            cad_file = model['textured_simple']
-
-            top_image = objslampp.sim.pybullet.get_top_image(cad_file)
-            top_images.append(top_image)
-
+        for class_name, bbox_diagonal in zip(class_names[1:], bbox_diagonals):
             ycb_class_id = int(class_name.split('_')[0])
             ycb_video_class_id = class_names.index(class_name)
-
-            cad = trimesh.load(str(cad_file), process=False)
-            bbox_diagnoal = models.get_bbox_diagonal(mesh=cad)
-            voxel_size = bbox_diagnoal / 32.
-
+            voxel_size = bbox_diagonal / 32.
             data.append((
                 ycb_class_id,
                 ycb_video_class_id,
                 class_name,
-                cad.bounding_box.extents,
-                bbox_diagnoal,
+                bbox_diagonal,
                 voxel_size,
             ))
 
@@ -52,7 +59,6 @@ class MainApp(object):
                 'ycb_class_id',
                 'ycb_video_class_id',
                 'name',
-                'extents',
                 'bbox_diagonal',
                 'voxel_size',
             ],
