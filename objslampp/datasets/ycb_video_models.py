@@ -7,7 +7,7 @@ import numpy as np
 
 from .. import geometry
 from .. import sim
-from .ycb import class_id_to_name
+from .ycb_video import class_names
 
 
 class YCBVideoModelsDataset(object):
@@ -49,7 +49,7 @@ class YCBVideoModelsDataset(object):
                     'either class_id or class_name must not be None'
                 )
             else:
-                class_name = class_id_to_name[class_id]
+                class_name = class_names[class_id]
 
         return {
             'textured_simple':
