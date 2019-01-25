@@ -12,7 +12,7 @@ from tmp import ResNetFeatureExtractor
 class MainApp(object):
 
     def __init__(self, res=False, gpu=0):
-        self._dataset = objslampp.datasets.YCBVideoDataset()
+        self._dataset = objslampp.datasets.YCBVideoDataset(split='train')
 
         self._res = None
         if res:
@@ -22,14 +22,13 @@ class MainApp(object):
 
     def _mainloop(self):
         index = 1000
-        imageset = self._dataset.imageset('train')
 
         play = False
         while True:
-            image_id = imageset[index]
+            image_id = self._dataset.imageset[index]
             termcolor.cprint(f'[{index}] {image_id}', attrs={'bold': True})
 
-            frame = self._dataset.get_frame(image_id)
+            frame = self._dataset[index]
             image = self._process_frame(frame)
 
             imgviz.io.cv_imshow(image, __file__)

@@ -13,10 +13,6 @@ class YCBVideoDataset(object):
     root_dir: pathlib.Path = \
         pathlib.Path.home() / 'data/datasets/YCB/YCB_Video_Dataset'
 
-    def __init__(self):
-        if not self.root_dir.exists():
-            self.download()
-
     @classmethod
     def download(cls) -> None:
         url: str = 'https://drive.google.com/uc?id=1if4VoEXNx9W3XCn0Y7Fp15B4GpcYbyYi'  # NOQA
@@ -28,35 +24,39 @@ class YCBVideoDataset(object):
             postprocess=gdown.extractall,
         )
 
-    def imageset(self, split: str) -> typing.List[str]:
+    @classmethod
+    def get_imageset(cls, split: str) -> typing.Tuple[str, ...]:
         assert split in ['train', 'val', 'trainval']
-        imageset_file: pathlib.Path = self.root_dir / f'image_sets/{split}.txt'
+        imageset_file: pathlib.Path = cls.root_dir / f'image_sets/{split}.txt'
         with open(imageset_file) as f:
-            imageset: typing.List[str] = [l.strip() for l in f.readlines()]
+            imageset: typing.Tuple[str, ...] = tuple(
+                [l.strip() for l in f.readlines()]
+            )
         return imageset
 
-    def get_frame(self, image_id: str) -> dict:
+    @classmethod
+    def get_frame(cls, image_id: str) -> dict:
         meta_file: pathlib.Path = (
-            self.root_dir / 'data' / (image_id + '-meta.mat')
+            cls.root_dir / 'data' / (image_id + '-meta.mat')
         )
         meta = scipy.io.loadmat(
             meta_file, squeeze_me=True, struct_as_record=True
         )
 
         color_file: pathlib.Path = (
-            self.root_dir / 'data' / (image_id + '-color.png')
+            cls.root_dir / 'data' / (image_id + '-color.png')
         )
         color: np.ndarray = imgviz.io.imread(color_file)
 
         depth_file: pathlib.Path = (
-            self.root_dir / 'data' / (image_id + '-depth.png')
+            cls.root_dir / 'data' / (image_id + '-depth.png')
         )
         depth: np.ndarray = imgviz.io.imread(depth_file)
         depth = depth.astype(float) / meta['factor_depth']
         depth[depth == 0] = float('nan')
 
         label_file: pathlib.Path = (
-            self.root_dir / 'data' / (image_id + '-label.png')
+            cls.root_dir / 'data' / (image_id + '-label.png')
         )
         label: np.ndarray = imgviz.io.imread(label_file)
 
@@ -67,14 +67,33 @@ class YCBVideoDataset(object):
             label=label,
         )
 
+    def __init__(self, split: str):
+        assert split in ['train', 'val', 'trainval']
+        self._split = split
+        self._imageset = self.get_imageset(split)
+
+        if not self.root_dir.exists():
+            self.download()
+
+    @property
+    def split(self):
+        return self._split
+
+    @property
+    def imageset(self):
+        return self._imageset
+
+    def __len__(self):
+        return len(self.imageset)
+
+    def __getitem__(self, i):
+        image_id = self.imageset[i]
+        return self.get_frame(image_id)
+
 
 class YCBVideoModels(object):
 
     root_dir = pathlib.Path.home() / 'data/datasets/YCB/YCB_Video_Models'
-
-    def __init__(self):
-        if not self.root_dir.exists():
-            self.download()
 
     @classmethod
     def download(cls) -> None:
@@ -95,3 +114,7 @@ class YCBVideoModels(object):
             md5=md5,
             postprocess=postprocess,
         )
+
+    def __init__(self):
+        if not self.root_dir.exists():
+            self.download()
