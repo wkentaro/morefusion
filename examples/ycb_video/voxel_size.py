@@ -4,7 +4,6 @@ import pathlib
 
 import imgviz
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas
 import pybullet  # NOQA
 import tqdm
@@ -24,27 +23,26 @@ class MainApp(object):
 
         top_images = []
         data = []
-        for model_dir in tqdm.tqdm(sorted(models.root_dir.iterdir())):
-            cad_file = model_dir / f'textured_simple.obj'
+        for class_name in tqdm.tqdm(class_names[1:]):
+            model = models.get_model(class_name=class_name)
+            cad_file = model['textured_simple']
 
             top_image = objslampp.sim.pybullet.get_top_image(cad_file)
             top_images.append(top_image)
 
-            cad = trimesh.load(str(cad_file), file_type='obj', process=False)
+            ycb_class_id = int(class_name.split('_')[0])
+            ycb_video_class_id = class_names.index(class_name)
 
-            name = model_dir.name
-            ycb_class_id = int(name.split('_')[0])
-            ycb_video_class_id = class_names.index(name)
-            extents = cad.bounding_box.extents
-            bbox_max_size = np.sqrt((extents ** 2).sum())
-            voxel_size = bbox_max_size / 32.
+            cad = trimesh.load(str(cad_file), process=False)
+            bbox_diagnoal = models.get_bbox_diagonal(mesh=cad)
+            voxel_size = bbox_diagnoal / 32.
 
             data.append((
                 ycb_class_id,
                 ycb_video_class_id,
-                name,
-                extents,
-                bbox_max_size,
+                class_name,
+                cad.bounding_box.extents,
+                bbox_diagnoal,
                 voxel_size,
             ))
 
@@ -55,19 +53,16 @@ class MainApp(object):
                 'ycb_video_class_id',
                 'name',
                 'extents',
-                'bbox_max_size',
+                'bbox_diagonal',
                 'voxel_size',
             ],
         )
-        csv_file = here / 'data/voxel_size.csv'
-        df.to_csv(str(csv_file))
-        print(f'Saved to: {csv_file}')
+        print(df)
 
         argsort = df['voxel_size'].argsort()[::-1]
         df = df.iloc[argsort]
         top_images = [top_images[i] for i in argsort]
 
-        print(df)
         return df, top_images
 
     def _plot(self, y='voxel_size', color='red'):
@@ -97,8 +92,8 @@ class MainApp(object):
     def plot_voxel_size(self):
         self._plot(y='voxel_size', color='red')
 
-    def plot_bbox_max_size(self):
-        self._plot(y='bbox_max_size', color='blue')
+    def plot_bbox_diagonal(self):
+        self._plot(y='bbox_diagonal', color='blue')
 
 
 if __name__ == '__main__':
