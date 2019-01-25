@@ -19,6 +19,7 @@ here = pathlib.Path(__file__).resolve().parent
 class MainApp(object):
 
     def _get_data(self):
+        class_names = objslampp.datasets.ycb_video.class_names
         models = objslampp.datasets.YCBVideoModelsDataset()
 
         top_images = []
@@ -32,17 +33,30 @@ class MainApp(object):
             cad = trimesh.load(str(cad_file), file_type='obj', process=False)
 
             name = model_dir.name
-            class_id = int(name.split('_')[0])
+            ycb_class_id = int(name.split('_')[0])
+            ycb_video_class_id = class_names.index(name)
             extents = cad.bounding_box.extents
             bbox_max_size = np.sqrt((extents ** 2).sum())
             voxel_size = bbox_max_size / 32.
 
-            data.append((class_id, name, extents, bbox_max_size, voxel_size))
+            data.append((
+                ycb_class_id,
+                ycb_video_class_id,
+                name,
+                extents,
+                bbox_max_size,
+                voxel_size,
+            ))
 
         df = pandas.DataFrame(
             data=data,
             columns=[
-                'class_id', 'name', 'extents', 'bbox_max_size', 'voxel_size'
+                'ycb_class_id',
+                'ycb_video_class_id',
+                'name',
+                'extents',
+                'bbox_max_size',
+                'voxel_size',
             ],
         )
         csv_file = here / 'data/voxel_size.csv'

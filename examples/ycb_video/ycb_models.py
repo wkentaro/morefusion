@@ -12,7 +12,7 @@ def main():
 
     cads = []
     min_z = float('inf')
-    for class_name in tqdm.tqdm(class_names):
+    for class_name in tqdm.tqdm(class_names[1:]):
         model = dataset.get_model(class_name=class_name)
         cad_file = model['textured_simple']
 
