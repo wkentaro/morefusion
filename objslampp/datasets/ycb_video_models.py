@@ -49,5 +49,6 @@ class YCBVideoModelsDataset(object):
                 class_name = class_id_to_name[class_id]
 
         return {
-            'cad_simple': self.root_dir / class_name / 'textured_simple.obj'
+            'textured_simple':
+                self.root_dir / class_name / 'textured_simple.obj',
         }

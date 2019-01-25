@@ -14,7 +14,7 @@ def main():
     min_z = float('inf')
     for class_name in tqdm.tqdm(class_names):
         model = dataset.get_model(class_name=class_name)
-        cad_file = model['cad_simple']
+        cad_file = model['textured_simple']
 
         cad = trimesh.load(str(cad_file), file_type='obj', process=False)
         cad.visual = cad.visual.to_color()  # texture visualization is slow
