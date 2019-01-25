@@ -101,8 +101,9 @@ class MainApp(object):
                 objslampp.geometry.look_at(eye, target, up=[0, -1, 0])
                 for eye, target in zip(eyes, targets)
             ]
+            K = trimesh.scene.Camera(resolution=(256, 256), fov=(60, 60)).K
         else:
-            Ts_cam2world, rgbs, depths, segms = models.get_spherical_views(
+            K, Ts_cam2world, rgbs, depths, segms = models.get_spherical_views(
                 visual_file, n_sample=5, radius=0.3
             )
 
@@ -116,8 +117,6 @@ class MainApp(object):
         )
         scene.add_geometry(geom)
 
-        camera = trimesh.scene.Camera(resolution=(256, 256), fov=(60, 60))
-        K = camera.K
         for T_cam2world, rgb, depth, segm in zip(
             Ts_cam2world, rgbs, depths, segms
         ):
