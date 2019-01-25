@@ -3,7 +3,10 @@ import shutil
 import typing
 
 import gdown
+import numpy as np
 
+from .. import geometry
+from .. import sim
 from .ycb import class_id_to_name
 
 
@@ -52,3 +55,19 @@ class YCBVideoModelsDataset(object):
             'textured_simple':
                 self.root_dir / class_name / 'textured_simple.obj',
         }
+
+    def get_spherical_views(self, visual_file, n_sample=5, radius=0.3):
+        eyes = geometry.get_uniform_points_on_sphere(
+            n_sample=n_sample, radius=radius
+        )
+        targets = np.tile([[0, 0, 0]], (len(eyes), 1))
+
+        views = sim.pybullet.render_views(visual_file, eyes, targets)
+        rgbs, depths, segms = zip(*views)
+
+        Ts_cam2world = [
+            geometry.look_at(eye, target, up=[0, -1, 0])
+            for eye, target in zip(eyes, targets)
+        ]
+
+        return Ts_cam2world, rgbs, depths, segms

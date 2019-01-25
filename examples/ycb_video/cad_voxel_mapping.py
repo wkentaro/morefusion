@@ -47,19 +47,25 @@ class MainApp(object):
             res = ResNetFeatureExtractor(gpu=gpu)
 
         models = objslampp.datasets.YCBVideoModelsDataset()
-        visual_file = (
-            models.root_dir / '002_master_chef_can/textured_simple.obj'
-        )
+        visual_file = models.get_model(
+            class_name='002_master_chef_can'
+        )['textured_simple']
 
-        eyes = self._get_eyes()
-        targets = np.tile([[0, 0, 0]], (len(eyes), 1))
-        rendered = objslampp.sim.pybullet.render_views(
-            visual_file, eyes, targets
-        )
+        if 0:
+            eyes = self._get_eyes()
+            targets = np.tile([[0, 0, 0]], (len(eyes), 1))
+            views = objslampp.sim.pybullet.render_views(
+                visual_file, eyes, targets
+            )
+            rgbs, depths, segms = zip(*views)
+        else:
+            _, rgbs, depths, segms = models.get_spherical_views(
+                visual_file, n_sample=5, radius=0.3
+            )
 
         viz = []
         depth2rgb = imgviz.Depth2RGB()
-        for rgb, depth, segm in rendered:
+        for rgb, depth, segm in zip(rgbs, depths, segms):
             depth_viz = depth2rgb(depth)
             mask = (segm == 0).astype(np.uint8) * 255
             if res:
@@ -79,15 +85,26 @@ class MainApp(object):
 
     def plot_pointcloud(self):
         models = objslampp.datasets.YCBVideoModelsDataset()
-        visual_file = (
-            models.root_dir / '002_master_chef_can/textured_simple.obj'
-        )
+        visual_file = models.get_model(
+            class_name='002_master_chef_can'
+        )['textured_simple']
 
-        eyes = self._get_eyes()
-        targets = np.tile([[0, 0, 0]], (len(eyes), 1))
-        rendered = objslampp.sim.pybullet.render_views(
-            visual_file, eyes, targets
-        )
+        if 0:
+            eyes = self._get_eyes()
+            targets = np.tile([[0, 0, 0]], (len(eyes), 1))
+            views = objslampp.sim.pybullet.render_views(
+                visual_file, eyes, targets
+            )
+            rgbs, depths, segms = zip(*views)
+            # it transforms: camera frame -> world frame
+            Ts_cam2world = [
+                objslampp.geometry.look_at(eye, target, up=[0, -1, 0])
+                for eye, target in zip(eyes, targets)
+            ]
+        else:
+            Ts_cam2world, rgbs, depths, segms = models.get_spherical_views(
+                visual_file, n_sample=5, radius=0.3
+            )
 
         # ---------------------------------------------------------------------
 
@@ -101,14 +118,12 @@ class MainApp(object):
 
         camera = trimesh.scene.Camera(resolution=(256, 256), fov=(60, 60))
         K = camera.K
-        for eye, target, (rgb, depth, segm) in zip(eyes, targets, rendered):
-
-            # it transforms: camera frame -> world frame
-            T = objslampp.geometry.look_at(eye, target, up=[0, -1, 0])
-
+        for T_cam2world, rgb, depth, segm in zip(
+            Ts_cam2world, rgbs, depths, segms
+        ):
             # camera origin
             geom = trimesh.creation.axis(origin_size=0.01)
-            geom.apply_transform(T)
+            geom.apply_transform(T_cam2world)
             scene.add_geometry(geom)
 
             points = objslampp.geometry.pointcloud_from_depth(
@@ -119,7 +134,7 @@ class MainApp(object):
             colors = rgb[valid]
             points = points[valid]
 
-            points = trimesh.transform_points(points, T)
+            points = trimesh.transform_points(points, T_cam2world)
 
             geom = trimesh.PointCloud(vertices=points, color=colors)
             scene.add_geometry(geom)
