@@ -1,5 +1,4 @@
 import pathlib
-import shutil
 import typing
 
 import gdown
