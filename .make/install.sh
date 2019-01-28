@@ -25,19 +25,19 @@ cd $ROOT
 
 source .anaconda3/bin/activate
 
+# ---------------------------------------------------------------------------------------
+
+# trimesh dependency
+conda_check_installed libspatialindex || conda install libspatialindex -y
+
 echo_bold "==> Installing latest pip and setuptools"
 pip install -U pip setuptools wheel
-
-# ---------------------------------------------------------------------------------------
 
 echo_bold "==> Installing cython and numpy"
 pip install cython numpy
 
 echo_bold "==> Installing with requirements-dev.txt"
 pip install -r requirements-dev.txt
-
-# trimesh dependency
-conda_check_installed libspatialindex || conda install libspatialindex -y
 
 pip install -e .
 
