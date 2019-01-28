@@ -14,7 +14,7 @@
 
 ## `voxel_size.py`
 
-<img src=".readme/voxel_size.jpg" height="200px" /> <img src=".readme/bbox_max_size.jpg" height="200px" />
+<img src="https://drive.google.com/uc?id=1NR7bv9HD18G8tCHSK0mFU2DF_IBZ6YSL" height="200px" /> <img src="https://drive.google.com/uc?id=1XwtspTM7j06je7UR2msNCSZxtsahrPWU" height="200px" />
 
 ## `voxel_mapping.py`
 
