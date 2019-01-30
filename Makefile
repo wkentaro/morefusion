@@ -11,3 +11,6 @@ install: install_anaconda3
 
 lint: install_anaconda3
 	@.make/lint.sh
+
+test: lint install
+	@.make/test.sh
