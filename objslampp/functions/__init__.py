@@ -1,7 +1,4 @@
 # flake8: noqa
 
-from . import voxelization_3d
-
-
-Voxelization3D = voxelization_3d.Voxelization3D
-voxelization_3d = voxelization_3d.voxelization_3d
+from .voxelization_3d import Voxelization3D
+from .voxelization_3d import voxelization_3d
