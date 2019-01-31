@@ -126,7 +126,7 @@ class YCBVideoMultiViewPoseEstimationDataset(YCBVideoDataset):
         scan_origin = scan_origins[instance_id]
         gt_pose = gt_poses[instance_id]
 
-        cad_origin = np.array([0, 0, 0], dtype=np.float32)
+        cad_origin = np.array((- self.voxel_dim // 2 * pitch,) * 3, dtype=float)
         cad_rgbs, cad_pcds = self.get_cad_data(class_id)
 
         return dict(
