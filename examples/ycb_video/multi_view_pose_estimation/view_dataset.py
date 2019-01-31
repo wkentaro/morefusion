@@ -53,9 +53,13 @@ class MainApp(object):
         data = self._get_data(index=16)
 
         depth2rgb_z = imgviz.Depth2RGB()
-        for rgb, pcd in zip(data['scan_rgbs'], data['scan_pcds']):
+        for rgb, pcd, mask in zip(
+            data['scan_rgbs'], data['scan_pcds'], data['scan_masks']
+        ):
+            mask = mask.astype(np.uint8) * 255
             pcd_z_viz = depth2rgb_z(pcd[:, :, 2])
-            viz = imgviz.tile([rgb, pcd_z_viz])
+            viz = imgviz.tile([rgb, pcd_z_viz, mask])
+            viz = imgviz.resize(viz, width=1000)
             imgviz.io.cv_imshow(viz, __file__)
             while True:
                 key = imgviz.io.cv_waitkey()
