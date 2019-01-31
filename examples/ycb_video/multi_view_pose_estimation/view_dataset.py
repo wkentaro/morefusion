@@ -117,6 +117,65 @@ class MainApp(object):
 
         scene.show()
 
+    def cad_voxel_mapping(self, data=None, show=True):
+        if data is None:
+            data = self._get_data(index=16)
+
+        cad_mapping = objslampp.geometry.VoxelMapping(
+            origin=np.array((-16 * data['pitch'],) * 3, dtype=float),
+            pitch=data['pitch'],
+            voxel_size=32,
+            nchannel=3,
+        )
+        for rgb, pcd in zip(data['cad_rgbs'], data['cad_pcds']):
+            isnan = np.isnan(pcd).any(axis=2)
+            cad_mapping.add(
+                points=pcd[~isnan],
+                values=rgb[~isnan].astype(float) / 255,
+            )
+        if show:
+            geom = cad_mapping.as_boxes()
+            geom.show()
+        else:
+            return cad_mapping
+
+    def scan_voxel_mapping(self, data=None, show=True):
+        if data is None:
+            data = self._get_data(index=16)
+
+        scan_mapping = objslampp.geometry.VoxelMapping(
+            origin=data['scan_origin'],
+            pitch=data['pitch'],
+            voxel_size=32,
+            nchannel=3,
+        )
+        for rgb, pcd, mask in zip(
+            data['scan_rgbs'], data['scan_pcds'], data['scan_masks']
+        ):
+            isnan = np.isnan(pcd).any(axis=2)
+            mask = (~isnan) & mask
+            scan_mapping.add(
+                points=pcd[mask],
+                values=rgb[mask].astype(float) / 255,
+            )
+        if show:
+            geom = scan_mapping.as_boxes()
+            geom.show()
+        else:
+            return scan_mapping
+
+    def alignment(self):
+        data = self._get_data(index=16)
+
+        cad_mapping = self.cad_voxel_mapping(data=data, show=False)
+        scan_mapping = self.scan_voxel_mapping(data=data, show=False)
+
+        geom_cad = cad_mapping.as_boxes()
+        geom_scan = scan_mapping.as_boxes()
+        geom_cad.apply_transform(data['gt_pose'])
+
+        trimesh.Scene([geom_cad, geom_scan]).show()
+
 
 if __name__ == '__main__':
     import fire
