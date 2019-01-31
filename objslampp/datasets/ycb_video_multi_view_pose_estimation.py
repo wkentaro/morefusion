@@ -10,9 +10,6 @@ class YCBVideoMultiViewPoseEstimationDataset(YCBVideoDataset):
 
     voxel_dim = 32
 
-    def __len__(self):
-        raise NotImplementedError
-
     def get_cad_data(self, class_id):
         models = YCBVideoModelsDataset()
         cad_file = models.get_model(class_id=class_id)['textured_simple']
