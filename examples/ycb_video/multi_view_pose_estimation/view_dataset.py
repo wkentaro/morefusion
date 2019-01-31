@@ -9,8 +9,8 @@ import objslampp
 
 class MainApp(object):
 
-    def __init__(self):
-        np.random.seed(0)
+    def __init__(self, seed=0):
+        np.random.seed(seed)
 
         self._dataset = \
             objslampp.datasets.YCBVideoMultiViewPoseEstimationDataset(
