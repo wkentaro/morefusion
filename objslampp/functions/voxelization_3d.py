@@ -104,7 +104,7 @@ class Voxelization3D(chainer.Function):
             int iz = round((z - origin[2]) / pitch + 0.5f);
 
             if (ix >= 0 && ix < shape[0] &&
-                iy >=0 && iy < shape[1] &&
+                iy >= 0 && iy < shape[1] &&
                 iz >= 0 && iz < shape[2])
             {
                 int index = (ix * shape[1] * shape[2] * shape[3]) +
@@ -184,7 +184,7 @@ class Voxelization3D(chainer.Function):
             int iz = round((z - origin[2]) / pitch + 0.5f);
 
             if (ix >= 0 && ix < shape[0] &&
-                iy >=0 && iy < shape[1] &&
+                iy >= 0 && iy < shape[1] &&
                 iz >= 0 && iz < shape[2])
             {
                 int index = (ix * shape[1] * shape[2] * shape[3]) +
