@@ -79,7 +79,8 @@ class YCBVideoMultiViewPoseEstimationDataset(YCBVideoDataset):
         # ---------------------------------------------------------------------
 
         scene_id, frame_id = image_id.split('/')
-        frame_ids = [f'{i:06d}' for i in range(1, int(frame_id) + 1, 15)]
+        frame_ids = [f'{i:06d}' for i in range(1, int(frame_id) + 1)]
+        frame_ids = np.random.choice(frame_ids, 10)
 
         rgbs = []
         pcds = []
