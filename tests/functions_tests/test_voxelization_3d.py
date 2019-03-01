@@ -32,8 +32,10 @@ class TestVoxelization3D(unittest.TestCase):
         self.points = pcd[(~isnan) & mask].astype(numpy.float32)
         self.values = rgb[(~isnan) & mask].astype(numpy.float32) / 255
 
-        self.shape = (32, 32, 32, 3)
-        self.gy = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
+        self.dimensions = (32, 32, 32)
+        self.channels = 3
+        shape = self.dimensions + (self.channels,)
+        self.gy = numpy.random.uniform(-1, 1, shape).astype(numpy.float32)
         self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
 
     def check_forward(self, values_data, points_data):
@@ -44,7 +46,8 @@ class TestVoxelization3D(unittest.TestCase):
             points,
             origin=self.origin,
             pitch=self.pitch,
-            shape=self.shape,
+            dimensions=self.dimensions,
+            channels=self.channels,
         )
         self.assertEqual(y.data.dtype, numpy.float32)
         y_data = cuda.to_cpu(y.data)
@@ -71,7 +74,8 @@ class TestVoxelization3D(unittest.TestCase):
             points_cpu,
             origin=self.origin,
             pitch=self.pitch,
-            shape=self.shape,
+            dimensions=self.dimensions,
+            channels=self.channels,
         )
 
         # gpu
@@ -82,7 +86,8 @@ class TestVoxelization3D(unittest.TestCase):
             points_gpu,
             origin=self.origin,
             pitch=self.pitch,
-            shape=self.shape,
+            dimensions=self.dimensions,
+            channels=self.channels,
         )
         testing.assert_allclose(y_cpu.data, cuda.to_cpu(y_gpu.data))
 
@@ -91,7 +96,8 @@ class TestVoxelization3D(unittest.TestCase):
             objslampp.functions.Voxelization3D(
                 pitch=self.pitch,
                 origin=self.origin,
-                shape=self.shape
+                dimensions=self.dimensions,
+                channels=self.channels,
             ),
             (values_data, points_data), y_grad, no_grads=[False, True],
             **self.check_backward_options)

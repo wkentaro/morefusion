@@ -6,15 +6,20 @@ import trimesh
 
 class Voxelization3D(chainer.Function):
 
-    def __init__(self, *, pitch, origin, shape):
+    def __init__(self, *, pitch, origin, dimensions, channels):
         self.pitch = pitch
         self.origin = origin
 
-        if not (isinstance(shape, tuple) and
-                len(shape) == 4 and
-                all(isinstance(s, int) for s in shape)):
-            raise ValueError('shape must be a tuple of 4 integers')
-        self.shape = shape
+        if not (isinstance(dimensions, tuple) and
+                len(dimensions) == 3 and
+                all(isinstance(d, int) for d in dimensions)):
+            raise ValueError('dimensions must be a tuple of 4 integers')
+
+        if not isinstance(channels, int):
+            raise ValueError('channels must be an integer')
+
+        self.dimensions = dimensions
+        self.channels = channels
 
     def check_type_forward(self, in_types):
         chainer.utils.type_check.expect(in_types.size() == 2)
@@ -23,7 +28,7 @@ class Voxelization3D(chainer.Function):
         chainer.utils.type_check.expect(
             values_type.dtype == np.float32,
             values_type.ndim == 2,
-            values_type.shape[1] == self.shape[3],
+            values_type.shape[1] == self.channels,
             points_type.dtype == np.float32,
             points_type.ndim == 2,
             values_type.shape[0] == points_type.shape[0],
@@ -41,8 +46,9 @@ class Voxelization3D(chainer.Function):
         if np.isnan(points).sum():
             raise ValueError('points include nan')
 
-        matrix = np.zeros(self.shape, dtype=np.float32)
-        count = np.zeros(self.shape, dtype=np.int32)
+        shape = self.dimensions + (self.channels,)
+        matrix = np.zeros(shape, dtype=np.float32)
+        count = np.zeros(shape, dtype=np.int32)
 
         for i in range(n_points):
             point = points[i]
@@ -52,7 +58,7 @@ class Voxelization3D(chainer.Function):
                 [point], pitch=self.pitch, origin=self.origin
             )[0]
 
-            valid = ((0 <= index) & (index < self.shape[:3])).all()
+            valid = ((0 <= index) & (index < self.dimensions)).all()
             if valid:
                 ix, iy, iz = index
                 matrix[ix, iy, iz] += value
@@ -76,10 +82,11 @@ class Voxelization3D(chainer.Function):
         if cuda.cupy.isnan(points).sum():
             raise ValueError('points include nan')
 
-        matrix = cuda.cupy.zeros(self.shape, dtype=np.float32)
-        count = cuda.cupy.zeros(self.shape, dtype=np.int32)
+        shape = self.dimensions + (self.channels,)
+        matrix = cuda.cupy.zeros(shape, dtype=np.float32)
+        count = cuda.cupy.zeros(shape, dtype=np.int32)
         origin = cuda.cupy.asarray(self.origin, dtype=np.float32)
-        shape = cuda.cupy.asarray(self.shape, dtype=np.int32)
+        shape = cuda.cupy.asarray(shape, dtype=np.int32)
 
         # cuda.elementwise(
         cuda.cupy.ElementwiseKernel(
@@ -134,7 +141,7 @@ class Voxelization3D(chainer.Function):
 
         n_points = points.shape[0]
 
-        gvalues = np.zeros((n_points, self.shape[3]), dtype=np.float32)
+        gvalues = np.zeros((n_points, self.channels), dtype=np.float32)
 
         for i in range(n_points):
             point = points[i]
@@ -143,7 +150,7 @@ class Voxelization3D(chainer.Function):
                 [point], pitch=self.pitch, origin=self.origin
             )[0]
 
-            valid = ((0 <= index) & (index < self.shape[:3])).all()
+            valid = ((0 <= index) & (index < self.dimensions)).all()
             if valid:
                 ix, iy, iz = index
                 gvalues[i] = gmatrix[ix, iy, iz] / count[ix, iy, iz]
@@ -157,9 +164,10 @@ class Voxelization3D(chainer.Function):
 
         n_points = points.shape[0]
 
-        gvalues = cuda.cupy.zeros((n_points, self.shape[3]), dtype=np.float32)
+        shape = self.dimensions + (self.channels,)
+        gvalues = cuda.cupy.zeros((n_points, self.channels), dtype=np.float32)
         origin = cuda.cupy.asarray(self.origin, dtype=np.float32)
-        shape = cuda.cupy.asarray(self.shape, dtype=np.int32)
+        shape = cuda.cupy.asarray(shape, dtype=np.int32)
 
         # cuda.elementwise(
         cuda.cupy.ElementwiseKernel(
@@ -203,7 +211,7 @@ class Voxelization3D(chainer.Function):
         return gvalues, None
 
 
-def voxelization_3d(values, points, *, origin, pitch, shape):
+def voxelization_3d(values, points, *, origin, pitch, dimensions, channels):
     return Voxelization3D(
-        origin=origin, pitch=pitch, shape=shape
+        origin=origin, pitch=pitch, dimensions=dimensions, channels=channels
     )(values, points)

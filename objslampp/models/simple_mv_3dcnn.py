@@ -28,7 +28,8 @@ class SimpleMV3DCNNModel(chainer.Chain):
 
             # voxelization_3d
             # -> (16, 32, 32, 32)
-            self.voxel_shape = (32, 32, 32, 16)
+            self.voxel_dimensions = (32, 32, 32)
+            self.voxel_channels = 16
 
             # 3DCNN
             self.conv6 = L.Convolution3D(
@@ -99,9 +100,10 @@ class SimpleMV3DCNNModel(chainer.Chain):
                 points=cad_pcds[i][~isnan, :],
                 origin=cad_origin,
                 pitch=pitch,
-                shape=self.voxel_shape,
+                dimensions=self.voxel_dimensions,
+                channels=self.voxel_channels,
             )
-            h_i = h_i.transpose(3, 0, 1, 2)
+            h_i = h_i.transpose(3, 0, 1, 2)  # XYZC -> CXYZ
             print(f'h_i: {h_i.shape}')
             h_vox.append(h_i[None])
             del h_i, isnan
@@ -151,7 +153,8 @@ class SimpleMV3DCNNModel(chainer.Chain):
                 points=scan_pcds[i][mask, :],
                 origin=scan_origin,
                 pitch=pitch,
-                shape=self.voxel_shape,
+                dimensions=self.voxel_dimensions,
+                channels=self.voxel_channels,
             )
             h_i = h_i.transpose(3, 0, 1, 2)
             print(f'h_i: {h_i.shape}')
@@ -191,9 +194,9 @@ class SimpleMV3DCNNModel(chainer.Chain):
         gt_pose = chainer.cuda.to_cpu(gt_pose)
         gt_quaternion = self.xp.asarray(tf.quaternion_from_matrix(gt_pose))
         gt_translation = self.xp.asarray(tf.translation_from_matrix(gt_pose))
-        voxel_shape = self.xp.asarray(self.voxel_shape)
+        voxel_dimensions = self.xp.asarray(self.voxel_dimensions)
         gt_translation = \
-            (gt_translation - scan_origin) / pitch / voxel_shape[:3]
+            (gt_translation - scan_origin) / pitch / voxel_dimensions
         print(f'gt_quaternion: {gt_quaternion}')
         print(f'gt_translation: {gt_translation}')
 

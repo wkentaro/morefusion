@@ -33,7 +33,12 @@ def check_voxelization_3d(gpu, **kwargs):
         points = cuda.to_gpu(points)
 
     y = objslampp.functions.voxelization_3d(
-        values, points, origin=origin, pitch=pitch, shape=(32, 32, 32, 3)
+        values,
+        points,
+        origin=origin,
+        pitch=pitch,
+        dimensions=(32, 32, 32),
+        channels=3,
     )
 
     matrix_values = cuda.to_cpu(y.array)
