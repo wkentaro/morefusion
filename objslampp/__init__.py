@@ -3,6 +3,7 @@
 from . import datasets
 from . import geometry
 from . import functions
+from . import models
 from . import sim
 from . import utils
 from . import vis
