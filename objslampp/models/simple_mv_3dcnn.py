@@ -37,7 +37,7 @@ class SimpleMV3DCNNModel(chainer.Chain):
                 out_channels=16,
                 ksize=8,
                 stride=2,
-                pad=2,
+                pad=3,
                 initialW=initialW
             )  # 32x32x32 -> 16x16x16
             self.conv7 = L.Convolution3D(
