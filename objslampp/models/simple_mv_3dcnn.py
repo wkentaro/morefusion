@@ -3,6 +3,7 @@ import chainer.functions as F
 import chainer.links as L
 from chainercv.links.model.resnet import ResNet50
 import numpy as np
+import termcolor
 import trimesh.transformations as tf
 
 import objslampp
@@ -58,47 +59,28 @@ class SimpleMV3DCNNModel(chainer.Chain):
             self.fc_quaternion = L.Linear(1024, 4, initialW=initialW)
             self.fc_translation = L.Linear(1024, 3, initialW=initialW)
 
-    def __call__(self, **kwargs):
-        print('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>')
-        for k, v in kwargs.items():
-            print(k, type(v), v.shape)
-        print('<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<')
-
-        batch_size = kwargs['class_id'].shape[0]
-        assert batch_size == 1, 'single batch_size is only supported'
-
-        # class_id = kwargs['class_id'][0].astype(np.int32)
-        pitch = kwargs['pitch'][0].astype(np.float32)
-        gt_pose = kwargs['gt_pose'][0].astype(np.float32)
-
-        # ---------------------------------------------------------------------
-        # cad
-        print('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>')
-
-        cad_origin = kwargs['cad_origin'][0].astype(np.float32)
-        cad_rgbs = kwargs['cad_rgbs'][0].astype(np.float32)
-        cad_pcds = kwargs['cad_pcds'][0].astype(np.float32)
-
-        mean = self.xp.asarray(self.res.mean)
-        cad_rgbs = cad_rgbs.transpose(0, 3, 1, 2)
-        cad_rgbs = cad_rgbs - mean[None]
+    def _encode_multiview(self, origin, pitch, rgbs, pcds, masks):
+        batch_size = len(rgbs)
+        assert batch_size == len(pcds)
+        assert batch_size == len(masks)
 
         # MV
-        h, = self.res(cad_rgbs)
+        mean = self.xp.asarray(self.res.mean)
+        rgbs = rgbs - mean[None]
+        h, = self.res(rgbs)
         print(f'h_res: {h.shape}')
         h = F.relu(self.conv5(h))
         print(f'h_conv5: {h.shape}')
 
         # Voxelization3D
-        h = F.resize_images(h, cad_rgbs.shape[2:])
+        h = F.resize_images(h, rgbs.shape[2:])
         h_vox = []
-        for i in range(len(h)):
-            isnan = self.xp.isnan(cad_pcds[i]).any(axis=2)
-            h_i = h[i].transpose(1, 2, 0)
+        for i in range(batch_size):
+            h_i = h[i].transpose(1, 2, 0)  # CHW -> HWC
             h_i = objslampp.functions.voxelization_3d(
-                values=h_i[~isnan, :],
-                points=cad_pcds[i][~isnan, :],
-                origin=cad_origin,
+                values=h_i[masks[i], :],
+                points=pcds[i][masks[i], :],
+                origin=origin,
                 pitch=pitch,
                 dimensions=self.voxel_dimensions,
                 channels=self.voxel_channels,
@@ -106,80 +88,20 @@ class SimpleMV3DCNNModel(chainer.Chain):
             h_i = h_i.transpose(3, 0, 1, 2)  # XYZC -> CXYZ
             print(f'h_i: {h_i.shape}')
             h_vox.append(h_i[None])
-            del h_i, isnan
         h = F.concat(h_vox, axis=0)
-        del h_vox
         print(f'h_vox: {h.shape}')
         h = F.max(h, axis=0)[None]
-        print(f'h_vox_fused: {h.shape}')
+        print(f'h_vox_fused: {h.shape}')  # NOQA
 
         # 3DCNN
         h = F.relu(self.conv6(h))
+        print(f'h_conv6: {h.shape}')
         h = F.relu(self.conv7(h))
-        h_cad = h
-        print(f'h_cad: {h.shape}')
+        print(f'h_conv7: {h.shape}')
+        return h
 
-        del cad_origin, cad_rgbs, cad_pcds
-
-        print('<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<')
-        # ---------------------------------------------------------------------
-        # scan
-        print('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>')
-
-        scan_origin = kwargs['scan_origin'][0].astype(np.float32)
-        scan_rgbs = kwargs['scan_rgbs'][0].astype(np.float32)
-        scan_pcds = kwargs['scan_pcds'][0].astype(np.float32)
-        scan_masks = kwargs['scan_masks'][0]
-        del kwargs
-
-        scan_rgbs = scan_rgbs.transpose(0, 3, 1, 2)
-        scan_rgbs = scan_rgbs - mean[None]
-
-        # MV
-        h, = self.res(scan_rgbs)
-        print(f'h_res: {h.shape}')
-        h = F.relu(self.conv5(h))
-        print(f'h_conv5: {h.shape}')
-
-        # Voxelization3D
-        h = F.resize_images(h, scan_rgbs.shape[2:])
-        h_vox = []
-        for i in range(len(h)):
-            isnan = self.xp.isnan(scan_pcds[i]).any(axis=2)
-            mask = (~isnan) & scan_masks[i]
-            h_i = h[i].transpose(1, 2, 0)
-            h_i = objslampp.functions.voxelization_3d(
-                values=h_i[mask, :],
-                points=scan_pcds[i][mask, :],
-                origin=scan_origin,
-                pitch=pitch,
-                dimensions=self.voxel_dimensions,
-                channels=self.voxel_channels,
-            )
-            h_i = h_i.transpose(3, 0, 1, 2)
-            print(f'h_i: {h_i.shape}')
-            h_vox.append(h_i[None])
-            del h_i, isnan
-        h = F.concat(h_vox, axis=0)
-        del h_vox
-        print(f'h_vox: {h.shape}')
-        h = F.max(h, axis=0)[None]
-        print(f'h_vox_fused: {h.shape}')
-
-        # 3DCNN
-        h = F.relu(self.conv6(h))
-        h = F.relu(self.conv7(h))
-        h_scan = h
-        print(f'h_scan: {h.shape}')
-
-        del scan_rgbs, scan_pcds, scan_masks
-
-        print('<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<')
-        # ---------------------------------------------------------------------
-        print('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>')
-
+    def _predict_pose(self, h_cad, h_scan):
         h = F.concat([h_cad, h_scan], axis=1)
-        del h_cad, h_scan
         print(f'h_concat: {h.shape}')
 
         h = F.relu(self.fc8(h))
@@ -189,18 +111,89 @@ class SimpleMV3DCNNModel(chainer.Chain):
         print(f'quaternion: {quaternion}')
         translation = F.sigmoid(self.fc_translation(h))
         print(f'translation: {translation}')
-        del h
+        return translation, quaternion
 
+    def __call__(
+        self,
+        *,
+        class_id,
+        pitch,
+        gt_pose,
+        cad_origin,
+        cad_rgbs,
+        cad_pcds,
+        scan_origin,
+        scan_rgbs,
+        scan_pcds,
+        scan_masks,
+    ):
+        print('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>')
+        termcolor.cprint('==> SimpleMV3DCNNModel args', attrs={'bold': True})
+        print(f'class_id: {type(class_id)}, {class_id.shape}')
+        print(f'pitch: {type(pitch)}, {pitch.shape}')
+        print(f'gt_pose: {type(gt_pose)}, {gt_pose.shape}')
+        print(f'cad_origin: {type(cad_origin)}, {cad_origin.shape}')
+        print(f'cad_rgbs: {type(cad_rgbs)}, {cad_rgbs.shape}')
+        print(f'cad_pcds: {type(cad_pcds)}, {cad_pcds.shape}')
+        print(f'scan_origin: {type(scan_origin)}, {scan_origin.shape}')
+        print(f'scan_rgbs: {type(scan_rgbs)}, {scan_rgbs.shape}')
+        print(f'scan_pcds: {type(scan_pcds)}, {scan_pcds.shape}')
+        print(f'scan_masks: {type(scan_masks)}, {scan_masks.shape}')
+        print('<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<')
+
+        batch_size = class_id.shape[0]
+        assert batch_size == 1, 'single batch_size is only supported'
+        pitch = pitch[0].astype(np.float32)
+        gt_pose = gt_pose[0].astype(np.float32)
+
+        print('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>')
+        termcolor.cprint('==> Multi-View Encoding CAD', attrs={'bold': True})
+        cad_origin = cad_origin[0].astype(np.float32)
+        cad_rgbs = cad_rgbs[0].astype(np.float32).transpose(0, 3, 1, 2)
+        cad_pcds = cad_pcds[0].astype(np.float32)
+        cad_masks = ~self.xp.isnan(cad_pcds).any(axis=3)
+        h_cad = self._encode_multiview(
+            origin=cad_origin,
+            pitch=pitch,
+            rgbs=cad_rgbs,
+            pcds=cad_pcds,
+            masks=cad_masks,
+        )
+        print('<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<')
+
+        print('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>')
+        termcolor.cprint('==> Multi-View Encoding Scan', attrs={'bold': True})
+        scan_origin = scan_origin[0].astype(np.float32)
+        scan_rgbs = scan_rgbs[0].astype(np.float32).transpose(0, 3, 1, 2)
+        scan_pcds = scan_pcds[0].astype(np.float32)
+        scan_masks = scan_masks[0] & ~self.xp.isnan(scan_pcds).any(axis=3)
+        h_scan = self._encode_multiview(
+            origin=scan_origin,
+            pitch=pitch,
+            rgbs=scan_rgbs,
+            pcds=scan_pcds,
+            masks=scan_masks
+        )
+        print('<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<')
+
+        print('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>')
+        termcolor.cprint('==> Predicting Pose', attrs={'bold': True})
+        translation, quaternion = self._predict_pose(h_cad, h_scan)
+        print('<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<')
+
+        print('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>')
+        termcolor.cprint('==> Computing Loss', attrs={'bold': True})
         gt_pose = chainer.cuda.to_cpu(gt_pose)
         gt_quaternion = self.xp.asarray(tf.quaternion_from_matrix(gt_pose))
         gt_translation = self.xp.asarray(tf.translation_from_matrix(gt_pose))
         voxel_dimensions = self.xp.asarray(self.voxel_dimensions)
-        gt_translation = \
+        gt_translation = (
             (gt_translation - scan_origin) / pitch / voxel_dimensions
+        )
         print(f'gt_quaternion: {gt_quaternion}')
         print(f'gt_translation: {gt_translation}')
 
+        # TODO(wkentaro): Compute loss.
         print('<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<')
 
-        # import ipdb; ipdb.set_trace()  # NOQA
         quit()
