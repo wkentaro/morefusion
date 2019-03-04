@@ -49,7 +49,9 @@ class YCBVideoMultiViewPoseEstimationDataset(YCBVideoDataset):
                     ]
             return tuple(ids)
 
-    def getitem_from_id(self, image_id, class_id):
+    def __getitem__(self, i):
+        image_id, class_id = self.ids[i]
+
         pitch = self._get_pitch(class_id=class_id)
 
         try:

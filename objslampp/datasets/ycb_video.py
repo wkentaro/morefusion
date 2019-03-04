@@ -21,8 +21,9 @@ class YCBVideoDataset(DatasetBase):
         if not self.root_dir.exists():
             self.download()
 
-    def getitem_from_id(self, id):
-        return self.get_frame(id)
+    def __getitem__(self, i):
+        image_id = self.ids[i]
+        return self.get_frame(image_id)
 
     @staticmethod
     def get_image_id(
