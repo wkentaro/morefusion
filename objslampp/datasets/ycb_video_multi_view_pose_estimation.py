@@ -10,7 +10,17 @@ class YCBVideoMultiViewPoseEstimationDataset(YCBVideoDataset):
 
     voxel_dim = 32
 
+    def __init__(self, *args, **kwargs):
+        super(YCBVideoMultiViewPoseEstimationDataset, self).__init__(
+            *args, **kwargs
+        )
+        self._cache_cad_data = {}
+        self._cache_pitch = {}
+
     def get_cad_data(self, class_id):
+        if class_id in self._cache_cad_data:
+            return self._cache_cad_data[class_id]
+
         models = YCBVideoModelsDataset()
         cad_file = models.get_model(class_id=class_id)['textured_simple']
         K, Ts_cam2world, rgbs, depths, segms = models.get_spherical_views(
@@ -29,11 +39,27 @@ class YCBVideoMultiViewPoseEstimationDataset(YCBVideoDataset):
             pcds.append(pcd)
         pcds = np.asarray(pcds)
 
-        return rgbs, pcds
+        pitch = self._get_pitch(class_id)
+        origin = np.array(
+            (- self.voxel_dim // 2 * pitch,) * 3, dtype=float
+        )
+
+        self._cache_cad_data[class_id] = (origin, rgbs, pcds)
+        return origin, rgbs, pcds
+
+    def _get_pitch(self, class_id):
+        if class_id in self._cache_pitch:
+            return self._cache_pitch[class_id]
+
+        models = YCBVideoModelsDataset()
+        cad_file = models.get_model(class_id=class_id)['textured_simple']
+        bbox_diagonal = models.get_bbox_diagonal(mesh_file=cad_file)
+        pitch = 1. * bbox_diagonal / self.voxel_dim
+
+        self._cache_pitch[class_id] = pitch
+        return pitch
 
     def get_scan_data(self, image_id):
-        models = YCBVideoModelsDataset()
-
         frame = self.get_frame(image_id)
         T_world2cam = np.r_[
             frame['meta']['rotation_translation_matrix'],
@@ -49,18 +75,10 @@ class YCBVideoMultiViewPoseEstimationDataset(YCBVideoDataset):
         pcd[~isnan] = trimesh.transform_points(pcd[~isnan], T_cam2world)
 
         class_ids = frame['meta']['cls_indexes']
-        pitches = []
         origins = []
         gt_poses = []
         for instance_id, class_id in enumerate(class_ids):
-            cad_file = models.get_model(
-                class_id=class_id
-            )['textured_simple']
-            bbox_diagonal = models.get_bbox_diagonal(
-                mesh_file=cad_file
-            )
-            pitch = 1. * bbox_diagonal / self.voxel_dim
-            pitches.append(pitch)
+            pitch = self._get_pitch(class_id=class_id)
 
             mask = frame['label'] == class_id
             pcd_ins = pcd[mask & (~isnan)]
@@ -111,14 +129,14 @@ class YCBVideoMultiViewPoseEstimationDataset(YCBVideoDataset):
         pcds = np.asarray(pcds)
         labels = np.asarray(labels)
 
-        return class_ids, pitches, origins, gt_poses, rgbs, pcds, labels
+        return class_ids, origins, gt_poses, rgbs, pcds, labels
 
     def __getitem__(self, index: int):
         image_id = self.imageset[index]
 
         try:
-            class_ids, pitches, scan_origins, gt_poses, \
-                scan_rgbs, scan_pcds, scan_labels = self.get_scan_data(image_id)
+            class_ids, scan_origins, gt_poses, scan_rgbs, \
+                scan_pcds, scan_labels = self.get_scan_data(image_id)
         except Exception:
             return dict(
                 class_id=-1,
@@ -137,17 +155,13 @@ class YCBVideoMultiViewPoseEstimationDataset(YCBVideoDataset):
 
         instance_id = np.random.randint(0, len(class_ids))
         class_id = class_ids[instance_id]
+        pitch = self._get_pitch(class_id=class_id)
+
+        cad_origin, cad_rgbs, cad_pcds = self.get_cad_data(class_id)
 
         scan_masks = scan_labels == class_id
-        pitch = pitches[instance_id]
         scan_origin = scan_origins[instance_id]
         gt_pose = gt_poses[instance_id]
-
-        cad_origin = np.array(
-            (- self.voxel_dim // 2 * pitch,) * 3,
-            dtype=float,
-        )
-        cad_rgbs, cad_pcds = self.get_cad_data(class_id)
 
         return dict(
             class_id=class_id,
