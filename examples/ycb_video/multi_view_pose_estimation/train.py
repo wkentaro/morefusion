@@ -11,6 +11,7 @@ import textwrap
 
 import chainer
 import numpy as np
+import pybullet  # NOQA
 import termcolor
 
 import objslampp
