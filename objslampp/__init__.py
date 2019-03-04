@@ -7,3 +7,5 @@ from . import models
 from . import sim
 from . import utils
 from . import vis
+
+from .logger import logger
