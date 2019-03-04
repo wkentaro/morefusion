@@ -9,6 +9,9 @@ import logging
 import socket
 import textwrap
 
+import matplotlib.pyplot as plt
+plt.switch_backend('agg')  # NOQA
+
 import chainer
 import numpy as np
 import pybullet  # NOQA
@@ -101,8 +104,9 @@ def main():
     trainer = chainer.training.Trainer(updater, (10, 'epoch'), out=args.out)
 
     log_interval = 20, 'iteration'
+    plot_interval = 20, 'iteration'
 
-    # logging
+    # log
     trainer.extend(
         chainer.training.extensions.observe_lr(),
         trigger=log_interval,
@@ -115,12 +119,29 @@ def main():
                 'iteration',
                 'elapsed_time',
                 'lr',
+                'main/loss_quaternion',
+                'main/loss_translation',
                 'main/loss',
             ],
         ),
         trigger=log_interval,
     )
     trainer.extend(chainer.training.extensions.ProgressBar(update_interval=10))
+
+    # plot
+    assert chainer.training.extensions.PlotReport.available()
+    trainer.extend(
+        chainer.training.extensions.PlotReport(
+            [
+                'main/loss_quaternion',
+                'main/loss_translation',
+                'main/loss',
+            ],
+            file_name='loss.png',
+            trigger=plot_interval,
+        ),
+        trigger=(1, 'iteration'),
+    )
 
     # -------------------------------------------------------------------------
 
