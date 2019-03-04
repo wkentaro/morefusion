@@ -5,6 +5,7 @@ import datetime
 import pathlib
 import pprint
 import random
+import logging
 import socket
 import textwrap
 
@@ -13,6 +14,7 @@ import numpy as np
 import termcolor
 
 import objslampp
+from objslampp import logger
 
 
 here = pathlib.Path(__file__).resolve().parent
@@ -22,12 +24,18 @@ def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
+    parser.add_argument(
+        '--loglevel',
+        default='info',
+        choices=['debug', 'info', 'warning', 'error'],
+    )
     parser.add_argument('--gpu', type=int, default=0, help='gpu id')
     parser.add_argument('--seed', type=int, default=0, help='random seed')
     args = parser.parse_args()
 
-    msg = f"==> Started training"
-    termcolor.cprint(msg, attrs={'bold': True})
+    logger.setLevel(getattr(logging, args.loglevel.upper()))
+
+    termcolor.cprint('==> Started training', attrs={'bold': True})
 
     now = datetime.datetime.now()
     args.timestamp = now.isoformat()
