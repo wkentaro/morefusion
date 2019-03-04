@@ -31,9 +31,9 @@ class ColoredFormatter(logging.Formatter):
 class ColoredLogger(logging.Logger):
 
     fmt_filename = termcolor.colored('%(filename)s', attrs={'bold': True})
-    FORMAT = '%(levelname)s [%(funcName)s] %(message)s ({}:%(lineno)d)'.format(
-        fmt_filename
-    )
+    FORMAT = '%(levelname)s [%(funcName)s] %(message)s'
+    # FORMAT = '%(levelname)s [%(funcName)s] %(message)s ({}:%(lineno)d)'\
+    #     .format(fmt_filename)
 
     def __init__(self, name, level=logging.INFO):
         logging.Logger.__init__(self, name, level)
