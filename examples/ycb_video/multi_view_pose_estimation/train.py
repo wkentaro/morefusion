@@ -45,6 +45,7 @@ def main():
     args.timestamp = now.isoformat()
     args.out = str(here / 'logs' / now.strftime('%Y%m%d_%H%M%S.%f'))
     args.hostname = socket.gethostname()
+    args.githash = objslampp.utils.githash(__file__)
 
     msg = pprint.pformat(args.__dict__)
     msg = textwrap.indent(msg, prefix=' ' * 2)
@@ -64,12 +65,12 @@ def main():
         chainer.cuda.cupy.random.seed(args.seed)
 
     # dataset initialization
-    class_ids = [0, 1, 2]  # XXX: Testing with 3 classes of objects.
+    args.class_ids = [0, 1, 2]  # XXX: Testing with 3 classes of objects.
     data_train = objslampp.datasets.YCBVideoMultiViewPoseEstimationDataset(
-        'train', class_ids=class_ids
+        'train', class_ids=args.class_ids
     )
     data_valid = objslampp.datasets.YCBVideoMultiViewPoseEstimationDataset(
-        'val', class_ids=class_ids
+        'val', class_ids=args.class_ids
     )
 
     # model initialization
