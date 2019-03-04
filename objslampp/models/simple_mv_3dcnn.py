@@ -3,10 +3,10 @@ import chainer.functions as F
 import chainer.links as L
 from chainercv.links.model.resnet import ResNet50
 import numpy as np
-import termcolor
 import trimesh.transformations as tf
 
-import objslampp
+from .. import functions
+from ..logger import logger
 
 
 class SimpleMV3DCNNModel(chainer.Chain):
@@ -68,16 +68,16 @@ class SimpleMV3DCNNModel(chainer.Chain):
         mean = self.xp.asarray(self.res.mean)
         rgbs = rgbs - mean[None]
         h, = self.res(rgbs)
-        print(f'h_res: {h.shape}')
+        logger.debug(f'h_res: {h.shape}')
         h = F.relu(self.conv5(h))
-        print(f'h_conv5: {h.shape}')
+        logger.debug(f'h_conv5: {h.shape}')
 
         # Voxelization3D
         h = F.resize_images(h, rgbs.shape[2:])
         h_vox = []
         for i in range(batch_size):
             h_i = h[i].transpose(1, 2, 0)  # CHW -> HWC
-            h_i = objslampp.functions.voxelization_3d(
+            h_i = functions.voxelization_3d(
                 values=h_i[masks[i], :],
                 points=pcds[i][masks[i], :],
                 origin=origin,
@@ -86,31 +86,31 @@ class SimpleMV3DCNNModel(chainer.Chain):
                 channels=self.voxel_channels,
             )
             h_i = h_i.transpose(3, 0, 1, 2)  # XYZC -> CXYZ
-            print(f'h_i: {h_i.shape}')
+            logger.debug(f'h_i, i={i}: {h_i.shape}')
             h_vox.append(h_i[None])
         h = F.concat(h_vox, axis=0)
-        print(f'h_vox: {h.shape}')
+        logger.debug(f'h_vox: {h.shape}')
         h = F.max(h, axis=0)[None]
-        print(f'h_vox_fused: {h.shape}')  # NOQA
+        logger.debug(f'h_vox_fused: {h.shape}')  # NOQA
 
         # 3DCNN
         h = F.relu(self.conv6(h))
-        print(f'h_conv6: {h.shape}')
+        logger.debug(f'h_conv6: {h.shape}')
         h = F.relu(self.conv7(h))
-        print(f'h_conv7: {h.shape}')
+        logger.debug(f'h_conv7: {h.shape}')
         return h
 
     def _predict_pose(self, h_cad, h_scan):
         h = F.concat([h_cad, h_scan], axis=1)
-        print(f'h_concat: {h.shape}')
+        logger.debug(f'h_concat: {h.shape}')
 
         h = F.relu(self.fc8(h))
-        print(f'h_fc8: {h.shape}')
+        logger.debug(f'h_fc8: {h.shape}')
 
         quaternion = F.sigmoid(self.fc_quaternion(h))
-        print(f'quaternion: {quaternion}')
+        logger.debug(f'quaternion: {quaternion}')
         translation = F.sigmoid(self.fc_translation(h))
-        print(f'translation: {translation}')
+        logger.debug(f'translation: {translation}')
         return translation, quaternion
 
     def __call__(
@@ -127,27 +127,24 @@ class SimpleMV3DCNNModel(chainer.Chain):
         scan_pcds,
         scan_masks,
     ):
-        print('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>')
-        termcolor.cprint('==> SimpleMV3DCNNModel args', attrs={'bold': True})
-        print(f'class_id: {type(class_id)}, {class_id.shape}')
-        print(f'pitch: {type(pitch)}, {pitch.shape}')
-        print(f'gt_pose: {type(gt_pose)}, {gt_pose.shape}')
-        print(f'cad_origin: {type(cad_origin)}, {cad_origin.shape}')
-        print(f'cad_rgbs: {type(cad_rgbs)}, {cad_rgbs.shape}')
-        print(f'cad_pcds: {type(cad_pcds)}, {cad_pcds.shape}')
-        print(f'scan_origin: {type(scan_origin)}, {scan_origin.shape}')
-        print(f'scan_rgbs: {type(scan_rgbs)}, {scan_rgbs.shape}')
-        print(f'scan_pcds: {type(scan_pcds)}, {scan_pcds.shape}')
-        print(f'scan_masks: {type(scan_masks)}, {scan_masks.shape}')
-        print('<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<')
+        logger.debug('==> Arguments for SimpleMV3DCNNModel')
+        logger.debug(f'class_id: {type(class_id)}, {class_id.shape}')
+        logger.debug(f'pitch: {type(pitch)}, {pitch.shape}')
+        logger.debug(f'gt_pose: {type(gt_pose)}, {gt_pose.shape}')
+        logger.debug(f'cad_origin: {type(cad_origin)}, {cad_origin.shape}')
+        logger.debug(f'cad_rgbs: {type(cad_rgbs)}, {cad_rgbs.shape}')
+        logger.debug(f'cad_pcds: {type(cad_pcds)}, {cad_pcds.shape}')
+        logger.debug(f'scan_origin: {type(scan_origin)}, {scan_origin.shape}')
+        logger.debug(f'scan_rgbs: {type(scan_rgbs)}, {scan_rgbs.shape}')
+        logger.debug(f'scan_pcds: {type(scan_pcds)}, {scan_pcds.shape}')
+        logger.debug(f'scan_masks: {type(scan_masks)}, {scan_masks.shape}')
 
         batch_size = class_id.shape[0]
         assert batch_size == 1, 'single batch_size is only supported'
         pitch = pitch[0].astype(np.float32)
         gt_pose = gt_pose[0].astype(np.float32)
 
-        print('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>')
-        termcolor.cprint('==> Multi-View Encoding CAD', attrs={'bold': True})
+        logger.debug('==> Multi-View Encoding CAD')
         cad_origin = cad_origin[0].astype(np.float32)
         cad_rgbs = cad_rgbs[0].astype(np.float32).transpose(0, 3, 1, 2)
         cad_pcds = cad_pcds[0].astype(np.float32)
@@ -159,10 +156,8 @@ class SimpleMV3DCNNModel(chainer.Chain):
             pcds=cad_pcds,
             masks=cad_masks,
         )
-        print('<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<')
 
-        print('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>')
-        termcolor.cprint('==> Multi-View Encoding Scan', attrs={'bold': True})
+        logger.debug('==> Multi-View Encoding Scan')
         scan_origin = scan_origin[0].astype(np.float32)
         scan_rgbs = scan_rgbs[0].astype(np.float32).transpose(0, 3, 1, 2)
         scan_pcds = scan_pcds[0].astype(np.float32)
@@ -174,26 +169,40 @@ class SimpleMV3DCNNModel(chainer.Chain):
             pcds=scan_pcds,
             masks=scan_masks
         )
-        print('<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<')
 
-        print('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>')
-        termcolor.cprint('==> Predicting Pose', attrs={'bold': True})
+        logger.debug('==> Predicting Pose')
         translation, quaternion = self._predict_pose(h_cad, h_scan)
-        print('<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<')
 
-        print('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>')
-        termcolor.cprint('==> Computing Loss', attrs={'bold': True})
+        logger.debug('==> Computing Loss')
         gt_pose = chainer.cuda.to_cpu(gt_pose)
-        gt_quaternion = self.xp.asarray(tf.quaternion_from_matrix(gt_pose))
-        gt_translation = self.xp.asarray(tf.translation_from_matrix(gt_pose))
+        gt_quaternion = tf.quaternion_from_matrix(gt_pose)
+        gt_quaternion = self.xp.asarray(gt_quaternion)
+        gt_quaternion = gt_quaternion[None].astype(np.float32)  # (1, 4)
+        logger.debug(f'gt_quaternion: {gt_quaternion}')
+
+        gt_translation = tf.translation_from_matrix(gt_pose)
+        gt_translation = self.xp.asarray(gt_translation)
         voxel_dimensions = self.xp.asarray(self.voxel_dimensions)
         gt_translation = (
             (gt_translation - scan_origin) / pitch / voxel_dimensions
         )
-        print(f'gt_quaternion: {gt_quaternion}')
-        print(f'gt_translation: {gt_translation}')
+        gt_translation = gt_translation[None].astype(np.float32)  # (1, 3)
+        logger.debug(f'gt_translation: {gt_translation}')
 
-        # TODO(wkentaro): Compute loss.
-        print('<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<')
+        loss_quaternion = F.mean_absolute_error(quaternion, gt_quaternion)
+        loss_translation = F.mean_absolute_error(translation, gt_translation)
+        loss = loss_quaternion + loss_translation
+        logger.debug(f'loss_quaternion: {loss_quaternion}')
+        logger.debug(f'loss_translation: {loss_translation}')
+        logger.debug(f'loss: {loss}')
 
-        quit()
+        chainer.report(
+            values={
+                'loss_quaternion': loss_quaternion,
+                'loss_translation': loss_translation,
+                'loss': loss,
+            },
+            observer=self,
+        )
+
+        return loss
