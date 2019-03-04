@@ -64,12 +64,13 @@ def main():
         chainer.cuda.cupy.random.seed(args.seed)
 
     # dataset initialization
+    class_ids = [0, 1, 2]  # XXX: Testing with 3 classes of objects.
     data_train = objslampp.datasets.YCBVideoMultiViewPoseEstimationDataset(
-        'train'
+        'train', class_ids=class_ids
     )
-    # data_valid = objslampp.datasets.YCBVideoMultiViewPoseEstimationDataset(
-    #     'val'
-    # )
+    data_valid = objslampp.datasets.YCBVideoMultiViewPoseEstimationDataset(
+        'val', class_ids=class_ids
+    )
 
     # model initialization
     model = objslampp.models.SimpleMV3DCNNModel()
@@ -88,9 +89,9 @@ def main():
     iter_train = chainer.iterators.SerialIterator(
         data_train, batch_size=1, repeat=True, shuffle=True
     )
-    # iter_valid = chainer.iterators.SerialIterator(
-    #     data_valid, batch_size=1, repeat=False, shuffle=False
-    # )
+    iter_valid = chainer.iterators.SerialIterator(
+        data_valid, batch_size=1, repeat=False, shuffle=False
+    )
 
     updater = chainer.training.updater.StandardUpdater(
         iterator=iter_train,
@@ -107,6 +108,16 @@ def main():
 
     log_interval = 20, 'iteration'
     plot_interval = 20, 'iteration'
+    eval_interval = 0.3, 'epoch'
+
+    # evaluate
+    evaluator = chainer.training.extensions.Evaluator(
+        iterator=iter_valid,
+        target=model,
+        # converter=my_converter,
+        device=args.gpu,
+    )
+    trainer.extend(evaluator, trigger=eval_interval)
 
     # log
     trainer.extend(
@@ -124,6 +135,9 @@ def main():
                 'main/loss_quaternion',
                 'main/loss_translation',
                 'main/loss',
+                # 'main/validation/loss_quaternion'
+                # 'main/validation/loss_translation'
+                'main/validation/loss'
             ],
         ),
         trigger=log_interval,
@@ -138,6 +152,9 @@ def main():
                 'main/loss_quaternion',
                 'main/loss_translation',
                 'main/loss',
+                'main/validation/loss_quaternion'
+                'main/validation/loss_translation'
+                'main/validation/loss',
             ],
             file_name='loss.png',
             trigger=plot_interval,
