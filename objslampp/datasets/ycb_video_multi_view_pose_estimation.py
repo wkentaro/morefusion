@@ -13,23 +13,23 @@ class YCBVideoMultiViewPoseEstimationDataset(YCBVideoDataset):
 
     voxel_dim = 32
 
-    def __init__(self, split, sampling=15):
+    def __init__(self, split, sampling=15, class_ids=None):
+        self._class_ids = class_ids
         super(YCBVideoMultiViewPoseEstimationDataset, self).__init__(
             split=split, sampling=sampling
         )
         self._cache_cad_data = {}
         self._cache_pitch = {}
 
-    @classmethod
     def get_ids(
-        cls,
+        self,
         split: str,
         sampling: int = 1,
     ):
         assert split in ('train', 'val', 'trainval')
 
         video2class_ids: dict = {}
-        imageset_file: pathlib.Path = cls._root_dir / f'image_sets/{split}.txt'
+        imageset_file: pathlib.Path = self.root_dir / f'image_sets/{split}.txt'
         with open(imageset_file) as f:
             ids: list = []
             for line in f:
@@ -39,10 +39,14 @@ class YCBVideoMultiViewPoseEstimationDataset(YCBVideoDataset):
                     if video_id in video2class_ids:
                         class_ids = video2class_ids[video_id]
                     else:
-                        frame = cls.get_frame(image_id)
+                        frame = self.get_frame(image_id)
                         class_ids = frame['meta']['cls_indexes']
                         video2class_ids[video_id] = class_ids
-                    ids += [(image_id, class_id) for class_id in class_ids]
+                    ids += [
+                        (image_id, class_id) for class_id in class_ids
+                        if self._class_ids is None or
+                        class_id in self._class_ids
+                    ]
             return tuple(ids)
 
     def getitem_from_id(self, image_id, class_id):
