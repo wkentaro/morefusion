@@ -3,7 +3,6 @@ import chainer.functions as F
 import chainer.links as L
 from chainercv.links.model.resnet import ResNet50
 import numpy as np
-import trimesh.transformations as tf
 
 from .. import functions
 from ..logger import logger
@@ -29,7 +28,7 @@ class SimpleMV3DCNNModel(chainer.Chain):
 
             # voxelization_3d
             # -> (16, 32, 32, 32)
-            self.voxel_dimensions = (32, 32, 32)
+            self.voxel_dim = 32
             self.voxel_channels = 16
 
             # 3DCNN
@@ -82,7 +81,7 @@ class SimpleMV3DCNNModel(chainer.Chain):
                 points=pcds[i][masks[i], :],
                 origin=origin,
                 pitch=pitch,
-                dimensions=self.voxel_dimensions,
+                dimensions=(self.voxel_dim,) * 3,
                 channels=self.voxel_channels,
             )
             h_i = h_i.transpose(3, 0, 1, 2)  # XYZC -> CXYZ
@@ -118,7 +117,6 @@ class SimpleMV3DCNNModel(chainer.Chain):
         *,
         class_id,
         pitch,
-        gt_pose,
         cad_origin,
         cad_rgbs,
         cad_pcds,
@@ -126,6 +124,9 @@ class SimpleMV3DCNNModel(chainer.Chain):
         scan_rgbs,
         scan_pcds,
         scan_masks,
+        gt_pose,
+        gt_quaternion,
+        gt_translation,
     ):
         if class_id == -1:
             # skip invalid data
@@ -134,7 +135,6 @@ class SimpleMV3DCNNModel(chainer.Chain):
         logger.debug('==> Arguments for SimpleMV3DCNNModel')
         logger.debug(f'class_id: {type(class_id)}, {class_id.shape}')
         logger.debug(f'pitch: {type(pitch)}, {pitch.shape}')
-        logger.debug(f'gt_pose: {type(gt_pose)}, {gt_pose.shape}')
         logger.debug(f'cad_origin: {type(cad_origin)}, {cad_origin.shape}')
         logger.debug(f'cad_rgbs: {type(cad_rgbs)}, {cad_rgbs.shape}')
         logger.debug(f'cad_pcds: {type(cad_pcds)}, {cad_pcds.shape}')
@@ -142,6 +142,9 @@ class SimpleMV3DCNNModel(chainer.Chain):
         logger.debug(f'scan_rgbs: {type(scan_rgbs)}, {scan_rgbs.shape}')
         logger.debug(f'scan_pcds: {type(scan_pcds)}, {scan_pcds.shape}')
         logger.debug(f'scan_masks: {type(scan_masks)}, {scan_masks.shape}')
+        logger.debug(f'gt_pose: {type(gt_pose)}, {gt_pose.shape}')
+        logger.debug(f'gt_quaternion: {type(gt_quaternion)}, {gt_quaternion.shape}')  # NOQA
+        logger.debug(f'gt_translation: {type(gt_translation)}, {gt_translation.shape}')  # NOQA
 
         batch_size = class_id.shape[0]
         assert batch_size == 1, 'single batch_size is only supported'
@@ -178,23 +181,6 @@ class SimpleMV3DCNNModel(chainer.Chain):
         translation, quaternion = self._predict_pose(h_cad, h_scan)
 
         logger.debug('==> Computing Loss')
-        gt_pose = chainer.cuda.to_cpu(gt_pose)
-        gt_quaternion = tf.quaternion_from_matrix(gt_pose)
-        gt_quaternion = self.xp.asarray(gt_quaternion, dtype=np.float32)
-        gt_quaternion = gt_quaternion[None]  # (1, 4)
-        logger.debug(f'gt_quaternion: {gt_quaternion}')
-
-        gt_translation = tf.translation_from_matrix(gt_pose)
-        gt_translation = self.xp.asarray(gt_translation)
-        voxel_dimensions = self.xp.asarray(
-            self.voxel_dimensions, dtype=np.float32
-        )
-        gt_translation = (
-            (gt_translation - scan_origin) / pitch / voxel_dimensions
-        )
-        gt_translation = gt_translation[None]  # (1, 3)
-        logger.debug(f'gt_translation: {gt_translation}')
-
         loss_quaternion = F.mean_absolute_error(quaternion, gt_quaternion)
         loss_translation = F.mean_absolute_error(translation, gt_translation)
         loss = loss_quaternion + loss_translation

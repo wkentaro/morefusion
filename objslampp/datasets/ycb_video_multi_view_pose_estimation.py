@@ -2,6 +2,7 @@ import pathlib
 
 import numpy as np
 import trimesh
+import trimesh.transformations as tf
 
 from .. import geometry
 from .ycb_video import YCBVideoDataset
@@ -50,13 +51,24 @@ class YCBVideoMultiViewPoseEstimationDataset(YCBVideoDataset):
         try:
             scan_origin, gt_pose, scan_rgbs, scan_pcds, scan_masks = \
                 self._get_scan_data(image_id, class_id)
+
+            gt_quaternion = tf.quaternion_from_matrix(gt_pose)
+            gt_quaternion = gt_quaternion.astype(np.float32)
+            gt_translation = tf.translation_from_matrix(gt_pose)
+            gt_translation = (
+                (gt_translation - scan_origin) / pitch / self.voxel_dim
+            )
+            gt_translation = gt_translation.astype(np.float32)
         except ValueError:
             class_id = -1  # indicates skipping
             scan_origin = np.zeros((), dtype=np.float32)
-            gt_pose = np.zeros((), dtype=np.float32)
             scan_rgbs = np.zeros((), dtype=np.float32)
             scan_pcds = np.zeros((), dtype=np.float32)
             scan_masks = np.zeros((), dtype=np.float32)
+
+            gt_pose = np.zeros((), dtype=np.float32)
+            gt_quaternion = np.zeros((), dtype=np.float32)
+            gt_translation = np.zeros((), dtype=np.float32)
 
         if class_id == -1:
             cad_origin = np.zeros((), dtype=np.float32)
@@ -77,7 +89,10 @@ class YCBVideoMultiViewPoseEstimationDataset(YCBVideoDataset):
             scan_pcds=scan_pcds,        # world coordinate
             scan_masks=scan_masks,
             scan_origin=scan_origin,    # for current_view, world coordinate
+
             gt_pose=gt_pose,            # cad -> world
+            gt_quaternion=gt_quaternion,
+            gt_translation=gt_translation,
         )
 
     def _get_cad_data(self, class_id):
