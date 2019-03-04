@@ -35,13 +35,22 @@ class YCBVideoDataset(object):
         )
 
     @classmethod
-    def get_imageset(cls, split: str) -> typing.Tuple[str, ...]:
+    def get_imageset(
+        cls,
+        split: str,
+        sampling: int = 1,
+    ) -> typing.Tuple[str, ...]:
         assert split in ['train', 'val', 'trainval']
+
         imageset_file: pathlib.Path = cls.root_dir / f'image_sets/{split}.txt'
         with open(imageset_file) as f:
-            imageset: typing.Tuple[str, ...] = tuple(
-                [l.strip() for l in f.readlines()]
-            )
+            imageset = []
+            for line in f:
+                image_id = line.strip()
+                video_id, frame_id = image_id.split('/')
+                if int(frame_id) % sampling == 0:
+                    imageset.append(image_id)
+            imageset = tuple(imageset)
         return imageset
 
     @classmethod
@@ -77,10 +86,10 @@ class YCBVideoDataset(object):
             label=label,
         )
 
-    def __init__(self, split: str):
+    def __init__(self, split: str, sampling=1):
         assert split in ['train', 'val', 'trainval']
         self._split = split
-        self._imageset = self.get_imageset(split)
+        self._imageset = self.get_imageset(split=split, sampling=sampling)
 
         if not self.root_dir.exists():
             self.download()

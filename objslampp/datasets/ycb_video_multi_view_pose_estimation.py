@@ -10,9 +10,9 @@ class YCBVideoMultiViewPoseEstimationDataset(YCBVideoDataset):
 
     voxel_dim = 32
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, split, sampling=5):
         super(YCBVideoMultiViewPoseEstimationDataset, self).__init__(
-            *args, **kwargs
+            split=split, sampling=sampling
         )
         self._cache_cad_data = {}
         self._cache_pitch = {}
@@ -99,7 +99,8 @@ class YCBVideoMultiViewPoseEstimationDataset(YCBVideoDataset):
         scene_id, frame_id = image_id.split('/')
         frame_ids = [f'{i:06d}' for i in range(1, int(frame_id))]
         if len(frame_ids) > 9:
-            frame_ids = np.random.choice(frame_ids, 9, replace=False).tolist()
+            indices = np.random.permutation(len(frame_ids))[:9]
+            frame_ids = [frame_ids[i] for i in sorted(indices)]
         frame_ids += [frame_id]
 
         rgbs = []
