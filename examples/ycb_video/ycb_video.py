@@ -25,7 +25,7 @@ class MainApp(object):
 
         play = False
         while True:
-            image_id = self._dataset.imageset[index]
+            image_id = self._dataset.ids[index]
             termcolor.cprint(f'[{index}] {image_id}', attrs={'bold': True})
 
             frame = self._dataset[index]

@@ -6,11 +6,23 @@ import imgviz
 import numpy as np
 import scipy.io
 
+from .base import DatasetBase
 
-class YCBVideoDataset(object):
 
-    root_dir: pathlib.Path = \
-        pathlib.Path.home() / 'data/datasets/YCB/YCB_Video_Dataset'
+class YCBVideoDataset(DatasetBase):
+
+    _root_dir = pathlib.Path.home() / 'data/datasets/YCB/YCB_Video_Dataset'
+
+    def __init__(self, split: str, sampling=1):
+        assert split in ('train', 'val', 'trainval')
+        self._split = split
+        self._ids = self.get_ids(split=split, sampling=sampling)
+
+        if not self.root_dir.exists():
+            self.download()
+
+    def getitem_from_id(self, id):
+        return self.get_frame(id)
 
     @staticmethod
     def get_image_id(
@@ -29,53 +41,53 @@ class YCBVideoDataset(object):
         md5 = None  # 'c9122e177a766a9691cab13c5cda41a9'
         gdown.cached_download(
             url=url,
-            path=str(cls.root_dir) + '.zip',
+            path=str(cls._root_dir) + '.zip',
             md5=md5,
             postprocess=gdown.extractall,
         )
 
     @classmethod
-    def get_imageset(
+    def get_ids(
         cls,
         split: str,
         sampling: int = 1,
     ) -> typing.Tuple[str, ...]:
         assert split in ['train', 'val', 'trainval']
 
-        imageset_file: pathlib.Path = cls.root_dir / f'image_sets/{split}.txt'
+        imageset_file: pathlib.Path = cls._root_dir / f'image_sets/{split}.txt'
         with open(imageset_file) as f:
-            imageset = []
+            ids = []
             for line in f:
                 image_id = line.strip()
                 video_id, frame_id = image_id.split('/')
                 if int(frame_id) % sampling == 0:
-                    imageset.append(image_id)
-            imageset = tuple(imageset)
-        return imageset
+                    ids.append(image_id)
+            ids = tuple(ids)
+        return ids
 
     @classmethod
     def get_frame(cls, image_id: str) -> dict:
         meta_file: pathlib.Path = (
-            cls.root_dir / 'data' / (image_id + '-meta.mat')
+            cls._root_dir / 'data' / (image_id + '-meta.mat')
         )
         meta = scipy.io.loadmat(
             meta_file, squeeze_me=True, struct_as_record=True
         )
 
         color_file: pathlib.Path = (
-            cls.root_dir / 'data' / (image_id + '-color.png')
+            cls._root_dir / 'data' / (image_id + '-color.png')
         )
         color: np.ndarray = imgviz.io.imread(color_file)
 
         depth_file: pathlib.Path = (
-            cls.root_dir / 'data' / (image_id + '-depth.png')
+            cls._root_dir / 'data' / (image_id + '-depth.png')
         )
         depth: np.ndarray = imgviz.io.imread(depth_file)
         depth = depth.astype(float) / meta['factor_depth']
         depth[depth == 0] = float('nan')
 
         label_file: pathlib.Path = (
-            cls.root_dir / 'data' / (image_id + '-label.png')
+            cls._root_dir / 'data' / (image_id + '-label.png')
         )
         label: np.ndarray = imgviz.io.imread(label_file)
 
@@ -85,29 +97,6 @@ class YCBVideoDataset(object):
             depth=depth,
             label=label,
         )
-
-    def __init__(self, split: str, sampling=1):
-        assert split in ['train', 'val', 'trainval']
-        self._split = split
-        self._imageset = self.get_imageset(split=split, sampling=sampling)
-
-        if not self.root_dir.exists():
-            self.download()
-
-    @property
-    def split(self):
-        return self._split
-
-    @property
-    def imageset(self):
-        return self._imageset
-
-    def __len__(self):
-        return len(self.imageset)
-
-    def __getitem__(self, i):
-        image_id = self.imageset[i]
-        return self.get_frame(image_id)
 
 
 class_names = (

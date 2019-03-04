@@ -1,3 +1,6 @@
+import pathlib
+import typing
+
 import numpy as np
 import trimesh
 
@@ -10,12 +13,61 @@ class YCBVideoMultiViewPoseEstimationDataset(YCBVideoDataset):
 
     voxel_dim = 32
 
-    def __init__(self, split, sampling=5):
+    def __init__(self, split, sampling=15):
         super(YCBVideoMultiViewPoseEstimationDataset, self).__init__(
             split=split, sampling=sampling
         )
         self._cache_cad_data = {}
         self._cache_pitch = {}
+
+    @classmethod
+    def get_ids(
+        cls,
+        split: str,
+        sampling: int = 1,
+    ) -> typing.Tuple[str, ...]:
+        assert split in ('train', 'val', 'trainval')
+
+        video2class_ids = {}
+        imageset_file: pathlib.Path = cls._root_dir / f'image_sets/{split}.txt'
+        with open(imageset_file) as f:
+            ids = []
+            for line in f:
+                image_id = line.strip()
+                video_id, frame_id = image_id.split('/')
+                if int(frame_id) % sampling == 0:
+                    if video_id in video2class_ids:
+                        class_ids = video2class_ids[video_id]
+                    else:
+                        frame = cls.get_frame(image_id)
+                        class_ids = frame['meta']['cls_indexes']
+                        video2class_ids[video_id] = class_ids
+                    ids += [(image_id, class_id) for class_id in class_ids]
+            ids = tuple(ids)
+        return ids
+
+    def getitem_from_id(self, image_id, class_id):
+        pitch = self._get_pitch(class_id=class_id)
+
+        scan_origin, gt_pose, scan_rgbs, scan_pcds, scan_masks = \
+            self._get_scan_data(image_id, class_id)
+
+        cad_origin, cad_rgbs, cad_pcds = self._get_cad_data(class_id)
+
+        return dict(
+            class_id=class_id,
+            pitch=pitch,
+
+            cad_origin=cad_origin,
+            cad_rgbs=cad_rgbs,
+            cad_pcds=cad_pcds,          # cad coordinate
+
+            scan_rgbs=scan_rgbs,
+            scan_pcds=scan_pcds,        # world coordinate
+            scan_masks=scan_masks,
+            scan_origin=scan_origin,    # for current_view, world coordinate
+            gt_pose=gt_pose,            # cad -> world
+        )
 
     def _get_cad_data(self, class_id):
         if class_id in self._cache_cad_data:
@@ -59,7 +111,7 @@ class YCBVideoMultiViewPoseEstimationDataset(YCBVideoDataset):
         self._cache_pitch[class_id] = pitch
         return pitch
 
-    def _get_scan_data(self, image_id):
+    def _get_scan_data(self, image_id, class_id):
         frame = self.get_frame(image_id)
         T_world2cam = np.r_[
             frame['meta']['rotation_translation_matrix'],
@@ -75,24 +127,23 @@ class YCBVideoMultiViewPoseEstimationDataset(YCBVideoDataset):
         pcd[~isnan] = trimesh.transform_points(pcd[~isnan], T_cam2world)
 
         class_ids = frame['meta']['cls_indexes']
-        origins = []
-        gt_poses = []
-        for instance_id, class_id in enumerate(class_ids):
-            pitch = self._get_pitch(class_id=class_id)
+        assert class_id in class_ids
 
-            mask = frame['label'] == class_id
-            pcd_ins = pcd[mask & (~isnan)]
-            aabb_min, aabb_max = geometry.get_aabb_from_points(pcd_ins)
-            aabb_extents = aabb_max - aabb_min
-            aabb_center = aabb_extents / 2 + aabb_min
-            mapping = geometry.VoxelMapping(pitch=pitch, voxel_size=32)
-            origin = aabb_center - mapping.voxel_bbox_extents / 2
-            origins.append(origin)
+        instance_id = np.where(class_ids == class_id)[0][0]
 
-            gt_pose = frame['meta']['poses'][:, :, instance_id]
-            gt_pose = np.r_[gt_pose, [[0, 0, 0, 1]]]
-            gt_pose = T_cam2world @ gt_pose
-            gt_poses.append(gt_pose)
+        pitch = self._get_pitch(class_id=class_id)
+
+        mask = frame['label'] == class_id
+        pcd_ins = pcd[mask & (~isnan)]
+        aabb_min, aabb_max = geometry.get_aabb_from_points(pcd_ins)
+        aabb_extents = aabb_max - aabb_min
+        aabb_center = aabb_extents / 2 + aabb_min
+        mapping = geometry.VoxelMapping(pitch=pitch, voxel_size=32)
+        origin = aabb_center - mapping.voxel_bbox_extents / 2
+
+        gt_pose = frame['meta']['poses'][:, :, instance_id]
+        gt_pose = np.r_[gt_pose, [[0, 0, 0, 1]]]
+        gt_pose = T_cam2world @ gt_pose
 
         # ---------------------------------------------------------------------
 
@@ -132,35 +183,4 @@ class YCBVideoMultiViewPoseEstimationDataset(YCBVideoDataset):
         pcds = np.asarray(pcds)
         labels = np.asarray(labels)
 
-        return class_ids, origins, gt_poses, rgbs, pcds, labels
-
-    def __getitem__(self, index: int):
-        image_id = self.imageset[index]
-
-        class_ids, scan_origins, gt_poses, scan_rgbs, \
-            scan_pcds, scan_labels = self._get_scan_data(image_id)
-
-        instance_id = np.random.randint(0, len(class_ids))
-        class_id = class_ids[instance_id]
-        pitch = self._get_pitch(class_id=class_id)
-
-        cad_origin, cad_rgbs, cad_pcds = self._get_cad_data(class_id)
-
-        scan_masks = scan_labels == class_id
-        scan_origin = scan_origins[instance_id]
-        gt_pose = gt_poses[instance_id]
-
-        return dict(
-            class_id=class_id,
-            pitch=pitch,
-
-            cad_origin=cad_origin,
-            cad_rgbs=cad_rgbs,
-            cad_pcds=cad_pcds,          # cad coordinate
-
-            scan_rgbs=scan_rgbs,
-            scan_pcds=scan_pcds,        # world coordinate
-            scan_masks=scan_masks,
-            scan_origin=scan_origin,    # for current_view, world coordinate
-            gt_pose=gt_pose,            # cad -> world
-        )
+        return origin, gt_pose, rgbs, pcds, labels
