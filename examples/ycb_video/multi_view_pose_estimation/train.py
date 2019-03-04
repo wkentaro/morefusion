@@ -103,6 +103,8 @@ def main():
 
     trainer = chainer.training.Trainer(updater, (10, 'epoch'), out=args.out)
 
+    trainer.extend(objslampp.training.extensions.ParamsReport(args.__dict__))
+
     log_interval = 20, 'iteration'
     plot_interval = 20, 'iteration'
 
