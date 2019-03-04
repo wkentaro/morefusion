@@ -2,6 +2,7 @@ import pathlib
 import shutil
 import typing
 
+import chainer
 import gdown
 import numpy as np
 import trimesh
@@ -11,7 +12,7 @@ from .. import sim
 from .ycb_video import class_names
 
 
-class YCBVideoModelsDataset(object):
+class YCBVideoModelsDataset(chainer.dataset.DatasetMixin):
 
     root_dir = pathlib.Path.home() / 'data/datasets/YCB/YCB_Video_Models'
 

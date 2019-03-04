@@ -1,7 +1,7 @@
-import abc
+import chainer
 
 
-class DatasetBase(abc.ABC):
+class DatasetBase(chainer.dataset.DatasetMixin):
 
     @property
     def root_dir(self):
