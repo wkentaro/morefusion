@@ -145,13 +145,13 @@ class SimpleMV3DCNNModel(chainer.Chain):
 
         batch_size = class_id.shape[0]
         assert batch_size == 1, 'single batch_size is only supported'
-        pitch = pitch[0].astype(np.float32)
-        gt_pose = gt_pose[0].astype(np.float32)
+        pitch = pitch[0]
+        gt_pose = gt_pose[0]
 
         logger.debug('==> Multi-View Encoding CAD')
-        cad_origin = cad_origin[0].astype(np.float32)
+        cad_origin = cad_origin[0]
         cad_rgbs = cad_rgbs[0].astype(np.float32).transpose(0, 3, 1, 2)
-        cad_pcds = cad_pcds[0].astype(np.float32)
+        cad_pcds = cad_pcds[0]
         cad_masks = ~self.xp.isnan(cad_pcds).any(axis=3)
         h_cad = self._encode_multiview(
             origin=cad_origin,
@@ -162,9 +162,9 @@ class SimpleMV3DCNNModel(chainer.Chain):
         )
 
         logger.debug('==> Multi-View Encoding Scan')
-        scan_origin = scan_origin[0].astype(np.float32)
+        scan_origin = scan_origin[0]
         scan_rgbs = scan_rgbs[0].astype(np.float32).transpose(0, 3, 1, 2)
-        scan_pcds = scan_pcds[0].astype(np.float32)
+        scan_pcds = scan_pcds[0]
         scan_masks = scan_masks[0] & ~self.xp.isnan(scan_pcds).any(axis=3)
         h_scan = self._encode_multiview(
             origin=scan_origin,
@@ -180,17 +180,19 @@ class SimpleMV3DCNNModel(chainer.Chain):
         logger.debug('==> Computing Loss')
         gt_pose = chainer.cuda.to_cpu(gt_pose)
         gt_quaternion = tf.quaternion_from_matrix(gt_pose)
-        gt_quaternion = self.xp.asarray(gt_quaternion)
-        gt_quaternion = gt_quaternion[None].astype(np.float32)  # (1, 4)
+        gt_quaternion = self.xp.asarray(gt_quaternion, dtype=np.float32)
+        gt_quaternion = gt_quaternion[None]  # (1, 4)
         logger.debug(f'gt_quaternion: {gt_quaternion}')
 
         gt_translation = tf.translation_from_matrix(gt_pose)
         gt_translation = self.xp.asarray(gt_translation)
-        voxel_dimensions = self.xp.asarray(self.voxel_dimensions)
+        voxel_dimensions = self.xp.asarray(
+            self.voxel_dimensions, dtype=np.float32
+        )
         gt_translation = (
             (gt_translation - scan_origin) / pitch / voxel_dimensions
         )
-        gt_translation = gt_translation[None].astype(np.float32)  # (1, 3)
+        gt_translation = gt_translation[None]  # (1, 3)
         logger.debug(f'gt_translation: {gt_translation}')
 
         loss_quaternion = F.mean_absolute_error(quaternion, gt_quaternion)

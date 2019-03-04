@@ -1,5 +1,4 @@
 import pathlib
-import typing
 
 import numpy as np
 import trimesh
@@ -25,13 +24,13 @@ class YCBVideoMultiViewPoseEstimationDataset(YCBVideoDataset):
         cls,
         split: str,
         sampling: int = 1,
-    ) -> typing.Tuple[str, ...]:
+    ):
         assert split in ('train', 'val', 'trainval')
 
-        video2class_ids = {}
+        video2class_ids: dict = {}
         imageset_file: pathlib.Path = cls._root_dir / f'image_sets/{split}.txt'
         with open(imageset_file) as f:
-            ids = []
+            ids: list = []
             for line in f:
                 image_id = line.strip()
                 video_id, frame_id = image_id.split('/')
@@ -43,8 +42,7 @@ class YCBVideoMultiViewPoseEstimationDataset(YCBVideoDataset):
                         class_ids = frame['meta']['cls_indexes']
                         video2class_ids[video_id] = class_ids
                     ids += [(image_id, class_id) for class_id in class_ids]
-            ids = tuple(ids)
-        return ids
+            return tuple(ids)
 
     def getitem_from_id(self, image_id, class_id):
         pitch = self._get_pitch(class_id=class_id)
@@ -89,12 +87,19 @@ class YCBVideoMultiViewPoseEstimationDataset(YCBVideoDataset):
                 pcd[~isnan], T_cam2world
             )  # in world coord
             pcds.append(pcd)
-        pcds = np.asarray(pcds)
+        pcds = np.asarray(pcds, dtype=np.float32)
 
         pitch = self._get_pitch(class_id)
         origin = np.array(
-            (- self.voxel_dim // 2 * pitch,) * 3, dtype=float
+            (- self.voxel_dim // 2 * pitch,) * 3, dtype=np.float32
         )
+
+        assert isinstance(origin, np.ndarray)
+        assert origin.dtype == np.float32
+        assert isinstance(rgbs, np.ndarray)
+        assert rgbs.dtype == np.uint8
+        assert isinstance(pcds, np.ndarray)
+        assert pcds.dtype == np.float32
 
         self._cache_cad_data[class_id] = (origin, rgbs, pcds)
         return origin, rgbs, pcds
@@ -107,6 +112,9 @@ class YCBVideoMultiViewPoseEstimationDataset(YCBVideoDataset):
         cad_file = models.get_model(class_id=class_id)['textured_simple']
         bbox_diagonal = models.get_bbox_diagonal(mesh_file=cad_file)
         pitch = 1. * bbox_diagonal / self.voxel_dim
+        pitch = pitch.astype(np.float32)
+
+        assert isinstance(pitch, np.float32)
 
         self._cache_pitch[class_id] = pitch
         return pitch
@@ -140,10 +148,12 @@ class YCBVideoMultiViewPoseEstimationDataset(YCBVideoDataset):
         aabb_center = aabb_extents / 2 + aabb_min
         mapping = geometry.VoxelMapping(pitch=pitch, voxel_size=32)
         origin = aabb_center - mapping.voxel_bbox_extents / 2
+        origin = origin.astype(np.float32)
 
         gt_pose = frame['meta']['poses'][:, :, instance_id]
         gt_pose = np.r_[gt_pose, [[0, 0, 0, 1]]]
         gt_pose = T_cam2world @ gt_pose
+        gt_pose = gt_pose.astype(np.float32)
 
         # ---------------------------------------------------------------------
 
@@ -178,9 +188,19 @@ class YCBVideoMultiViewPoseEstimationDataset(YCBVideoDataset):
             isnan = np.isnan(pcd).any(axis=2)
             pcd[~isnan] = trimesh.transform_points(pcd[~isnan], T_cam2world)
             pcds.append(pcd)
-
         rgbs = np.asarray(rgbs)
-        pcds = np.asarray(pcds)
-        labels = np.asarray(labels)
+        pcds = np.asarray(pcds, dtype=np.float32)
+        masks = np.asarray(labels) == class_id
 
-        return origin, gt_pose, rgbs, pcds, labels
+        assert isinstance(origin, np.ndarray)
+        assert origin.dtype == np.float32
+        assert isinstance(gt_pose, np.ndarray)
+        assert gt_pose.dtype == np.float32
+        assert isinstance(rgbs, np.ndarray)
+        assert rgbs.dtype == np.uint8
+        assert isinstance(pcds, np.ndarray)
+        assert pcds.dtype == np.float32
+        assert isinstance(masks, np.ndarray)
+        assert masks.dtype == bool
+
+        return origin, gt_pose, rgbs, pcds, masks

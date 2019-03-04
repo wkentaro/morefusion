@@ -51,7 +51,7 @@ class YCBVideoDataset(DatasetBase):
         cls,
         split: str,
         sampling: int = 1,
-    ) -> typing.Tuple[str, ...]:
+    ):
         assert split in ['train', 'val', 'trainval']
 
         imageset_file: pathlib.Path = cls._root_dir / f'image_sets/{split}.txt'
@@ -62,8 +62,7 @@ class YCBVideoDataset(DatasetBase):
                 video_id, frame_id = image_id.split('/')
                 if int(frame_id) % sampling == 0:
                     ids.append(image_id)
-            ids = tuple(ids)
-        return ids
+            return tuple(ids)
 
     @classmethod
     def get_frame(cls, image_id: str) -> dict:
