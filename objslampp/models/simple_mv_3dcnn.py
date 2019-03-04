@@ -127,6 +127,10 @@ class SimpleMV3DCNNModel(chainer.Chain):
         scan_pcds,
         scan_masks,
     ):
+        if class_id == -1:
+            # skip invalid data
+            return chainer.Variable(self.xp.zeros((), dtype=np.float32))
+
         logger.debug('==> Arguments for SimpleMV3DCNNModel')
         logger.debug(f'class_id: {type(class_id)}, {class_id.shape}')
         logger.debug(f'pitch: {type(pitch)}, {pitch.shape}')

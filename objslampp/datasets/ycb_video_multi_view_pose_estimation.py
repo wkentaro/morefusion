@@ -116,8 +116,24 @@ class YCBVideoMultiViewPoseEstimationDataset(YCBVideoDataset):
     def __getitem__(self, index: int):
         image_id = self.imageset[index]
 
-        class_ids, pitches, scan_origins, gt_poses, \
-            scan_rgbs, scan_pcds, scan_labels = self.get_scan_data(image_id)
+        try:
+            class_ids, pitches, scan_origins, gt_poses, \
+                scan_rgbs, scan_pcds, scan_labels = self.get_scan_data(image_id)
+        except Exception:
+            return dict(
+                class_id=-1,
+                pitch=np.empty(()),
+
+                cad_origin=np.empty(()),
+                cad_rgbs=np.empty(()),
+                cad_pcds=np.empty(()),
+
+                scan_rgbs=np.empty(()),
+                scan_pcds=np.empty(()),
+                scan_masks=np.empty(()),
+                scan_origin=np.empty(()),
+                gt_pose=np.empty(()),
+            )
 
         instance_id = np.random.randint(0, len(class_ids))
         class_id = class_ids[instance_id]
