@@ -136,9 +136,9 @@ def main():
                 'main/loss_quaternion',
                 'main/loss_translation',
                 'main/loss',
-                # 'main/validation/loss_quaternion'
-                # 'main/validation/loss_translation'
-                'main/validation/loss'
+                # 'validation/main/loss_quaternion'
+                # 'validation/main/loss_translation'
+                'validation/main/loss'
             ],
         ),
         trigger=log_interval,
@@ -153,9 +153,9 @@ def main():
                 'main/loss_quaternion',
                 'main/loss_translation',
                 'main/loss',
-                'main/validation/loss_quaternion'
-                'main/validation/loss_translation'
-                'main/validation/loss',
+                'validation/main/loss_quaternion'
+                'validation/main/loss_translation'
+                'validation/main/loss',
             ],
             file_name='loss.png',
             trigger=plot_interval,
