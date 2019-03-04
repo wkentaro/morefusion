@@ -17,7 +17,7 @@ class YCBVideoMultiViewPoseEstimationDataset(YCBVideoDataset):
         self._cache_cad_data = {}
         self._cache_pitch = {}
 
-    def get_cad_data(self, class_id):
+    def _get_cad_data(self, class_id):
         if class_id in self._cache_cad_data:
             return self._cache_cad_data[class_id]
 
@@ -59,7 +59,7 @@ class YCBVideoMultiViewPoseEstimationDataset(YCBVideoDataset):
         self._cache_pitch[class_id] = pitch
         return pitch
 
-    def get_scan_data(self, image_id):
+    def _get_scan_data(self, image_id):
         frame = self.get_frame(image_id)
         T_world2cam = np.r_[
             frame['meta']['rotation_translation_matrix'],
@@ -97,8 +97,10 @@ class YCBVideoMultiViewPoseEstimationDataset(YCBVideoDataset):
         # ---------------------------------------------------------------------
 
         scene_id, frame_id = image_id.split('/')
-        frame_ids = [f'{i:06d}' for i in range(1, int(frame_id) + 1)]
-        frame_ids = np.random.choice(frame_ids, 10)
+        frame_ids = [f'{i:06d}' for i in range(1, int(frame_id))]
+        if len(frame_ids) > 9:
+            frame_ids = np.random.choice(frame_ids, 9, replace=False).tolist()
+        frame_ids += [frame_id]
 
         rgbs = []
         pcds = []
@@ -134,30 +136,14 @@ class YCBVideoMultiViewPoseEstimationDataset(YCBVideoDataset):
     def __getitem__(self, index: int):
         image_id = self.imageset[index]
 
-        try:
-            class_ids, scan_origins, gt_poses, scan_rgbs, \
-                scan_pcds, scan_labels = self.get_scan_data(image_id)
-        except Exception:
-            return dict(
-                class_id=-1,
-                pitch=np.empty(()),
-
-                cad_origin=np.empty(()),
-                cad_rgbs=np.empty(()),
-                cad_pcds=np.empty(()),
-
-                scan_rgbs=np.empty(()),
-                scan_pcds=np.empty(()),
-                scan_masks=np.empty(()),
-                scan_origin=np.empty(()),
-                gt_pose=np.empty(()),
-            )
+        class_ids, scan_origins, gt_poses, scan_rgbs, \
+            scan_pcds, scan_labels = self._get_scan_data(image_id)
 
         instance_id = np.random.randint(0, len(class_ids))
         class_id = class_ids[instance_id]
         pitch = self._get_pitch(class_id=class_id)
 
-        cad_origin, cad_rgbs, cad_pcds = self.get_cad_data(class_id)
+        cad_origin, cad_rgbs, cad_pcds = self._get_cad_data(class_id)
 
         scan_masks = scan_labels == class_id
         scan_origin = scan_origins[instance_id]
