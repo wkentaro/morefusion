@@ -1,3 +1,3 @@
 # flake8: noqa
 
-from .params_report import ParamsReport
+from .args_report import ArgsReport
