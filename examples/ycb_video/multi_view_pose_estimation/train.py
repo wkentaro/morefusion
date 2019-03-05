@@ -70,7 +70,7 @@ def main():
         'train', class_ids=args.class_ids
     )
     data_valid = objslampp.datasets.YCBVideoMultiViewPoseEstimationDataset(
-        'val', class_ids=args.class_ids
+        'val', class_ids=args.class_ids, sampling=60
     )
 
     # model initialization
