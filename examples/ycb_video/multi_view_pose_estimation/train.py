@@ -153,12 +153,21 @@ def main():
                 'main/loss_quaternion',
                 'main/loss_translation',
                 'main/loss',
+            ],
+            file_name='loss.png',
+            trigger=plot_interval,
+        ),
+        trigger=(1, 'iteration'),
+    )
+    trainer.extend(
+        chainer.training.extensions.PlotReport(
+            [
                 'validation/main/loss_quaternion'
                 'validation/main/loss_translation'
                 'validation/main/loss',
             ],
-            file_name='loss.png',
-            trigger=plot_interval,
+            file_name='loss_validation.png',
+            trigger=eval_interval,
         ),
         trigger=(1, 'iteration'),
     )
