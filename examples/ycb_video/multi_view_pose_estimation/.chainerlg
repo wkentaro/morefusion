@@ -1,2 +1,3 @@
 [chainerlg]
-hide=out,loglevel,gpu,seed
+-summary=out,gpu,seed,loglevel,timestamp
+figure=loss.png
