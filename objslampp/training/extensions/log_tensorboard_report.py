@@ -9,6 +9,7 @@ from chainer import serializer as serializer_module
 from chainer.training import extension
 from chainer.training import trigger as trigger_module
 from chainer import utils
+from chainer import Variable
 
 
 class LogTensorboardReport(extension.Extension):
@@ -42,8 +43,9 @@ class LogTensorboardReport(extension.Extension):
             summary.add({k: observation[k] for k in keys if k in observation})
 
         for k, v in observation.items():
-            self._writer.add_scalar(
-                k, observation[k], trainer.updater.iteration)
+            if isinstance(v, Variable):
+                v = v.array
+            self._writer.add_scalar(k, float(v), trainer.updater.iteration)
 
         if self._trigger(trainer):
             # output the result
