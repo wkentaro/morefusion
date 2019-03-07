@@ -63,6 +63,7 @@ class YCBVideoMultiViewPoseEstimationDataset(YCBVideoDataset):
             scan_rgbs = np.zeros((), dtype=np.float32)
             scan_pcds = np.zeros((), dtype=np.float32)
             scan_masks = np.zeros((), dtype=np.float32)
+            gt_pose = np.zeros((), dtype=np.float32)
 
         if class_id == -1:
             cad_origin = np.zeros((), dtype=np.float32)
