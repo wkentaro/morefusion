@@ -140,7 +140,7 @@ def main():
     )
     trainer.extend(
         objslampp.training.extensions.ParameterTensorboardReport(
-            writer=summary_writer, trigger=log_interval
+            writer=summary_writer, trigger=param_log_interval
         )
     )
     trainer.extend(
