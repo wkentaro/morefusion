@@ -108,7 +108,7 @@ class SimpleMV3DCNNModel(chainer.Chain):
 
         quaternion = F.sigmoid(self.fc_quaternion(h))
         logger.debug(f'quaternion: {quaternion}')
-        translation = F.sigmoid(self.fc_translation(h))
+        translation = F.tanh(self.fc_translation(h))
         logger.debug(f'translation: {translation}')
         return translation, quaternion
 
