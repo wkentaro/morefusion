@@ -66,7 +66,7 @@ def main():
         gpu=-1, start_loop=False, caption='Voxelization3D (CPU)'
     )
     check_voxelization_3d(
-        gpu=-1, caption='Voxelization3D (GPU)'
+        gpu=0, caption='Voxelization3D (GPU)'
     )
 
 
