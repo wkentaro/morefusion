@@ -57,14 +57,6 @@ class YCBVideoMultiViewPoseEstimationDataset(YCBVideoDataset):
         try:
             scan_origin, gt_pose, scan_rgbs, scan_pcds, scan_masks = \
                 self._get_scan_data(image_id, class_id)
-
-            gt_quaternion = tf.quaternion_from_matrix(gt_pose)
-            gt_quaternion = gt_quaternion.astype(np.float32)
-            gt_translation = tf.translation_from_matrix(gt_pose)
-            gt_translation = (
-                (gt_translation - scan_origin) / pitch / self.voxel_dim
-            )
-            gt_translation = gt_translation.astype(np.float32)
         except ValueError:
             class_id = -1  # indicates skipping
             scan_origin = np.zeros((), dtype=np.float32)
@@ -72,16 +64,26 @@ class YCBVideoMultiViewPoseEstimationDataset(YCBVideoDataset):
             scan_pcds = np.zeros((), dtype=np.float32)
             scan_masks = np.zeros((), dtype=np.float32)
 
-            gt_pose = np.zeros((), dtype=np.float32)
-            gt_quaternion = np.zeros((), dtype=np.float32)
-            gt_translation = np.zeros((), dtype=np.float32)
-
         if class_id == -1:
             cad_origin = np.zeros((), dtype=np.float32)
             cad_rgbs = np.zeros((), dtype=np.float32)
             cad_pcds = np.zeros((), dtype=np.float32)
         else:
             cad_origin, cad_rgbs, cad_pcds = self._get_cad_data(class_id)
+
+        if class_id == -1:
+            gt_quaternion = np.zeros((), dtype=np.float32)
+            gt_translation = np.zeros((), dtype=np.float32)
+        else:
+            gt_quaternion = tf.quaternion_from_matrix(gt_pose)
+            gt_quaternion = gt_quaternion.astype(np.float32)
+
+            # initial alignment by fitting voxel origins (cad and origin)
+            translation_init = scan_origin - cad_origin
+            gt_translation = tf.translation_from_matrix(gt_pose)
+            gt_translation = gt_translation - translation_init
+            gt_translation = gt_translation / pitch / self.voxel_dim
+            gt_translation = gt_translation.astype(np.float32)
 
         return dict(
             class_id=class_id,
