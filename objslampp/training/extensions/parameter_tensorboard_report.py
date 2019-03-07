@@ -15,5 +15,12 @@ class ParameterTensorboardReport(chainer.training.Extension):
             model = optimizer.target
             for name, param in model.namedparams():
                 self._writer.add_histogram(
-                    name, chainer.cuda.to_cpu(param.array), updater.iteration
+                    '/parameter' + name,
+                    chainer.cuda.to_cpu(param.array),
+                    updater.iteration,
+                )
+                self._writer.add_histogram(
+                    '/gradient' + name,
+                    chainer.cuda.to_cpu(param.grad),
+                    updater.iteration,
                 )
