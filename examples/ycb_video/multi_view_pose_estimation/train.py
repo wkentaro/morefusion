@@ -87,6 +87,9 @@ def main():
 
     model.res.conv1.disable_update()
     model.res.res2.disable_update()
+    for link in model.res.links():
+        if isinstance(link, chainer.links.BatchNormalization):
+            link.disable_update()
 
     # chainer.datasets.TransformDataset?
 
