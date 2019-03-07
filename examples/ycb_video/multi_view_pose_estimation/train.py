@@ -112,6 +112,7 @@ def main():
     trainer.extend(objslampp.training.extensions.ArgsReport(args))
 
     log_interval = 20, 'iteration'
+    param_log_interval = 100, 'iteration'
     plot_interval = 20, 'iteration'
     eval_interval = 0.3, 'epoch'
 
@@ -131,7 +132,12 @@ def main():
     )
     trainer.extend(
         objslampp.training.extensions.LogTensorboardReport(
-            trigger=log_interval, writer=summary_writer
+            writer=summary_writer, trigger=log_interval
+        )
+    )
+    trainer.extend(
+        objslampp.training.extensions.ParameterTensorboardReport(
+            writer=summary_writer, trigger=log_interval
         )
     )
     trainer.extend(
