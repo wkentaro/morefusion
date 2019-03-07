@@ -16,6 +16,7 @@ import chainer
 import numpy as np
 import pybullet  # NOQA
 import termcolor
+import tensorboardX
 
 import objslampp
 from objslampp import logger
@@ -51,6 +52,8 @@ def main():
     msg = textwrap.indent(msg, prefix=' ' * 2)
     msg = f'==> Arguments:\n\n{msg}\n'
     termcolor.cprint(msg, attrs={'bold': True})
+
+    summary_writer = tensorboardX.SummaryWriter(log_dir=args.out)
 
     # -------------------------------------------------------------------------
 
@@ -125,7 +128,11 @@ def main():
         chainer.training.extensions.observe_lr(),
         trigger=log_interval,
     )
-    trainer.extend(chainer.training.extensions.LogReport(trigger=log_interval))
+    trainer.extend(
+        objslampp.training.extensions.LogTensorboardReport(
+            trigger=log_interval, writer=summary_writer
+        )
+    )
     trainer.extend(
         chainer.training.extensions.PrintReport(
             [
@@ -140,6 +147,7 @@ def main():
                 # 'validation/main/loss_translation'
                 'validation/main/loss'
             ],
+            log_report='LogTensorboardReport',
         ),
         trigger=log_interval,
     )
