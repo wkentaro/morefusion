@@ -72,8 +72,10 @@ class SimpleMV3DCNNModel(chainer.Chain):
         logger.debug(f'h_conv5: {h.shape}')
 
         # Voxelization3D
-        h = F.resize_images(h, rgbs.shape[2:])
         h_vox = []
+        pcds = pcds.transpose(0, 3, 1, 2)
+        pcds = F.resize_images(pcds, h.shape[2:])
+        pcds = pcds.transpose(0, 2, 3, 1)
         for i in range(batch_size):
             h_i = h[i].transpose(1, 2, 0)  # CHW -> HWC
             h_i = functions.voxelization_3d(
