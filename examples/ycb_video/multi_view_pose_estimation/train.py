@@ -85,7 +85,8 @@ def main():
     optimizer = chainer.optimizers.Adam()
     optimizer.setup(model)
 
-    # link.disable_update()?
+    model.res.conv1.disable_update()
+    model.res.res2.disable_update()
 
     # chainer.datasets.TransformDataset?
 
