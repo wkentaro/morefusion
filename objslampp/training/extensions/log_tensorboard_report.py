@@ -13,14 +13,20 @@ from chainer import utils
 
 class LogTensorboardReport(extension.Extension):
 
-    def __init__(self, keys=None, trigger=(1, 'epoch'), postprocess=None,
-                 log_name='log', writer=None):
+    def __init__(
+        self,
+        writer,
+        keys=None,
+        trigger=(1, 'epoch'),
+        postprocess=None,
+        log_name='log',
+    ):
+        self._writer = writer
         self._keys = keys
         self._trigger = trigger_module.get_trigger(trigger)
         self._postprocess = postprocess
         self._log_name = log_name
         self._log = []
-        self._writer = writer
 
         self._init_summary()
 
