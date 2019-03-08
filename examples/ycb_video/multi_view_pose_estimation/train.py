@@ -112,7 +112,10 @@ def main():
 
     trainer = chainer.training.Trainer(updater, (10, 'epoch'), out=args.out)
 
-    trainer.extend(objslampp.training.extensions.ArgsReport(args))
+    trainer.extend(
+        objslampp.training.extensions.ArgsReport(args),
+        call_before_training=True,
+    )
 
     log_interval = 20, 'iteration'
     param_log_interval = 100, 'iteration'
@@ -126,7 +129,11 @@ def main():
         # converter=my_converter,
         device=args.gpu,
     )
-    trainer.extend(evaluator, trigger=eval_interval)
+    trainer.extend(
+        evaluator,
+        trigger=eval_interval,
+        call_before_training=True,
+    )
 
     # log
     trainer.extend(
@@ -136,12 +143,14 @@ def main():
     trainer.extend(
         objslampp.training.extensions.LogTensorboardReport(
             writer=summary_writer, trigger=log_interval
-        )
+        ),
+        call_before_training=True,
     )
     trainer.extend(
         objslampp.training.extensions.ParameterTensorboardReport(
             writer=summary_writer, trigger=param_log_interval
-        )
+        ),
+        call_before_training=True,
     )
     trainer.extend(
         chainer.training.extensions.PrintReport(
@@ -160,6 +169,7 @@ def main():
             log_report='LogTensorboardReport',
         ),
         trigger=log_interval,
+        call_before_training=True,
     )
     trainer.extend(chainer.training.extensions.ProgressBar(update_interval=10))
 
@@ -179,6 +189,7 @@ def main():
             trigger=plot_interval,
         ),
         trigger=(1, 'iteration'),
+        call_before_training=True,
     )
 
     # -------------------------------------------------------------------------
