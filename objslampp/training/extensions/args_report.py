@@ -12,7 +12,14 @@ class ArgsReport(training.Extension):
 
         self._args = args
         self._file_name = file_name
+        self._flag_called = False
 
-    def initialize(self, trainer):
+    def trigger(self, trainer):
+        if self._flag_called:
+            return False
+        self._flag_called = True
+        return True
+
+    def __call__(self, trainer):
         with open(osp.join(trainer.out, self._file_name), 'w') as f:
             json.dump(self._args, f, indent=4)
