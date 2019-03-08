@@ -1,4 +1,5 @@
--e git+https://github.com/wkentaro/chainerlg.git#egg=chainerlg
+-e git+https://github.com/wkentaro/chainer.git@objslampp#egg=chainer
+-e git+https://github.com/wkentaro/chainerlg.git@master#egg=chainerlg
 -r requirements.txt
 flake8
 ipdb
