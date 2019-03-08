@@ -128,6 +128,7 @@ def main():
         target=model,
         # converter=my_converter,
         device=args.gpu,
+        progress_bar=True,
     )
     trainer.extend(
         evaluator,
