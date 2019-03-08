@@ -48,11 +48,6 @@ def main():
     args.hostname = socket.gethostname()
     args.githash = objslampp.utils.githash(__file__)
 
-    msg = pprint.pformat(args.__dict__)
-    msg = textwrap.indent(msg, prefix=' ' * 2)
-    msg = f'==> Arguments:\n\n{msg}\n'
-    termcolor.cprint(msg, attrs={'bold': True})
-
     summary_writer = tensorboardX.SummaryWriter(log_dir=args.out)
 
     # -------------------------------------------------------------------------
@@ -116,6 +111,12 @@ def main():
     # -------------------------------------------------------------------------
 
     trainer = chainer.training.Trainer(updater, (10, 'epoch'), out=args.out)
+
+    # print arguments
+    msg = pprint.pformat(args.__dict__)
+    msg = textwrap.indent(msg, prefix=' ' * 2)
+    msg = f'==> Arguments:\n\n{msg}\n'
+    termcolor.cprint(msg, attrs={'bold': True})
 
     trainer.extend(
         objslampp.training.extensions.ArgsReport(args),
