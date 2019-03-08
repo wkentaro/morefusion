@@ -14,7 +14,7 @@ class MainApp(object):
 
         self._dataset = \
             objslampp.datasets.YCBVideoMultiViewPoseEstimationDataset(
-                split='train'
+                split='train', class_ids=[1],
             )
 
     def _get_data(self, index):

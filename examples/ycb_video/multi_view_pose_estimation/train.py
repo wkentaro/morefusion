@@ -68,12 +68,17 @@ def main():
         chainer.cuda.cupy.random.seed(args.seed)
 
     # dataset initialization
-    args.class_ids = [0, 1, 2]  # XXX: Testing with 3 classes of objects.
+    args.class_ids = [1]  # XXX: Testing with 1 classes of objects.
     data_train = objslampp.datasets.YCBVideoMultiViewPoseEstimationDataset(
         'train', class_ids=args.class_ids
     )
     data_valid = objslampp.datasets.YCBVideoMultiViewPoseEstimationDataset(
         'val', class_ids=args.class_ids, sampling=60
+    )
+
+    termcolor.cprint(
+        'train={}, val={}'.format(len(data_train), len(data_valid)),
+        attrs={'bold': True},
     )
 
     # model initialization
