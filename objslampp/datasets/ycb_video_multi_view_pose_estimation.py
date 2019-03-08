@@ -12,7 +12,6 @@ from .ycb_video_models import YCBVideoModelsDataset
 class YCBVideoMultiViewPoseEstimationDataset(YCBVideoDataset):
 
     voxel_dim = 32
-    translation_scale = 10.0
 
     def __init__(self, split, sampling=15, class_ids=None):
         self._class_ids = class_ids
@@ -87,7 +86,6 @@ class YCBVideoMultiViewPoseEstimationDataset(YCBVideoDataset):
             gt_translation = gt_translation - translation_init
             gt_translation = gt_translation / pitch / self.voxel_dim
             gt_translation = gt_translation.astype(np.float32)
-            gt_translation *= self.translation_scale
 
         return dict(
             class_id=class_id,

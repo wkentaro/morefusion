@@ -114,9 +114,9 @@ class SimpleMV3DCNNModel(chainer.Chain):
         h = F.relu(self.fc8(h))
         logger.debug(f'h_fc8: {h.shape}')
 
-        quaternion = F.sigmoid(self.fc_quaternion(h))
+        quaternion = F.normalize(self.fc_quaternion(h))
         logger.debug(f'quaternion: {quaternion}')
-        translation = F.tanh(self.fc_translation(h))
+        translation = (1 + F.cos(self.fc_translation(h))) / 2
         logger.debug(f'translation: {translation}')
         return translation, quaternion
 
@@ -189,8 +189,8 @@ class SimpleMV3DCNNModel(chainer.Chain):
         translation, quaternion = self._predict_pose(h_cad, h_scan)
 
         logger.debug('==> Computing Loss')
-        loss_quaternion = F.mean_absolute_error(quaternion, gt_quaternion)
-        loss_translation = F.mean_absolute_error(translation, gt_translation)
+        loss_quaternion = F.mean_squared_error(quaternion, gt_quaternion)
+        loss_translation = F.mean_squared_error(translation, gt_translation)
         loss = loss_quaternion + loss_translation
         logger.debug(f'loss_quaternion: {loss_quaternion}')
         logger.debug(f'loss_translation: {loss_translation}')
