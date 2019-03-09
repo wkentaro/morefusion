@@ -139,6 +139,7 @@ class SimpleMV3DCNNModel(chainer.Chain):
         if class_id == -1:
             # skip invalid data
             return chainer.Variable(self.xp.zeros((), dtype=np.float32))
+        assert class_id > 0  # 0 indicates background class
 
         logger.debug('==> Arguments for SimpleMV3DCNNModel')
         logger.debug(f'class_id: {type(class_id)}, {class_id.shape}')
