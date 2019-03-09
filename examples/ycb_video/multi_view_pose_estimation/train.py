@@ -36,6 +36,9 @@ def main():
     )
     parser.add_argument('--gpu', type=int, default=0, help='gpu id')
     parser.add_argument('--seed', type=int, default=0, help='random seed')
+    parser.add_argument(
+        '--class-ids', nargs='+', type=int, default=[1], help='class ids'
+    )
     args = parser.parse_args()
 
     logger.setLevel(getattr(logging, args.loglevel.upper()))
@@ -63,7 +66,6 @@ def main():
         chainer.cuda.cupy.random.seed(args.seed)
 
     # dataset initialization
-    args.class_ids = [1]  # XXX: Testing with 1 classes of objects.
     data_train = objslampp.datasets.YCBVideoMultiViewPoseEstimationDataset(
         'train', class_ids=args.class_ids
     )
