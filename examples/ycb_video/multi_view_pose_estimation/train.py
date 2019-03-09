@@ -39,6 +39,9 @@ def main():
     parser.add_argument(
         '--class-ids', nargs='+', type=int, default=[1], help='class ids'
     )
+    parser.add_argument(
+        '--lr', type=float, default=0.001, help='learning rate'
+    )
     args = parser.parse_args()
 
     logger.setLevel(getattr(logging, args.loglevel.upper()))
@@ -84,7 +87,7 @@ def main():
         model.to_gpu()
 
     # optimizer initialization
-    optimizer = chainer.optimizers.Adam()
+    optimizer = chainer.optimizers.Adam(alpha=args.lr)
     optimizer.setup(model)
 
     model.res.conv1.disable_update()
