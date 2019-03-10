@@ -66,7 +66,8 @@ class SimpleMV3DCNNModel(chainer.Chain):
         # MV
         mean = self.xp.asarray(self.res.mean)
         rgbs = rgbs - mean[None]
-        h, = self.res(rgbs)
+        with chainer.using_config('train', False):
+            h, = self.res(rgbs)
         logger.debug(f'h_res: {h.shape}')
         h = F.relu(self.conv5(h))
         logger.debug(f'h_conv5: {h.shape}')
