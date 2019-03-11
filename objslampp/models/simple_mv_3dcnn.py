@@ -115,9 +115,9 @@ class SimpleMV3DCNNModel(chainer.Chain):
         h = F.relu(self.fc8(h))
         logger.debug(f'h_fc8: {h.shape}')
 
-        quaternion = F.normalize(self.fc_quaternion(h))
+        quaternion = F.normalize(self.fc_quaternion(h))  # [-1, 1]
         logger.debug(f'quaternion: {quaternion}')
-        translation = (1 + F.cos(self.fc_translation(h))) / 2
+        translation = F.cos(self.fc_translation(h))      # [-1, 1]
         logger.debug(f'translation: {translation}')
         return translation, quaternion
 
@@ -193,6 +193,8 @@ class SimpleMV3DCNNModel(chainer.Chain):
         logger.debug('==> Computing Loss')
         loss_quaternion = F.mean_squared_error(quaternion, gt_quaternion)
         loss_translation = F.mean_squared_error(translation, gt_translation)
+        logger.debug(f'gt_quaternion: {gt_quaternion}, quaternion: {quaternion}')
+        logger.debug(f'gt_translation: {gt_translation}, translation: {translation}')
         loss = loss_quaternion + loss_translation
         logger.debug(f'loss_quaternion: {loss_quaternion}')
         logger.debug(f'loss_translation: {loss_translation}')
