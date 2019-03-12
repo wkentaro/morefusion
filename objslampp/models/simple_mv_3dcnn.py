@@ -11,8 +11,16 @@ from ..logger import logger
 
 class SimpleMV3DCNNModel(chainer.Chain):
 
-    def __init__(self, extractor):
+    def __init__(
+        self,
+        extractor,
+        lambda_quaternion=1.0,
+        lambda_translation=1.0,
+    ):
         super(SimpleMV3DCNNModel, self).__init__()
+
+        self._lambda_quaternion = lambda_quaternion
+        self._lambda_translation = lambda_translation
 
         initialW = chainer.initializers.Normal(0.01)
         with self.init_scope():
@@ -218,7 +226,10 @@ class SimpleMV3DCNNModel(chainer.Chain):
         loss_translation = F.mean_absolute_error(translation, gt_translation)
         logger.debug(f'gt_quaternion: {gt_quaternion}, quaternion: {quaternion}')  # NOQA
         logger.debug(f'gt_translation: {gt_translation}, translation: {translation}')  # NOQA
-        loss = loss_quaternion + loss_translation
+        loss = (
+            (self._lambda_quaternion * loss_quaternion) +
+            (self._lambda_translation * loss_translation)
+        )
         logger.debug(f'loss_quaternion: {loss_quaternion}')
         logger.debug(f'loss_translation: {loss_translation}')
         logger.debug(f'loss: {loss}')

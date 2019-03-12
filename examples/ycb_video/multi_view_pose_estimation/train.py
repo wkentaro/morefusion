@@ -48,6 +48,18 @@ def main():
         default='vgg16',
         help='feature extractor',
     )
+    parser.add_argument(
+        '--lambda-quaternion',
+        type=float,
+        default=1.0,
+        help='loss scale for quaternion',
+    )
+    parser.add_argument(
+        '--lambda-translation',
+        type=float,
+        default=1.0,
+        help='loss scale for translation',
+    )
     args = parser.parse_args()
 
     logger.setLevel(getattr(logging, args.loglevel.upper()))
@@ -88,7 +100,11 @@ def main():
     )
 
     # model initialization
-    model = objslampp.models.SimpleMV3DCNNModel(extractor=args.extractor)
+    model = objslampp.models.SimpleMV3DCNNModel(
+        extractor=args.extractor,
+        lambda_quaternion=args.lambda_quaternion,
+        lambda_translation=args.lambda_translation,
+    )
     if args.gpu >= 0:
         model.to_gpu()
 
