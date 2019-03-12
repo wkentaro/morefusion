@@ -168,14 +168,16 @@ class SimpleMV3DCNNModel(chainer.Chain):
         logger.debug(f'scan_rgbs: {type(scan_rgbs)}, {scan_rgbs.shape}')
         logger.debug(f'scan_pcds: {type(scan_pcds)}, {scan_pcds.shape}')
         logger.debug(f'scan_masks: {type(scan_masks)}, {scan_masks.shape}')
-        logger.debug(f'gt_pose: {type(gt_pose)}, {gt_pose.shape}')
-        logger.debug(f'gt_quaternion: {type(gt_quaternion)}, {gt_quaternion.shape}')  # NOQA
-        logger.debug(f'gt_translation: {type(gt_translation)}, {gt_translation.shape}')  # NOQA
+        if gt_pose is not None:
+            logger.debug(f'gt_pose: {type(gt_pose)}, {gt_pose.shape}')
+        if gt_quaternion is not None:
+            logger.debug(f'gt_quaternion: {type(gt_quaternion)}, {gt_quaternion.shape}')  # NOQA
+        if gt_translation is not None:
+            logger.debug(f'gt_translation: {type(gt_translation)}, {gt_translation.shape}')  # NOQA
 
         batch_size = class_id.shape[0]
         assert batch_size == 1, 'single batch_size is only supported'
         pitch = pitch[0]
-        gt_pose = gt_pose[0]
 
         logger.debug('==> Multi-View Encoding CAD')
         cad_origin = cad_origin[0]
@@ -205,6 +207,11 @@ class SimpleMV3DCNNModel(chainer.Chain):
 
         logger.debug('==> Predicting Pose')
         translation, quaternion = self._predict_pose(h_cad, h_scan)
+
+        self.y_pred = {
+            'translation': translation,
+            'quaternion': quaternion,
+        }
 
         logger.debug('==> Computing Loss')
         loss_quaternion = F.mean_absolute_error(quaternion, gt_quaternion)
