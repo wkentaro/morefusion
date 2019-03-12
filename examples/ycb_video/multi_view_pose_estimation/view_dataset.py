@@ -3,6 +3,7 @@
 import imgviz
 import numpy as np
 import trimesh
+import trimesh.viewer
 
 import objslampp
 
@@ -196,10 +197,25 @@ class MainApp(object):
         box_scan += voxel_origin
         box_scan.visual.face_colors = (0, 0, 1.0, 0.5)
 
+        def show(scene, **kwargs):
+
+            resolution = kwargs.pop('resolution', (500, 500))
+
+            def callback(scene):
+                if hasattr(scene, 'angles'):
+                    scene.angles += [0, np.deg2rad(1), 0]
+                else:
+                    scene.angles = np.zeros(3)
+                scene.set_camera(angles=scene.angles)
+
+            return trimesh.viewer.SceneViewer(
+                scene=scene, callback=callback, resolution=resolution, **kwargs
+            )
+
         scene = trimesh.Scene([
             axis_base, geom_cad, geom_scan, box_cad, box_scan
         ])
-        scene.show(caption='initial', start_loop=False)
+        show(scene, caption='initial', start_loop=False)
 
         # ---------------------------------------------------------------------
 
@@ -218,7 +234,7 @@ class MainApp(object):
         scene = trimesh.Scene([
             axis_base, geom_cad_rotated, geom_scan, box_cad, box_scan
         ])
-        scene.show(caption='applied rotation', start_loop=False)
+        show(scene=scene, caption='rotated', start_loop=False)
 
         # ---------------------------------------------------------------------
 
@@ -236,7 +252,7 @@ class MainApp(object):
         scene = trimesh.Scene([
             axis_base, geom_cad_transformed, geom_scan, box_cad, box_scan
         ])
-        scene.show(caption='applied rotation & translation', start_loop=False)
+        show(scene=scene, caption='transformed', start_loop=False)
 
         # ---------------------------------------------------------------------
 
@@ -255,7 +271,7 @@ class MainApp(object):
         scene = trimesh.Scene([
             axis_base, geom_cad_concat, geom_scan, box_cad, box_scan
         ])
-        scene.show(caption='concatenated', start_loop=False)
+        show(scene=scene, caption='concat', start_loop=False)
 
         # ---------------------------------------------------------------------
 
@@ -276,7 +292,7 @@ class MainApp(object):
         scene = trimesh.Scene([
             axis_base, geom_cad_concat_rotated, geom_scan, box_cad, box_scan
         ])
-        scene.show(caption='concatenated & rotated', start_loop=False)
+        show(scene=scene, caption='concat & rotated', start_loop=False)
 
         # ---------------------------------------------------------------------
 
@@ -301,7 +317,7 @@ class MainApp(object):
             box_cad,
             box_scan,
         ])
-        scene.show(caption='concatenated & transformed', start_loop=False)
+        show(scene=scene, caption='concat & transformed', start_loop=False)
 
         # ---------------------------------------------------------------------
 
