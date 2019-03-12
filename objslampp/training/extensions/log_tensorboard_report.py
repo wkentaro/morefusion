@@ -47,7 +47,7 @@ class LogTensorboardReport(extension.Extension):
                 v = v.array
             self._writer.add_scalar(k, float(v), trainer.updater.iteration)
 
-        if self._trigger(trainer):
+        if trainer.updater.iteration == 0 or self._trigger(trainer):
             # output the result
             stats = self._summary.compute_mean()
             stats_cpu = {}
