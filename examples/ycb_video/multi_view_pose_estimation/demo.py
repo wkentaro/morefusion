@@ -50,12 +50,22 @@ dataset = objslampp.datasets.YCBVideoMultiViewPoseEstimationDataset(
 
 examples = dataset[20:21]
 inputs = chainer.dataset.concat_examples(examples, device=gpu)
+inputs.pop('gt_pose')
+gt_quaternion = inputs.pop('gt_quaternion')
+gt_translation = inputs.pop('gt_translation')
 with chainer.no_backprop_mode() and chainer.using_config('train', False):
-    model(**inputs)
+    quaternion, translation = model.predict(**inputs)
+    model.loss(
+        quaternion=quaternion,
+        translation=translation,
+        gt_quaternion=gt_quaternion,
+        gt_translation=gt_translation,
+    )
 
-quaternion = chainer.cuda.to_cpu(model.y_pred['quaternion'].array)[0]
-translation = chainer.cuda.to_cpu(model.y_pred['translation'].array)[0]
+quaternion = chainer.cuda.to_cpu(quaternion.array)[0]
+translation = chainer.cuda.to_cpu(translation.array)[0]
 print('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>')
+print('quaternion, translation (upper: true, lower: pred)')
 print(examples[0]['gt_quaternion'], examples[0]['gt_translation'])
 print(quaternion, translation)
 print('<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<')
