@@ -165,8 +165,9 @@ class MainApp(object):
         else:
             return scan_mapping
 
-    def alignment(self):
-        data = self._get_data(index=200)
+    def alignment(self, data=None):
+        if data is None:
+            data = self._get_data(index=200)
 
         axis_base = trimesh.creation.axis(origin_size=0.02)
 
@@ -274,6 +275,8 @@ class MainApp(object):
         show(scene=scene, caption='concat', start_loop=False)
 
         # ---------------------------------------------------------------------
+
+        T = trimesh.transformations.quaternion_matrix(data['gt_quaternion'])
 
         geom_cad_concat_rotated = geom_cad.copy()
         geom_cad_concat_rotated.apply_transform(T)
