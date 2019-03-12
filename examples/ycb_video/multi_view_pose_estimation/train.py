@@ -42,6 +42,12 @@ def main():
     parser.add_argument(
         '--lr', type=float, default=0.001, help='learning rate'
     )
+    parser.add_argument(
+        '--extractor',
+        choices=['vgg16', 'resnet50'],
+        default='vgg16',
+        help='feature extractor',
+    )
     args = parser.parse_args()
 
     logger.setLevel(getattr(logging, args.loglevel.upper()))
@@ -82,7 +88,7 @@ def main():
     )
 
     # model initialization
-    model = objslampp.models.SimpleMV3DCNNModel()
+    model = objslampp.models.SimpleMV3DCNNModel(extractor=args.extractor)
     if args.gpu >= 0:
         model.to_gpu()
 
@@ -90,11 +96,18 @@ def main():
     optimizer = chainer.optimizers.Adam(alpha=args.lr)
     optimizer.setup(model)
 
-    model.res.conv1.disable_update()
-    model.res.res2.disable_update()
-    for link in model.res.links():
-        if isinstance(link, chainer.links.BatchNormalization):
-            link.disable_update()
+    if args.extractor == 'resnet50':
+        model.extractor.conv1.disable_update()
+        model.extractor.res2.disable_update()
+        for link in model.extractor.links():
+            if isinstance(link, chainer.links.BatchNormalization):
+                link.disable_update()
+    else:
+        assert args.extractor == 'vgg16'
+        model.extractor.conv1_1.disable_update()
+        model.extractor.conv1_2.disable_update()
+        model.extractor.conv2_1.disable_update()
+        model.extractor.conv2_2.disable_update()
 
     # chainer.datasets.TransformDataset?
 

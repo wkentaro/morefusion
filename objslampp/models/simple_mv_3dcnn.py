@@ -2,6 +2,7 @@ import chainer
 import chainer.functions as F
 import chainer.links as L
 from chainercv.links.model.resnet import ResNet50
+from chainercv.links.model.vgg import VGG16
 import numpy as np
 
 from .. import functions
@@ -10,17 +11,27 @@ from ..logger import logger
 
 class SimpleMV3DCNNModel(chainer.Chain):
 
-    def __init__(self):
+    def __init__(self, extractor):
         super(SimpleMV3DCNNModel, self).__init__()
 
         initialW = chainer.initializers.Normal(0.01)
         with self.init_scope():
             # MV
-            self.res = ResNet50(arch='he', pretrained_model='imagenet')
-            self.res.pick = ['res4']
-            self.res.remove_unused()
+            if extractor == 'resnet50':
+                self.extractor = ResNet50(
+                    arch='he', pretrained_model='imagenet'
+                )
+                self.extractor.pick = ['res4']
+                in_channels = 1024
+            else:
+                assert extractor == 'vgg16'
+                self.extractor = VGG16(pretrained_model='imagenet')
+                self.extractor.pick = ['pool4']
+                in_channels = 512
+            self.extractor.remove_unused()
+
             self.conv5 = L.Convolution2D(
-                in_channels=1024,
+                in_channels=in_channels,
                 out_channels=16,
                 ksize=1,
                 initialW=initialW,
@@ -64,11 +75,16 @@ class SimpleMV3DCNNModel(chainer.Chain):
         assert batch_size == len(masks)
 
         # MV
-        mean = self.xp.asarray(self.res.mean)
+        mean = self.xp.asarray(self.extractor.mean)
         rgbs = rgbs - mean[None]
-        with chainer.using_config('train', False):
-            h, = self.res(rgbs)
-        logger.debug(f'h_res: {h.shape}')
+        if isinstance(self.extractor, ResNet50):
+            with chainer.using_config('train', False):
+                h, = self.extractor(rgbs)
+        else:
+            assert isinstance(self.extractor, VGG16)
+            h, = self.extractor(rgbs)
+        logger.debug(f'h_extractor: {h.shape}')
+
         h = F.relu(self.conv5(h))
         logger.debug(f'h_conv5: {h.shape}')
 
