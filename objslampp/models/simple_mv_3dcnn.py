@@ -191,10 +191,10 @@ class SimpleMV3DCNNModel(chainer.Chain):
         translation, quaternion = self._predict_pose(h_cad, h_scan)
 
         logger.debug('==> Computing Loss')
-        loss_quaternion = F.mean_squared_error(quaternion, gt_quaternion)
-        loss_translation = F.mean_squared_error(translation, gt_translation)
-        logger.debug(f'gt_quaternion: {gt_quaternion}, quaternion: {quaternion}')
-        logger.debug(f'gt_translation: {gt_translation}, translation: {translation}')
+        loss_quaternion = F.mean_absolute_error(quaternion, gt_quaternion)
+        loss_translation = F.mean_absolute_error(translation, gt_translation)
+        logger.debug(f'gt_quaternion: {gt_quaternion}, quaternion: {quaternion}')  # NOQA
+        logger.debug(f'gt_translation: {gt_translation}, translation: {translation}')  # NOQA
         loss = loss_quaternion + loss_translation
         logger.debug(f'loss_quaternion: {loss_quaternion}')
         logger.debug(f'loss_translation: {loss_translation}')
