@@ -5,6 +5,7 @@ from chainercv.links.model.resnet import ResNet50
 from chainercv.links.model.vgg import VGG16
 import numpy as np
 
+from .. import geometry
 from .. import functions
 from ..logger import logger
 
@@ -96,22 +97,35 @@ class SimpleMV3DCNNModel(chainer.Chain):
         h = F.relu(self.conv5(h))
         logger.debug(f'h_conv5: {h.shape}')
 
-        # 1/16
-        pcds = pcds.transpose(0, 3, 1, 2)
-        pcds = F.resize_images(pcds, h.shape[2:])
-        pcds = pcds.transpose(0, 2, 3, 1).array
-        masks = masks[:, None, :, :].astype(np.float32)
-        masks = F.resize_images(masks, h.shape[2:])
-        masks = masks[:, 0, :, :].array.astype(bool)
         masks = (~self.xp.isnan(pcds).any(axis=3)) & masks
+        bboxes = geometry.masks_to_bboxes(chainer.cuda.to_cpu(masks))
+        h = F.resize_images(h, rgbs.shape[2:4])
 
-        # Voxelization3D
         h_vox = []
         for i in range(batch_size):
-            h_i = h[i].transpose(1, 2, 0)  # CHW -> HWC
+            h_i = h[i]
+            pcd = pcds[i]
+            mask = masks[i]
+            bbox = bboxes[i]
+
+            y1, x1, y2, x2 = bbox.round().astype(int).tolist()
+            h_i = h_i[:, y1:y2, x1:x2]  # CHW
+            mask = mask[y1:y2, x1:x2]   # HW
+            pcd = pcd[y1:y2, x1:x2, :]  # HWC
+
+            h_i = F.resize_images(h_i[None, :, :, :], (128, 128))[0]
+            pcd = pcd.transpose(2, 0, 1)  # HWC -> CHW
+            pcd = F.resize_images(pcd[None, :, :, :], (128, 128))[0]
+            pcd = pcd.transpose(1, 2, 0).array  # CHW -> HWC
+            mask = mask.astype(np.float32)
+            mask = F.resize_images(mask[None, None, :, :], (128, 128))[0, 0]
+            mask = mask.array > 0.5
+            mask = (~self.xp.isnan(pcd).any(axis=2)) & mask
+
+            h_i = h_i.transpose(1, 2, 0)  # CHW -> HWC
             h_i = functions.voxelization_3d(
-                values=h_i[masks[i], :],
-                points=pcds[i][masks[i], :],
+                values=h_i[mask, :],
+                points=pcd[mask, :],
                 origin=origin,
                 pitch=pitch,
                 dimensions=(self.voxel_dim,) * 3,
