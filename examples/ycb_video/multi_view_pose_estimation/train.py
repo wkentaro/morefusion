@@ -6,6 +6,7 @@ import pathlib
 import pprint
 import random
 import logging
+import os.path as osp
 import socket
 import textwrap
 
@@ -197,9 +198,29 @@ def main():
         chainer.training.extensions.observe_lr(),
         trigger=log_interval,
     )
+
+    def average_loss(stats_cpu):
+        parents = [
+            'validation/main/loss_quaternion',
+            'validation/main/loss_translation',
+            'validation/main/loss',
+        ]
+        for parent in parents:
+            if parent in stats_cpu:
+                continue
+
+            values = []
+            for name, value in stats_cpu.items():
+                if osp.dirname(name) == parent:
+                    values.append(value)
+            if values:
+                stats_cpu[parent] = np.mean(values)
+
     trainer.extend(
         objslampp.training.extensions.LogTensorboardReport(
-            writer=summary_writer, trigger=log_interval
+            writer=summary_writer,
+            trigger=log_interval,
+            postprocess=average_loss,
         ),
         call_before_training=True,
     )
@@ -220,9 +241,9 @@ def main():
                 'main/loss_quaternion',
                 'main/loss_translation',
                 'main/loss',
-                # 'validation/main/loss_quaternion'
-                # 'validation/main/loss_translation'
-                'validation/main/loss'
+                'validation/main/loss_quaternion',
+                'validation/main/loss_translation',
+                'validation/main/loss',
             ],
             log_report='LogTensorboardReport',
         ),

@@ -274,9 +274,21 @@ class SimpleMV3DCNNModel(chainer.Chain):
             translation=translation,
             gt_quaternion=gt_quaternion,
             gt_translation=gt_translation,
+            video_id=video_id,
         )
 
-    def loss(self, quaternion, translation, gt_quaternion, gt_translation):
+    def loss(
+        self,
+        quaternion,
+        translation,
+        gt_quaternion,
+        gt_translation,
+        video_id=None
+    ):
+        batch_size = quaternion.shape[0]
+        assert batch_size == 1
+        video_id = int(video_id[0])
+
         logger.debug('==> Computing Loss')
         loss_quaternion = F.mean_absolute_error(quaternion, gt_quaternion)
         loss_translation = F.mean_absolute_error(translation, gt_translation)
@@ -290,13 +302,14 @@ class SimpleMV3DCNNModel(chainer.Chain):
         logger.debug(f'loss_translation: {loss_translation}')
         logger.debug(f'loss: {loss}')
 
-        chainer.report(
-            values={
-                'loss_quaternion': loss_quaternion,
-                'loss_translation': loss_translation,
-                'loss': loss,
-            },
-            observer=self,
-        )
+        values = {
+            'loss_quaternion': loss_quaternion,
+            'loss_translation': loss_translation,
+            'loss': loss,
+        }
+        if video_id is not None:
+            for key in list(values.keys()):
+                values[f'{key}/{video_id:04d}'] = values.pop(key)
+        chainer.report(values=values, observer=self)
 
         return loss
