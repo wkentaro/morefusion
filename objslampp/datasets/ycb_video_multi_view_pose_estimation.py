@@ -159,18 +159,17 @@ class YCBVideoMultiViewPoseEstimationDataset(YCBVideoDataset):
 
     def _get_scan_data(self, image_id, class_id):
         frame = self.get_frame(image_id)
-        T_world2cam = np.r_[
+
+        T_world2cam0 = np.r_[
             frame['meta']['rotation_translation_matrix'],
             [[0, 0, 0, 1]],
         ]
-        T_cam2world = np.linalg.inv(T_world2cam)
+
         K = frame['meta']['intrinsic_matrix']
         depth = frame['depth']
         pcd = geometry.pointcloud_from_depth(
             depth, fx=K[0][0], fy=K[1][1], cx=K[0][2], cy=K[1][2]
         )
-        isnan = np.isnan(pcd).any(axis=2)
-        pcd[~isnan] = trimesh.transform_points(pcd[~isnan], T_cam2world)
 
         class_ids = frame['meta']['cls_indexes']
         assert class_id in class_ids
@@ -180,6 +179,7 @@ class YCBVideoMultiViewPoseEstimationDataset(YCBVideoDataset):
         pitch = self._get_pitch(class_id=class_id)
 
         mask = frame['label'] == class_id
+        isnan = np.isnan(pcd).any(axis=2)
         pcd_ins = pcd[mask & (~isnan)]
         aabb_min, aabb_max = geometry.get_aabb_from_points(pcd_ins)
         aabb_extents = aabb_max - aabb_min
@@ -188,9 +188,10 @@ class YCBVideoMultiViewPoseEstimationDataset(YCBVideoDataset):
         origin = aabb_center - mapping.voxel_bbox_extents / 2
         origin = origin.astype(np.float32)
 
+        # transformation: cad frame to camera frame
         gt_pose = frame['meta']['poses'][:, :, instance_id]
         gt_pose = np.r_[gt_pose, [[0, 0, 0, 1]]]
-        gt_pose = T_cam2world @ gt_pose
+        # transformation: camera frame to world frame
         gt_pose = gt_pose.astype(np.float32)
 
         # ---------------------------------------------------------------------
@@ -223,8 +224,9 @@ class YCBVideoMultiViewPoseEstimationDataset(YCBVideoDataset):
                 [[0, 0, 0, 1]],
             ]
             T_cam2world = np.linalg.inv(T_world2cam)
+            T_cam2cam0 = T_world2cam0 @ T_cam2world
             isnan = np.isnan(pcd).any(axis=2)
-            pcd[~isnan] = trimesh.transform_points(pcd[~isnan], T_cam2world)
+            pcd[~isnan] = trimesh.transform_points(pcd[~isnan], T_cam2cam0)
             pcds.append(pcd)
         rgbs = np.asarray(rgbs)
         pcds = np.asarray(pcds, dtype=np.float32)
