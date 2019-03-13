@@ -25,7 +25,10 @@ class MainApp(object):
         print(f'class_name: {class_name}')
         for k, v in data.items():
             if isinstance(v, np.ndarray):
-                print(f'{k}: {(v.shape, v.dtype)}')
+                if v.size < 5:
+                    print(f'{k}: {(v.shape, v)}')
+                else:
+                    print(f'{k}: {(v.shape, v.dtype)}')
             else:
                 print(f'{k}: {v}')
         return data
