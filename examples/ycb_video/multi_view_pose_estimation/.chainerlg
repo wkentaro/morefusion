@@ -1,4 +1,3 @@
 [chainerlg]
--summary=out,gpu,seed,loglevel,timestamp,lr .*,.*main/loss.*(max)
+-summary=out,gpu,seed,loglevel,timestamp,lr .*,.*main/loss.*(max),.*main/loss.*/.*
 figure=loss.png
-scale=main/loss=1000,main/loss_quaternion=1000,main/loss_translation=1000,validation/main/loss=1000,validation/main/loss_quaternion=1000,validation/main/loss_translation=1000
