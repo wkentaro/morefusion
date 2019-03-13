@@ -21,12 +21,17 @@ class YCBVideoMultiViewPoseEstimationDataset(YCBVideoDataset):
         self._cache_cad_data = {}
         self._cache_pitch = {}
 
+        self._random_seeds = None
+        if split == 'val':
+            random_state = np.random.RandomState(1234)
+            self._random_seeds = random_state.randint(0, 9999, len(self.ids))
+
     def get_ids(
         self,
         split: str,
         sampling: int = 1,
     ):
-        assert split in ('train', 'val', 'trainval')
+        assert split in ('train', 'val')
 
         video2class_ids: dict = {}
         imageset_file: pathlib.Path = self.root_dir / f'image_sets/{split}.txt'
@@ -55,8 +60,13 @@ class YCBVideoMultiViewPoseEstimationDataset(YCBVideoDataset):
         pitch = self._get_pitch(class_id=class_id)
 
         try:
+            random_state = None
+            if self._random_seeds is not None:
+                random_state = np.random.RandomState(
+                    seed=self._random_seeds[i]
+                )
             scan_origin, gt_pose, scan_rgbs, scan_pcds, scan_masks = \
-                self._get_scan_data(image_id, class_id)
+                self._get_scan_data(image_id, class_id, random_state)
         except ValueError:
             class_id = -1  # indicates skipping
             scan_origin = np.zeros((), dtype=np.float32)
@@ -157,7 +167,10 @@ class YCBVideoMultiViewPoseEstimationDataset(YCBVideoDataset):
         self._cache_pitch[class_id] = pitch
         return pitch
 
-    def _get_scan_data(self, image_id, class_id):
+    def _get_scan_data(self, image_id, class_id, random_state=None):
+        if random_state is None:
+            random_state = np.random.RandomState()
+
         frame = self.get_frame(image_id)
 
         T_world2cam0 = np.r_[
@@ -199,7 +212,7 @@ class YCBVideoMultiViewPoseEstimationDataset(YCBVideoDataset):
         scene_id, frame_id = image_id.split('/')
         frame_ids = [f'{i:06d}' for i in range(1, int(frame_id))]
         if len(frame_ids) > 9:
-            indices = np.random.permutation(len(frame_ids))[:9]
+            indices = random_state.permutation(len(frame_ids))[:9]
             frame_ids = [frame_ids[i] for i in sorted(indices)]
         frame_ids += [frame_id]
 
