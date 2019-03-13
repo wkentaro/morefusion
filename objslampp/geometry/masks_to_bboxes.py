@@ -17,6 +17,9 @@ def masks_to_bboxes(masks):
     bboxes = np.zeros((masks.shape[0], 4), dtype=np.float64)
     for i, mask in enumerate(masks):
         where = np.argwhere(mask)
-        (y1, x1), (y2, x2) = where.min(0), where.max(0) + 1
+        try:
+            (y1, x1), (y2, x2) = where.min(0), where.max(0) + 1
+        except ValueError:
+            continue
         bboxes[i] = y1, x1, y2, x2
     return bboxes

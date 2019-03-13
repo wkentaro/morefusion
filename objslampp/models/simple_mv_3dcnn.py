@@ -109,6 +109,9 @@ class SimpleMV3DCNNModel(chainer.Chain):
             bbox = bboxes[i]
 
             y1, x1, y2, x2 = bbox.round().astype(int).tolist()
+            if ((y2 - y1) * (x2 - x1)) == 0:
+                continue
+
             h_i = h_i[:, y1:y2, x1:x2]  # CHW
             mask = mask[y1:y2, x1:x2]   # HW
             pcd = pcd[y1:y2, x1:x2, :]  # HWC
