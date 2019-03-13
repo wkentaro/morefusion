@@ -5,7 +5,6 @@ import datetime
 import pathlib
 import pprint
 import random
-import logging
 import os.path as osp
 import socket
 import textwrap
@@ -20,7 +19,6 @@ import termcolor
 import tensorboardX
 
 import objslampp
-from objslampp import logger
 
 
 here = pathlib.Path(__file__).resolve().parent
@@ -195,28 +193,41 @@ def main():
         trigger=log_interval,
     )
 
-    def average_loss(stats_cpu):
-        parents = [
-            'validation/main/loss_quaternion',
-            'validation/main/loss_translation',
-            'validation/main/loss',
-        ]
-        for parent in parents:
-            if parent in stats_cpu:
-                continue
+    def average_child_observations(parent_keys):
+        @chainer.training.make_extension(
+            trigger=(1, 'iteration'),
+            priority=chainer.training.extension.PRIORITY_WRITER,
+        )
+        def _average_child_observations(trainer):
+            observation = trainer.observation
+            summary = chainer.DictSummary()
+            for parent in parent_keys:
+                if parent in observation:
+                    continue
+                for name, value in observation.items():
+                    if osp.dirname(name) == parent:
+                        summary.add({parent: value})
+            observation.update(summary.compute_mean())
+        return _average_child_observations
 
-            values = []
-            for name, value in stats_cpu.items():
-                if osp.dirname(name) == parent:
-                    values.append(value)
-            if values:
-                stats_cpu[parent] = np.mean(values)
+    trainer.extend(
+        average_child_observations(
+            parent_keys=[
+                'main/loss_quaternion',
+                'main/loss_translation',
+                'main/loss',
+                'validation/main/loss_quaternion',
+                'validation/main/loss_translation',
+                'validation/main/loss',
+            ],
+        ),
+        call_before_training=True,
+    )
 
     trainer.extend(
         objslampp.training.extensions.LogTensorboardReport(
             writer=summary_writer,
             trigger=log_interval,
-            postprocess=average_loss,
         ),
         call_before_training=True,
     )
