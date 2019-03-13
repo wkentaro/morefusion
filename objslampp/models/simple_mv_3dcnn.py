@@ -326,7 +326,7 @@ class SimpleMV3DCNNModel(chainer.Chain):
             'loss_translation': loss_translation,
             'loss': loss,
         }
-        if video_id is not None:
+        if not chainer.config.train and video_id is not None:
             for key in list(values.keys()):
                 values[f'{key}/{video_id:04d}'] = values.pop(key)
         chainer.report(values=values, observer=self)

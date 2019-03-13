@@ -213,9 +213,6 @@ def main():
     trainer.extend(
         average_child_observations(
             parent_keys=[
-                'main/loss_quaternion',
-                'main/loss_translation',
-                'main/loss',
                 'validation/main/loss_quaternion',
                 'validation/main/loss_translation',
                 'validation/main/loss',
