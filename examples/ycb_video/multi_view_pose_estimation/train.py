@@ -34,11 +34,7 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument('--out', default=default_out, help='output directory')
-    parser.add_argument(
-        '--loglevel',
-        default='info',
-        choices=['debug', 'info', 'warning', 'error'],
-    )
+    parser.add_argument('--debug', action='store_true', help='debug mode')
     parser.add_argument('--gpu', type=int, default=0, help='gpu id')
     parser.add_argument('--seed', type=int, default=0, help='random seed')
     parser.add_argument(
@@ -67,7 +63,7 @@ def main():
     )
     args = parser.parse_args()
 
-    logger.setLevel(getattr(logging, args.loglevel.upper()))
+    chainer.global_config.debug = args.debug
 
     termcolor.cprint('==> Started training', attrs={'bold': True})
 

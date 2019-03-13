@@ -7,7 +7,6 @@ import numpy as np
 
 from .. import geometry
 from .. import functions
-from ..logger import logger
 
 
 class SimpleMV3DCNNModel(chainer.Chain):
@@ -92,10 +91,12 @@ class SimpleMV3DCNNModel(chainer.Chain):
         else:
             assert isinstance(self.extractor, VGG16)
             h, = self.extractor(rgbs)
-        logger.debug(f'h_extractor: {h.shape}')
+        if chainer.is_debug():
+            print(f'h_extractor: {h.shape}')
 
         h = F.relu(self.conv5(h))
-        logger.debug(f'h_conv5: {h.shape}')
+        if chainer.is_debug():
+            print(f'h_conv5: {h.shape}')
 
         masks = (~self.xp.isnan(pcds).any(axis=3)) & masks
         bboxes = geometry.masks_to_bboxes(chainer.cuda.to_cpu(masks))
@@ -135,31 +136,40 @@ class SimpleMV3DCNNModel(chainer.Chain):
                 channels=self.voxel_channels,
             )
             h_i = h_i.transpose(3, 0, 1, 2)  # XYZC -> CXYZ
-            logger.debug(f'h_i, i={i}: {h_i.shape}')
+            if chainer.is_debug():
+                print(f'h_i, i={i}: {h_i.shape}')
             h_vox.append(h_i[None])
         h = F.concat(h_vox, axis=0)
-        logger.debug(f'h_vox: {h.shape}')
+        if chainer.is_debug():
+            print(f'h_vox: {h.shape}')
         h = F.max(h, axis=0)[None]
-        logger.debug(f'h_vox_fused: {h.shape}')  # NOQA
+        if chainer.is_debug():
+            print(f'h_vox_fused: {h.shape}')  # NOQA
 
         # 3DCNN
         h = F.relu(self.conv6(h))
-        logger.debug(f'h_conv6: {h.shape}')
+        if chainer.is_debug():
+            print(f'h_conv6: {h.shape}')
         h = F.relu(self.conv7(h))
-        logger.debug(f'h_conv7: {h.shape}')
+        if chainer.is_debug():
+            print(f'h_conv7: {h.shape}')
         return h
 
     def _predict_pose(self, h_cad, h_scan):
         h = F.concat([h_cad, h_scan], axis=1)
-        logger.debug(f'h_concat: {h.shape}')
+        if chainer.is_debug():
+            print(f'h_concat: {h.shape}')
 
         h = F.relu(self.fc8(h))
-        logger.debug(f'h_fc8: {h.shape}')
+        if chainer.is_debug():
+            print(f'h_fc8: {h.shape}')
 
         quaternion = F.normalize(self.fc_quaternion(h))  # [-1, 1]
-        logger.debug(f'quaternion: {quaternion}')
+        if chainer.is_debug():
+            print(f'quaternion: {quaternion}')
         translation = F.cos(self.fc_translation(h))      # [-1, 1]
-        logger.debug(f'translation: {translation}')
+        if chainer.is_debug():
+            print(f'translation: {translation}')
         return quaternion, translation
 
     def predict(
@@ -182,7 +192,8 @@ class SimpleMV3DCNNModel(chainer.Chain):
 
         assert class_id > 0  # 0 indicates background class
 
-        logger.debug('==> Multi-View Encoding CAD')
+        if chainer.is_debug():
+            print('==> Multi-View Encoding CAD')
         cad_origin = cad_origin[0]
         cad_rgbs = cad_rgbs[0].astype(np.float32).transpose(0, 3, 1, 2)
         cad_pcds = cad_pcds[0]
@@ -195,7 +206,8 @@ class SimpleMV3DCNNModel(chainer.Chain):
             masks=cad_masks,
         )
 
-        logger.debug('==> Multi-View Encoding Scan')
+        if chainer.is_debug():
+            print('==> Multi-View Encoding Scan')
         scan_origin = scan_origin[0]
         scan_rgbs = scan_rgbs[0].astype(np.float32).transpose(0, 3, 1, 2)
         scan_pcds = scan_pcds[0]
@@ -208,7 +220,8 @@ class SimpleMV3DCNNModel(chainer.Chain):
             masks=scan_masks
         )
 
-        logger.debug('==> Predicting Pose')
+        if chainer.is_debug():
+            print('==> Predicting Pose')
         quaternion, translation = self._predict_pose(h_cad, h_scan)
 
         return quaternion, translation
@@ -231,24 +244,25 @@ class SimpleMV3DCNNModel(chainer.Chain):
         gt_quaternion,
         gt_translation,
     ):
-        logger.debug('==> Arguments for SimpleMV3DCNNModel')
-        logger.debug(f'valid: {type(valid)}, {valid}')
-        logger.debug(f'video_id: {type(video_id)}, {video_id}')
-        logger.debug(f'class_id: {type(class_id)}, {class_id}')
-        logger.debug(f'pitch: {type(pitch)}, {pitch}')
-        logger.debug(f'cad_origin: {type(cad_origin)}, {cad_origin}')
-        logger.debug(f'cad_rgbs: {type(cad_rgbs)}, {cad_rgbs.shape}')
-        logger.debug(f'cad_pcds: {type(cad_pcds)}, {cad_pcds.shape}')
-        logger.debug(f'scan_origin: {type(scan_origin)}, {scan_origin.shape}')
-        logger.debug(f'scan_rgbs: {type(scan_rgbs)}, {scan_rgbs.shape}')
-        logger.debug(f'scan_pcds: {type(scan_pcds)}, {scan_pcds.shape}')
-        logger.debug(f'scan_masks: {type(scan_masks)}, {scan_masks.shape}')
-        if gt_pose is not None:
-            logger.debug(f'gt_pose: {type(gt_pose)}, {gt_pose.shape}')
-        if gt_quaternion is not None:
-            logger.debug(f'gt_quaternion: {type(gt_quaternion)}, {gt_quaternion.shape}')  # NOQA
-        if gt_translation is not None:
-            logger.debug(f'gt_translation: {type(gt_translation)}, {gt_translation.shape}')  # NOQA
+        if chainer.is_debug():
+            print('==> Arguments for SimpleMV3DCNNModel')
+            print(f'valid: {type(valid)}, {valid}')
+            print(f'video_id: {type(video_id)}, {video_id}')
+            print(f'class_id: {type(class_id)}, {class_id}')
+            print(f'pitch: {type(pitch)}, {pitch}')
+            print(f'cad_origin: {type(cad_origin)}, {cad_origin}')
+            print(f'cad_rgbs: {type(cad_rgbs)}, {cad_rgbs.shape}')
+            print(f'cad_pcds: {type(cad_pcds)}, {cad_pcds.shape}')
+            print(f'scan_origin: {type(scan_origin)}, {scan_origin.shape}')
+            print(f'scan_rgbs: {type(scan_rgbs)}, {scan_rgbs.shape}')
+            print(f'scan_pcds: {type(scan_pcds)}, {scan_pcds.shape}')
+            print(f'scan_masks: {type(scan_masks)}, {scan_masks.shape}')
+            if gt_pose is not None:
+                print(f'gt_pose: {type(gt_pose)}, {gt_pose.shape}')
+            if gt_quaternion is not None:
+                print(f'gt_quaternion: {type(gt_quaternion)}, {gt_quaternion.shape}')  # NOQA
+            if gt_translation is not None:
+                print(f'gt_translation: {type(gt_translation)}, {gt_translation.shape}')  # NOQA
 
         batch_size = valid.shape[0]
         assert batch_size == 1
@@ -289,18 +303,21 @@ class SimpleMV3DCNNModel(chainer.Chain):
         assert batch_size == 1
         video_id = int(video_id[0])
 
-        logger.debug('==> Computing Loss')
+        if chainer.is_debug():
+            print('==> Computing Loss')
         loss_quaternion = F.mean_absolute_error(quaternion, gt_quaternion)
         loss_translation = F.mean_absolute_error(translation, gt_translation)
-        logger.debug(f'gt_quaternion: {gt_quaternion}, quaternion: {quaternion}')  # NOQA
-        logger.debug(f'gt_translation: {gt_translation}, translation: {translation}')  # NOQA
+        if chainer.is_debug():
+            print(f'gt_quaternion: {gt_quaternion}, quaternion: {quaternion}')  # NOQA
+            print(f'gt_translation: {gt_translation}, translation: {translation}')  # NOQA
         loss = (
             (self._lambda_quaternion * loss_quaternion) +
             (self._lambda_translation * loss_translation)
         )
-        logger.debug(f'loss_quaternion: {loss_quaternion}')
-        logger.debug(f'loss_translation: {loss_translation}')
-        logger.debug(f'loss: {loss}')
+        if chainer.is_debug():
+            print(f'loss_quaternion: {loss_quaternion}')
+            print(f'loss_translation: {loss_translation}')
+            print(f'loss: {loss}')
 
         values = {
             'loss_quaternion': loss_quaternion,
