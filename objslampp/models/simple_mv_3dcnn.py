@@ -175,11 +175,12 @@ class SimpleMV3DCNNModel(chainer.Chain):
         scan_pcds,
         scan_masks,
     ):
-        assert class_id > 0  # 0 indicates background class
-
         batch_size = class_id.shape[0]
-        assert batch_size == 1, 'single batch_size is only supported'
+        assert batch_size == 1
         pitch = pitch[0]
+        class_id = class_id[0]
+
+        assert class_id > 0  # 0 indicates background class
 
         logger.debug('==> Multi-View Encoding CAD')
         cad_origin = cad_origin[0]
@@ -215,6 +216,8 @@ class SimpleMV3DCNNModel(chainer.Chain):
     def __call__(
         self,
         *,
+        valid,
+        video_id,
         class_id,
         pitch,
         cad_origin,
@@ -228,11 +231,9 @@ class SimpleMV3DCNNModel(chainer.Chain):
         gt_quaternion,
         gt_translation,
     ):
-        if class_id == -1:
-            # skip invalid data
-            return chainer.Variable(self.xp.zeros((), dtype=np.float32))
-
         logger.debug('==> Arguments for SimpleMV3DCNNModel')
+        logger.debug(f'valid: {type(valid)}, {valid}')
+        logger.debug(f'video_id: {type(video_id)}, {video_id}')
         logger.debug(f'class_id: {type(class_id)}, {class_id}')
         logger.debug(f'pitch: {type(pitch)}, {pitch}')
         logger.debug(f'cad_origin: {type(cad_origin)}, {cad_origin}')
@@ -248,6 +249,14 @@ class SimpleMV3DCNNModel(chainer.Chain):
             logger.debug(f'gt_quaternion: {type(gt_quaternion)}, {gt_quaternion.shape}')  # NOQA
         if gt_translation is not None:
             logger.debug(f'gt_translation: {type(gt_translation)}, {gt_translation.shape}')  # NOQA
+
+        batch_size = valid.shape[0]
+        assert batch_size == 1
+        valid = valid[0]
+
+        if not valid:
+            # skip invalid data
+            return chainer.Variable(self.xp.zeros((), dtype=np.float32))
 
         quaternion, translation = self.predict(
             class_id=class_id,
