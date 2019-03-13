@@ -98,7 +98,10 @@ class SimpleMV3DCNNModel(chainer.Chain):
         if chainer.is_debug():
             print(f'h_conv5: {h.shape}')
 
-        masks = (~self.xp.isnan(pcds).any(axis=3)) & masks
+        isnans = self.xp.isnan(pcds).any(axis=3)
+        pcds[isnans] = 0
+
+        masks = (~isnans) & masks
         bboxes = geometry.masks_to_bboxes(chainer.cuda.to_cpu(masks))
         h = F.resize_images(h, rgbs.shape[2:4])
 
@@ -124,7 +127,6 @@ class SimpleMV3DCNNModel(chainer.Chain):
             mask = mask.astype(np.float32)
             mask = F.resize_images(mask[None, None, :, :], (128, 128))[0, 0]
             mask = mask.array > 0.5
-            mask = (~self.xp.isnan(pcd).any(axis=2)) & mask
 
             h_i = h_i.transpose(1, 2, 0)  # CHW -> HWC
             h_i = functions.voxelization_3d(
