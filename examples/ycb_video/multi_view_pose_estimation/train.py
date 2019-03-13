@@ -26,9 +26,13 @@ here = pathlib.Path(__file__).resolve().parent
 
 
 def main():
+    now = datetime.datetime.now()
+    default_out = str(here / 'logs' / now.strftime('%Y%m%d_%H%M%S.%f'))
+
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
+    parser.add_argument('--out', default=default_out, help='output directory')
     parser.add_argument(
         '--loglevel',
         default='info',
@@ -66,9 +70,7 @@ def main():
 
     termcolor.cprint('==> Started training', attrs={'bold': True})
 
-    now = datetime.datetime.now()
     args.timestamp = now.isoformat()
-    args.out = str(here / 'logs' / now.strftime('%Y%m%d_%H%M%S.%f'))
     args.hostname = socket.gethostname()
     args.githash = objslampp.utils.githash(__file__)
 
