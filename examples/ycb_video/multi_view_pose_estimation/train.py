@@ -36,10 +36,17 @@ def main():
     parser.add_argument('--gpu', type=int, default=0, help='gpu id')
     parser.add_argument('--seed', type=int, default=0, help='random seed')
     parser.add_argument(
-        '--class-ids', nargs='+', type=int, default=[1], help='class ids'
+        '--class-ids',
+        nargs='+',
+        type=int,
+        default=[1],
+        help='class ids',
     )
     parser.add_argument(
-        '--lr', type=float, default=0.001, help='learning rate'
+        '--lr',
+        type=float,
+        default=0.001,
+        help='learning rate',
     )
     parser.add_argument(
         '--extractor',
@@ -58,6 +65,12 @@ def main():
         type=float,
         default=1.0,
         help='loss scale for translation',
+    )
+    parser.add_argument(
+        '--num-frames-scan',
+        type=int,
+        default=10,
+        help='number of images from scan',
     )
     args = parser.parse_args()
 
@@ -85,10 +98,15 @@ def main():
 
     # dataset initialization
     data_train = objslampp.datasets.YCBVideoMultiViewPoseEstimationDataset(
-        'train', class_ids=args.class_ids
+        'train',
+        class_ids=args.class_ids,
+        num_frames_scan=args.num_frames_scan,
     )
     data_valid = objslampp.datasets.YCBVideoMultiViewPoseEstimationDataset(
-        'val', class_ids=args.class_ids, sampling=60
+        'val',
+        class_ids=args.class_ids,
+        sampling=60,
+        num_frames_scan=args.num_frames_scan,
     )
 
     termcolor.cprint(

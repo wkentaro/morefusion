@@ -13,13 +13,23 @@ class YCBVideoMultiViewPoseEstimationDataset(YCBVideoDataset):
 
     voxel_dim = 32
 
-    def __init__(self, split, sampling=15, class_ids=None):
+    def __init__(
+        self,
+        split,
+        sampling=15,
+        class_ids=None,
+        num_frames_scan=None,
+    ):
         self._class_ids = class_ids
         super(YCBVideoMultiViewPoseEstimationDataset, self).__init__(
             split=split, sampling=sampling
         )
         self._cache_cad_data = {}
         self._cache_pitch = {}
+
+        if num_frames_scan is None:
+            num_frames_scan = 10
+        self._num_frames_scan = num_frames_scan
 
         self._random_seeds = None
         if split == 'val':
@@ -218,8 +228,9 @@ class YCBVideoMultiViewPoseEstimationDataset(YCBVideoDataset):
 
         scene_id, frame_id = image_id.split('/')
         frame_ids = [f'{i:06d}' for i in range(1, int(frame_id))]
-        if len(frame_ids) > 9:
-            indices = random_state.permutation(len(frame_ids))[:9]
+        n_frames_prev = self._num_frames_scan - 1
+        if len(frame_ids) > n_frames_prev:
+            indices = random_state.permutation(len(frame_ids))[:n_frames_prev]
             frame_ids = [frame_ids[i] for i in sorted(indices)]
         frame_ids += [frame_id]
 
