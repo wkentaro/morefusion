@@ -60,8 +60,13 @@ class VoxelMapping(object):
         return geom
 
     def as_bbox(self):
-        geom = vis.trimesh.wired_box(
+        bbox = vis.trimesh.wired_box(
             self.voxel_bbox_extents,
             translation=self.origin + self.voxel_bbox_extents / 2,
         )
-        return geom
+
+        origin = trimesh.creation.icosphere(radius=0.01)
+        origin.apply_translation(self.origin)
+        origin.visual.face_colors = (1.0, 0., 0.)
+
+        return [bbox, origin]
