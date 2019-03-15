@@ -303,7 +303,8 @@ class SimpleMV3DCNNModel(chainer.Chain):
     ):
         batch_size = quaternion.shape[0]
         assert batch_size == 1
-        video_id = int(video_id[0])
+        if video_id is not None:
+            video_id = int(video_id[0])
 
         if chainer.is_debug():
             print('==> Computing Loss')
