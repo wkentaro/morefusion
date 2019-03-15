@@ -15,7 +15,7 @@ class MainApp(object):
 
         self._dataset = \
             objslampp.datasets.YCBVideoMultiViewPoseEstimationDataset(
-                split='train', class_ids=[15],
+                split='train', class_ids=[2]
             )
 
     def _get_data(self, index):
@@ -170,15 +170,22 @@ class MainApp(object):
 
     def alignment(self, data=None):
         if data is None:
-            data = self._get_data(index=200)
+            data = self._get_data(index=50)
 
         axis_base = trimesh.creation.axis(origin_size=0.02)
 
-        scan_rgbs = imgviz.tile(
-            list(data['scan_rgbs']), border=(255, 255, 255)
-        )
-        scan_rgbs = imgviz.resize(scan_rgbs, width=1000)
-        imgviz.io.pyglet_imshow(scan_rgbs)
+        masks = data['scan_masks']
+        rgbs = data['scan_rgbs']
+        vizs = []
+        for rgb, mask in zip(rgbs, masks):
+            bbox = objslampp.geometry.masks_to_bboxes([mask])[0]
+            viz = imgviz.instances2rgb(
+                rgb, labels=[1], bboxes=[bbox], masks=[mask]
+            )
+            vizs.append(viz)
+        vizs = imgviz.tile(vizs)
+        vizs = imgviz.resize(vizs, width=1000)
+        imgviz.io.pyglet_imshow(vizs)
 
         cad_mapping = self.cad_voxel_mapping(data=data, show=False)
         scan_mapping = self.scan_voxel_mapping(data=data, show=False)
