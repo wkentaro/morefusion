@@ -14,7 +14,7 @@ def masks_to_bboxes(masks):
     bboxes: array of (y1, x1, y2, x2)
         Bounding boxes.
     """
-    bboxes = np.zeros((masks.shape[0], 4), dtype=np.float64)
+    bboxes = np.zeros((len(masks), 4), dtype=np.float64)
     for i, mask in enumerate(masks):
         where = np.argwhere(mask)
         try:
