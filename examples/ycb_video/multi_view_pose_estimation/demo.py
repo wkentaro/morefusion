@@ -6,10 +6,8 @@ import pathlib
 import pprint
 
 import chainer
-import imgviz
 
 import objslampp
-from objslampp import logger
 
 from view_dataset import MainApp
 
@@ -101,9 +99,80 @@ for index in range(len(dataset)):
     print(quaternion, translation)
     print('<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<')
 
+    if 1:
+        continue
+
+    import numpy as np
+    import trimesh
+
     data = examples[0]
-    data['gt_quaternion'] = quaternion
-    data['gt_translation'] = translation
+    translation = data['gt_translation']  # use gt
+
+    def show(scene, **kwargs):
+
+        resolution = kwargs.pop('resolution', (400, 400))
+
+        def callback(scene):
+            if hasattr(scene, 'angles'):
+                scene.angles += [0, np.deg2rad(1), 0]
+            else:
+                scene.angles = np.zeros(3)
+            scene.set_camera(angles=scene.angles)
+
+        return trimesh.viewer.SceneViewer(
+            scene=scene, callback=callback, resolution=resolution, **kwargs
+        )
+
+    pred_pose = trimesh.transformations.quaternion_matrix(quaternion)
+    pred_pose[:3, 3] = (
+        (data['scan_origin'] - data['cad_origin']) +
+        (translation * 32 * data['pitch'])
+    )
+
+    models = objslampp.datasets.YCBVideoModelsDataset()
+    model_file = models.get_model(class_id=data['class_id'])
 
     app = MainApp()
-    app.alignment(data=data)
+    map_scan = app.scan_voxel_mapping(data=data, show=False)
+    geom = map_scan.as_boxes()
+    bbox = map_scan.as_bbox()
+
+    scene = trimesh.Scene()
+    scene.add_geometry(geom)
+    scene.add_geometry(bbox)
+    show(scene, caption='scan', start_loop=False)
+
+    cad_true = trimesh.load(str(model_file['textured_simple']))
+    cad_true.visual = cad_true.visual.to_color()
+    origin = trimesh.creation.icosphere(radius=0.01)
+    origin.visual.face_colors = (1.0, 0., 0.)
+    cad_true.apply_transform(data['gt_pose'])
+    scene_true = scene.copy()
+    scene_true.add_geometry(cad_true)
+    show(scene_true, caption='true', start_loop=False)
+
+    scene_pred = scene.copy()
+    cad_pred = trimesh.load(str(model_file['textured_simple']))
+    cad_pred.visual = cad_pred.visual.to_color()
+    cad_pred.apply_transform(pred_pose)
+    scene_pred.add_geometry(cad_pred)
+    show(scene_pred, caption='pred', start_loop=False)
+
+    scene = trimesh.Scene()
+    cad_true.visual.face_colors = (0, 1.0, 0, 0.5)
+    cad_pred.visual.face_colors = (0, 0, 1.0, 0.5)
+    scene.add_geometry(cad_true)
+    scene.add_geometry(cad_pred)
+    axis = trimesh.creation.axis(origin_size=0.02)
+    axis.apply_transform(data['gt_pose'])
+    scene.add_geometry(axis)
+    show(scene, caption=f'true & pred {loss:.3g}', start_loop=False)
+
+    import pyglet
+    pyglet.app.run()
+
+    # data = examples[0]
+    # data['gt_quaternion'] = quaternion
+    # data['gt_translation'] = translation
+    # app = MainApp()
+    # app.alignment(data=data)
