@@ -39,7 +39,7 @@ def main():
         '--class-ids',
         nargs='+',
         type=int,
-        default=[1],
+        default=[2],
         help='class ids',
     )
     parser.add_argument(
