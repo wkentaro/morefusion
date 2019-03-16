@@ -1,5 +1,6 @@
--r requirements.txt
+-e git+https://github.com/wkentaro/chainer.git@objslampp#egg=chainer
 -e git+https://github.com/wkentaro/logboard.git@master#egg=logboard
+-r requirements.txt
 flake8
 ipdb
 ipython

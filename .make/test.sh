@@ -4,6 +4,7 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT=$HERE/..
 
 GPU=${1:-1}
+shift
 
 cd $ROOT
 
