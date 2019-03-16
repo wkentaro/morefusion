@@ -72,6 +72,9 @@ def main():
         default=10,
         help='number of images from scan',
     )
+    parser.add_argument(
+        '--freeze-extractor', choices=['all'], help='freezing at'
+    )
     args = parser.parse_args()
 
     chainer.global_config.debug = args.debug
@@ -128,17 +131,27 @@ def main():
     optimizer.setup(model)
 
     if args.extractor == 'resnet50':
-        model.extractor.conv1.disable_update()
-        model.extractor.res2.disable_update()
-        for link in model.extractor.links():
-            if isinstance(link, chainer.links.BatchNormalization):
+        if args.freeze_extractor == 'all':
+            for link in model.extractor.links():
                 link.disable_update()
+        else:
+            assert args.freeze_extractor is None
+            model.extractor.conv1.disable_update()
+            model.extractor.res2.disable_update()
+            for link in model.extractor.links():
+                if isinstance(link, chainer.links.BatchNormalization):
+                    link.disable_update()
     else:
         assert args.extractor == 'vgg16'
-        model.extractor.conv1_1.disable_update()
-        model.extractor.conv1_2.disable_update()
-        model.extractor.conv2_1.disable_update()
-        model.extractor.conv2_2.disable_update()
+        if args.freeze_extractor == 'all':
+            for link in model.extractor.links():
+                link.disable_update()
+        else:
+            assert args.freeze_extractor is None
+            model.extractor.conv1_1.disable_update()
+            model.extractor.conv1_2.disable_update()
+            model.extractor.conv2_1.disable_update()
+            model.extractor.conv2_2.disable_update()
 
     # chainer.datasets.TransformDataset?
 
