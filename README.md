@@ -32,8 +32,6 @@
 <p><img src="https://drive.google.com/uc?id=15MPxpoPrv2GlJaBKaSl_OaaC1_hv4PpS" height="200px" /> <img src="https://drive.google.com/uc?id=1EFC-7Vv4ci2nHcVbqySkpvVm43Eq-FYt" height="200px" /> <img src="https://drive.google.com/uc?id=1yYwpKwQVTS61qagDauGkjjq_wTPpl-ea" height="200px" />
 <img src="https://drive.google.com/uc?id=1BQUIKmOIRtc2AzMvQOa0SJxZxS7EXAw2" height="200px" />
 <img src="https://drive.google.com/uc?id=1fnRxYT7_P5_7C1LWHL5xpNNNSIdvXY48" height="200px" /> <img src="https://drive.google.com/uc?id=17T88z4eyapnXbLYgjUw_rT5EIjo8r7-m" height="200px" /></p>
-<h3><code>view_dataset.py alignment</code></h3>
-<p><img src="https://drive.google.com/uc?id=13_-2u-keQBSeyigzvpJmEEfFwFMikp4p" height="200px" /> <img src="https://drive.google.com/uc?id=10uMO3Mk5g0iME80J_9AmDHYgLYizL4dw" height="200px" /></p>
 
 <h3>multi_view_pose_estimation</h3>
 <h4><code>view_dataset.py</code></h4>
