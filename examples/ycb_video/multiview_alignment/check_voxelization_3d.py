@@ -12,7 +12,7 @@ import objslampp
 def check_voxelization_3d(gpu, **kwargs):
     np.random.seed(0)
 
-    dataset = objslampp.datasets.YCBVideoMultiViewPoseEstimationDataset(
+    dataset = objslampp.datasets.YCBVideoMultiViewAlignmentDataset(
         split='train'
     )
     data = dataset[0]

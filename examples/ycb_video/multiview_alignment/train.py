@@ -97,12 +97,12 @@ def main():
         chainer.cuda.cupy.random.seed(args.seed)
 
     # dataset initialization
-    data_train = objslampp.datasets.YCBVideoMultiViewPoseEstimationDataset(
+    data_train = objslampp.datasets.YCBVideoMultiViewAlignmentDataset(
         'train',
         class_ids=args.class_ids,
         num_frames_scan=args.num_frames_scan,
     )
-    data_valid = objslampp.datasets.YCBVideoMultiViewPoseEstimationDataset(
+    data_valid = objslampp.datasets.YCBVideoMultiViewAlignmentDataset(
         'val',
         class_ids=args.class_ids,
         sampling=60,

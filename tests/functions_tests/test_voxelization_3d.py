@@ -17,7 +17,7 @@ class TestVoxelization3D(unittest.TestCase):
     def setUp(self):
         numpy.random.seed(0)
 
-        dataset = objslampp.datasets.YCBVideoMultiViewPoseEstimationDataset(
+        dataset = objslampp.datasets.YCBVideoMultiViewAlignmentDataset(
             split='train'
         )
         data = dataset[0]

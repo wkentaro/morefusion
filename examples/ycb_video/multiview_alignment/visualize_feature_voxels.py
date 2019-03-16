@@ -47,7 +47,7 @@ if args.model is not None:
     chainer.serializers.load_npz(args.model, model)
     print('==> Done model loading')
 
-dataset = objslampp.datasets.YCBVideoMultiViewPoseEstimationDataset(
+dataset = objslampp.datasets.YCBVideoMultiViewAlignmentDataset(
     'val',
     class_ids=args_data['class_ids'],
     sampling=60,

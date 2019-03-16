@@ -9,7 +9,7 @@ from .ycb_video import YCBVideoDataset
 from .ycb_video_models import YCBVideoModelsDataset
 
 
-class YCBVideoMultiViewPoseEstimationDataset(YCBVideoDataset):
+class YCBVideoMultiViewAlignmentDataset(YCBVideoDataset):
 
     voxel_dim = 32
 
@@ -21,7 +21,7 @@ class YCBVideoMultiViewPoseEstimationDataset(YCBVideoDataset):
         num_frames_scan=None,
     ):
         self._class_ids = class_ids
-        super(YCBVideoMultiViewPoseEstimationDataset, self).__init__(
+        super(YCBVideoMultiViewAlignmentDataset, self).__init__(
             split=split, sampling=sampling
         )
         self._cache_cad_data = {}

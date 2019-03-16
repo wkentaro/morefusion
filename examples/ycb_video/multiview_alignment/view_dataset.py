@@ -16,7 +16,7 @@ class MainApp(object):
         np.random.seed(seed)
 
         self._dataset = \
-            objslampp.datasets.YCBVideoMultiViewPoseEstimationDataset(
+            objslampp.datasets.YCBVideoMultiViewAlignmentDataset(
                 split=split, class_ids=class_ids
             )
 
