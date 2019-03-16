@@ -59,14 +59,30 @@ class VoxelMapping(object):
             self.values[I, J, K].repeat(12, axis=0)
         return geom
 
-    def as_bbox(self):
-        bbox = vis.trimesh.wired_box(
-            self.voxel_bbox_extents,
-            translation=self.origin + self.voxel_bbox_extents / 2,
-        )
+    def as_bbox(self, edge=True, face_color=None, origin_color=(1.0, 0, 0)):
+        if face_color is None:
+            face_color = (1.0, 0, 0, 0.5)
+        if origin_color is None:
+            origin_color = (1.0, 0, 0, 0.5)
+
+        geometries = []
+
+        if edge:
+            bbox_edge = vis.trimesh.wired_box(
+                self.voxel_bbox_extents,
+                translation=self.origin + self.voxel_bbox_extents / 2,
+            )
+            geometries.append(bbox_edge)
+
+        if face_color is not None:
+            bbox = trimesh.creation.box(self.voxel_bbox_extents)
+            bbox.apply_translation(self.origin + self.voxel_bbox_extents / 2)
+            bbox.visual.face_colors = face_color
+            geometries.append(bbox)
 
         origin = trimesh.creation.icosphere(radius=0.01)
         origin.apply_translation(self.origin)
-        origin.visual.face_colors = (1.0, 0., 0.)
+        origin.visual.face_colors = origin_color
+        geometries.append(origin)
 
-        return [bbox, origin]
+        return geometries

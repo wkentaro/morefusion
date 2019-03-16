@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 
+import copy
+
 import imgviz
 import numpy as np
+import pyglet
 import trimesh
-import trimesh.viewer
 
 import objslampp
 
@@ -172,8 +174,6 @@ class MainApp(object):
         if data is None:
             data = self._get_data(index=50)
 
-        axis_base = trimesh.creation.axis(origin_size=0.02)
-
         masks = data['scan_masks']
         rgbs = data['scan_rgbs']
         vizs = []
@@ -190,151 +190,141 @@ class MainApp(object):
         cad_mapping = self.cad_voxel_mapping(data=data, show=False)
         scan_mapping = self.scan_voxel_mapping(data=data, show=False)
 
+        # ---------------------------------------------------------------------
+        # initial
+
+        axis_base = trimesh.creation.axis(origin_size=0.02)
         geom_cad = cad_mapping.as_boxes()
         geom_scan = scan_mapping.as_boxes()
+        box_cad = cad_mapping.as_bbox(
+            face_color=(1.0, 0, 0, 0.5),
+            origin_color=(1.0, 0, 0),
+        )
+        box_scan = scan_mapping.as_bbox(
+            face_color=(0, 0, 1.0, 0.5),
+            origin_color=(0, 0, 1.0),
+        )
 
-        # box_center = (0, 0, 0)
-        box_cad = trimesh.creation.box(cad_mapping.voxel_bbox_extents)
-        voxel_origin = trimesh.creation.icosphere(radius=0.01)
-        voxel_origin.apply_translation(data['cad_origin'])
-        box_cad += voxel_origin
-        box_cad.visual.face_colors = (1.0, 0, 0, 0.5)
-
-        box_center = data['scan_origin'] + data['pitch'] * 16
-        box_scan = trimesh.creation.box(scan_mapping.voxel_bbox_extents)
-        box_scan.apply_translation(box_center)
-        voxel_origin = trimesh.creation.icosphere(radius=0.01)
-        voxel_origin.apply_translation(data['scan_origin'])
-        box_scan += voxel_origin
-        box_scan.visual.face_colors = (0, 0, 1.0, 0.5)
-
-        def show(scene, **kwargs):
-
-            resolution = kwargs.pop('resolution', (500, 500))
-
-            def callback(scene):
-                if hasattr(scene, 'angles'):
-                    scene.angles += [0, np.deg2rad(1), 0]
-                else:
-                    scene.angles = np.zeros(3)
-                scene.set_camera(angles=scene.angles)
-
-            return trimesh.viewer.SceneViewer(
-                scene=scene, callback=callback, resolution=resolution, **kwargs
+        def show(scene, caption):
+            return objslampp.vis.trimesh.show_with_rotation(
+                scene=scene,
+                caption=caption,
+                resolution=(500, 500),
+                start_loop=False,
             )
 
         scene = trimesh.Scene([
             axis_base, geom_cad, geom_scan, box_cad, box_scan
         ])
-        show(scene, caption='initial', start_loop=False)
+        show(scene, caption='initial')
 
         # ---------------------------------------------------------------------
+        # rotated
+
+        rotation = data['gt_pose'].copy()
+        rotation[:3, 3] = 0
 
         geom_cad_rotated = geom_cad.copy()
-        T = data['gt_pose'].copy()
-        T[:3, 3] = 0
-        geom_cad_rotated.apply_transform(T)
-
-        box_cad = trimesh.creation.box(cad_mapping.voxel_bbox_extents)
-        voxel_origin = trimesh.creation.icosphere(radius=0.01)
-        voxel_origin.apply_translation(data['cad_origin'])
-        box_cad += voxel_origin
-        box_cad.apply_transform(T)
-        box_cad.visual.face_colors = (1.0, 0, 0, 0.5)
+        geom_cad_rotated.apply_transform(rotation)
+        box_cad_rotated = copy.deepcopy(box_cad)
+        for geom in box_cad_rotated:
+            geom.apply_transform(rotation)
 
         scene = trimesh.Scene([
-            axis_base, geom_cad_rotated, geom_scan, box_cad, box_scan
+            axis_base,
+            geom_cad_rotated,
+            geom_scan,
+            box_cad_rotated,
+            box_scan,
         ])
-        show(scene=scene, caption='rotated', start_loop=False)
+        show(scene=scene, caption='rotated')
 
         # ---------------------------------------------------------------------
+        # transformed
+
+        translation = data['gt_pose'][:3, 3]
 
         geom_cad_transformed = geom_cad_rotated.copy()
-        geom_cad_transformed.apply_translation(data['gt_pose'][:3, 3])
-
-        box_cad = trimesh.creation.box(cad_mapping.voxel_bbox_extents)
-        voxel_origin = trimesh.creation.icosphere(radius=0.01)
-        voxel_origin.apply_translation(data['cad_origin'])
-        box_cad += voxel_origin
-        box_cad.apply_transform(T)
-        box_cad.apply_translation(data['gt_pose'][:3, 3])
-        box_cad.visual.face_colors = (1.0, 0, 0, 0.5)
+        geom_cad_transformed.apply_translation(translation)
+        box_cad_transformed = copy.deepcopy(box_cad)
+        for geom in box_cad_transformed:
+            geom.apply_transform(rotation)
+            geom.apply_translation(translation)
 
         scene = trimesh.Scene([
-            axis_base, geom_cad_transformed, geom_scan, box_cad, box_scan
+            axis_base,
+            geom_cad_transformed,
+            geom_scan,
+            box_cad_transformed,
+            box_scan,
         ])
-        show(scene=scene, caption='transformed', start_loop=False)
+        show(scene=scene, caption='transformed')
 
         # ---------------------------------------------------------------------
+        # concatenated
+
+        translation = data['scan_origin'] - data['cad_origin']
 
         geom_cad_concat = geom_cad.copy()
-        geom_cad_concat.apply_translation(
-            data['scan_origin'] - data['cad_origin']
-        )
-
-        box_cad = trimesh.creation.box(cad_mapping.voxel_bbox_extents)
-        voxel_origin = trimesh.creation.icosphere(radius=0.01)
-        voxel_origin.apply_translation(data['cad_origin'])
-        box_cad += voxel_origin
-        box_cad.apply_translation(data['scan_origin'] - data['cad_origin'])
-        box_cad.visual.face_colors = (1.0, 0, 0, 0.5)
+        geom_cad_concat.apply_translation(translation)
+        box_cad_concat = copy.deepcopy(box_cad)
+        for geom in box_cad_concat:
+            geom.apply_translation(translation)
 
         scene = trimesh.Scene([
-            axis_base, geom_cad_concat, geom_scan, box_cad, box_scan
+            axis_base,
+            geom_cad_concat,
+            geom_scan,
+            box_cad_concat,
+            box_scan,
         ])
-        show(scene=scene, caption='concat', start_loop=False)
+        show(scene=scene, caption='concat')
 
         # ---------------------------------------------------------------------
 
-        T = trimesh.transformations.quaternion_matrix(data['gt_quaternion'])
+        rotation = trimesh.transformations.quaternion_matrix(
+            data['gt_quaternion']
+        )
+        translation = data['scan_origin'] - data['cad_origin']
 
         geom_cad_concat_rotated = geom_cad.copy()
-        geom_cad_concat_rotated.apply_transform(T)
-        geom_cad_concat_rotated.apply_translation(
-            data['scan_origin'] - data['cad_origin']
-        )
-
-        box_cad = trimesh.creation.box(cad_mapping.voxel_bbox_extents)
-        voxel_origin = trimesh.creation.icosphere(radius=0.01)
-        voxel_origin.apply_translation(data['cad_origin'])
-        box_cad += voxel_origin
-        box_cad.apply_transform(T)
-        box_cad.apply_translation(data['scan_origin'] - data['cad_origin'])
-        box_cad.visual.face_colors = (1.0, 0, 0, 0.5)
+        geom_cad_concat_rotated.apply_transform(rotation)
+        geom_cad_concat_rotated.apply_translation(translation)
+        box_cad_concat_rotated = copy.deepcopy(box_cad)
+        for geom in box_cad_concat_rotated:
+            geom.apply_transform(rotation)
+            geom.apply_translation(translation)
 
         scene = trimesh.Scene([
-            axis_base, geom_cad_concat_rotated, geom_scan, box_cad, box_scan
+            axis_base,
+            geom_cad_concat_rotated,
+            geom_scan,
+            box_cad_concat_rotated,
+            box_scan,
         ])
-        show(scene=scene, caption='concat & rotated', start_loop=False)
+        show(scene=scene, caption='concat & rotated')
 
         # ---------------------------------------------------------------------
 
-        translation = data['gt_translation'] * 32 * data['pitch']
+        translation_delta = data['gt_translation'] * 32 * data['pitch']
 
         geom_cad_concat_transformed = geom_cad_concat_rotated.copy()
-        geom_cad_concat_transformed.apply_translation(translation)
-
-        box_cad = trimesh.creation.box(cad_mapping.voxel_bbox_extents)
-        voxel_origin = trimesh.creation.icosphere(radius=0.01)
-        voxel_origin.apply_translation(data['cad_origin'])
-        box_cad += voxel_origin
-        box_cad.apply_transform(T)
-        box_cad.apply_translation(data['scan_origin'] - data['cad_origin'])
-        box_cad.apply_translation(translation)
-        box_cad.visual.face_colors = (1.0, 0, 0, 0.5)
+        geom_cad_concat_transformed.apply_translation(translation_delta)
+        box_cad_concat_transformed = copy.deepcopy(box_cad_concat_rotated)
+        for geom in box_cad_concat_transformed:
+            geom.apply_translation(translation_delta)
 
         scene = trimesh.Scene([
             axis_base,
             geom_cad_concat_transformed,
             geom_scan,
-            box_cad,
+            box_cad_concat_transformed,
             box_scan,
         ])
-        show(scene=scene, caption='concat & transformed', start_loop=False)
+        show(scene=scene, caption='concat & transformed')
 
         # ---------------------------------------------------------------------
 
-        import pyglet
         pyglet.app.run()
 
 

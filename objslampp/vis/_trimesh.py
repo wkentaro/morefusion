@@ -4,6 +4,7 @@ import typing
 
 import numpy as np
 import trimesh
+import trimesh.viewer
 
 
 def box_to_wired_box(
@@ -75,3 +76,17 @@ def tile_meshes(
     scene.add_geometry(plane)
 
     return scene
+
+
+def show_with_rotation(scene, step=None, **kwargs):
+    if step is None:
+        step = [0, np.deg2rad(1), 0]
+
+    def callback(scene):
+        if hasattr(scene, 'angles'):
+            scene.angles += step
+        else:
+            scene.angles = np.zeros(3)
+        scene.set_camera(angles=scene.angles)
+
+    return trimesh.viewer.SceneViewer(scene=scene, callback=callback, **kwargs)
