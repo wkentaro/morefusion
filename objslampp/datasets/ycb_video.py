@@ -47,15 +47,14 @@ class YCBVideoDataset(DatasetBase):
             postprocess=gdown.extractall,
         )
 
-    @classmethod
     def get_ids(
-        cls,
+        self,
         split: str,
         sampling: int = 1,
     ):
         assert split in ['train', 'val', 'trainval']
 
-        imageset_file: pathlib.Path = cls._root_dir / f'image_sets/{split}.txt'
+        imageset_file: pathlib.Path = self.root_dir / f'image_sets/{split}.txt'
         with open(imageset_file) as f:
             ids = []
             for line in f:

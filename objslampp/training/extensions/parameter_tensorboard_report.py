@@ -1,5 +1,4 @@
 import chainer
-from chainer.training import trigger as trigger_module
 
 
 class ParameterTensorboardReport(chainer.training.Extension):

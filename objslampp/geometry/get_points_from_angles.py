@@ -1,6 +1,6 @@
 import typing
 
-import chainer
+from chainer.backends import cuda
 import numpy as np
 
 
@@ -20,7 +20,7 @@ def get_points_from_angles(
             -distance * np.cos(elevation) * np.cos(azimuth),
         )
     else:
-        xp = chainer.cuda.get_array_module(distance)
+        xp = cuda.get_array_module(distance)
         if degrees:
             elevation = xp.radians(elevation)
             azimuth = xp.radians(azimuth)
