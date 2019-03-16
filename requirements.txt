@@ -1,4 +1,4 @@
-chainer
+-e git+https://github.com/wkentaro/chainer.git@objslampp#egg=chainer
 chainercv
 fire
 frozendict
@@ -11,4 +11,6 @@ pybullet
 scipy
 termcolor
 tqdm
+tensorboardX
+tensorflow
 trimesh[easy]

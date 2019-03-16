@@ -11,18 +11,11 @@ def git_version():
 
 version = git_version()
 
-install_requires = []
-with open('requirements.txt') as f:
-    for req in f:
-        if req.startswith('-e'):
-            continue
-        install_requires.append(req.strip())
-
 setup(
     name='objslampp',
     version=version,
     packages=find_packages(),
-    install_requires=install_requires,
+    install_requires=[],  # see requirements.txt
     author='Kentaro Wada',
     author_email='www.kentaro.wada@gmail.com',
     license='MIT',
