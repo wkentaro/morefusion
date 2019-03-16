@@ -77,13 +77,21 @@ class SimpleMV3DCNNModel(chainer.Chain):
             self.fc_quaternion = L.Linear(1024, 4, initialW=initialW)
             self.fc_translation = L.Linear(1024, 3, initialW=initialW)
 
-    def _encode_multiview(self, origin, pitch, rgbs, pcds, masks):
-        batch_size = len(rgbs)
-        assert batch_size == len(pcds)
-        assert batch_size == len(masks)
+    def encode(self, origin, pitch, rgbs, pcds, masks=None):
+        assert origin.shape == (3,)
+        assert pitch.shape == ()
+
+        N, H, W, C = rgbs.shape
+        assert C == 3
+        assert pcds.shape == (N, H, W, 3)
+
+        if masks is None:
+            masks = ~self.xp.isnan(pcds).any(axis=3)
+            assert masks.shape == (N, H, W)
 
         # MV
         mean = self.xp.asarray(self.extractor.mean)
+        rgbs = rgbs.transpose(0, 3, 1, 2).astype(np.float32)
         rgbs = rgbs - mean[None]
         if isinstance(self.extractor, ResNet50):
             with chainer.using_config('train', False):
@@ -106,7 +114,7 @@ class SimpleMV3DCNNModel(chainer.Chain):
         h = F.resize_images(h, rgbs.shape[2:4])
 
         h_vox = []
-        for i in range(batch_size):
+        for i in range(N):
             h_i = h[i]
             pcd = pcds[i]
             mask = masks[i]
@@ -157,7 +165,7 @@ class SimpleMV3DCNNModel(chainer.Chain):
             print(f'h_conv7: {h.shape}')
         return h
 
-    def _predict_pose(self, h_cad, h_scan):
+    def predict_from_code(self, h_cad, h_scan):
         h = F.concat([h_cad, h_scan], axis=1)
         if chainer.is_debug():
             print(f'h_concat: {h.shape}')
@@ -189,32 +197,31 @@ class SimpleMV3DCNNModel(chainer.Chain):
     ):
         batch_size = class_id.shape[0]
         assert batch_size == 1
+
         pitch = pitch[0]
         class_id = class_id[0]
+        cad_origin = cad_origin[0]
+        cad_rgbs = cad_rgbs[0]
+        cad_pcds = cad_pcds[0]
+        scan_origin = scan_origin[0]
+        scan_rgbs = scan_rgbs[0]
+        scan_pcds = scan_pcds[0]
+        scan_masks = scan_masks[0]
 
         assert class_id > 0  # 0 indicates background class
 
         if chainer.is_debug():
             print('==> Multi-View Encoding CAD')
-        cad_origin = cad_origin[0]
-        cad_rgbs = cad_rgbs[0].astype(np.float32).transpose(0, 3, 1, 2)
-        cad_pcds = cad_pcds[0]
-        cad_masks = ~self.xp.isnan(cad_pcds).any(axis=3)
-        h_cad = self._encode_multiview(
+        h_cad = self.encode(
             origin=cad_origin,
             pitch=pitch,
             rgbs=cad_rgbs,
             pcds=cad_pcds,
-            masks=cad_masks,
         )
 
         if chainer.is_debug():
             print('==> Multi-View Encoding Scan')
-        scan_origin = scan_origin[0]
-        scan_rgbs = scan_rgbs[0].astype(np.float32).transpose(0, 3, 1, 2)
-        scan_pcds = scan_pcds[0]
-        scan_masks = scan_masks[0] & ~self.xp.isnan(scan_pcds).any(axis=3)
-        h_scan = self._encode_multiview(
+        h_scan = self.encode(
             origin=scan_origin,
             pitch=pitch,
             rgbs=scan_rgbs,
@@ -224,7 +231,7 @@ class SimpleMV3DCNNModel(chainer.Chain):
 
         if chainer.is_debug():
             print('==> Predicting Pose')
-        quaternion, translation = self._predict_pose(h_cad, h_scan)
+        quaternion, translation = self.predict_from_code(h_cad, h_scan)
 
         return quaternion, translation
 
@@ -246,6 +253,8 @@ class SimpleMV3DCNNModel(chainer.Chain):
         gt_quaternion,
         gt_translation,
     ):
+        xp = self.xp
+
         if chainer.is_debug():
             print('==> Arguments for SimpleMV3DCNNModel')
             print(f'valid: {type(valid)}, {valid}')
@@ -260,11 +269,13 @@ class SimpleMV3DCNNModel(chainer.Chain):
             print(f'scan_pcds: {type(scan_pcds)}, {scan_pcds.shape}')
             print(f'scan_masks: {type(scan_masks)}, {scan_masks.shape}')
             if gt_pose is not None:
-                print(f'gt_pose: {type(gt_pose)}, {gt_pose.shape}')
+                print(f'gt_pose: {type(gt_pose)}, {gt_pose}')
             if gt_quaternion is not None:
-                print(f'gt_quaternion: {type(gt_quaternion)}, {gt_quaternion.shape}')  # NOQA
+                print(f'gt_quaternion: {type(gt_quaternion)}, {gt_quaternion}')
             if gt_translation is not None:
-                print(f'gt_translation: {type(gt_translation)}, {gt_translation.shape}')  # NOQA
+                print(
+                    f'gt_translation: {type(gt_translation)}, {gt_translation}'
+                )
 
         batch_size = valid.shape[0]
         assert batch_size == 1
@@ -272,7 +283,7 @@ class SimpleMV3DCNNModel(chainer.Chain):
 
         if not valid:
             # skip invalid data
-            return chainer.Variable(self.xp.zeros((), dtype=np.float32))
+            return chainer.Variable(xp.zeros((), dtype=np.float32))
 
         quaternion, translation = self.predict(
             class_id=class_id,
@@ -311,8 +322,10 @@ class SimpleMV3DCNNModel(chainer.Chain):
         loss_quaternion = F.mean_absolute_error(quaternion, gt_quaternion)
         loss_translation = F.mean_absolute_error(translation, gt_translation)
         if chainer.is_debug():
-            print(f'gt_quaternion: {gt_quaternion}, quaternion: {quaternion}')  # NOQA
-            print(f'gt_translation: {gt_translation}, translation: {translation}')  # NOQA
+            print(f'gt_quaternion: {gt_quaternion}, quaternion: {quaternion}')
+            print(
+                f'gt_translation: {gt_translation}, translation: {translation}'
+            )
         loss = (
             (self._lambda_quaternion * loss_quaternion) +
             (self._lambda_translation * loss_translation)
