@@ -24,7 +24,6 @@ install:
 
 script:
   - make lint
-  - make test_cpu
 
 after_success:
   - |
