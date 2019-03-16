@@ -31,7 +31,7 @@ pprint.pprint(args_data)
 if args.gpu >= 0:
     chainer.cuda.get_device_from_id(args.gpu).use()
 
-model = objslampp.models.SimpleMV3DCNNModel(
+model = objslampp.models.MultiViewAlignmentModel(
     extractor=args_data['extractor'],
     lambda_translation=args_data['lambda_translation'],
     lambda_quaternion=args_data['lambda_quaternion'],

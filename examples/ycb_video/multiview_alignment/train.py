@@ -115,7 +115,7 @@ def main():
     )
 
     # model initialization
-    model = objslampp.models.SimpleMV3DCNNModel(
+    model = objslampp.models.MultiViewAlignmentModel(
         extractor=args.extractor,
         lambda_quaternion=args.lambda_quaternion,
         lambda_translation=args.lambda_translation,

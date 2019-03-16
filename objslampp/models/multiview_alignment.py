@@ -9,7 +9,7 @@ from .. import geometry
 from .. import functions
 
 
-class SimpleMV3DCNNModel(chainer.Chain):
+class MultiViewAlignmentModel(chainer.Chain):
 
     def __init__(
         self,
@@ -17,7 +17,7 @@ class SimpleMV3DCNNModel(chainer.Chain):
         lambda_quaternion=1.0,
         lambda_translation=1.0,
     ):
-        super(SimpleMV3DCNNModel, self).__init__()
+        super(MultiViewAlignmentModel, self).__init__()
 
         self._lambda_quaternion = lambda_quaternion
         self._lambda_translation = lambda_translation
@@ -256,7 +256,7 @@ class SimpleMV3DCNNModel(chainer.Chain):
         xp = self.xp
 
         if chainer.is_debug():
-            print('==> Arguments for SimpleMV3DCNNModel')
+            print('==> Arguments for MultiViewAlignmentModel.__call__')
             print(f'valid: {type(valid)}, {valid}')
             print(f'video_id: {type(video_id)}, {video_id}')
             print(f'class_id: {type(class_id)}, {class_id}')
