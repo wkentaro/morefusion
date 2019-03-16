@@ -14,3 +14,6 @@ lint: install_anaconda3
 
 test: lint install
 	@.make/test.sh
+
+test_cpu: lint install
+	@.make/test.sh GPU=0
