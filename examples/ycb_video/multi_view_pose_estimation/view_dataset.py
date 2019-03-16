@@ -12,12 +12,12 @@ import objslampp
 
 class MainApp(object):
 
-    def __init__(self, seed=0):
+    def __init__(self, seed=0, split='train', class_ids=(2,)):
         np.random.seed(seed)
 
         self._dataset = \
             objslampp.datasets.YCBVideoMultiViewPoseEstimationDataset(
-                split='train', class_ids=[2]
+                split=split, class_ids=class_ids
             )
 
     def _get_data(self, index):
@@ -35,8 +35,9 @@ class MainApp(object):
                 print(f'{k}: {v}')
         return data
 
-    def cad(self):
-        data = self._get_data(index=200)
+    def cad(self, data=None, index=200):
+        if not data:
+            data = self._get_data(index=index)
 
         scene = trimesh.Scene()
 
@@ -53,31 +54,33 @@ class MainApp(object):
             geom = trimesh.PointCloud(vertices=pcd[~isnan], color=rgb[~isnan])
             scene.add_geometry(geom)
 
-        scene.show()
+        objslampp.vis.trimesh.show_with_rotation(
+            scene=scene, caption='cad point clouds',
+        )
 
-    def scan_2d(self):
-        data = self._get_data(index=200)
+    def scan_2d(self, data=None, index=200):
+        if not data:
+            data = self._get_data(index=index)
 
         depth2rgb_z = imgviz.Depth2RGB()
+        vizs = []
         for rgb, pcd, mask in zip(
             data['scan_rgbs'], data['scan_pcds'], data['scan_masks']
         ):
             mask = mask.astype(np.uint8) * 255
             pcd_z_viz = depth2rgb_z(pcd[:, :, 2])
             viz = imgviz.tile([rgb, pcd_z_viz, mask])
-            viz = imgviz.resize(viz, width=1000)
-            imgviz.io.cv_imshow(viz, __file__)
-            while True:
-                key = imgviz.io.cv_waitkey()
-                if key == ord('n'):
-                    break
-                elif key == ord('q'):
-                    return
+            vizs.append(viz)
+        vizs = imgviz.tile(vizs, (5, 2), border=(255, 255, 255))
+        vizs = imgviz.resize(vizs, width=1500)
+        imgviz.io.pyglet_imshow(vizs, 'scan views')
+        pyglet.app.run()
 
-    def scan(self, color='rgb'):
+    def scan(self, data=None, index=200, color='rgb'):
+        if not data:
+            data = self._get_data(index=index)
+
         assert color in ['rgb', 'view'], 'color must be rgb or view'
-
-        data = self._get_data(index=200)
 
         scene = trimesh.Scene()
 
@@ -121,11 +124,13 @@ class MainApp(object):
         geom.apply_transform(data['gt_pose'])
         scene.add_geometry(geom)
 
-        scene.show()
+        objslampp.vis.trimesh.show_with_rotation(
+            scene, caption='scan ({})'.format(color)
+        )
 
-    def cad_voxel_mapping(self, data=None, show=True):
-        if data is None:
-            data = self._get_data(index=200)
+    def cad_voxel_mapping(self, data=None, index=200, show=True):
+        if not data:
+            data = self._get_data(index=index)
 
         cad_mapping = objslampp.geometry.VoxelMapping(
             origin=np.array((-16 * data['pitch'],) * 3, dtype=float),
@@ -141,13 +146,16 @@ class MainApp(object):
             )
         if show:
             geom = cad_mapping.as_boxes()
-            geom.show()
+            scene = trimesh.Scene(geom)
+            objslampp.vis.trimesh.show_with_rotation(
+                scene, caption='cad voxel mapping'
+            )
         else:
             return cad_mapping
 
-    def scan_voxel_mapping(self, data=None, show=True):
-        if data is None:
-            data = self._get_data(index=200)
+    def scan_voxel_mapping(self, data=None, index=200, show=True):
+        if not data:
+            data = self._get_data(index=index)
 
         scan_mapping = objslampp.geometry.VoxelMapping(
             origin=data['scan_origin'],
@@ -166,13 +174,16 @@ class MainApp(object):
             )
         if show:
             geom = scan_mapping.as_boxes()
-            geom.show()
+            scene = trimesh.Scene(geom)
+            objslampp.vis.trimesh.show_with_rotation(
+                scene, caption='scan voxel mapping'
+            )
         else:
             return scan_mapping
 
-    def alignment(self, data=None):
-        if data is None:
-            data = self._get_data(index=50)
+    def alignment(self, data=None, index=200):
+        if not data:
+            data = self._get_data(index=index)
 
         masks = data['scan_masks']
         rgbs = data['scan_rgbs']
