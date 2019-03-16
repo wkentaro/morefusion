@@ -75,6 +75,9 @@ def main():
     parser.add_argument(
         '--freeze-extractor', choices=['all'], help='freezing at'
     )
+    parser.add_argument(
+        '--weight-decay', type=float, default=1e-4, help='weight decay'
+    )
     args = parser.parse_args()
 
     chainer.global_config.debug = args.debug
@@ -129,6 +132,10 @@ def main():
     # optimizer initialization
     optimizer = chainer.optimizers.Adam(alpha=args.lr)
     optimizer.setup(model)
+    if args.weight_decay > 0:
+        optimizer.add_hook(
+            chainer.optimizer.WeightDecay(rate=args.weight_decay)
+        )
 
     if args.extractor == 'resnet50':
         if args.freeze_extractor == 'all':
