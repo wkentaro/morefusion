@@ -26,7 +26,7 @@ class MultiViewAlignmentModel(chainer.Chain):
         self._lambda_quaternion = lambda_quaternion
         self._lambda_translation = lambda_translation
         self._writer = writer
-        self._writer_interval = write_interval
+        self._write_interval = write_interval
 
         initialW = chainer.initializers.Normal(0.01)
         with self.init_scope():
@@ -247,7 +247,7 @@ class MultiViewAlignmentModel(chainer.Chain):
                 imgviz.tile(images, border=(255, 255, 255)),
                 dataformats='HWC',
             )
-            del images, nchannel2rgb, Depth2RGB
+            del images, nchannel2rgb, depth2rgb
 
         if return_fused:
             return h
