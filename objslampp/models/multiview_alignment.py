@@ -1,8 +1,10 @@
 import chainer
+from chainer.backends import cuda
 import chainer.functions as F
 import chainer.links as L
 from chainercv.links.model.resnet import ResNet50
 from chainercv.links.model.vgg import VGG16
+import imgviz
 import numpy as np
 
 from .. import geometry
@@ -16,11 +18,15 @@ class MultiViewAlignmentModel(chainer.Chain):
         extractor,
         lambda_quaternion=1.0,
         lambda_translation=1.0,
+        writer=None,
+        write_interval=100,
     ):
         super(MultiViewAlignmentModel, self).__init__()
 
         self._lambda_quaternion = lambda_quaternion
         self._lambda_translation = lambda_translation
+        self._writer = writer
+        self._writer_interval = write_interval
 
         initialW = chainer.initializers.Normal(0.01)
         with self.init_scope():
@@ -77,6 +83,13 @@ class MultiViewAlignmentModel(chainer.Chain):
             self.fc_quaternion = L.Linear(1024, 4, initialW=initialW)
             self.fc_translation = L.Linear(1024, 3, initialW=initialW)
 
+    def trigger_write(self):
+        return (
+            chainer.config.train and
+            (self._writer is not None) and
+            (self._writer.global_step % self._write_interval == 1)
+        )
+
     def encode(
         self,
         origin,
@@ -96,6 +109,33 @@ class MultiViewAlignmentModel(chainer.Chain):
         if masks is None:
             masks = ~self.xp.isnan(pcds).any(axis=3)
             assert masks.shape == (N, H, W)
+
+        if self.trigger_write():
+            self._writer.add_image(
+                'rgbs',
+                imgviz.tile(cuda.to_cpu(rgbs), border=(255, 255, 255)),
+                dataformats='HWC',
+            )
+
+            depth2rgb = imgviz.Depth2RGB()
+            self._writer.add_image(
+                'pcds',
+                imgviz.tile(
+                    [depth2rgb(x) for x in cuda.to_cpu(pcds[:, :, :, 2])],
+                    border=(255, 255, 255),
+                ),
+                dataformats='HWC',
+            )
+            del depth2rgb
+
+            self._writer.add_image(
+                'masks',
+                imgviz.tile(
+                    [x.astype(np.uint8) * 255 for x in cuda.to_cpu(masks)],
+                    border=(255, 255, 255),
+                ),
+                dataformats='HWC',
+            )
 
         # MV
         mean = self.xp.asarray(self.extractor.mean)
@@ -121,6 +161,34 @@ class MultiViewAlignmentModel(chainer.Chain):
         bboxes = geometry.masks_to_bboxes(chainer.cuda.to_cpu(masks))
         h = F.resize_images(h, rgbs.shape[2:4])
 
+        if self.trigger_write():
+            nchannel2rgb = imgviz.Nchannel2RGB()
+            self._writer.add_image(
+                'feature_2d',
+                imgviz.tile([
+                    nchannel2rgb(x)
+                    for x in cuda.to_cpu(h.array).transpose(0, 2, 3, 1)
+                ], border=(255, 255, 255)),
+                dataformats='HWC',
+            )
+            self._writer.add_image(
+                'feature_2d_masked',
+                imgviz.tile([
+                    nchannel2rgb(x) * m[:, :, None]
+                    for x, m in zip(
+                        cuda.to_cpu(h.array).transpose(0, 2, 3, 1),
+                        cuda.to_cpu(masks),
+                    )
+                ], border=(255, 255, 255)),
+                dataformats='HWC',
+            )
+            del nchannel2rgb
+
+        if self.trigger_write():
+            images = []
+            nchannel2rgb = imgviz.Nchannel2RGB()
+            depth2rgb = imgviz.Depth2RGB()
+
         h_vox = []
         for i in range(N):
             h_i = h[i]
@@ -144,6 +212,15 @@ class MultiViewAlignmentModel(chainer.Chain):
             mask = F.resize_images(mask[None, None, :, :], (128, 128))[0, 0]
             mask = mask.array > 0.5
 
+            if self.trigger_write():
+                image = imgviz.tile([
+                    nchannel2rgb(cuda.to_cpu(h_i.array.transpose(1, 2, 0))),
+                    depth2rgb(cuda.to_cpu(pcd[:, :, 2])),
+                    imgviz.gray2rgb(cuda.to_cpu(mask).astype(np.uint8) * 255)
+                ], border=(255, 255, 255))
+                images.append(image)
+                del image
+
             h_i = h_i.transpose(1, 2, 0)  # CHW -> HWC
             h_i = functions.voxelization_3d(
                 values=h_i[mask, :],
@@ -163,6 +240,14 @@ class MultiViewAlignmentModel(chainer.Chain):
         h = F.max(h, axis=0)[None]
         if chainer.is_debug():
             print(f'h_vox_fused: {h.shape}')  # NOQA
+
+        if self.trigger_write():
+            self._writer.add_image(
+                'encoding_2d',
+                imgviz.tile(images, border=(255, 255, 255)),
+                dataformats='HWC',
+            )
+            del images, nchannel2rgb, Depth2RGB
 
         if return_fused:
             return h
@@ -223,22 +308,24 @@ class MultiViewAlignmentModel(chainer.Chain):
 
         if chainer.is_debug():
             print('==> Multi-View Encoding CAD')
-        h_cad = self.encode(
-            origin=cad_origin,
-            pitch=pitch,
-            rgbs=cad_rgbs,
-            pcds=cad_pcds,
-        )
+        with self._writer.scope('cad'):
+            h_cad = self.encode(
+                origin=cad_origin,
+                pitch=pitch,
+                rgbs=cad_rgbs,
+                pcds=cad_pcds,
+            )
 
         if chainer.is_debug():
             print('==> Multi-View Encoding Scan')
-        h_scan = self.encode(
-            origin=scan_origin,
-            pitch=pitch,
-            rgbs=scan_rgbs,
-            pcds=scan_pcds,
-            masks=scan_masks
-        )
+        with self._writer.scope('scan'):
+            h_scan = self.encode(
+                origin=scan_origin,
+                pitch=pitch,
+                rgbs=scan_rgbs,
+                pcds=scan_pcds,
+                masks=scan_masks
+            )
 
         if chainer.is_debug():
             print('==> Predicting Pose')

@@ -88,7 +88,8 @@ def main():
     args.hostname = socket.gethostname()
     args.githash = objslampp.utils.githash(__file__)
 
-    summary_writer = tensorboardX.SummaryWriter(log_dir=args.out)
+    writer = tensorboardX.SummaryWriter(log_dir=args.out)
+    writer_with_updater = objslampp.training.SummaryWriterWithUpdater(writer)
 
     # -------------------------------------------------------------------------
 
@@ -125,6 +126,7 @@ def main():
         extractor=args.extractor,
         lambda_quaternion=args.lambda_quaternion,
         lambda_translation=args.lambda_translation,
+        writer=writer_with_updater,
     )
     if args.gpu >= 0:
         model.to_gpu()
@@ -176,6 +178,7 @@ def main():
         # converter=my_converter,
         device=args.gpu,
     )
+    writer_with_updater.setup(updater)
 
     # -------------------------------------------------------------------------
 
@@ -261,14 +264,14 @@ def main():
 
     trainer.extend(
         objslampp.training.extensions.LogTensorboardReport(
-            writer=summary_writer,
+            writer=writer,
             trigger=log_interval,
         ),
         call_before_training=True,
     )
     trainer.extend(
         objslampp.training.extensions.ParameterTensorboardReport(
-            writer=summary_writer
+            writer=writer
         ),
         call_before_training=True,
         trigger=param_log_interval,
