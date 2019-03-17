@@ -6,6 +6,8 @@ import pathlib
 import pprint
 
 import chainer
+import numpy as np
+import trimesh
 
 import objslampp
 
@@ -15,18 +17,16 @@ from view_dataset import MainApp
 parser = argparse.ArgumentParser(
     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
 )
-parser.add_argument('--model', help='model file in a log dir')
+parser.add_argument('--model', required=True, help='model file in a log dir')
 parser.add_argument('--gpu', type=int, default=0, help='gpu id')
+parser.add_argument('--show', action='store_true', help='show visualization')
+parser.add_argument('--index', nargs='+', type=int, help='dataset indices')
 args = parser.parse_args()
-
-# -----------------------------------------------------------------------------
 
 args_file = pathlib.Path(args.model).parent / 'args'
 with open(args_file) as f:
     args_data = json.load(f)
 pprint.pprint(args_data)
-
-# -----------------------------------------------------------------------------
 
 if args.gpu >= 0:
     chainer.cuda.get_device_from_id(args.gpu).use()
@@ -39,11 +39,9 @@ model = objslampp.models.MultiViewAlignmentModel(
 if args.gpu >= 0:
     model.to_gpu()
 
-# args.model = 'logs.hoop/20190312_235147.939651/snapshot_model_iter_3190.npz'
-if args.model is not None:
-    print('==> Loading trained model: {}'.format(args.model))
-    chainer.serializers.load_npz(args.model, model)
-    print('==> Done model loading')
+print('==> Loading trained model: {}'.format(args.model))
+chainer.serializers.load_npz(args.model, model)
+print('==> Done model loading')
 
 dataset = objslampp.datasets.YCBVideoMultiViewAlignmentDataset(
     'val',
@@ -54,7 +52,10 @@ dataset = objslampp.datasets.YCBVideoMultiViewAlignmentDataset(
 
 # -----------------------------------------------------------------------------
 
-for index in range(len(dataset)):
+if not args.index:
+    args.index = range(len(dataset))
+
+for index in args.index:
     examples = dataset[index:index + 1]
     inputs = chainer.dataset.concat_examples(examples, device=args.gpu)
     inputs.pop('valid')
@@ -99,11 +100,8 @@ for index in range(len(dataset)):
     print(quaternion, translation)
     print('<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<')
 
-    if 1:
+    if not args.show:
         continue
-
-    import numpy as np
-    import trimesh
 
     data = examples[0]
     translation = data['gt_translation']  # use gt
@@ -135,7 +133,7 @@ for index in range(len(dataset)):
     app = MainApp()
     map_scan = app.scan_voxel_mapping(data=data, show=False)
     geom = map_scan.as_boxes()
-    bbox = map_scan.as_bbox()
+    bbox = map_scan.as_bbox(edge=True)
 
     scene = trimesh.Scene()
     scene.add_geometry(geom)
@@ -171,8 +169,9 @@ for index in range(len(dataset)):
     import pyglet
     pyglet.app.run()
 
-    # data = examples[0]
-    # data['gt_quaternion'] = quaternion
-    # data['gt_translation'] = translation
-    # app = MainApp()
-    # app.alignment(data=data)
+    if 0:
+        data = examples[0]
+        data['gt_quaternion'] = quaternion
+        data['gt_translation'] = translation
+        app = MainApp()
+        app.alignment(data=data)
