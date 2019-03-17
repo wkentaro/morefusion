@@ -243,7 +243,7 @@ class MultiViewAlignmentModel(chainer.Chain):
 
         if self.trigger_write():
             self._writer.add_image(
-                'encoding_2d',
+                'feature_2d_roi',
                 imgviz.tile(images, border=(255, 255, 255)),
                 dataformats='HWC',
             )
