@@ -77,7 +77,15 @@ class MultiViewAlignmentModel(chainer.Chain):
             self.fc_quaternion = L.Linear(1024, 4, initialW=initialW)
             self.fc_translation = L.Linear(1024, 3, initialW=initialW)
 
-    def encode(self, origin, pitch, rgbs, pcds, masks=None):
+    def encode(
+        self,
+        origin,
+        pitch,
+        rgbs,
+        pcds,
+        masks=None,
+        return_fused=False,
+    ):
         assert origin.shape == (3,)
         assert pitch.shape == ()
 
@@ -155,6 +163,9 @@ class MultiViewAlignmentModel(chainer.Chain):
         h = F.max(h, axis=0)[None]
         if chainer.is_debug():
             print(f'h_vox_fused: {h.shape}')  # NOQA
+
+        if return_fused:
+            return h
 
         # 3DCNN
         h = F.relu(self.conv6(h))
