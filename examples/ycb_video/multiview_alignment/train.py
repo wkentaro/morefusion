@@ -215,12 +215,12 @@ def main():
     )
 
     # snapshot
-    trainer.extend(
-        chainer.training.extensions.snapshot(
-            filename='snapshot_iter_{.updater.iteration}.npz'
-        ),
-        trigger=eval_interval,
-    )
+    # trainer.extend(
+    #     chainer.training.extensions.snapshot(
+    #         filename='snapshot_iter_{.updater.iteration}.npz'
+    #     ),
+    #     trigger=eval_interval,
+    # )
     trainer.extend(
         chainer.training.extensions.snapshot_object(
             model, filename='snapshot_model_iter_{.updater.iteration}.npz'
