@@ -3,7 +3,7 @@ chainercv
 fire
 frozendict
 gdown>=3.7.0
-imgviz[all]>=0.2.4
+imgviz[all]
 open3d-python
 opencv-python
 pandas
