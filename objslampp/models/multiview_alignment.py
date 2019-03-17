@@ -184,6 +184,11 @@ class MultiViewAlignmentModel(chainer.Chain):
             )
             del nchannel2rgb
 
+            self._writer.add_histogram(
+                'feature_2d',
+                cuda.to_cpu(h.array),
+            )
+
         if self.trigger_write():
             images = []
             nchannel2rgb = imgviz.Nchannel2RGB()
@@ -248,6 +253,11 @@ class MultiViewAlignmentModel(chainer.Chain):
                 dataformats='HWC',
             )
             del images, nchannel2rgb, depth2rgb
+
+            self._writer.add_histogram(
+                'feature_voxel',
+                cuda.to_cpu(h.array),
+            )
 
         if return_fused:
             return h

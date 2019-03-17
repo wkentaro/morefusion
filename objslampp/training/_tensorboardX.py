@@ -38,3 +38,11 @@ class SummaryWriterWithUpdater(object):
             global_step=self.global_step,
             **kwargs
         )
+
+    def add_histogram(self, tag, values, **kwargs):
+        return self._writer.add_histogram(
+            tag=self.scoped(tag),
+            values=values,
+            global_step=self.global_step,
+            **kwargs
+        )
