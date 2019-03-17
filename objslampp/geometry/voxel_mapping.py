@@ -60,11 +60,6 @@ class VoxelMapping(object):
         return geom
 
     def as_bbox(self, edge=True, face_color=None, origin_color=(1.0, 0, 0)):
-        if face_color is None:
-            face_color = (1.0, 0, 0, 0.5)
-        if origin_color is None:
-            origin_color = (1.0, 0, 0, 0.5)
-
         geometries = []
 
         if edge:
