@@ -18,7 +18,7 @@ with open('examples/ycb_video/README.md') as f:
     sub = sub.replace('h1>', 'h2>')
     top = top + '\n' + sub
 
-with open('examples/ycb_video/multi_view_pose_estimation/README.md') as f:
+with open('examples/ycb_video/multiview_alignment/README.md') as f:
     # -2
     subsub = mistune.markdown(f.read(), escape=False)
     subsub = subsub.replace('h4>', 'h6>')
