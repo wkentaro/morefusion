@@ -9,6 +9,7 @@ import numpy as np
 
 from .. import geometry
 from .. import functions
+from .. import training
 
 
 class MultiViewAlignmentModel(chainer.Chain):
@@ -25,6 +26,10 @@ class MultiViewAlignmentModel(chainer.Chain):
 
         self._lambda_quaternion = lambda_quaternion
         self._lambda_translation = lambda_translation
+
+        if writer is None:
+            writer = training.SummaryWriterWithUpdater(writer=None)  # dummy
+            write_interval = 0
         self._writer = writer
         self._write_interval = write_interval
 
@@ -86,7 +91,7 @@ class MultiViewAlignmentModel(chainer.Chain):
     def trigger_write(self):
         return (
             chainer.config.train and
-            (self._writer is not None) and
+            (self._write_interval > 0) and
             (self._writer.global_step % self._write_interval == 1)
         )
 
