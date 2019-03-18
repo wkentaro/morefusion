@@ -11,7 +11,6 @@ import imgviz
 import numpy as np
 import pyglet
 import trimesh
-import trimesh.viewer
 
 import objslampp
 

@@ -6,7 +6,6 @@ import pathlib
 import pprint
 
 import chainer
-import numpy as np
 import trimesh
 
 import objslampp
@@ -106,19 +105,12 @@ for index in args.index:
     data = examples[0]
     translation = data['gt_translation']  # use gt
 
-    def show(scene, **kwargs):
-
-        resolution = kwargs.pop('resolution', (400, 400))
-
-        def callback(scene):
-            if hasattr(scene, 'angles'):
-                scene.angles += [0, np.deg2rad(1), 0]
-            else:
-                scene.angles = np.zeros(3)
-            scene.set_camera(angles=scene.angles)
-
-        return trimesh.viewer.SceneViewer(
-            scene=scene, callback=callback, resolution=resolution, **kwargs
+    def show(scene, caption=None):
+        return objslampp.vis.trimesh.show_with_rotation(
+            scene=scene,
+            caption=caption,
+            resolution=(400, 400),
+            start_loop=False,
         )
 
     pred_pose = trimesh.transformations.quaternion_matrix(quaternion)
@@ -138,7 +130,7 @@ for index in args.index:
     scene = trimesh.Scene()
     scene.add_geometry(geom)
     scene.add_geometry(bbox)
-    show(scene, caption='scan', start_loop=False)
+    show(scene, caption='scan')
 
     cad_true = trimesh.load(str(model_file['textured_simple']))
     cad_true.visual = cad_true.visual.to_color()
@@ -147,14 +139,14 @@ for index in args.index:
     cad_true.apply_transform(data['gt_pose'])
     scene_true = scene.copy()
     scene_true.add_geometry(cad_true)
-    show(scene_true, caption='true', start_loop=False)
+    show(scene_true, caption='true')
 
     scene_pred = scene.copy()
     cad_pred = trimesh.load(str(model_file['textured_simple']))
     cad_pred.visual = cad_pred.visual.to_color()
     cad_pred.apply_transform(pred_pose)
     scene_pred.add_geometry(cad_pred)
-    show(scene_pred, caption='pred', start_loop=False)
+    show(scene_pred, caption='pred')
 
     scene = trimesh.Scene()
     cad_true.visual.face_colors = (0, 1.0, 0, 0.5)
@@ -164,7 +156,7 @@ for index in args.index:
     axis = trimesh.creation.axis(origin_size=0.02)
     axis.apply_transform(data['gt_pose'])
     scene.add_geometry(axis)
-    show(scene, caption=f'true & pred {loss:.3g}', start_loop=False)
+    show(scene, caption=f'true & pred {loss:.3g}')
 
     import pyglet
     pyglet.app.run()
