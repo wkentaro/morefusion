@@ -17,23 +17,21 @@ class TestVoxelization3D(unittest.TestCase):
     def setUp(self):
         numpy.random.seed(0)
 
-        dataset = objslampp.datasets.YCBVideoMultiViewAlignmentDataset(
-            split='train'
-        )
-        data = dataset[0]
+        voxel_dim = 32
+        self.dimensions = (voxel_dim, voxel_dim, voxel_dim)
+        self.channels = 4
 
-        self.origin = data['scan_origin']
-        self.pitch = data['pitch']
+        self.origin = numpy.array([-1, -1, -1], dtype=numpy.float32)
+        self.pitch = numpy.float32(2. / voxel_dim)
 
-        mask = data['scan_masks'][0]
-        pcd = data['scan_pcds'][0]
-        rgb = data['scan_rgbs'][0]
-        isnan = numpy.isnan(pcd).any(axis=2)
-        self.points = pcd[(~isnan) & mask].astype(numpy.float32)
-        self.values = rgb[(~isnan) & mask].astype(numpy.float32) / 255
+        n_points = 128
+        self.points = numpy.random.uniform(
+            -1, 1, (n_points, 3)
+        ).astype(numpy.float32)
+        self.values = numpy.random.uniform(
+            -1, 1, (n_points, self.channels)
+        ).astype(numpy.float32)
 
-        self.dimensions = (32, 32, 32)
-        self.channels = 3
         shape = self.dimensions + (self.channels,)
         self.gy = numpy.random.uniform(-1, 1, shape).astype(numpy.float32)
         self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
