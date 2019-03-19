@@ -7,6 +7,7 @@ from chainercv.links.model.vgg import VGG16
 import imgviz
 import numpy as np
 
+from ..logger import logger
 from .. import geometry
 from .. import functions
 from .. import training
@@ -153,11 +154,11 @@ class MultiViewAlignmentModel(chainer.Chain):
             assert isinstance(self.extractor, VGG16)
             h, = self.extractor(rgbs)
         if chainer.is_debug():
-            print(f'h_extractor: {h.shape}')
+            logger.info(f'h_extractor: {h.shape}')
 
         h = F.relu(self.conv5(h))
         if chainer.is_debug():
-            print(f'h_conv5: {h.shape}')
+            logger.info(f'h_conv5: {h.shape}')
 
         isnans = self.xp.isnan(pcds).any(axis=3)
         pcds[isnans] = 0
@@ -242,14 +243,14 @@ class MultiViewAlignmentModel(chainer.Chain):
             )
             h_i = h_i.transpose(3, 0, 1, 2)  # XYZC -> CXYZ
             if chainer.is_debug():
-                print(f'h_i, i={i}: {h_i.shape}')
+                logger.info(f'h_i, i={i}: {h_i.shape}')
             h_vox.append(h_i[None])
         h = F.concat(h_vox, axis=0)
         if chainer.is_debug():
-            print(f'h_vox: {h.shape}')
+            logger.info(f'h_vox: {h.shape}')
         h = F.max(h, axis=0)[None]
         if chainer.is_debug():
-            print(f'h_vox_fused: {h.shape}')  # NOQA
+            logger.info(f'h_vox_fused: {h.shape}')  # NOQA
 
         if self.trigger_write():
             self._writer.add_image(
@@ -270,27 +271,27 @@ class MultiViewAlignmentModel(chainer.Chain):
         # 3DCNN
         h = F.relu(self.conv6(h))
         if chainer.is_debug():
-            print(f'h_conv6: {h.shape}')
+            logger.info(f'h_conv6: {h.shape}')
         h = F.relu(self.conv7(h))
         if chainer.is_debug():
-            print(f'h_conv7: {h.shape}')
+            logger.info(f'h_conv7: {h.shape}')
         return h
 
     def predict_from_code(self, h_cad, h_scan):
         h = F.concat([h_cad, h_scan], axis=1)
         if chainer.is_debug():
-            print(f'h_concat: {h.shape}')
+            logger.info(f'h_concat: {h.shape}')
 
         h = F.relu(self.fc8(h))
         if chainer.is_debug():
-            print(f'h_fc8: {h.shape}')
+            logger.info(f'h_fc8: {h.shape}')
 
         quaternion = F.normalize(self.fc_quaternion(h))  # [-1, 1]
         if chainer.is_debug():
-            print(f'quaternion: {quaternion}')
+            logger.info(f'quaternion: {quaternion}')
         translation = F.cos(self.fc_translation(h))      # [-1, 1]
         if chainer.is_debug():
-            print(f'translation: {translation}')
+            logger.info(f'translation: {translation}')
         return quaternion, translation
 
     def predict(
@@ -370,23 +371,27 @@ class MultiViewAlignmentModel(chainer.Chain):
 
         if chainer.is_debug():
             print('==> Arguments for MultiViewAlignmentModel.__call__')
-            print(f'valid: {type(valid)}, {valid}')
-            print(f'video_id: {type(video_id)}, {video_id}')
-            print(f'class_id: {type(class_id)}, {class_id}')
-            print(f'pitch: {type(pitch)}, {pitch}')
-            print(f'cad_origin: {type(cad_origin)}, {cad_origin}')
-            print(f'cad_rgbs: {type(cad_rgbs)}, {cad_rgbs.shape}')
-            print(f'cad_pcds: {type(cad_pcds)}, {cad_pcds.shape}')
-            print(f'scan_origin: {type(scan_origin)}, {scan_origin.shape}')
-            print(f'scan_rgbs: {type(scan_rgbs)}, {scan_rgbs.shape}')
-            print(f'scan_pcds: {type(scan_pcds)}, {scan_pcds.shape}')
-            print(f'scan_masks: {type(scan_masks)}, {scan_masks.shape}')
+            logger.info(f'valid: {type(valid)}, {valid}')
+            logger.info(f'video_id: {type(video_id)}, {video_id}')
+            logger.info(f'class_id: {type(class_id)}, {class_id}')
+            logger.info(f'pitch: {type(pitch)}, {pitch}')
+            logger.info(f'cad_origin: {type(cad_origin)}, {cad_origin}')
+            logger.info(f'cad_rgbs: {type(cad_rgbs)}, {cad_rgbs.shape}')
+            logger.info(f'cad_pcds: {type(cad_pcds)}, {cad_pcds.shape}')
+            logger.info(
+                f'scan_origin: {type(scan_origin)}, {scan_origin.shape}'
+            )
+            logger.info(f'scan_rgbs: {type(scan_rgbs)}, {scan_rgbs.shape}')
+            logger.info(f'scan_pcds: {type(scan_pcds)}, {scan_pcds.shape}')
+            logger.info(f'scan_masks: {type(scan_masks)}, {scan_masks.shape}')
             if gt_pose is not None:
-                print(f'gt_pose: {type(gt_pose)}, {gt_pose}')
+                logger.info(f'gt_pose: {type(gt_pose)}, {gt_pose.shape}')
             if gt_quaternion is not None:
-                print(f'gt_quaternion: {type(gt_quaternion)}, {gt_quaternion}')
+                logger.info(
+                    f'gt_quaternion: {type(gt_quaternion)}, {gt_quaternion}'
+                )
             if gt_translation is not None:
-                print(
+                logger.info(
                     f'gt_translation: {type(gt_translation)}, {gt_translation}'
                 )
 
@@ -435,8 +440,10 @@ class MultiViewAlignmentModel(chainer.Chain):
         loss_quaternion = F.mean_absolute_error(quaternion, gt_quaternion)
         loss_translation = F.mean_absolute_error(translation, gt_translation)
         if chainer.is_debug():
-            print(f'gt_quaternion: {gt_quaternion}, quaternion: {quaternion}')
-            print(
+            logger.info(
+                f'gt_quaternion: {gt_quaternion}, quaternion: {quaternion}'
+            )
+            logger.info(
                 f'gt_translation: {gt_translation}, translation: {translation}'
             )
         loss = (
@@ -444,9 +451,9 @@ class MultiViewAlignmentModel(chainer.Chain):
             (self._lambda_translation * loss_translation)
         )
         if chainer.is_debug():
-            print(f'loss_quaternion: {loss_quaternion}')
-            print(f'loss_translation: {loss_translation}')
-            print(f'loss: {loss}')
+            logger.info(f'loss_quaternion: {loss_quaternion}')
+            logger.info(f'loss_translation: {loss_translation}')
+            logger.info(f'loss: {loss}')
 
         values = {
             'loss_quaternion': loss_quaternion,
