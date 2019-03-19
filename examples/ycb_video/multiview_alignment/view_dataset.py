@@ -12,13 +12,14 @@ import objslampp
 
 class MainApp(object):
 
-    def __init__(self, seed=0, split='train', class_ids=(2,)):
+    def __init__(self, seed=0, split='train', class_ids=(2,), voxel_dim=32):
         np.random.seed(seed)
 
         self._dataset = \
             objslampp.datasets.YCBVideoMultiViewAlignmentDataset(
                 split=split, class_ids=class_ids
             )
+        self._dataset.voxel_dim = voxel_dim
 
     def _get_data(self, index):
         data = self._dataset[index]
