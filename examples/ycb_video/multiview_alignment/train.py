@@ -62,17 +62,20 @@ def main():
     parser.add_argument(
         '--lambda-translation',
         type=float,
-        default=1.0,
+        default=0.0,
         help='loss scale for translation',
     )
     parser.add_argument(
         '--num-frames-scan',
         type=int,
-        default=10,
+        default=1,
         help='number of images from scan',
     )
     parser.add_argument(
-        '--freeze-extractor', choices=['all'], help='freezing at'
+        '--freeze-extractor',
+        choices=['layer12', 'all'],
+        default='all',
+        help='freezing at',
     )
     parser.add_argument(
         '--weight-decay', type=float, default=1e-4, help='weight decay'
@@ -142,7 +145,7 @@ def main():
             for link in model.extractor.links():
                 link.disable_update()
         else:
-            assert args.freeze_extractor is None
+            assert args.freeze_extractor == 'layer12'
             model.extractor.conv1.disable_update()
             model.extractor.res2.disable_update()
             for link in model.extractor.links():
@@ -154,7 +157,7 @@ def main():
             for link in model.extractor.links():
                 link.disable_update()
         else:
-            assert args.freeze_extractor is None
+            assert args.freeze_extractor == 'layer12'
             model.extractor.conv1_1.disable_update()
             model.extractor.conv1_2.disable_update()
             model.extractor.conv2_1.disable_update()
