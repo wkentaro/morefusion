@@ -136,9 +136,12 @@ class MainApp(object):
             data = self._get_data(index=index)
 
         cad_mapping = objslampp.geometry.VoxelMapping(
-            origin=np.array((-16 * data['pitch'],) * 3, dtype=float),
+            origin=np.array(
+                (- self._dataset.voxel_dim // 2 * data['pitch'],) * 3,
+                dtype=float
+            ),
             pitch=data['pitch'],
-            voxel_size=32,
+            voxel_size=self._dataset.voxel_dim,
             nchannel=3,
         )
         for rgb, pcd in zip(data['cad_rgbs'], data['cad_pcds']):
@@ -163,7 +166,7 @@ class MainApp(object):
         scan_mapping = objslampp.geometry.VoxelMapping(
             origin=data['scan_origin'],
             pitch=data['pitch'],
-            voxel_size=32,
+            voxel_size=self._dataset.voxel_dim,
             nchannel=3,
         )
         for rgb, pcd, mask in zip(
@@ -320,7 +323,9 @@ class MainApp(object):
 
         # ---------------------------------------------------------------------
 
-        translation_delta = data['gt_translation'] * 32 * data['pitch']
+        translation_delta = (
+            data['gt_translation'] * self._dataset.voxel_dim * data['pitch']
+        )
 
         geom_cad_concat_transformed = geom_cad_concat_rotated.copy()
         geom_cad_concat_transformed.apply_translation(translation_delta)
