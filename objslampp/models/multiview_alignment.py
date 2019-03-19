@@ -242,8 +242,7 @@ class MultiViewAlignmentModel(chainer.Chain):
                 pitch=pitch,
                 dimensions=(self.voxel_dim,) * 3,
                 channels=self.voxel_channels,
-            )
-            h_i = h_i.transpose(3, 0, 1, 2)  # XYZC -> CXYZ
+            )  # CXYZ
             if chainer.is_debug():
                 logger.info(f'h_i, i={i}: {h_i.shape}')
             h_vox.append(h_i[None])

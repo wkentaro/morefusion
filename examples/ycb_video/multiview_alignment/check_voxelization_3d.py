@@ -40,6 +40,7 @@ def check_voxelization_3d(gpu, **kwargs):
         dimensions=(32, 32, 32),
         channels=3,
     )
+    y = y.transpose(1, 2, 3, 0)
 
     matrix_values = cuda.to_cpu(y.array)
     matrix_filled = (matrix_values != 0).any(axis=3)
