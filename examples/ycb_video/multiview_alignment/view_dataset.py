@@ -69,10 +69,12 @@ class MainApp(object):
         ):
             mask = mask.astype(np.uint8) * 255
             pcd_z_viz = depth2rgb_z(pcd[:, :, 2])
-            viz = imgviz.tile([rgb, pcd_z_viz, mask])
+            viz = imgviz.tile(
+                [rgb, pcd_z_viz, mask], (1, 3), border=(255, 255, 255)
+            )
             vizs.append(viz)
         vizs = imgviz.tile(vizs, (5, 2), border=(255, 255, 255))
-        vizs = imgviz.resize(vizs, width=1500)
+        vizs = imgviz.resize(vizs, height=1000)
         imgviz.io.pyglet_imshow(vizs, 'scan views')
         pyglet.app.run()
 
