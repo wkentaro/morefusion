@@ -271,7 +271,9 @@ def render_views(visual_file, eyes, targets, height=256, width=256, gui=False):
 
     pybullet.disconnect()
 
-    K = trimesh.scene.Camera(resolution=(256, 256), fov=(60, 60)).K
+    fovx = 60
+    fovy = 1. * fovx * height / width
+    K = trimesh.scene.Camera(resolution=(width, height), fov=(fovx, fovy)).K
     Ts_cam2world = np.asarray([
         geometry.look_at(eye, target, up=[0, -1, 0])
         for eye, target in zip(eyes, targets)
