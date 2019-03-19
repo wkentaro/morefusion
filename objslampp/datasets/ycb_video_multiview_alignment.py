@@ -1,5 +1,6 @@
 import pathlib
 
+import imgviz
 import numpy as np
 import trimesh
 import trimesh.transformations as tf
@@ -11,6 +12,7 @@ from .ycb_video_models import YCBVideoModelsDataset
 
 class YCBVideoMultiViewAlignmentDataset(YCBVideoDataset):
 
+    roi_size = 256
     voxel_dim = 32
 
     def __init__(
@@ -140,12 +142,18 @@ class YCBVideoMultiViewAlignmentDataset(YCBVideoDataset):
         if class_id in self._cache_cad_data:
             return self._cache_cad_data[class_id]
 
+        pitch = self._get_pitch(class_id)
+        origin = np.array(
+            (- self.voxel_dim // 2 * pitch,) * 3, dtype=np.float32
+        )
+
         models = YCBVideoModelsDataset()
         cad_file = models.get_model(class_id=class_id)['textured_simple']
         K, Ts_cam2world, rgbs, depths, segms = models.get_spherical_views(
             cad_file
         )
 
+        # transform point cloud to world frame
         pcds = []
         for T_cam2world, depth in zip(Ts_cam2world, depths):
             pcd = geometry.pointcloud_from_depth(
@@ -158,10 +166,7 @@ class YCBVideoMultiViewAlignmentDataset(YCBVideoDataset):
             pcds.append(pcd)
         pcds = np.asarray(pcds, dtype=np.float32)
 
-        pitch = self._get_pitch(class_id)
-        origin = np.array(
-            (- self.voxel_dim // 2 * pitch,) * 3, dtype=np.float32
-        )
+        rgbs, pcds, _ = self._to_roi_image(rgbs, pcds, segms == 0)
 
         points_file = models.get_model(class_id=class_id)['points_xyz']
         points = np.loadtxt(points_file).astype(np.float32)
@@ -194,6 +199,41 @@ class YCBVideoMultiViewAlignmentDataset(YCBVideoDataset):
         self._cache_pitch[class_id] = pitch
         return pitch
 
+    def _to_roi_image(self, rgbs, pcds, masks):
+        assert rgbs.shape[:3] == pcds.shape[:3] == masks.shape[:3]
+
+        bboxes = geometry.masks_to_bboxes(masks).round().astype(int)
+
+        N = len(bboxes)
+        roi_size = self.roi_size
+        rgbs_roi = np.zeros((N, roi_size, roi_size, 3), dtype=rgbs.dtype)
+        pcds_roi = np.zeros((N, roi_size, roi_size, 3), dtype=pcds.dtype)
+        masks_roi = np.zeros((N, roi_size, roi_size), dtype=masks.dtype)
+
+        for i in range(len(bboxes)):
+            y1, x1, y2, x2 = bboxes[i]
+            rgb = rgbs[i]
+            pcd = pcds[i]
+            mask = masks[i]
+
+            rgb = rgb[y1:y2, x1:x2]
+            pcd = pcd[y1:y2, x1:x2]
+            mask = mask[y1:y2, x1:x2]
+
+            rgb = imgviz.centerize(rgb, shape=(roi_size, roi_size), cval=255)
+            pcd = imgviz.centerize(
+                pcd, shape=(roi_size, roi_size), cval=np.nan
+            )
+            mask = mask.astype(np.float32)
+            mask = imgviz.centerize(mask, shape=(roi_size, roi_size), cval=0)
+            mask = mask > 0.5
+
+            rgbs_roi[i] = rgb
+            pcds_roi[i] = pcd
+            masks_roi[i] = mask
+
+        return rgbs_roi, pcds_roi, masks_roi
+
     def _get_scan_data(self, image_id, class_id, random_state=None):
         if random_state is None:
             random_state = np.random.RandomState()
@@ -224,7 +264,7 @@ class YCBVideoMultiViewAlignmentDataset(YCBVideoDataset):
         aabb_min, aabb_max = geometry.get_aabb_from_points(pcd_ins)
         aabb_extents = aabb_max - aabb_min
         aabb_center = aabb_extents / 2 + aabb_min
-        mapping = geometry.VoxelMapping(pitch=pitch, voxel_size=32)
+        mapping = geometry.VoxelMapping(pitch=pitch, voxel_size=self.voxel_dim)
         origin = aabb_center - mapping.voxel_bbox_extents / 2
         origin = origin.astype(np.float32)
 
@@ -244,6 +284,7 @@ class YCBVideoMultiViewAlignmentDataset(YCBVideoDataset):
             frame_ids = [frame_ids[i] for i in sorted(indices)]
         frame_ids += [frame_id]
 
+        # transform point cloud to camera0 frame
         rgbs = []
         pcds = []
         labels = []
@@ -272,6 +313,8 @@ class YCBVideoMultiViewAlignmentDataset(YCBVideoDataset):
         rgbs = np.asarray(rgbs)
         pcds = np.asarray(pcds, dtype=np.float32)
         masks = np.asarray(labels) == class_id
+
+        rgbs, pcds, masks = self._to_roi_image(rgbs, pcds, masks)
 
         assert isinstance(origin, np.ndarray)
         assert origin.dtype == np.float32
