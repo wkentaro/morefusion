@@ -15,8 +15,6 @@ import objslampp
 class TestVoxelization3D(unittest.TestCase):
 
     def setUp(self):
-        numpy.random.seed(0)
-
         voxel_dim = 32
         self.dimensions = (voxel_dim, voxel_dim, voxel_dim)
         self.channels = 4
