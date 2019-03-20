@@ -3,6 +3,7 @@
 from . import datasets
 from . import geometry
 from . import functions
+from . import metrics
 from . import models
 from . import sim
 from . import training
