@@ -9,5 +9,3 @@ from . import sim
 from . import training
 from . import utils
 from . import vis
-
-from .logger import logger
