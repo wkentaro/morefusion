@@ -5,7 +5,6 @@ import datetime
 import pathlib
 import pprint
 import random
-import os.path as osp
 import socket
 import textwrap
 
@@ -201,7 +200,7 @@ def main():
     eval_interval = 0.3, 'epoch'
 
     # evaluate
-    evaluator = chainer.training.extensions.Evaluator(
+    evaluator = objslampp.training.extensions.PoseEstimationEvaluator(
         iterator=iter_valid,
         target=model,
         # converter=my_converter,
@@ -233,35 +232,6 @@ def main():
         chainer.training.extensions.observe_lr(),
         trigger=log_interval,
     )
-
-    def average_child_observations(parent_keys):
-        @chainer.training.make_extension(
-            trigger=(1, 'iteration'),
-            priority=chainer.training.extension.PRIORITY_WRITER,
-        )
-        def _average_child_observations(trainer):
-            observation = trainer.observation
-            summary = chainer.DictSummary()
-            for parent in parent_keys:
-                if parent in observation:
-                    continue
-                for name, value in observation.items():
-                    if osp.dirname(name) == parent:
-                        summary.add({parent: value})
-            observation.update(summary.compute_mean())
-        return _average_child_observations
-
-    trainer.extend(
-        average_child_observations(
-            parent_keys=[
-                'validation/main/loss_quaternion',
-                'validation/main/loss_translation',
-                'validation/main/loss',
-            ],
-        ),
-        call_before_training=True,
-    )
-
     trainer.extend(
         objslampp.training.extensions.LogTensorboardReport(
             writer=writer,

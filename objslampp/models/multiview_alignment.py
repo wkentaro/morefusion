@@ -6,10 +6,12 @@ from chainercv.links.model.resnet import ResNet50
 from chainercv.links.model.vgg import VGG16
 import imgviz
 import numpy as np
+import trimesh.transformations as tf
 
 from ..logger import logger
 from .. import geometry
 from .. import functions
+from .. import metrics
 from .. import training
 
 
@@ -366,6 +368,7 @@ class MultiViewAlignmentModel(chainer.Chain):
         gt_pose,
         gt_quaternion,
         gt_translation,
+        cad_points=None,  # for evaluation
     ):
         xp = self.xp
 
@@ -414,6 +417,20 @@ class MultiViewAlignmentModel(chainer.Chain):
             scan_pcds=scan_pcds,
             scan_masks=scan_masks,
         )
+
+        if not chainer.config.train and cad_points is not None:
+            self.evaluate(
+                class_id=class_id,
+                pitch=pitch,
+                scan_origin=scan_origin,
+                cad_origin=cad_origin,
+                cad_points=cad_points,
+                quaternion=quaternion,
+                translation=translation,
+                gt_quaternion=gt_quaternion,
+                gt_translation=gt_translation,
+            )
+
         return self.loss(
             quaternion=quaternion,
             translation=translation,
@@ -421,6 +438,56 @@ class MultiViewAlignmentModel(chainer.Chain):
             gt_translation=gt_translation,
             video_id=video_id,
         )
+
+    def evaluate(
+        self,
+        *,
+        class_id,
+        pitch,
+        scan_origin,
+        cad_origin,
+        cad_points,
+        quaternion,
+        translation,
+        gt_quaternion,
+        gt_translation,
+    ):
+        batch_size = quaternion.shape[0]
+        assert batch_size == 1
+
+        class_id = int(class_id[0])
+        pitch = float(pitch[0])
+        scan_origin = cuda.to_cpu(scan_origin[0])
+        cad_origin = cuda.to_cpu(cad_origin[0])
+        cad_points = cuda.to_cpu(cad_points[0])
+        quaternion = cuda.to_cpu(quaternion.array[0])
+        translation = cuda.to_cpu(translation.array[0])
+        gt_quaternion = cuda.to_cpu(gt_quaternion[0])
+        gt_translation = cuda.to_cpu(gt_translation[0])
+
+        transform_pred = tf.quaternion_matrix(quaternion)
+        transform_true = tf.quaternion_matrix(gt_quaternion)
+        add_rotation = metrics.average_distance(
+            [cad_points], [transform_true], [transform_pred]
+        )[0]
+
+        transform_pred[:3, 3] = (
+            (scan_origin - cad_origin) +
+            translation * self.voxel_dim * pitch
+        )
+        transform_true[:3, 3] = (
+            (scan_origin - cad_origin) +
+            gt_translation * self.voxel_dim * pitch
+        )
+        add = metrics.average_distance(
+            [cad_points], [transform_true], [transform_pred]
+        )[0]
+
+        values = {
+            f'add_rotation/{class_id:04d}': add_rotation,
+            f'add/{class_id:04d}': add,
+        }
+        chainer.report(values, observer=self)
 
     def loss(
         self,

@@ -88,11 +88,14 @@ class YCBVideoMultiViewAlignmentDataset(YCBVideoDataset):
             gt_pose = np.zeros((), dtype=np.float32)
 
         if valid:
-            cad_origin, cad_rgbs, cad_pcds = self._get_cad_data(class_id)
+            cad_origin, cad_rgbs, cad_pcds, cad_points = self._get_cad_data(
+                class_id
+            )
         else:
             cad_origin = np.zeros((), dtype=np.float32)
             cad_rgbs = np.zeros((), dtype=np.float32)
             cad_pcds = np.zeros((), dtype=np.float32)
+            cad_points = np.zeros((), dtype=np.float32)
 
         if valid:
             gt_quaternion = tf.quaternion_from_matrix(gt_pose)
@@ -121,6 +124,7 @@ class YCBVideoMultiViewAlignmentDataset(YCBVideoDataset):
             cad_origin=cad_origin,
             cad_rgbs=cad_rgbs,
             cad_pcds=cad_pcds,          # cad coordinate
+            cad_points=cad_points,
 
             scan_rgbs=scan_rgbs,
             scan_pcds=scan_pcds,        # world coordinate
@@ -159,15 +163,21 @@ class YCBVideoMultiViewAlignmentDataset(YCBVideoDataset):
             (- self.voxel_dim // 2 * pitch,) * 3, dtype=np.float32
         )
 
+        points_file = models.get_model(class_id=class_id)['points_xyz']
+        points = np.loadtxt(points_file).astype(np.float32)
+
         assert isinstance(origin, np.ndarray)
         assert origin.dtype == np.float32
         assert isinstance(rgbs, np.ndarray)
         assert rgbs.dtype == np.uint8
         assert isinstance(pcds, np.ndarray)
         assert pcds.dtype == np.float32
+        assert isinstance(points, np.ndarray)
+        assert points.dtype == np.float32
+        assert points.shape == (points.shape[0], 3)
 
-        self._cache_cad_data[class_id] = (origin, rgbs, pcds)
-        return origin, rgbs, pcds
+        self._cache_cad_data[class_id] = (origin, rgbs, pcds, points)
+        return origin, rgbs, pcds, points
 
     def _get_pitch(self, class_id):
         if class_id in self._cache_pitch:
