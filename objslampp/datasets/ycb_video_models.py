@@ -55,6 +55,8 @@ class YCBVideoModelsDataset(object):
         return {
             'textured_simple':
                 self.root_dir / class_name / 'textured_simple.obj',
+            'points_xyz':
+                self.root_dir / class_name / 'points.xyz',
         }
 
     @staticmethod
