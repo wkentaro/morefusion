@@ -6,6 +6,8 @@ import pathlib
 import pprint
 
 import chainer
+import matplotlib.pyplot as plt
+import pandas
 import trimesh
 
 import objslampp
@@ -54,6 +56,7 @@ dataset = objslampp.datasets.YCBVideoMultiViewAlignmentDataset(
 if not args.index:
     args.index = range(len(dataset))
 
+observations = []
 for index in args.index:
     examples = dataset[index:index + 1]
     inputs = chainer.dataset.concat_examples(examples, device=args.gpu)
@@ -62,6 +65,7 @@ for index in args.index:
     video_id = int(inputs.pop('video_id')[0])
     gt_quaternion = inputs.pop('gt_quaternion')
     gt_translation = inputs.pop('gt_translation')
+    cad_points = inputs.pop('cad_points')
     with chainer.no_backprop_mode() and chainer.using_config('train', False):
         quaternion, translation = model.predict(**inputs)
         with chainer.using_config('debug', False):
@@ -73,6 +77,25 @@ for index in args.index:
             )
             loss = float(loss.array)
             print(f'[{video_id:04d}] [{index:08d}] {loss}')
+
+            reporter = chainer.Reporter()
+            reporter.add_observer('main', model)
+            observation = {}
+            with reporter.scope(observation):
+                model.evaluate(
+                    class_id=inputs['class_id'],
+                    pitch=inputs['pitch'],
+                    scan_origin=inputs['scan_origin'],
+                    cad_origin=inputs['cad_origin'],
+                    cad_points=cad_points,
+                    quaternion=quaternion,
+                    translation=translation,
+                    gt_quaternion=gt_quaternion,
+                    gt_translation=gt_translation,
+                )
+
+            print(observation)
+            observations.append(observation)
 
             # visualize
             '''
@@ -167,3 +190,31 @@ for index in args.index:
         data['gt_translation'] = translation
         app = MainApp()
         app.alignment(data=data)
+
+
+df = pandas.DataFrame(observations)
+
+errors = df['main/add_rotation/0002'].values
+auc, x, y = objslampp.metrics.auc_for_errors(errors, 0.1, return_xy=True)
+print('auc (add_rotation):', auc)
+plt.subplot(121)
+plt.title('ADD (rotation) (AUC={:.1f})'.format(auc * 100))
+plt.plot(x, y)
+plt.xlim(0, 0.1)
+plt.ylim(0, 1)
+plt.xlabel('average distance threshold [m]')
+plt.ylabel('accuracy')
+
+plt.subplot(122)
+errors = df['main/add/0002'].values
+auc, x, y = objslampp.metrics.auc_for_errors(errors, 0.1, return_xy=True)
+print('auc (add):', auc)
+plt.title('ADD (rotation + translation) (AUC={:.1f})'.format(auc * 100))
+plt.plot(x, y)
+plt.xlim(0, 0.1)
+plt.ylim(0, 1)
+plt.xlabel('average distance threshold [m]')
+plt.ylabel('accuracy')
+
+plt.tight_layout()
+plt.show()
