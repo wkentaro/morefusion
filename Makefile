@@ -9,11 +9,11 @@ install_anaconda3:
 install: install_anaconda3
 	@.make/install.sh
 
-lint: install_anaconda3
+lint:
 	@.make/lint.sh
 
-test: install
+test:
 	@.make/test.sh
 
-test_cpu: install
-	@.make/test.sh GPU=0
+test_ci:
+	@.make/test.sh 1
