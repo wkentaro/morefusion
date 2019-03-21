@@ -80,6 +80,12 @@ def main():
     parser.add_argument(
         '--weight-decay', type=float, default=1e-4, help='weight decay'
     )
+    parser.add_argument(
+        '--loss',
+        default='l1',
+        choices=['l1', 'add', 'add_rotation'],
+        help='loss function',
+    )
     args = parser.parse_args()
 
     chainer.global_config.debug = args.debug
@@ -128,6 +134,7 @@ def main():
         lambda_quaternion=args.lambda_quaternion,
         lambda_translation=args.lambda_translation,
         writer=writer_with_updater,
+        loss_function=args.loss,
     )
     if args.gpu >= 0:
         model.to_gpu()

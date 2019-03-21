@@ -20,11 +20,13 @@ class MultiViewAlignmentModel(chainer.Chain):
 
     def __init__(
         self,
+        *,
         extractor,
         lambda_quaternion=1.0,
         lambda_translation=1.0,
         writer=None,
         write_interval=100,
+        loss_function='l1',
     ):
         super(MultiViewAlignmentModel, self).__init__()
 
@@ -36,6 +38,9 @@ class MultiViewAlignmentModel(chainer.Chain):
             write_interval = 0
         self._writer = writer
         self._write_interval = write_interval
+
+        assert loss_function in ['l1', 'add', 'add_rotation']
+        self._loss_function = loss_function
 
         initialW = chainer.initializers.Normal(0.01)
         with self.init_scope():
@@ -434,6 +439,10 @@ class MultiViewAlignmentModel(chainer.Chain):
             gt_quaternion=gt_quaternion,
             gt_translation=gt_translation,
             video_id=video_id,
+            cad_points=cad_points,
+            pitch=pitch,
+            cad_origin=cad_origin,
+            scan_origin=scan_origin,
         )
 
     def evaluate(
@@ -492,7 +501,12 @@ class MultiViewAlignmentModel(chainer.Chain):
         translation,
         gt_quaternion,
         gt_translation,
-        video_id=None
+        *,
+        video_id=None,
+        cad_points=None,
+        pitch=None,
+        cad_origin=None,
+        scan_origin=None,
     ):
         batch_size = quaternion.shape[0]
         assert batch_size == 1
@@ -501,8 +515,45 @@ class MultiViewAlignmentModel(chainer.Chain):
 
         if chainer.is_debug():
             print('==> Computing Loss')
-        loss_quaternion = F.mean_absolute_error(quaternion, gt_quaternion)
-        loss_translation = F.mean_absolute_error(translation, gt_translation)
+        if self._loss_function == 'l1':
+            loss_quaternion = F.mean_absolute_error(
+                quaternion, gt_quaternion
+            )
+            loss_translation = F.mean_absolute_error(
+                translation, gt_translation
+            )
+            loss = (
+                (self._lambda_quaternion * loss_quaternion) +
+                (self._lambda_translation * loss_translation)
+            )
+        else:
+            if self._loss_function == 'add':
+                translation_true = (
+                    (scan_origin - cad_origin) +
+                    (gt_translation * self.voxel_dim * pitch)
+                )[0]
+                translation_pred = (
+                    (scan_origin - cad_origin) +
+                    (translation * self.voxel_dim * pitch)
+                )[0]
+            else:
+                assert self._loss_function == 'add_rotation'
+                translation_true = self.xp.zeros((3,), dtype=np.float32)
+                translation_pred = self.xp.zeros((3,), dtype=np.float32)
+
+            transform_true = functions.quaternion_matrix(gt_quaternion[0])
+            transform_pred = functions.quaternion_matrix(quaternion[0])
+
+            assert cad_points is not None
+            loss = functions.average_distance(
+                points=cad_points[0],
+                transform1=transform_true,
+                transform2=transform_pred,
+                translation1=translation_true,
+                translation2=translation_pred
+            )
+            loss_quaternion = 0
+            loss_translation = 0
         if chainer.is_debug():
             logger.info(
                 f'gt_quaternion: {gt_quaternion}, quaternion: {quaternion}'
@@ -510,11 +561,6 @@ class MultiViewAlignmentModel(chainer.Chain):
             logger.info(
                 f'gt_translation: {gt_translation}, translation: {translation}'
             )
-        loss = (
-            (self._lambda_quaternion * loss_quaternion) +
-            (self._lambda_translation * loss_translation)
-        )
-        if chainer.is_debug():
             logger.info(f'loss_quaternion: {loss_quaternion}')
             logger.info(f'loss_translation: {loss_translation}')
             logger.info(f'loss: {loss}')

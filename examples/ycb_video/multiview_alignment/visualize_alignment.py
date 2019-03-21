@@ -36,6 +36,7 @@ model = objslampp.models.MultiViewAlignmentModel(
     extractor=args_data['extractor'],
     lambda_translation=args_data['lambda_translation'],
     lambda_quaternion=args_data['lambda_quaternion'],
+    loss_function=args_data.get('loss', 'l1'),
 )
 if args.gpu >= 0:
     model.to_gpu()
@@ -73,6 +74,10 @@ for index in args.index:
                 translation=translation,
                 gt_quaternion=gt_quaternion,
                 gt_translation=gt_translation,
+                cad_points=cad_points,
+                pitch=inputs['pitch'],
+                cad_origin=inputs['cad_origin'],
+                scan_origin=inputs['scan_origin'],
             )
             loss = float(loss.array)
             print(f'[{video_id:04d}] [{index:08d}] {loss}')
