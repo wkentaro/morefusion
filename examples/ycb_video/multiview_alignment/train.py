@@ -111,7 +111,6 @@ def main():
     data_valid = objslampp.datasets.YCBVideoMultiViewAlignmentDataset(
         'val',
         class_ids=args.class_ids,
-        sampling=60,
         num_frames_scan=args.num_frames_scan,
     )
 
