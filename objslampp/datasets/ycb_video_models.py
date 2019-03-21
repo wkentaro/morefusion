@@ -2,7 +2,6 @@ import pathlib
 import shutil
 import typing
 
-import chainer
 import gdown
 import numpy as np
 import trimesh
@@ -12,7 +11,7 @@ from .. import sim
 from .ycb_video import class_names
 
 
-class YCBVideoModelsDataset(chainer.dataset.DatasetMixin):
+class YCBVideoModelsDataset(object):
 
     root_dir = pathlib.Path.home() / 'data/datasets/YCB/YCB_Video_Models'
 
@@ -21,9 +20,9 @@ class YCBVideoModelsDataset(chainer.dataset.DatasetMixin):
         url: str = 'https://drive.google.com/uc?id=1gmcDD-5bkJfcMKLZb3zGgH_HUFbulQWu'  # NOQA
         md5: str = 'd3efe74e77fe7d7ca216dde4b7d217fa'
 
-        def postprocess(path: pathlib.Path):
+        def postprocess(path: str):
             gdown.extractall(path)
-            path_extracted: pathlib.Path = path.parent / 'models'
+            path_extracted: pathlib.Path = pathlib.Path(path).parent / 'models'
             shutil.move(
                 str(path_extracted),
                 str(cls.root_dir),
