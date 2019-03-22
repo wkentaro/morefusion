@@ -1,6 +1,6 @@
 import numpy as np
 
-from .get_points_from_angles import get_points_from_angles
+from .points_from_angles import points_from_angles
 
 
 def uniform_points_on_sphere(angle_sampling, radius=1):
@@ -24,5 +24,5 @@ def uniform_points_on_sphere(angle_sampling, radius=1):
 
     n_points = len(elevation)
     distance = np.full((n_points,), radius, dtype=float)
-    points = get_points_from_angles(distance, elevation, azimuth)
+    points = points_from_angles(distance, elevation, azimuth)
     return points
