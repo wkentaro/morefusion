@@ -6,7 +6,7 @@ from .get_aabb_from_points import get_aabb_from_points
 
 from .get_points_from_angles import get_points_from_angles
 
-from .get_uniform_points_on_sphere import get_uniform_points_on_sphere
+from .uniform_points_on_sphere import uniform_points_on_sphere
 
 from .look_at import look_at
 

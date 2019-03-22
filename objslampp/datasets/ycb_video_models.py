@@ -60,9 +60,9 @@ class YCBVideoModelsDataset(object):
         }
 
     @staticmethod
-    def get_spherical_views(visual_file, n_sample=5, radius=0.3):
-        eyes = geometry.get_uniform_points_on_sphere(
-            n_sample=n_sample, radius=radius
+    def get_spherical_views(visual_file, angle_sampling=5, radius=0.3):
+        eyes = geometry.uniform_points_on_sphere(
+            angle_sampling=angle_sampling, radius=radius
         )
         targets = np.tile([[0, 0, 0]], (len(eyes), 1))
 

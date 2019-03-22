@@ -15,8 +15,8 @@ from tmp import ResNetFeatureExtractor
 class MainApp(object):
 
     def _get_eyes(self):
-        eyes = objslampp.geometry.get_uniform_points_on_sphere(
-            n_sample=5, radius=0.3
+        eyes = objslampp.geometry.uniform_points_on_sphere(
+            angle_sampling=5, radius=0.3
         )
         return eyes
 
@@ -60,7 +60,7 @@ class MainApp(object):
             rgbs, depths, segms = zip(*views)
         else:
             _, rgbs, depths, segms = models.get_spherical_views(
-                visual_file, n_sample=5, radius=0.3
+                visual_file, angle_sampling=5, radius=0.3
             )
 
         viz = []
@@ -104,7 +104,7 @@ class MainApp(object):
             K = trimesh.scene.Camera(resolution=(256, 256), fov=(60, 60)).K
         else:
             K, Ts_cam2world, rgbs, depths, segms = models.get_spherical_views(
-                visual_file, n_sample=5, radius=0.3
+                visual_file, angle_sampling=5, radius=0.3
             )
 
         # ---------------------------------------------------------------------

@@ -28,10 +28,10 @@ class TestYCBVideoModelsDataset(unittest.TestCase):
     def test_get_spherical_views(self):
         model = self.dataset.get_model(class_id=2)
         visual_file = model['textured_simple']
-        n_sample = 5
+        angle_sampling = 5
         K, Ts_cam2world, rgbs, depths, segms = \
             self.dataset.get_spherical_views(
-                visual_file=visual_file, n_sample=n_sample
+                visual_file=visual_file, angle_sampling=angle_sampling
             )
         n_viewpoints, H, W, _ = rgbs.shape
 
