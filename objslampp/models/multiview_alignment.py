@@ -9,6 +9,7 @@ import numpy as np
 import trimesh.transformations as tf
 
 from ..logger import logger
+from .. import extra
 from .. import geometry
 from .. import functions
 from .. import metrics
@@ -217,13 +218,10 @@ class MultiViewAlignmentModel(chainer.Chain):
             mask = mask[y1:y2, x1:x2]   # HW
             pcd = pcd[y1:y2, x1:x2, :]  # HWC
 
-            h_i = F.resize_images(h_i[None, :, :, :], (128, 128))[0]
-            pcd = pcd.transpose(2, 0, 1)  # HWC -> CHW
-            pcd = F.resize_images(pcd[None, :, :, :], (128, 128))[0]
-            pcd = pcd.transpose(1, 2, 0).array  # CHW -> HWC
-            mask = mask.astype(np.float32)
-            mask = F.resize_images(mask[None, None, :, :], (128, 128))[0, 0]
-            mask = mask.array > 0.5
+            output_shape = (128, 128)
+            h_i = F.resize_images(h_i[None, :, :, :], output_shape)[0]
+            pcd = extra.cupy.resize_image(pcd, output_shape, order='HWC')
+            mask = extra.cupy.resize_image(mask, output_shape, order='HW')
 
             if self.trigger_write():
                 image = imgviz.tile([
