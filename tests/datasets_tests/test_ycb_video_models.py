@@ -22,7 +22,7 @@ class TestYCBVideoModelsDataset(unittest.TestCase):
         class_name = class_names[class_id]
         model = self.dataset.get_model(class_id=class_id)
         assert isinstance(model, dict)
-        assert set(model.keys()) == {'textured_simple'}
+        assert set(model.keys()) == {'textured_simple', 'points_xyz'}
         assert model == self.dataset.get_model(class_name=class_name)
 
     def test_get_spherical_views(self):
@@ -36,7 +36,7 @@ class TestYCBVideoModelsDataset(unittest.TestCase):
         n_viewpoints, H, W, _ = rgbs.shape
 
         assert n_viewpoints == 17
-        assert (H, W) == (256, 256)
+        assert (H, W) == (320, 320)
 
         assert isinstance(K, np.ndarray)
         assert K.shape == (3, 3)

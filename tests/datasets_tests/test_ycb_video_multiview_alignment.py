@@ -34,6 +34,7 @@ class TestYCBVideoMultiViewAlignment(unittest.TestCase):
             'cad_origin',
             'cad_rgbs',
             'cad_pcds',
+            'cad_points',
             'scan_origin',
             'scan_rgbs',
             'scan_pcds',
