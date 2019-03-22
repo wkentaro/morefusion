@@ -86,6 +86,18 @@ def main():
         choices=['l1', 'add', 'add_rotation'],
         help='loss function',
     )
+    parser.add_argument(
+        '--max-epoch',
+        type=int,
+        default=10,
+        help='max epoch',
+    )
+    parser.add_argument(
+        '--sampling',
+        type=int,
+        default=15,
+        help='sampling from dataset',
+    )
     args = parser.parse_args()
 
     chainer.global_config.debug = args.debug
@@ -116,11 +128,13 @@ def main():
         'train',
         class_ids=args.class_ids,
         num_frames_scan=args.num_frames_scan,
+        sampling=args.sampling,
     )
     data_valid = objslampp.datasets.YCBVideoMultiViewAlignmentDataset(
         'val',
         class_ids=args.class_ids,
         num_frames_scan=args.num_frames_scan,
+        sampling=args.sampling,
     )
 
     termcolor.cprint(
@@ -190,7 +204,9 @@ def main():
 
     # -------------------------------------------------------------------------
 
-    trainer = chainer.training.Trainer(updater, (10, 'epoch'), out=args.out)
+    trainer = chainer.training.Trainer(
+        updater, (args.max_epoch, 'epoch'), out=args.out
+    )
 
     # print arguments
     msg = pprint.pformat(args.__dict__)
