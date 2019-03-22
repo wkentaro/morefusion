@@ -135,7 +135,7 @@ def get_trimesh_scene(axis: bool = False, bbox: bool = False) -> trimesh.Scene:
         t = np.array(pos, dtype=float)
         R = pybullet.getMatrixFromQuaternion(ori)
         R = np.array(R, dtype=float).reshape(3, 3)
-        transform = geometry.get_homography_Rt(R=R, t=t)
+        transform = geometry.compose_transform(R=R, t=t)
 
         mesh = trimesh.load_mesh(mesh_file)
         scene.add_geometry(

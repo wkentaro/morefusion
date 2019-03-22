@@ -2,7 +2,7 @@ import typing
 
 import numpy as np
 
-from .get_homography_Rt import get_homography_Rt
+from .compose_transform import compose_transform
 
 
 def normalize(x: np.ndarray) -> np.ndarray:
@@ -62,5 +62,5 @@ def look_at(
     R: np.ndarray = np.vstack((x_axis, y_axis, z_axis))
     t: np.ndarray = eye
 
-    T_cam2world: np.ndarray = get_homography_Rt(R=R.T, t=t)
+    T_cam2world: np.ndarray = compose_transform(R=R.T, t=t)
     return T_cam2world

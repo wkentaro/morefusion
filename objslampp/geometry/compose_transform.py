@@ -3,7 +3,7 @@ import typing
 import numpy as np
 
 
-def get_homography_Rt(
+def compose_transform(
     R: typing.Optional[np.ndarray] = None,
     t: typing.Optional[np.ndarray] = None,
 ) -> np.ndarray:
