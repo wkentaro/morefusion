@@ -47,7 +47,6 @@ print('==> Done model loading')
 dataset = objslampp.datasets.YCBVideoMultiViewAlignmentDataset(
     'val',
     class_ids=args_data['class_ids'],
-    sampling=60,
     num_frames_scan=args_data.get('num_frames_scan'),
 )
 
