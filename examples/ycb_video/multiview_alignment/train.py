@@ -24,7 +24,7 @@ here = pathlib.Path(__file__).resolve().parent
 
 
 def main():
-    now = datetime.datetime.now()
+    now = datetime.datetime.now(datetime.timezone.utc)
     default_out = str(here / 'logs' / now.strftime('%Y%m%d_%H%M%S.%f'))
 
     parser = argparse.ArgumentParser(
