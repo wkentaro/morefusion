@@ -290,12 +290,11 @@ def main():
                 'iteration',
                 'elapsed_time',
                 'lr',
-                'main/loss_quaternion',
-                'main/loss_translation',
                 'main/loss',
-                'validation/main/loss_quaternion',
-                'validation/main/loss_translation',
-                'validation/main/loss',
+                'main/add',
+                'main/add_rotation',
+                'validation/main/auc/add',
+                'validation/main/auc/add_rotation',
             ],
             log_report='LogTensorboardReport',
         ),
@@ -309,11 +308,7 @@ def main():
     trainer.extend(
         chainer.training.extensions.PlotReport(
             [
-                'main/loss_quaternion',
-                'main/loss_translation',
                 'main/loss',
-                'validation/main/loss_quaternion',
-                'validation/main/loss_translation',
                 'validation/main/loss',
             ],
             file_name='loss.png',
