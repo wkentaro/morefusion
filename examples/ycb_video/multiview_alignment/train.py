@@ -247,9 +247,21 @@ def main():
     # )
     trainer.extend(
         chainer.training.extensions.snapshot_object(
-            model, filename='snapshot_model_iter_{.updater.iteration}.npz'
+            model, filename='snapshot_model_best_auc_add.npz'
         ),
-        trigger=eval_interval,
+        trigger=chainer.training.triggers.MaxValueTrigger(
+            key='validation/main/auc/add',
+            trigger=eval_interval,
+        ),
+    )
+    trainer.extend(
+        chainer.training.extensions.snapshot_object(
+            model, filename='snapshot_model_best_auc_add_rotation.npz'
+        ),
+        trigger=chainer.training.triggers.MaxValueTrigger(
+            key='validation/main/auc/add_rotation',
+            trigger=eval_interval,
+        ),
     )
 
     # log
