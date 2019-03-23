@@ -164,6 +164,9 @@ class MultiViewAlignmentModel(chainer.Chain):
         if chainer.is_debug():
             logger.info(f'h_extractor: {h.shape}')
 
+        if all(not l.update_enabled for l in self.extractor.links()):
+            h.unchain_backward()
+
         h = F.relu(self.conv5(h))
         if chainer.is_debug():
             logger.info(f'h_conv5: {h.shape}')
