@@ -18,7 +18,7 @@ import objslampp
 parser = argparse.ArgumentParser(
     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
 )
-parser.add_argument('--model', required=True, help='model file in a log dir')
+parser.add_argument('model', help='model file in a log dir')
 parser.add_argument('--gpu', type=int, default=0, help='gpu id')
 parser.add_argument('--show', action='store_true', help='show visualization')
 parser.add_argument('--index', nargs='+', type=int, help='dataset indices')
