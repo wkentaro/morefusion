@@ -271,7 +271,6 @@ class YCBVideoMultiViewAlignmentDataset(YCBVideoDataset):
         # transformation: cad frame to camera frame
         gt_pose = frame['meta']['poses'][:, :, instance_id]
         gt_pose = np.r_[gt_pose, [[0, 0, 0, 1]]]
-        # transformation: camera frame to world frame
         gt_pose = gt_pose.astype(np.float32)
 
         # ---------------------------------------------------------------------
