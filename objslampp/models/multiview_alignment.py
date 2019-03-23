@@ -420,7 +420,7 @@ class MultiViewAlignmentModel(chainer.Chain):
             scan_masks=scan_masks,
         )
 
-        if not chainer.config.train and cad_points is not None:
+        if cad_points is not None:
             self.evaluate(
                 class_id=class_id,
                 pitch=pitch,
@@ -490,9 +490,12 @@ class MultiViewAlignmentModel(chainer.Chain):
         )[0]
 
         values = {
-            f'add_rotation/{class_id:04d}': add_rotation,
-            f'add/{class_id:04d}': add,
+            f'add_rotation': add_rotation,
+            f'add': add,
         }
+        if not chainer.config.train:
+            for key in list(values.keys()):
+                values[f'{key}/{class_id:04d}'] = values.pop(key)
         chainer.report(values, observer=self)
 
     def loss(

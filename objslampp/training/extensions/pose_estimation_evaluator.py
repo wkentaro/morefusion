@@ -59,8 +59,7 @@ class PoseEstimationEvaluator(chainer.training.extensions.Evaluator):
                     # add/2, add_rotation/2
                     sub_key = key[len('validation/main/'):]
                     adds[sub_key].append(value)
-                else:
-                    observation_processed[key] = value
+                observation_processed[key] = value
 
             summary.add(observation_processed)
 
@@ -82,6 +81,8 @@ class PoseEstimationEvaluator(chainer.training.extensions.Evaluator):
             'validation/main/loss',
             'validation/main/loss_quaternion',
             'validation/main/loss_translation',
+            'validation/main/add',
+            'validation/main/add_rotation',
             'validation/main/auc/add',
             'validation/main/auc/add_rotation',
         ]
