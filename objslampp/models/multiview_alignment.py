@@ -39,7 +39,9 @@ class MultiViewAlignmentModel(chainer.Chain):
         self._writer = writer
         self._write_interval = write_interval
 
-        assert loss_function in ['l1', 'add', 'add_rotation']
+        assert loss_function in [
+            'l1', 'add', 'add_rotation', 'add_sqrt', 'add_rotation_sqrt'
+        ]
         self._loss_function = loss_function
 
         initialW = chainer.initializers.Normal(0.01)
@@ -552,7 +554,7 @@ class MultiViewAlignmentModel(chainer.Chain):
                 (self._lambda_translation * loss_translation)
             )
         else:
-            if self._loss_function == 'add':
+            if self._loss_function in ['add', 'add_sqrt']:
                 translation_true = (
                     (scan_origin - cad_origin) +
                     (gt_translation * self.voxel_dim * pitch)
@@ -562,7 +564,9 @@ class MultiViewAlignmentModel(chainer.Chain):
                     (translation * self.voxel_dim * pitch)
                 )[0]
             else:
-                assert self._loss_function == 'add_rotation'
+                assert self._loss_function in [
+                    'add_rotation', 'add_rotation_sqrt'
+                ]
                 translation_true = self.xp.zeros((3,), dtype=np.float32)
                 translation_pred = self.xp.zeros((3,), dtype=np.float32)
 
@@ -575,7 +579,8 @@ class MultiViewAlignmentModel(chainer.Chain):
                 transform1=transform_true,
                 transform2=transform_pred,
                 translation1=translation_true,
-                translation2=translation_pred
+                translation2=translation_pred,
+                sqrt=self._loss_function.endswith('_sqrt'),
             )
             loss_quaternion = 0
             loss_translation = 0
