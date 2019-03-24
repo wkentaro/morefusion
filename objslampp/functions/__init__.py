@@ -1,5 +1,7 @@
 # flake8: noqa
 
+from .geometry import compose_transform
+
 from .loss import average_distance
 
 from .quaternion_matrix import quaternion_matrix
