@@ -570,8 +570,8 @@ class MultiViewAlignmentModel(chainer.Chain):
                 translation_true = self.xp.zeros((3,), dtype=np.float32)
                 translation_pred = self.xp.zeros((3,), dtype=np.float32)
 
-            transform_true = functions.quaternion_matrix(gt_quaternion[0])
-            transform_pred = functions.quaternion_matrix(quaternion[0])
+            transform_true = functions.quaternion_matrix(gt_quaternion)[0]
+            transform_pred = functions.quaternion_matrix(quaternion)[0]
 
             assert cad_points is not None
             loss = functions.average_distance(
