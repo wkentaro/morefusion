@@ -133,7 +133,7 @@ for index in args.index:
     translation = data['gt_translation']  # use gt
 
     def show(scene, caption=None):
-        return objslampp.vis.trimesh.show_with_rotation(
+        return objslampp.extra.trimesh.show_with_rotation(
             scene=scene,
             caption=caption,
             resolution=(400, 400),

@@ -26,7 +26,7 @@ def main():
 
         cads.append(cad)
 
-    scene = objslampp.vis.trimesh.tile_meshes(cads)
+    scene = objslampp.extra.trimesh.tile_meshes(cads)
     scene.show()
 
 

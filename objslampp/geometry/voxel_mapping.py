@@ -1,7 +1,7 @@
 import numpy as np
 import trimesh
 
-from .. import vis
+from .. import extra
 
 
 class VoxelMapping(object):
@@ -63,7 +63,7 @@ class VoxelMapping(object):
         geometries = []
 
         if edge:
-            bbox_edge = vis.trimesh.wired_box(
+            bbox_edge = extra.trimesh.wired_box(
                 self.voxel_bbox_extents,
                 translation=self.origin + self.voxel_bbox_extents / 2,
             )

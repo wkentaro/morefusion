@@ -138,7 +138,7 @@ for index in args.index:
             colors[I, J, K].repeat(12, axis=0)
 
         scene = trimesh.Scene(geom)
-        objslampp.vis.trimesh.show_with_rotation(
+        objslampp.extra.trimesh.show_with_rotation(
             scene=scene,
             resolution=(500, 500),
             caption=name,

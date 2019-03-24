@@ -55,7 +55,7 @@ class MainApp(object):
             geom = trimesh.PointCloud(vertices=pcd[~isnan], color=rgb[~isnan])
             scene.add_geometry(geom)
 
-        objslampp.vis.trimesh.show_with_rotation(
+        objslampp.extra.trimesh.show_with_rotation(
             scene=scene, caption='cad point clouds',
         )
 
@@ -127,7 +127,7 @@ class MainApp(object):
         geom.apply_transform(data['gt_pose'])
         scene.add_geometry(geom)
 
-        objslampp.vis.trimesh.show_with_rotation(
+        objslampp.extra.trimesh.show_with_rotation(
             scene, caption='scan ({})'.format(color)
         )
 
@@ -153,7 +153,7 @@ class MainApp(object):
         if show:
             geom = cad_mapping.as_boxes()
             scene = trimesh.Scene(geom)
-            objslampp.vis.trimesh.show_with_rotation(
+            objslampp.extra.trimesh.show_with_rotation(
                 scene, caption='cad voxel mapping'
             )
         else:
@@ -181,7 +181,7 @@ class MainApp(object):
         if show:
             geom = scan_mapping.as_boxes()
             scene = trimesh.Scene(geom)
-            objslampp.vis.trimesh.show_with_rotation(
+            objslampp.extra.trimesh.show_with_rotation(
                 scene, caption='scan voxel mapping'
             )
         else:
@@ -223,7 +223,7 @@ class MainApp(object):
         )
 
         def show(scene, caption):
-            return objslampp.vis.trimesh.show_with_rotation(
+            return objslampp.extra.trimesh.show_with_rotation(
                 scene=scene,
                 caption=caption,
                 resolution=(500, 500),
