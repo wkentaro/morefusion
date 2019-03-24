@@ -8,7 +8,7 @@ import imgviz
 import numpy as np
 import trimesh.transformations as tf
 
-from ..logger import logger
+from .._logger import logger
 from .. import extra
 from .. import geometry
 from .. import functions
