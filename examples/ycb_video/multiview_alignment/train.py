@@ -44,7 +44,7 @@ def main():
     parser.add_argument(
         '--lr',
         type=float,
-        default=0.001,
+        default=1e-4,
         help='learning rate',
     )
     parser.add_argument(
@@ -78,11 +78,11 @@ def main():
         help='freezing at',
     )
     parser.add_argument(
-        '--weight-decay', type=float, default=1e-4, help='weight decay'
+        '--weight-decay', type=float, default=0, help='weight decay'
     )
     parser.add_argument(
         '--loss',
-        default='l1',
+        default='add',
         choices=['l1', 'add', 'add_rotation', 'add_sqrt', 'add_rotation_sqrt'],
         help='loss function',
     )
