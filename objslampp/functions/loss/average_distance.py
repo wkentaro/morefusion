@@ -7,8 +7,6 @@ def average_distance(
     points,
     transform1,
     transform2,
-    translation1=None,
-    translation2=None,
     sqrt=False,
 ):
     """Translation introduced pose_loss proposed in PoseCNN paper.
@@ -38,12 +36,7 @@ def average_distance(
     assert transform2.shape == (4, 4)
 
     points1 = transform_points(points, transform1)
-    if translation1 is not None:
-        points1 = points1 + translation1
-
     points2 = transform_points(points, transform2)
-    if translation2 is not None:
-        points2 = points2 + translation2
 
     if sqrt:
         return F.mean(F.sqrt(F.sum((points1 - points2) ** 2, axis=1)))

@@ -558,28 +558,33 @@ class MultiViewAlignmentModel(chainer.Chain):
                 translation_true = (
                     (scan_origin - cad_origin) +
                     (gt_translation * self.voxel_dim * pitch)
-                )[0]
+                )
                 translation_pred = (
                     (scan_origin - cad_origin) +
                     (translation * self.voxel_dim * pitch)
-                )[0]
+                )
             else:
                 assert self._loss_function in [
                     'add_rotation', 'add_rotation_sqrt'
                 ]
-                translation_true = self.xp.zeros((3,), dtype=np.float32)
-                translation_pred = self.xp.zeros((3,), dtype=np.float32)
+                translation_true = self.xp.zeros((1, 3), dtype=np.float32)
+                translation_pred = self.xp.zeros((1, 3), dtype=np.float32)
 
-            transform_true = functions.quaternion_matrix(gt_quaternion)[0]
-            transform_pred = functions.quaternion_matrix(quaternion)[0]
+            transform_true = functions.quaternion_matrix(gt_quaternion)
+            transform_true = functions.compose_transform(
+                transform_true[:, :3, :3], translation_true,
+            )
+
+            transform_pred = functions.quaternion_matrix(quaternion)
+            transform_pred = functions.compose_transform(
+                transform_pred[:, :3, :3], translation_pred,
+            )
 
             assert cad_points is not None
             loss = functions.average_distance(
                 points=cad_points[0],
-                transform1=transform_true,
-                transform2=transform_pred,
-                translation1=translation_true,
-                translation2=translation_pred,
+                transform1=transform_true[0],
+                transform2=transform_pred[0],
                 sqrt=self._loss_function.endswith('_sqrt'),
             )
             loss_quaternion = 0
