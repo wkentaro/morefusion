@@ -9,7 +9,8 @@ from chainer import testing
 from chainer.testing import attr
 from chainer.testing import condition
 
-import objslampp
+from objslampp.functions.geometry.voxelization_3d import voxelization_3d
+from objslampp.functions.geometry.voxelization_3d import Voxelization3D
 
 
 class TestVoxelization3D(unittest.TestCase):
@@ -37,7 +38,7 @@ class TestVoxelization3D(unittest.TestCase):
     def check_forward(self, values_data, points_data):
         values = chainer.Variable(values_data)
         points = chainer.Variable(points_data)
-        y = objslampp.functions.voxelization_3d(
+        y = voxelization_3d(
             values,
             points,
             origin=self.origin,
@@ -62,7 +63,7 @@ class TestVoxelization3D(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_forward_cpu_gpu_equal(self):
-        function = objslampp.functions.Voxelization3D(
+        function = Voxelization3D(
             origin=self.origin,
             pitch=self.pitch,
             dimensions=self.dimensions,
@@ -88,7 +89,7 @@ class TestVoxelization3D(unittest.TestCase):
 
     def check_backward(self, values_data, points_data, y_grad):
         gradient_check.check_backward(
-            objslampp.functions.Voxelization3D(
+            Voxelization3D(
                 pitch=self.pitch,
                 origin=self.origin,
                 dimensions=self.dimensions,
