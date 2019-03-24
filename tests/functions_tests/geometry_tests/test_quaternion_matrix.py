@@ -9,7 +9,7 @@ from chainer.testing import condition
 import trimesh.transformations as tf
 import numpy as np
 
-from objslampp import functions
+from objslampp.functions.geometry.quaternion_matrix import quaternion_matrix
 
 
 class TestQuaternionMatrix(unittest.TestCase):
@@ -22,7 +22,7 @@ class TestQuaternionMatrix(unittest.TestCase):
 
     def check_forward(self, quaternion_data):
         quaternion = chainer.Variable(quaternion_data)
-        y = functions.quaternion_matrix(quaternion)
+        y = quaternion_matrix(quaternion)
         self.assertEqual(y.data.dtype, np.float32)
         self.assertEqual(self.gy.shape, y.shape)
 
@@ -45,18 +45,18 @@ class TestQuaternionMatrix(unittest.TestCase):
     def test_forward_cpu_gpu_equal(self):
         # cpu
         quaternion_cpu = chainer.Variable(self.quaternion)
-        y_cpu = functions.quaternion_matrix(quaternion_cpu)
+        y_cpu = quaternion_matrix(quaternion_cpu)
 
         # gpu
         quaternion_gpu = chainer.Variable(self.quaternion)
-        y_gpu = functions.quaternion_matrix(quaternion_gpu)
+        y_gpu = quaternion_matrix(quaternion_gpu)
 
         testing.assert_allclose(y_cpu.data, cuda.to_cpu(y_gpu.data))
 
     def check_backward(self, quaternion_data, y_grad):
         gradient_check.check_backward(
-            functions.quaternion_matrix,
-            (quaternion_data), y_grad)
+            quaternion_matrix, (quaternion_data,), y_grad
+        )
 
     @condition.retry(3)
     def test_backward_cpu(self):
