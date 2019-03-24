@@ -12,9 +12,12 @@ def _average_distance(points, transform1, transform2):
 
 
 def average_distance(points, transform1, transform2):
+    assert isinstance(points, list)
+
     batch_size = len(points)
     assert len(transform1) == batch_size
     assert len(transform2) == batch_size
+
     adds = np.zeros((batch_size,), dtype=float)
     for i in range(batch_size):
         adds[i] = _average_distance(points[i], transform1[i], transform2[i])
