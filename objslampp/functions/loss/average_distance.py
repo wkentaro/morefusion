@@ -1,6 +1,6 @@
 import chainer.functions as F
 
-from ..transform_points import transform_points
+from ..geometry import transform_points
 
 
 def average_distance(

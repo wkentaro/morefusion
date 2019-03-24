@@ -23,6 +23,7 @@ class TestComposeTransform(unittest.TestCase):
         self.gTs = np.random.uniform(
             -1, 1, (batch_size, 4, 4)
         ).astype(np.float32)
+        self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
 
     def check_forward(self, Rs, ts):
         Ts = compose_transform(Rs, ts)
@@ -46,7 +47,9 @@ class TestComposeTransform(unittest.TestCase):
         testing.assert_allclose(y_cpu.array, cuda.to_cpu(y_gpu.array))
 
     def check_backward(self, Rs, ts, y_grad):
-        gradient_check.check_backward(compose_transform, (Rs, ts), y_grad)
+        gradient_check.check_backward(
+            compose_transform, (Rs, ts), y_grad, **self.check_backward_options
+        )
 
     @condition.retry(3)
     def test_backward_cpu(self):
