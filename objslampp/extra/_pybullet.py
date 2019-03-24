@@ -5,7 +5,7 @@ import numpy as np
 import trimesh
 
 from .. import geometry
-from ..vis._trimesh import wired_box
+from ._trimesh import wired_box
 
 
 unique_ids = []

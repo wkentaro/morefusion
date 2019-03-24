@@ -2,7 +2,7 @@ import numpy as np
 import trimesh
 
 from objslampp.datasets import YCBVideoModelsDataset
-from objslampp.sim import _pybullet as pybullet_module
+from objslampp.extra import _pybullet as pybullet_module
 
 
 def test_render_views():
