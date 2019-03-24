@@ -8,4 +8,3 @@ from . import metrics
 from . import models
 from . import training
 from . import utils
-from . import vis
