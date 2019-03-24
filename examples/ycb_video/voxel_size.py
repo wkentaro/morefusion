@@ -29,7 +29,7 @@ class MainApp(object):
             top_images = []
             for cad_file in cad_files:
                 top_images.append(
-                    p.submit(objslampp.sim.pybullet.get_top_image, cad_file)
+                    p.submit(objslampp.extra.pybullet.get_top_image, cad_file)
                 )
 
             bbox_diagonals = []

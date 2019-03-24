@@ -54,7 +54,7 @@ class MainApp(object):
         if 0:
             eyes = self._get_eyes()
             targets = np.tile([[0, 0, 0]], (len(eyes), 1))
-            views = objslampp.sim.pybullet.render_views(
+            views = objslampp.extra.pybullet.render_views(
                 visual_file, eyes, targets
             )
             rgbs, depths, segms = zip(*views)
@@ -92,7 +92,7 @@ class MainApp(object):
         if 0:
             eyes = self._get_eyes()
             targets = np.tile([[0, 0, 0]], (len(eyes), 1))
-            views = objslampp.sim.pybullet.render_views(
+            views = objslampp.extra.pybullet.render_views(
                 visual_file, eyes, targets
             )
             rgbs, depths, segms = zip(*views)
@@ -153,7 +153,7 @@ class MainApp(object):
 
         eyes = self._get_eyes()
         targets = np.tile([[0, 0, 0]], (len(eyes), 1))
-        rendered = objslampp.sim.pybullet.render_views(
+        rendered = objslampp.extra.pybullet.render_views(
             visual_file, eyes, targets
         )
 

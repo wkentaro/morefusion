@@ -113,7 +113,7 @@ for index in range(len(dataset)):
     vizs = []
     for T in [T_true, T_pred]:
         pybullet.connect(pybullet.DIRECT)
-        objslampp.sim.pybullet.add_model(
+        objslampp.extra.pybullet.add_model(
             cad_file,
             position=tf.translation_from_matrix(T),
             orientation=tf.quaternion_from_matrix(T)[[1, 2, 3, 0]],
