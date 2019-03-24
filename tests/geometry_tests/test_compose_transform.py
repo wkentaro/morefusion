@@ -1,18 +1,34 @@
-import numpy as np
+import unittest
+
+from chainer.backends import cuda
+from chainer import testing
 import trimesh.transformations as tf
 
 from objslampp.geometry.compose_transform import compose_transform
 
 
-def test_compose_transform():
-    R = tf.random_rotation_matrix()
-    t = tf.random_vector((3,))
+class TestComposeTransform(unittest.TestCase):
 
-    T = compose_transform(R=R[:3, :3])
-    np.testing.assert_allclose(T, R)
+    def setUp(self):
+        self.R = tf.random_rotation_matrix()
+        self.t = tf.random_vector((3,))
 
-    T = compose_transform(t=t)
-    np.testing.assert_allclose(T, tf.translation_matrix(t))
+    def check_compose_transform(self, R, t):
+        T = compose_transform(R=R[:3, :3])
+        testing.assert_allclose(T, R)
 
-    T = compose_transform(R=R[:3, :3], t=t)
-    np.testing.assert_allclose(T, tf.translation_matrix(t) @ R)
+        T = compose_transform(t=t)
+        testing.assert_allclose(
+            T, tf.translation_matrix(cuda.to_cpu(t))
+        )
+
+        T = compose_transform(R=R[:3, :3], t=t)
+        testing.assert_allclose(
+            T, tf.translation_matrix(cuda.to_cpu(t)) @ cuda.to_cpu(R)
+        )
+
+    def test_compose_transform_cpu(self):
+        self.check_compose_transform(self.R, self.t)
+
+    def test_compose_transform_gpu(self):
+        self.check_compose_transform(cuda.to_gpu(self.R), cuda.to_gpu(self.t))
