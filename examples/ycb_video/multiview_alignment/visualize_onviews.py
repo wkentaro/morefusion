@@ -66,7 +66,9 @@ for index in range(len(dataset)):
             scan_pcds=inputs['scan_pcds'],
             scan_masks=inputs['scan_masks'],
         )
-        translation_pred = model.xp.zeros((1, 3), dtype=np.float32)  # XXX
+        translation_pred = translation_pred.array
+        if 0:
+            translation_pred = model.xp.zeros((1, 3), dtype=np.float32)
         translation_pred = model.translation_voxel2world(
             translation=translation_pred[0],
             scan_origin=inputs['scan_origin'][0],
@@ -148,8 +150,7 @@ for index in range(len(dataset)):
         pybullet.disconnect()
 
         depth_viz = depth2rgb(depth)
-        import fcn
-        mask_viz = fcn.utils.label2rgb(mask, img=rgb)
+        mask_viz = imgviz.label2rgb(mask, img=rgb, alpha=0.7)
         viz = imgviz.tile([rgb, onview, mask_viz], (1, 3))
         vizs.append(viz)
     viz = imgviz.tile(vizs, (2, 1))
@@ -157,6 +158,10 @@ for index in range(len(dataset)):
     # imgviz.io.pyglet_imshow(viz)
     # imgviz.io.pyglet_run()
     viz = imgviz.resize(viz, width=1500)
-    imgviz.io.cv_imshow(viz)
-    if imgviz.io.cv_waitkey() == ord('q'):
-        break
+    # imgviz.io.cv_imshow(viz)
+    # if imgviz.io.cv_waitkey() == ord('q'):
+    #     break
+    image_id = dataset.ids[index][0]
+    out_file = pathlib.Path(f'out/{image_id}.jpg')
+    out_file.parent.mkdir(parents=True, exist_ok=True)
+    imgviz.io.imsave(out_file, viz)
