@@ -30,5 +30,6 @@ class TestComposeTransform(unittest.TestCase):
     def test_compose_transform_cpu(self):
         self.check_compose_transform(self.R, self.t)
 
+    @testing.attr.gpu
     def test_compose_transform_gpu(self):
         self.check_compose_transform(cuda.to_gpu(self.R), cuda.to_gpu(self.t))

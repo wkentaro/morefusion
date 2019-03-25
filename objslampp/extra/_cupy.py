@@ -9,7 +9,6 @@ def _resize_image_float(x, output_shape):
 
 
 def resize_image(x, output_shape, order):
-    assert isinstance(x, (np.ndarray, cuda.cupy.ndarray))
     assert x.ndim in {2, 3}
 
     # check order
