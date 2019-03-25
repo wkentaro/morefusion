@@ -6,6 +6,7 @@ import trimesh
 import trimesh.transformations as tf
 
 from .. import geometry
+from .camera2cad import Camera2CAD
 from .ycb_video import YCBVideoDataset
 from .ycb_video_models import YCBVideoModelsDataset
 
@@ -79,7 +80,7 @@ class YCBVideoMultiViewAlignmentDataset(YCBVideoDataset):
                 random_state = np.random.RandomState(
                     seed=self._random_seeds[i]
                 )
-            scan_origin, gt_pose, scan_rgbs, scan_pcds, scan_masks = \
+            scan_origin, T_cad2cam, scan_rgbs, scan_pcds, scan_masks = \
                 self._get_scan_data(image_id, class_id, random_state)
         except ValueError:
             valid = 0  # indicates skipped while training
@@ -87,7 +88,7 @@ class YCBVideoMultiViewAlignmentDataset(YCBVideoDataset):
             scan_rgbs = np.zeros((), dtype=np.float32)
             scan_pcds = np.zeros((), dtype=np.float32)
             scan_masks = np.zeros((), dtype=np.float32)
-            gt_pose = np.zeros((), dtype=np.float32)
+            T_cad2cam = np.zeros((), dtype=np.float32)
 
         if valid:
             cad_origin, cad_rgbs, cad_pcds, cad_points = self._get_cad_data(
@@ -100,19 +101,16 @@ class YCBVideoMultiViewAlignmentDataset(YCBVideoDataset):
             cad_points = np.zeros((), dtype=np.float32)
 
         if valid:
-            gt_quaternion = tf.quaternion_from_matrix(gt_pose)
-            gt_quaternion = gt_quaternion.astype(np.float32)
-
-            # initial alignment by fitting voxel origins (cad and origin)
-            translation_init = scan_origin - cad_origin
-
-            gt_translation = tf.translation_from_matrix(gt_pose)
-            gt_translation = gt_translation - translation_init
-            gt_translation = gt_translation / pitch / self.voxel_dim
-            gt_translation = gt_translation.astype(np.float32)
+            T_cam2cad = tf.inverse_matrix(T_cad2cam)
+            cam2cad = Camera2CAD(
+                self.voxel_dim, pitch, cad_origin, scan_origin
+            )
+            quaternion_target, translation_target = cam2cad.target_from_matrix(
+                T_cam2cad
+            )
         else:
-            gt_quaternion = np.zeros((), dtype=np.float32)
-            gt_translation = np.zeros((), dtype=np.float32)
+            quaternion_target = np.zeros((), dtype=np.float32)
+            translation_target = np.zeros((), dtype=np.float32)
 
         video_id, frame_id = image_id.split('/')
         video_id, frame_id = int(video_id), int(frame_id)
@@ -126,16 +124,15 @@ class YCBVideoMultiViewAlignmentDataset(YCBVideoDataset):
             cad_origin=cad_origin,
             cad_rgbs=cad_rgbs,
             cad_pcds=cad_pcds,          # cad coordinate
-            cad_points=cad_points,
 
             scan_rgbs=scan_rgbs,
             scan_pcds=scan_pcds,        # world coordinate
             scan_masks=scan_masks,
             scan_origin=scan_origin,    # for current_view, world coordinate
 
-            gt_pose=gt_pose,            # cad -> world
-            gt_quaternion=gt_quaternion,
-            gt_translation=gt_translation,
+            cad_points=cad_points,
+            quaternion_target=quaternion_target,
+            translation_target=translation_target,
         )
 
     def _get_cad_data(self, class_id):
@@ -269,9 +266,9 @@ class YCBVideoMultiViewAlignmentDataset(YCBVideoDataset):
         origin = origin.astype(np.float32)
 
         # transformation: cad frame to camera frame
-        gt_pose = frame['meta']['poses'][:, :, instance_id]
-        gt_pose = np.r_[gt_pose, [[0, 0, 0, 1]]]
-        gt_pose = gt_pose.astype(np.float32)
+        T_cad2cam = frame['meta']['poses'][:, :, instance_id]
+        T_cad2cam = np.r_[T_cad2cam, [[0, 0, 0, 1]]]
+        T_cad2cam = T_cad2cam.astype(np.float32)
 
         # ---------------------------------------------------------------------
 
@@ -317,8 +314,8 @@ class YCBVideoMultiViewAlignmentDataset(YCBVideoDataset):
 
         assert isinstance(origin, np.ndarray)
         assert origin.dtype == np.float32
-        assert isinstance(gt_pose, np.ndarray)
-        assert gt_pose.dtype == np.float32
+        assert isinstance(T_cad2cam, np.ndarray)
+        assert T_cad2cam.dtype == np.float32
         assert isinstance(rgbs, np.ndarray)
         assert rgbs.dtype == np.uint8
         assert isinstance(pcds, np.ndarray)
@@ -326,4 +323,4 @@ class YCBVideoMultiViewAlignmentDataset(YCBVideoDataset):
         assert isinstance(masks, np.ndarray)
         assert masks.dtype == bool
 
-        return origin, gt_pose, rgbs, pcds, masks
+        return origin, T_cad2cam, rgbs, pcds, masks

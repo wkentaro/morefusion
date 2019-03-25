@@ -8,7 +8,7 @@ import imgviz
 import numpy as np
 import trimesh.transformations as tf
 
-from .._logger import logger
+from .. import datasets
 from .. import extra
 from .. import geometry
 from .. import functions
@@ -39,9 +39,7 @@ class MultiViewAlignmentModel(chainer.Chain):
         self._writer = writer
         self._write_interval = write_interval
 
-        assert loss_function in [
-            'l1', 'add', 'add_rotation', 'add_sqrt', 'add_rotation_sqrt'
-        ]
+        assert loss_function in ['l1', 'add']
         self._loss_function = loss_function
 
         initialW = chainer.initializers.Normal(0.01)
@@ -163,15 +161,11 @@ class MultiViewAlignmentModel(chainer.Chain):
         else:
             assert isinstance(self.extractor, VGG16)
             h, = self.extractor(rgbs)
-        if chainer.is_debug():
-            logger.info(f'h_extractor: {h.shape}')
 
         if all(not l.update_enabled for l in self.extractor.links()):
             h.unchain_backward()
 
         h = F.relu(self.conv5(h))
-        if chainer.is_debug():
-            logger.info(f'h_conv5: {h.shape}')
 
         isnans = self.xp.isnan(pcds).any(axis=3)
         pcds[isnans] = 0
@@ -251,15 +245,9 @@ class MultiViewAlignmentModel(chainer.Chain):
                 dimensions=(self.voxel_dim,) * 3,
                 channels=self.voxel_channels,
             )  # CXYZ
-            if chainer.is_debug():
-                logger.info(f'h_i, i={i}: {h_i.shape}')
             h_vox.append(h_i[None])
         h = F.concat(h_vox, axis=0)
-        if chainer.is_debug():
-            logger.info(f'h_vox: {h.shape}')
         h = F.max(h, axis=0)[None]
-        if chainer.is_debug():
-            logger.info(f'h_vox_fused: {h.shape}')  # NOQA
 
         if self.trigger_write():
             self._writer.add_image(
@@ -279,28 +267,14 @@ class MultiViewAlignmentModel(chainer.Chain):
 
         # 3DCNN
         h = F.relu(self.conv6(h))
-        if chainer.is_debug():
-            logger.info(f'h_conv6: {h.shape}')
         h = F.relu(self.conv7(h))
-        if chainer.is_debug():
-            logger.info(f'h_conv7: {h.shape}')
         return h
 
     def predict_from_code(self, h_cad, h_scan):
         h = F.concat([h_cad, h_scan], axis=1)
-        if chainer.is_debug():
-            logger.info(f'h_concat: {h.shape}')
-
         h = F.relu(self.fc8(h))
-        if chainer.is_debug():
-            logger.info(f'h_fc8: {h.shape}')
-
         quaternion = F.normalize(self.fc_quaternion(h))  # [-1, 1]
-        if chainer.is_debug():
-            logger.info(f'quaternion: {quaternion}')
         translation = F.cos(self.fc_translation(h))      # [-1, 1]
-        if chainer.is_debug():
-            logger.info(f'translation: {translation}')
         return quaternion, translation
 
     def predict(
@@ -331,8 +305,6 @@ class MultiViewAlignmentModel(chainer.Chain):
 
         assert class_id > 0  # 0 indicates background class
 
-        if chainer.is_debug():
-            print('==> Multi-View Encoding CAD')
         with self._writer.scope('cad'):
             h_cad = self.encode(
                 origin=cad_origin,
@@ -341,8 +313,6 @@ class MultiViewAlignmentModel(chainer.Chain):
                 pcds=cad_pcds,
             )
 
-        if chainer.is_debug():
-            print('==> Multi-View Encoding Scan')
         with self._writer.scope('scan'):
             h_scan = self.encode(
                 origin=scan_origin,
@@ -352,8 +322,6 @@ class MultiViewAlignmentModel(chainer.Chain):
                 masks=scan_masks
             )
 
-        if chainer.is_debug():
-            print('==> Predicting Pose')
         quaternion, translation = self.predict_from_code(h_cad, h_scan)
 
         return quaternion, translation
@@ -372,38 +340,11 @@ class MultiViewAlignmentModel(chainer.Chain):
         scan_rgbs,
         scan_pcds,
         scan_masks,
-        gt_pose,
-        gt_quaternion,
-        gt_translation,
+        quaternion_target,
+        translation_target,
         cad_points=None,  # for evaluation
     ):
         xp = self.xp
-
-        if chainer.is_debug():
-            print('==> Arguments for MultiViewAlignmentModel.__call__')
-            logger.info(f'valid: {type(valid)}, {valid}')
-            logger.info(f'video_id: {type(video_id)}, {video_id}')
-            logger.info(f'class_id: {type(class_id)}, {class_id}')
-            logger.info(f'pitch: {type(pitch)}, {pitch}')
-            logger.info(f'cad_origin: {type(cad_origin)}, {cad_origin}')
-            logger.info(f'cad_rgbs: {type(cad_rgbs)}, {cad_rgbs.shape}')
-            logger.info(f'cad_pcds: {type(cad_pcds)}, {cad_pcds.shape}')
-            logger.info(
-                f'scan_origin: {type(scan_origin)}, {scan_origin.shape}'
-            )
-            logger.info(f'scan_rgbs: {type(scan_rgbs)}, {scan_rgbs.shape}')
-            logger.info(f'scan_pcds: {type(scan_pcds)}, {scan_pcds.shape}')
-            logger.info(f'scan_masks: {type(scan_masks)}, {scan_masks.shape}')
-            if gt_pose is not None:
-                logger.info(f'gt_pose: {type(gt_pose)}, {gt_pose.shape}')
-            if gt_quaternion is not None:
-                logger.info(
-                    f'gt_quaternion: {type(gt_quaternion)}, {gt_quaternion}'
-                )
-            if gt_translation is not None:
-                logger.info(
-                    f'gt_translation: {type(gt_translation)}, {gt_translation}'
-                )
 
         batch_size = valid.shape[0]
         assert batch_size == 1
@@ -434,34 +375,20 @@ class MultiViewAlignmentModel(chainer.Chain):
                 cad_points=cad_points,
                 quaternion=quaternion,
                 translation=translation,
-                gt_quaternion=gt_quaternion,
-                gt_translation=gt_translation,
+                quaternion_target=quaternion_target,
+                translation_target=translation_target,
             )
 
         return self.loss(
             quaternion=quaternion,
             translation=translation,
-            gt_quaternion=gt_quaternion,
-            gt_translation=gt_translation,
+            quaternion_target=quaternion_target,
+            translation_target=translation_target,
             video_id=video_id,
             cad_points=cad_points,
             pitch=pitch,
             cad_origin=cad_origin,
             scan_origin=scan_origin,
-        )
-
-    def translation_voxel2world(
-        self,
-        translation,
-        scan_origin,
-        cad_origin,
-        pitch
-    ):
-        assert translation.shape == (3,)
-        assert scan_origin.shape == (3,)
-        assert cad_origin.shape == (3,)
-        return (
-            (scan_origin - cad_origin) + translation * self.voxel_dim * pitch
         )
 
     def evaluate(
@@ -474,8 +401,8 @@ class MultiViewAlignmentModel(chainer.Chain):
         cad_points,
         quaternion,
         translation,
-        gt_quaternion,
-        gt_translation,
+        quaternion_target,
+        translation_target,
     ):
         batch_size = quaternion.shape[0]
         assert batch_size == 1
@@ -487,30 +414,33 @@ class MultiViewAlignmentModel(chainer.Chain):
         cad_points = cuda.to_cpu(cad_points[0])
         quaternion = cuda.to_cpu(quaternion.array[0])
         translation = cuda.to_cpu(translation.array[0])
-        gt_quaternion = cuda.to_cpu(gt_quaternion[0])
-        gt_translation = cuda.to_cpu(gt_translation[0])
+        quaternion_target = cuda.to_cpu(quaternion_target[0])
+        translation_target = cuda.to_cpu(translation_target[0])
 
-        transform_pred = tf.quaternion_matrix(quaternion)
-        transform_true = tf.quaternion_matrix(gt_quaternion)
-        transform_true[:3, 3] = self.translation_voxel2world(
-            gt_translation, scan_origin, cad_origin, pitch
+        cam2cad = datasets.Camera2CAD(
+            voxel_dim=self.voxel_dim,
+            pitch=pitch,
+            origin_cad=cad_origin,
+            origin_scan=scan_origin,
         )
+
+        T_cam2cad_true = cam2cad.matrix_from_target(
+            quaternion_target, translation_target
+        )
+        T_cad2cam_true = tf.inverse_matrix(T_cam2cad_true)
 
         # no translation prediction
-        zero_translation = np.zeros((3,), dtype=np.float32)
-        transform_pred[:3, 3] = self.translation_voxel2world(
-            zero_translation, scan_origin, cad_origin, pitch,
-        )
+        T_cam2cad_pred = cam2cad.matrix_from_target(quaternion, np.zeros((3,)))
+        T_cad2cam_pred = tf.inverse_matrix(T_cam2cad_pred)
         add_rotation = metrics.average_distance(
-            [cad_points], [transform_true], [transform_pred]
+            [cad_points], [T_cad2cam_true], [T_cad2cam_pred]
         )[0]
 
         # use translation prediction
-        transform_pred[:3, 3] = self.translation_voxel2world(
-            translation, scan_origin, cad_origin, pitch
-        )
+        T_cam2cad_pred = cam2cad.matrix_from_target(quaternion, translation)
+        T_cad2cam_pred = tf.inverse_matrix(T_cam2cad_pred)
         add = metrics.average_distance(
-            [cad_points], [transform_true], [transform_pred]
+            [cad_points], [T_cad2cam_true], [T_cad2cam_pred]
         )[0]
 
         values = {
@@ -526,8 +456,8 @@ class MultiViewAlignmentModel(chainer.Chain):
         self,
         quaternion,
         translation,
-        gt_quaternion,
-        gt_translation,
+        quaternion_target,
+        translation_target,
         *,
         video_id=None,
         cad_points=None,
@@ -540,65 +470,45 @@ class MultiViewAlignmentModel(chainer.Chain):
         if video_id is not None:
             video_id = int(video_id[0])
 
-        if chainer.is_debug():
-            print('==> Computing Loss')
+        cam2cad = datasets.Camera2CAD(
+            voxel_dim=self.voxel_dim,
+            pitch=pitch[0],
+            origin_cad=cad_origin[0],
+            origin_scan=scan_origin[0],
+        )
+
         if self._loss_function == 'l1':
             loss_quaternion = F.mean_absolute_error(
-                quaternion, gt_quaternion
+                quaternion, quaternion_target
             )
             loss_translation = F.mean_absolute_error(
-                translation, gt_translation
+                translation, translation_target
             )
             loss = (
                 (self._lambda_quaternion * loss_quaternion) +
                 (self._lambda_translation * loss_translation)
             )
         else:
-            if self._loss_function in ['add', 'add_sqrt']:
-                translation_true = (
-                    (scan_origin - cad_origin) +
-                    (gt_translation * self.voxel_dim * pitch)
-                )
-                translation_pred = (
-                    (scan_origin - cad_origin) +
-                    (translation * self.voxel_dim * pitch)
-                )
-            else:
-                assert self._loss_function in [
-                    'add_rotation', 'add_rotation_sqrt'
-                ]
-                translation_true = self.xp.zeros((1, 3), dtype=np.float32)
-                translation_pred = self.xp.zeros((1, 3), dtype=np.float32)
-
-            transform_true = functions.quaternion_matrix(gt_quaternion)
-            transform_true = functions.compose_transform(
-                transform_true[:, :3, :3], translation_true,
+            assert self._loss_function == 'add'
+            T_cam2cad_true = cam2cad.matrix_from_target_func(
+                quaternion_target[0],
+                translation_target[0],
             )
-
-            transform_pred = functions.quaternion_matrix(quaternion)
-            transform_pred = functions.compose_transform(
-                transform_pred[:, :3, :3], translation_pred,
+            T_cad2cam_true = F.inv(T_cam2cad_true)
+            T_cam2cad_pred = cam2cad.matrix_from_target_func(
+                quaternion[0],
+                translation[0],
             )
+            T_cad2cam_pred = F.inv(T_cam2cad_pred)
 
             assert cad_points is not None
             loss = functions.average_distance(
                 points=cad_points[0],
-                transform1=transform_true[0],
-                transform2=transform_pred[0],
-                sqrt=self._loss_function.endswith('_sqrt'),
+                transform1=T_cad2cam_true,
+                transform2=T_cad2cam_pred,
             )
             loss_quaternion = 0
             loss_translation = 0
-        if chainer.is_debug():
-            logger.info(
-                f'gt_quaternion: {gt_quaternion}, quaternion: {quaternion}'
-            )
-            logger.info(
-                f'gt_translation: {gt_translation}, translation: {translation}'
-            )
-            logger.info(f'loss_quaternion: {loss_quaternion}')
-            logger.info(f'loss_translation: {loss_translation}')
-            logger.info(f'loss: {loss}')
 
         values = {
             'loss_quaternion': loss_quaternion,

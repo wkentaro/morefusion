@@ -1,5 +1,7 @@
 # flake8: noqa
 
+from .camera2cad import Camera2CAD
+
 from . import ycb_video
 
 from .ycb_video import YCBVideoDataset

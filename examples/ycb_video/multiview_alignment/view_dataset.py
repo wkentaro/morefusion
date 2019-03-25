@@ -17,7 +17,7 @@ class MainApp(object):
 
         self._dataset = \
             objslampp.datasets.YCBVideoMultiViewAlignmentDataset(
-                split=split, class_ids=class_ids
+                split=split, class_ids=class_ids,
             )
         self._dataset.voxel_dim = voxel_dim
 
@@ -238,62 +238,62 @@ class MainApp(object):
         # ---------------------------------------------------------------------
         # rotated
 
-        rotation = data['gt_pose'].copy()
+        rotation = data['T_cam2cad'].copy()
         rotation[:3, 3] = 0
 
-        geom_cad_rotated = geom_cad.copy()
-        geom_cad_rotated.apply_transform(rotation)
-        box_cad_rotated = copy.deepcopy(box_cad)
-        for geom in box_cad_rotated:
+        geom_scan_rotated = geom_scan.copy()
+        geom_scan_rotated.apply_transform(rotation)
+        box_scan_rotated = copy.deepcopy(box_scan)
+        for geom in box_scan_rotated:
             geom.apply_transform(rotation)
 
         scene = trimesh.Scene([
             axis_base,
-            geom_cad_rotated,
-            geom_scan,
-            box_cad_rotated,
-            box_scan,
+            geom_cad,
+            geom_scan_rotated,
+            box_cad,
+            box_scan_rotated,
         ])
         show(scene=scene, caption='rotated')
 
         # ---------------------------------------------------------------------
         # transformed
 
-        translation = data['gt_pose'][:3, 3]
+        translation = data['T_cam2cad'][:3, 3]
 
-        geom_cad_transformed = geom_cad_rotated.copy()
-        geom_cad_transformed.apply_translation(translation)
-        box_cad_transformed = copy.deepcopy(box_cad)
-        for geom in box_cad_transformed:
+        geom_scan_transformed = geom_scan_rotated.copy()
+        geom_scan_transformed.apply_translation(translation)
+        box_scan_transformed = copy.deepcopy(box_scan)
+        for geom in box_scan_transformed:
             geom.apply_transform(rotation)
             geom.apply_translation(translation)
 
         scene = trimesh.Scene([
             axis_base,
-            geom_cad_transformed,
-            geom_scan,
-            box_cad_transformed,
-            box_scan,
+            geom_cad,
+            geom_scan_transformed,
+            box_cad,
+            box_scan_transformed,
         ])
         show(scene=scene, caption='transformed')
 
         # ---------------------------------------------------------------------
         # concatenated
 
-        translation = data['scan_origin'] - data['cad_origin']
+        translation = data['cad_origin'] - data['scan_origin']
 
-        geom_cad_concat = geom_cad.copy()
-        geom_cad_concat.apply_translation(translation)
-        box_cad_concat = copy.deepcopy(box_cad)
-        for geom in box_cad_concat:
+        geom_scan_concat = geom_scan.copy()
+        geom_scan_concat.apply_translation(translation)
+        box_scan_concat = copy.deepcopy(box_scan)
+        for geom in box_scan_concat:
             geom.apply_translation(translation)
 
         scene = trimesh.Scene([
             axis_base,
-            geom_cad_concat,
-            geom_scan,
-            box_cad_concat,
-            box_scan,
+            geom_cad,
+            geom_scan_concat,
+            box_cad,
+            box_scan_concat,
         ])
         show(scene=scene, caption='concat')
 
@@ -302,22 +302,21 @@ class MainApp(object):
         rotation = trimesh.transformations.quaternion_matrix(
             data['gt_quaternion']
         )
-        translation = data['scan_origin'] - data['cad_origin']
 
-        geom_cad_concat_rotated = geom_cad.copy()
-        geom_cad_concat_rotated.apply_transform(rotation)
-        geom_cad_concat_rotated.apply_translation(translation)
-        box_cad_concat_rotated = copy.deepcopy(box_cad)
-        for geom in box_cad_concat_rotated:
-            geom.apply_transform(rotation)
+        geom_scan_concat_rotated = geom_scan.copy()
+        geom_scan_concat_rotated.apply_translation(translation)
+        geom_scan_concat_rotated.apply_transform(rotation)
+        box_scan_concat_rotated = copy.deepcopy(box_scan)
+        for geom in box_scan_concat_rotated:
             geom.apply_translation(translation)
+            geom.apply_transform(rotation)
 
         scene = trimesh.Scene([
             axis_base,
-            geom_cad_concat_rotated,
-            geom_scan,
-            box_cad_concat_rotated,
-            box_scan,
+            geom_cad,
+            geom_scan_concat_rotated,
+            box_cad,
+            box_scan_concat_rotated,
         ])
         show(scene=scene, caption='concat & rotated')
 
@@ -327,18 +326,22 @@ class MainApp(object):
             data['gt_translation'] * self._dataset.voxel_dim * data['pitch']
         )
 
-        geom_cad_concat_transformed = geom_cad_concat_rotated.copy()
-        geom_cad_concat_transformed.apply_translation(translation_delta)
-        box_cad_concat_transformed = copy.deepcopy(box_cad_concat_rotated)
-        for geom in box_cad_concat_transformed:
+        geom_scan_concat_transformed = geom_scan.copy()
+        geom_scan_concat_transformed.apply_translation(translation)
+        geom_scan_concat_transformed.apply_translation(translation_delta)
+        geom_scan_concat_transformed.apply_transform(rotation)
+        box_scan_concat_transformed = copy.deepcopy(box_scan)
+        for geom in box_scan_concat_transformed:
+            geom.apply_translation(translation)
             geom.apply_translation(translation_delta)
+            geom.apply_transform(rotation)
 
         scene = trimesh.Scene([
             axis_base,
-            geom_cad_concat_transformed,
-            geom_scan,
-            box_cad_concat_transformed,
-            box_scan,
+            geom_cad,
+            geom_scan_concat_transformed,
+            box_cad,
+            box_scan_concat_transformed,
         ])
         show(scene=scene, caption='concat & transformed')
 

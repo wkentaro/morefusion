@@ -83,7 +83,7 @@ def main():
     parser.add_argument(
         '--loss',
         default='add',
-        choices=['l1', 'add', 'add_rotation', 'add_sqrt', 'add_rotation_sqrt'],
+        choices=['l1', 'add'],
         help='loss function',
     )
     parser.add_argument(
