@@ -3,13 +3,13 @@ import unittest
 import numpy as np
 
 from objslampp.datasets.ycb_video import class_names
-from objslampp.datasets.ycb_video_models import YCBVideoModelsDataset
+from objslampp.datasets.ycb_video import YCBVideoModels
 
 
 class TestYCBVideoModelsDataset(unittest.TestCase):
 
     def setUp(self):
-        self.dataset = YCBVideoModelsDataset()
+        self.dataset = YCBVideoModels()
 
     def test_init(self):
         assert hasattr(self.dataset, 'download')

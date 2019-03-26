@@ -1,12 +1,12 @@
 import numpy as np
 import trimesh
 
-from objslampp.datasets import YCBVideoModelsDataset
+from objslampp.datasets import YCBVideoModels
 from objslampp.extra import _pybullet as pybullet_module
 
 
 def test_render_views():
-    dataset = YCBVideoModelsDataset()
+    dataset = YCBVideoModels()
     visual_file = dataset.get_model(class_id=2)['textured_simple']
 
     eyes = [(1, 1, 1)]
