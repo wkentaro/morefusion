@@ -6,12 +6,12 @@ import gdown
 import numpy as np
 import trimesh
 
-from .. import extra
-from .. import geometry
-from .ycb_video import class_names
+from ... import extra
+from ... import geometry
+from .class_names import class_names
 
 
-class YCBVideoModelsDataset(object):
+class YCBVideoModels(object):
 
     root_dir = pathlib.Path.home() / 'data/datasets/YCB/YCB_Video_Models'
 

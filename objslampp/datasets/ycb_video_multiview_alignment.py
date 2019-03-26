@@ -7,7 +7,7 @@ import trimesh.transformations as tf
 
 from .. import geometry
 from .ycb_video import YCBVideoDataset
-from .ycb_video_models import YCBVideoModelsDataset
+from .ycb_video import YCBVideoModels
 
 
 class YCBVideoMultiViewAlignmentDataset(YCBVideoDataset):
@@ -147,7 +147,7 @@ class YCBVideoMultiViewAlignmentDataset(YCBVideoDataset):
             (- self.voxel_dim // 2 * pitch,) * 3, dtype=np.float32
         )
 
-        models = YCBVideoModelsDataset()
+        models = YCBVideoModels()
         cad_file = models.get_model(class_id=class_id)['textured_simple']
         K, Ts_cam2world, rgbs, depths, segms = models.get_spherical_views(
             cad_file
@@ -188,7 +188,7 @@ class YCBVideoMultiViewAlignmentDataset(YCBVideoDataset):
         if class_id in self._cache_pitch:
             return self._cache_pitch[class_id]
 
-        models = YCBVideoModelsDataset()
+        models = YCBVideoModels()
         cad_file = models.get_model(class_id=class_id)['textured_simple']
         bbox_diagonal = models.get_bbox_diagonal(mesh_file=cad_file)
         pitch = 1. * bbox_diagonal / self.voxel_dim
