@@ -188,6 +188,7 @@ class Model(chainer.Chain):
                 cad_pcd, T_cam2cad_true[i:i + 1], T_cam2cad_pred[i:i + 1]
             )
             loss += loss_i
+        loss /= batch_size
 
         values = {'loss': loss}
         chainer.report(values, observer=self)
