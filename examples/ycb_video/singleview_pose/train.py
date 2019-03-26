@@ -8,19 +8,15 @@ import random
 import socket
 import textwrap
 
-import matplotlib.pyplot as plt
-plt.switch_backend('agg')  # NOQA
-
 import chainer
 import numpy as np
-import pybullet  # NOQA
 import termcolor
 import tensorboardX
 
 import objslampp
 
-from lib import Dataset
-from lib import Model
+from contrib import Dataset
+from contrib import Model
 
 
 here = pathlib.Path(__file__).resolve().parent
@@ -38,19 +34,16 @@ def main():
     parser.add_argument('--gpu', type=int, default=0, help='gpu id')
     parser.add_argument('--seed', type=int, default=0, help='random seed')
     parser.add_argument(
+        '--freeze-until',
+        choices=['conv4_3', 'conv3_3', 'conv2_2', 'conv1_2', 'none'],
+        default='conv4_3',
+        help='freeze until',
+    )
+    parser.add_argument(
         '--lr',
         type=float,
         default=1e-2,
         help='learning rate',
-    )
-    parser.add_argument(
-        '--freeze-extractor',
-        choices=['layer12', 'all'],
-        default='all',
-        help='freezing at',
-    )
-    parser.add_argument(
-        '--weight-decay', type=float, default=0, help='weight decay'
     )
     parser.add_argument(
         '--max-epoch',
@@ -86,40 +79,44 @@ def main():
     # dataset initialization
     data_train = Dataset('train', class_ids=[2])
     data_valid = Dataset('val', class_ids=[2])
+    class_names = objslampp.datasets.ycb_video.class_names
 
-    termcolor.cprint(
-        'train={}, val={}'.format(len(data_train), len(data_valid)),
-        attrs={'bold': True},
-    )
+    termcolor.cprint('==> Dataset size', attrs={'bold': True})
+    print('train={}, val={}'.format(len(data_train), len(data_valid)))
 
     # model initialization
-    model = Model()
+    model = Model(
+        n_fg_class=len(class_names) - 1,
+        freeze_until=args.freeze_until,
+    )
     if args.gpu >= 0:
         model.to_gpu()
 
     # optimizer initialization
     optimizer = chainer.optimizers.Adam(alpha=args.lr)
     optimizer.setup(model)
-    if args.weight_decay > 0:
-        optimizer.add_hook(
-            chainer.optimizer.WeightDecay(rate=args.weight_decay)
-        )
 
-    if args.freeze_extractor == 'all':
-        for link in model.extractor.links():
-            link.disable_update()
-    else:
-        assert args.freeze_extractor == 'layer12'
+    termcolor.cprint('==> Link update rules', attrs={'bold': True})
+    if args.freeze_until in ['conv1_2', 'conv2_2', 'conv3_3', 'conv4_3']:
         model.extractor.conv1_1.disable_update()
         model.extractor.conv1_2.disable_update()
+    if args.freeze_until in ['conv2_2', 'conv3_3', 'conv4_3']:
         model.extractor.conv2_1.disable_update()
         model.extractor.conv2_2.disable_update()
-
-    # chainer.datasets.TransformDataset?
+    if args.freeze_until in ['conv3_3', 'conv4_3']:
+        model.extractor.conv3_1.disable_update()
+        model.extractor.conv3_2.disable_update()
+        model.extractor.conv3_3.disable_update()
+    if args.freeze_until in ['conv4_3']:
+        model.extractor.conv4_1.disable_update()
+        model.extractor.conv4_2.disable_update()
+        model.extractor.conv4_3.disable_update()
+    for name, link in model.namedlinks():
+        print(name, link.update_enabled)
 
     # iterator initialization
     iter_train = chainer.iterators.SerialIterator(
-        data_train, batch_size=1, repeat=True, shuffle=True
+        data_train, batch_size=16, repeat=True, shuffle=True
     )
     iter_valid = chainer.iterators.SerialIterator(
         data_valid, batch_size=1, repeat=False, shuffle=False
@@ -128,7 +125,6 @@ def main():
     updater = chainer.training.updater.StandardUpdater(
         iterator=iter_train,
         optimizer=optimizer,
-        # converter=my_converter,
         device=args.gpu,
     )
     writer_with_updater.setup(updater)
@@ -142,24 +138,22 @@ def main():
     # print arguments
     msg = pprint.pformat(args.__dict__)
     msg = textwrap.indent(msg, prefix=' ' * 2)
-    msg = f'==> Arguments:\n\n{msg}\n'
-    termcolor.cprint(msg, attrs={'bold': True})
+    termcolor.cprint('==> Arguments', attrs={'bold': True})
+    print(f'\n{msg}\n')
 
     trainer.extend(
         objslampp.training.extensions.ArgsReport(args),
         call_before_training=True,
     )
 
-    log_interval = 20, 'iteration'
+    log_interval = 10, 'iteration'
     param_log_interval = 100, 'iteration'
-    plot_interval = 20, 'iteration'
-    eval_interval = 0.3, 'epoch'
+    eval_interval = 1, 'epoch'
 
     # evaluate
     evaluator = objslampp.training.extensions.PoseEstimationEvaluator(
         iterator=iter_valid,
         target=model,
-        # converter=my_converter,
         device=args.gpu,
         progress_bar=True,
     )
@@ -170,12 +164,6 @@ def main():
     )
 
     # snapshot
-    # trainer.extend(
-    #     chainer.training.extensions.snapshot(
-    #         filename='snapshot_iter_{.updater.iteration}.npz'
-    #     ),
-    #     trigger=eval_interval,
-    # )
     trainer.extend(
         chainer.training.extensions.snapshot_object(
             model, filename='snapshot_model_best_auc_add.npz'
@@ -223,22 +211,7 @@ def main():
         trigger=log_interval,
         call_before_training=True,
     )
-    trainer.extend(chainer.training.extensions.ProgressBar(update_interval=10))
-
-    # plot
-    assert chainer.training.extensions.PlotReport.available()
-    trainer.extend(
-        chainer.training.extensions.PlotReport(
-            [
-                'main/loss',
-                'validation/main/loss',
-            ],
-            file_name='loss.png',
-            trigger=plot_interval,
-        ),
-        trigger=(1, 'iteration'),
-        call_before_training=True,
-    )
+    trainer.extend(chainer.training.extensions.ProgressBar(update_interval=1))
 
     # -------------------------------------------------------------------------
 

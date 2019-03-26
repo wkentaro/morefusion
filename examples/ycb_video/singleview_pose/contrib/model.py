@@ -4,69 +4,93 @@ import chainer.functions as F
 import chainer.links as L
 from chainercv.links.model.vgg import VGG16
 import numpy as np
-import trimesh.transformations as tf
 
 import objslampp
 
 
 class Model(chainer.Chain):
 
-    def __init__(self):
+    def __init__(self, n_fg_class, freeze_until):
         super(Model, self).__init__()
 
         initialW = chainer.initializers.Normal(0.01)
+        kwargs = {'initialW': initialW}
         with self.init_scope():
             self.extractor = VGG16(pretrained_model='imagenet')
-            self.extractor.pick = ['pool4']
+            self.extractor.pick = ['conv4_3', 'conv3_3', 'conv2_2', 'conv1_2']
             self.extractor.remove_unused()
-            self.fc_quaternion = L.Linear(512, 4, initialW=initialW)
+            self.fc5 = L.Linear(512 * 4 * 4, 4096, **kwargs)  # 512*4*4 = 8192
+            self.fc6 = L.Linear(4096, 4096, **kwargs)
+            self.fc_quaternion = L.Linear(4096, 4 * n_fg_class, **kwargs)
+
+        self._n_fg_class = n_fg_class
+        self._freeze_until = freeze_until
+
+    def _get_cad_pcd(self, *, class_id):
+        models = objslampp.datasets.YCBVideoModels()
+        pcd_file = models.get_model(class_id=class_id)['points_xyz']
+        return np.loadtxt(pcd_file)
 
     def evaluate(
         self,
-        cad_pcd,
+        *,
+        class_id,
         quaternion_true,
         quaternion_pred,
         translation_true,
         translation_rough,
     ):
-        assert quaternion_pred.shape[0] == 1
-        cad_pcd = cuda.to_cpu(cad_pcd[0])
-        quaternion_true = cuda.to_cpu(quaternion_true[0])
-        quaternion_pred = cuda.to_cpu(quaternion_pred.array[0])
-        translation_true = cuda.to_cpu(translation_true[0])
-        translation_rough = cuda.to_cpu(translation_rough[0])
+        xp = self.xp
 
-        T_cam2cad_true = tf.quaternion_matrix(quaternion_true)
-        T_cam2cad_pred = tf.quaternion_matrix(quaternion_pred)
-        add_rotation = objslampp.metrics.average_distance(
-            [cad_pcd], [T_cam2cad_true], [T_cam2cad_pred]
-        )[0]
+        batch_size = class_id.shape[0]
+        quaternion_pred = quaternion_pred[xp.arange(batch_size), class_id, :]
 
-        T_cam2cad_true = objslampp.geometry.compose_transform(
-            R=T_cam2cad_true[:3, :3], t=translation_true
-        )
-        T_cam2cad_pred = objslampp.geometry.compose_transform(
-            R=T_cam2cad_pred[:3, :3], t=translation_rough
-        )
-        add = objslampp.metrics.average_distance(
-            [cad_pcd], [T_cam2cad_true], [T_cam2cad_pred]
-        )[0]
+        T_cam2cad_true = objslampp.functions.quaternion_matrix(quaternion_true)
+        T_cam2cad_pred = objslampp.functions.quaternion_matrix(quaternion_pred)
 
-        if chainer.config.train:
-            values = {
-                'add': add,
-                'add_rotation': add_rotation,
-            }
-        else:
-            values = {
-                'add/0002': add,
-                'add_rotation/0002': add_rotation,
-            }
-        chainer.report(values, observer=self)
+        T_cam2cad_true = cuda.to_cpu(T_cam2cad_true.array)
+        T_cam2cad_pred = cuda.to_cpu(T_cam2cad_pred.array)
+        translation_true = cuda.to_cpu(translation_true)
+        translation_rough = cuda.to_cpu(translation_rough)
+
+        # add_rotation
+        summary = chainer.DictSummary()
+        for i in range(batch_size):
+            class_id_i = int(class_id[i])
+            cad_pcd = self._get_cad_pcd(class_id=class_id_i)
+            add_rotation = objslampp.metrics.average_distance(
+                [cad_pcd], [T_cam2cad_true[i]], [T_cam2cad_pred[i]]
+            )[0]
+            if chainer.config.train:
+                summary.add({'add_rotation': add_rotation})
+            else:
+                summary.add({f'add_rotation/{class_id_i:04d}': add_rotation})
+        chainer.report(summary.compute_mean(), self)
+
+        T_cam2cad_true = objslampp.functions.compose_transform(
+            Rs=T_cam2cad_true[:, :3, :3], ts=translation_true,
+        ).array
+        T_cam2cad_pred = objslampp.functions.compose_transform(
+            Rs=T_cam2cad_pred[:, :3, :3], ts=translation_rough
+        ).array
+
+        # add
+        summary = chainer.DictSummary()
+        for i in range(batch_size):
+            class_id_i = int(class_id[i])
+            cad_pcd = self._get_cad_pcd(class_id=class_id_i)
+            add_rotation = objslampp.metrics.average_distance(
+                [cad_pcd], [T_cam2cad_true[i]], [T_cam2cad_pred[i]]
+            )[0]
+            if chainer.config.train:
+                summary.add({'add': add_rotation})
+            else:
+                summary.add({f'add/{class_id_i:04d}': add_rotation})
+        chainer.report(summary.compute_mean(), self)
 
     def predict(
         self,
-        cad_pcd,
+        *,
         rgb,
         quaternion_true,
         translation_true,
@@ -74,62 +98,98 @@ class Model(chainer.Chain):
     ):
         xp = self.xp
 
-        assert rgb.ndim == 4
-        N, H, W, C = rgb.shape
+        batch_size, H, W, C = rgb.shape
         assert H == W == 256
         assert C == 3
 
+        # prepare
         rgb = rgb.transpose(0, 3, 1, 2).astype(np.float32)  # NHWC -> NCHW
         quaternion_true = quaternion_true.astype(np.float32)
-        cad_pcd = cad_pcd.astype(np.float32)
 
+        # feature extraction
         mean = xp.asarray(self.extractor.mean)
-        h, = self.extractor(rgb - mean[None])  # NCHW
-        h = F.average(h, axis=(2, 3))
+        h_conv4_3, h_conv3_3, h_conv2_2, h_conv1_2 = self.extractor(
+            rgb - mean[None]
+        )
+        if self._freeze_until == 'conv4_3':
+            h_conv4_3.unchain_backward()
+        elif self._freeze_until == 'conv3_3':
+            h_conv3_3.unchain_backward()
+        elif self._freeze_until == 'conv2_2':
+            h_conv2_2.unchain_backward()
+        elif self._freeze_until == 'conv1_2':
+            h_conv1_2.unchain_backward()
+        else:
+            self._freeze_until == 'none'
+        del h_conv3_3, h_conv2_2, h_conv1_2
+        h = h_conv4_3  # 1/8   # 256x256 -> 32x32
+        h = F.average_pooling_2d(h, ksize=8)   # 1/64  # 256x256 -> 4x4
 
-        quaternion = F.normalize(self.fc_quaternion(h))
+        # regression
+        h = F.relu(self.fc5(h))
+        h = F.relu(self.fc6(h))
+        quaternion = self.fc_quaternion(h)
+        quaternion = quaternion.reshape(batch_size, self._n_fg_class, 4)
+        quaternion = F.normalize(quaternion, axis=1)
+
         return quaternion
 
     def __call__(
         self,
-        cad_pcd,
+        *,
+        class_id,
         rgb,
         quaternion_true,
         translation_true,
         translation_rough,
     ):
-        quaternion = self.predict(
-            cad_pcd,
-            rgb,
-            quaternion_true,
-            translation_true,
-            translation_rough,
+        quaternion_pred = self.predict(
+            rgb=rgb,
+            quaternion_true=quaternion_true,
+            translation_true=translation_true,
+            translation_rough=translation_rough,
         )
 
         self.evaluate(
-            cad_pcd,
-            quaternion_true,
-            quaternion,
-            translation_true,
-            translation_rough,
+            class_id=class_id,
+            quaternion_true=quaternion_true,
+            quaternion_pred=quaternion_pred,
+            translation_true=translation_true,
+            translation_rough=translation_rough,
         )
 
-        T_cam2cad_pred = objslampp.functions.quaternion_matrix(
-            quaternion
+        loss = self.loss(
+            class_id=class_id,
+            quaternion_true=quaternion_true,
+            quaternion_pred=quaternion_pred,
         )
+        return loss
+
+    def loss(self, *, class_id, quaternion_true, quaternion_pred):
+        xp = self.xp
+
+        batch_size = class_id.shape[0]
+        quaternion_pred = quaternion_pred[xp.arange(batch_size), class_id, :]
+
         T_cam2cad_true = objslampp.functions.quaternion_matrix(
             quaternion_true
         )
-
-        assert cad_pcd.shape[0] == 1
-        loss = objslampp.functions.average_distance(
-            cad_pcd[0], T_cam2cad_true[0], T_cam2cad_pred[0]
+        T_cam2cad_pred = objslampp.functions.quaternion_matrix(
+            quaternion_pred
         )
 
-        if chainer.config.train:
-            values = {'loss': loss}
-        else:
-            values = {'loss/0002': loss}
+        batch_size = class_id.shape[0]
+
+        loss = 0
+        for i in range(batch_size):
+            cad_pcd = self._get_cad_pcd(class_id=int(class_id[i]))
+            cad_pcd = self.xp.asarray(cad_pcd)
+            loss_i = objslampp.functions.average_distance(
+                cad_pcd, T_cam2cad_true[i], T_cam2cad_pred[i]
+            )
+            loss += loss_i
+
+        values = {'loss': loss}
         chainer.report(values, observer=self)
 
         return loss

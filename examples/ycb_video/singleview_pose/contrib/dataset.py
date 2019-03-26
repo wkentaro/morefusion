@@ -69,14 +69,10 @@ class Dataset(objslampp.datasets.YCBVideoDataset):
         quaternion_true = tf.quaternion_from_matrix(T_cad2cam)
         translation_true = tf.translation_from_matrix(T_cad2cam)
 
-        model_dataset = objslampp.datasets.YCBVideoModelsDataset()
-        cad_pcd_file = model_dataset.get_model(class_id=class_id)['points_xyz']
-        cad_pcd = np.loadtxt(cad_pcd_file)
-
-        return (
-            cad_pcd,
-            rgb,
-            quaternion_true,
-            translation_true,
-            translation_rough,
+        return dict(
+            class_id=class_id,
+            rgb=rgb,
+            quaternion_true=quaternion_true,
+            translation_true=translation_true,
+            translation_rough=translation_rough,
         )
