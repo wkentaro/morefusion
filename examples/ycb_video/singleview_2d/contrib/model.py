@@ -185,7 +185,7 @@ class Model(chainer.Chain):
             cad_pcd = self._get_cad_pcd(class_id=int(class_id[i]))
             cad_pcd = self.xp.asarray(cad_pcd)
             loss_i = objslampp.functions.average_distance(
-                cad_pcd, T_cam2cad_true[i], T_cam2cad_pred[i]
+                cad_pcd, T_cam2cad_true[i:i + 1], T_cam2cad_pred[i:i + 1]
             )
             loss += loss_i
 

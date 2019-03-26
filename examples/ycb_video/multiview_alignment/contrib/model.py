@@ -533,8 +533,8 @@ class Model(chainer.Chain):
             assert cad_points is not None
             loss = objslampp.functions.average_distance(
                 points=cad_points[0],
-                transform1=transform_true[0],
-                transform2=transform_pred[0],
+                transform1=transform_true,
+                transform2=transform_pred,
                 sqrt=self._loss_function.endswith('_sqrt'),
             )
             loss_quaternion = 0
