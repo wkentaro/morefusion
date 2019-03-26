@@ -168,6 +168,7 @@ def main():
     trainer.extend(
         evaluator,
         trigger=eval_interval,
+        call_before_training=True,
     )
 
     # snapshot
