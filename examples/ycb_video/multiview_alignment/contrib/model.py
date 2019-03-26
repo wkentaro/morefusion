@@ -536,7 +536,7 @@ class Model(chainer.Chain):
                 transform1=transform_true,
                 transform2=transform_pred,
                 sqrt=self._loss_function.endswith('_sqrt'),
-            )
+            )[0]
             loss_quaternion = 0
             loss_translation = 0
 

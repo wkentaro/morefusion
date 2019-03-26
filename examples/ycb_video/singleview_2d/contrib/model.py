@@ -186,7 +186,7 @@ class Model(chainer.Chain):
             cad_pcd = self.xp.asarray(cad_pcd)
             loss_i = objslampp.functions.average_distance(
                 cad_pcd, T_cam2cad_true[i:i + 1], T_cam2cad_pred[i:i + 1]
-            )
+            )[0]
             loss += loss_i
         loss /= batch_size
 
