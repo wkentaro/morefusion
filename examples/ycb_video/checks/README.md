@@ -25,7 +25,3 @@
 <img src="https://drive.google.com/uc?id=15MPxpoPrv2GlJaBKaSl_OaaC1_hv4PpS" height="200px" /> <img src="https://drive.google.com/uc?id=1EFC-7Vv4ci2nHcVbqySkpvVm43Eq-FYt" height="200px" /> <img src="https://drive.google.com/uc?id=1yYwpKwQVTS61qagDauGkjjq_wTPpl-ea" height="200px" />
 <img src="https://drive.google.com/uc?id=1BQUIKmOIRtc2AzMvQOa0SJxZxS7EXAw2" height="200px" />
 <img src="https://drive.google.com/uc?id=1fnRxYT7_P5_7C1LWHL5xpNNNSIdvXY48" height="200px" /> <img src="https://drive.google.com/uc?id=17T88z4eyapnXbLYgjUw_rT5EIjo8r7-m" height="200px" />
-
-## `project_another_view.py`
-
-<img src="https://drive.google.com/uc?id=1BXL0T7Ao_-oGT-1sVfh0FHkS2-9Bd05T" height="200px" />
