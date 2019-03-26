@@ -13,7 +13,6 @@ def auc_for_errors(
 
     assert errors.ndim == 1
     assert errors.min() >= 0
-    assert errors.max() <= 1
 
     x = np.zeros((nstep,), dtype=float)
     y = np.zeros((nstep,), dtype=float)
