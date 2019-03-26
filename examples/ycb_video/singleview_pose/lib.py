@@ -144,7 +144,7 @@ class Model(chainer.Chain):
             }
         chainer.report(values, observer=self)
 
-    def __call__(
+    def predict(
         self,
         cad_pcd,
         rgb,
@@ -168,6 +168,23 @@ class Model(chainer.Chain):
         h = F.average(h, axis=(2, 3))
 
         quaternion = F.normalize(self.fc_quaternion(h))
+        return quaternion
+
+    def __call__(
+        self,
+        cad_pcd,
+        rgb,
+        quaternion_true,
+        translation_true,
+        translation_rough,
+    ):
+        quaternion = self.predict(
+            cad_pcd,
+            rgb,
+            quaternion_true,
+            translation_true,
+            translation_rough,
+        )
 
         self.evaluate(
             cad_pcd,
