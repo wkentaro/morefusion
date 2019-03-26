@@ -1,4 +1,3 @@
-from chainer.backends import cuda
 import chainer.functions as F
 
 import numpy as np
