@@ -5,12 +5,10 @@ import numpy as np
 import trimesh
 import trimesh.transformations as tf
 
-from .. import geometry
-from .ycb_video import YCBVideoDataset
-from .ycb_video import YCBVideoModels
+import objslampp
 
 
-class YCBVideoMultiViewAlignmentDataset(YCBVideoDataset):
+class Dataset(objslampp.datasets.YCBVideoDataset):
 
     roi_size = 256
     voxel_dim = 32
@@ -23,9 +21,7 @@ class YCBVideoMultiViewAlignmentDataset(YCBVideoDataset):
         num_frames_scan=None,
     ):
         self._class_ids = class_ids
-        super(YCBVideoMultiViewAlignmentDataset, self).__init__(
-            split=split, sampling=sampling
-        )
+        super().__init__(split=split, sampling=sampling)
         self._cache_cad_data = {}
         self._cache_pitch = {}
 
@@ -147,7 +143,7 @@ class YCBVideoMultiViewAlignmentDataset(YCBVideoDataset):
             (- self.voxel_dim // 2 * pitch,) * 3, dtype=np.float32
         )
 
-        models = YCBVideoModels()
+        models = objslampp.datasets.YCBVideoModels()
         cad_file = models.get_model(class_id=class_id)['textured_simple']
         K, Ts_cam2world, rgbs, depths, segms = models.get_spherical_views(
             cad_file
@@ -156,7 +152,7 @@ class YCBVideoMultiViewAlignmentDataset(YCBVideoDataset):
         # transform point cloud to world frame
         pcds = []
         for T_cam2world, depth in zip(Ts_cam2world, depths):
-            pcd = geometry.pointcloud_from_depth(
+            pcd = objslampp.geometry.pointcloud_from_depth(
                 depth, fx=K[0, 0], fy=K[1, 1], cx=K[0, 2], cy=K[1, 2]
             )  # in camera coord
             isnan = np.isnan(pcd).any(axis=2)
@@ -188,7 +184,7 @@ class YCBVideoMultiViewAlignmentDataset(YCBVideoDataset):
         if class_id in self._cache_pitch:
             return self._cache_pitch[class_id]
 
-        models = YCBVideoModels()
+        models = objslampp.datasets.YCBVideoModels()
         cad_file = models.get_model(class_id=class_id)['textured_simple']
         bbox_diagonal = models.get_bbox_diagonal(mesh_file=cad_file)
         pitch = 1. * bbox_diagonal / self.voxel_dim
@@ -202,7 +198,7 @@ class YCBVideoMultiViewAlignmentDataset(YCBVideoDataset):
     def _to_roi_image(self, rgbs, pcds, masks):
         assert rgbs.shape[:3] == pcds.shape[:3] == masks.shape[:3]
 
-        bboxes = geometry.masks_to_bboxes(masks).round().astype(int)
+        bboxes = objslampp.geometry.masks_to_bboxes(masks).round().astype(int)
 
         N = len(bboxes)
         roi_size = self.roi_size
@@ -247,7 +243,7 @@ class YCBVideoMultiViewAlignmentDataset(YCBVideoDataset):
 
         K = frame['meta']['intrinsic_matrix']
         depth = frame['depth']
-        pcd = geometry.pointcloud_from_depth(
+        pcd = objslampp.geometry.pointcloud_from_depth(
             depth, fx=K[0][0], fy=K[1][1], cx=K[0][2], cy=K[1][2]
         )
 
@@ -261,10 +257,12 @@ class YCBVideoMultiViewAlignmentDataset(YCBVideoDataset):
         mask = frame['label'] == class_id
         isnan = np.isnan(pcd).any(axis=2)
         pcd_ins = pcd[mask & (~isnan)]
-        aabb_min, aabb_max = geometry.get_aabb_from_points(pcd_ins)
+        aabb_min, aabb_max = objslampp.geometry.get_aabb_from_points(pcd_ins)
         aabb_extents = aabb_max - aabb_min
         aabb_center = aabb_extents / 2 + aabb_min
-        mapping = geometry.VoxelMapping(pitch=pitch, voxel_size=self.voxel_dim)
+        mapping = objslampp.geometry.VoxelMapping(
+            pitch=pitch, voxel_size=self.voxel_dim
+        )
         origin = aabb_center - mapping.voxel_bbox_extents / 2
         origin = origin.astype(np.float32)
 
@@ -296,7 +294,7 @@ class YCBVideoMultiViewAlignmentDataset(YCBVideoDataset):
 
             K = frame['meta']['intrinsic_matrix']
             depth = frame['depth']
-            pcd = geometry.pointcloud_from_depth(
+            pcd = objslampp.geometry.pointcloud_from_depth(
                 depth, fx=K[0][0], fy=K[1][1], cx=K[0][2], cy=K[1][2]
             )
 

@@ -19,6 +19,9 @@ import tensorboardX
 
 import objslampp
 
+from contrib import Dataset
+from contrib import Model
+
 
 here = pathlib.Path(__file__).resolve().parent
 
@@ -124,13 +127,13 @@ def main():
         chainer.cuda.cupy.random.seed(args.seed)
 
     # dataset initialization
-    data_train = objslampp.datasets.YCBVideoMultiViewAlignmentDataset(
+    data_train = Dataset(
         'train',
         class_ids=args.class_ids,
         num_frames_scan=args.num_frames_scan,
         sampling=args.sampling,
     )
-    data_valid = objslampp.datasets.YCBVideoMultiViewAlignmentDataset(
+    data_valid = Dataset(
         'val',
         class_ids=args.class_ids,
         num_frames_scan=args.num_frames_scan,
@@ -143,7 +146,7 @@ def main():
     )
 
     # model initialization
-    model = objslampp.models.MultiViewAlignmentModel(
+    model = Model(
         extractor=args.extractor,
         lambda_quaternion=args.lambda_quaternion,
         lambda_translation=args.lambda_translation,
