@@ -9,13 +9,8 @@ import trimesh.viewer
 import objslampp
 
 
-def check_voxelization_3d(gpu, **kwargs):
+def check_voxelization_3d(data, gpu, **kwargs):
     np.random.seed(0)
-
-    dataset = objslampp.datasets.YCBVideoMultiViewAlignmentDataset(
-        split='train'
-    )
-    data = dataset[0]
 
     origin = data['scan_origin']
     pitch = data['pitch']
@@ -63,11 +58,23 @@ def check_voxelization_3d(gpu, **kwargs):
 
 
 def main():
+    dataset = objslampp.datasets.YCBVideoMultiViewAlignmentDataset(
+        split='train'
+    )
+    data = dataset[0]
+
     check_voxelization_3d(
-        gpu=-1, start_loop=False, caption='Voxelization3D (CPU)'
+        data=data,
+        gpu=-1,
+        start_loop=False,
+        caption='Voxelization3D (CPU)',
+        resolution=(400, 400),
     )
     check_voxelization_3d(
-        gpu=0, caption='Voxelization3D (GPU)'
+        data=data,
+        gpu=0,
+        caption='Voxelization3D (GPU)',
+        resolution=(400, 400),
     )
 
 
