@@ -492,15 +492,8 @@ class MultiViewAlignmentModel(chainer.Chain):
 
         transform_pred = tf.quaternion_matrix(quaternion)
         transform_true = tf.quaternion_matrix(gt_quaternion)
-        transform_true[:3, 3] = self.translation_voxel2world(
-            gt_translation, scan_origin, cad_origin, pitch
-        )
 
-        # no translation prediction
-        zero_translation = np.zeros((3,), dtype=np.float32)
-        transform_pred[:3, 3] = self.translation_voxel2world(
-            zero_translation, scan_origin, cad_origin, pitch,
-        )
+        # evaluate only rotation prediction
         add_rotation = metrics.average_distance(
             [cad_points], [transform_true], [transform_pred]
         )[0]
@@ -508,6 +501,9 @@ class MultiViewAlignmentModel(chainer.Chain):
         # use translation prediction
         transform_pred[:3, 3] = self.translation_voxel2world(
             translation, scan_origin, cad_origin, pitch
+        )
+        transform_true[:3, 3] = self.translation_voxel2world(
+            gt_translation, scan_origin, cad_origin, pitch
         )
         add = metrics.average_distance(
             [cad_points], [transform_true], [transform_pred]
