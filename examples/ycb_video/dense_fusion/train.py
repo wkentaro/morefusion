@@ -142,6 +142,7 @@ def main():
     trainer = chainer.training.Trainer(
         updater, (args.max_epoch, 'epoch'), out=args.out
     )
+    trainer.extend(chainer.training.extensions.FailOnNonNumber())
 
     # print arguments
     msg = pprint.pformat(args.__dict__)
