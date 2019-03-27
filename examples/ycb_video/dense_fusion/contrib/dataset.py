@@ -93,7 +93,7 @@ class Dataset(objslampp.datasets.base.DatasetBase):
         pcd[~mask] = np.nan
         pcd = pcd[y1:y2, x1:x2]
         pcd = imgviz.centerize(pcd, (256, 256), cval=np.nan)
-        if np.isnan(pcd).all():
+        if np.isnan(pcd).any(axis=2).all():
             return self._get_invalid_data()
 
         T_cad2cam = frame['meta']['poses'][:, :, instance_id]

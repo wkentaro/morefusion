@@ -29,7 +29,7 @@ class PoseNet(chainer.Chain):
             ]
             self.vgg_extractor.remove_unused()
             self.pspnet_extractor = PSPNetExtractor()
-            self.posenet_extractor = PoseNetExtractor(n_point=n_point)
+            self.posenet_extractor = PoseNetExtractor()
             # conv1
             self.conv1_rot = L.Convolution1D(1408, 640, 1)
             self.conv1_trans = L.Convolution1D(1408, 640, 1)
@@ -89,7 +89,15 @@ class PoseNet(chainer.Chain):
         h_rgb_masked = []
         pcd_masked = []
         for i in range(B):
-            keep = xp.random.permutation(int(mask[i].sum()))[:self._n_point]
+            n_point = int(mask[i].sum())
+            if n_point >= self._n_point:
+                keep = xp.random.permutation(n_point)[:self._n_point]
+            else:
+                keep = np.r_[
+                    xp.arange(n_point),
+                    xp.random.randint(0, n_point, self._n_point - n_point),
+                ]
+            assert keep.shape == (self._n_point,)
             iy, ix = xp.where(mask[i])
             iy, ix = iy[keep], ix[keep]
             h_rgb_i = h_rgb[i, :, iy, ix]      # CHW -> MC, M = self._n_point
@@ -257,6 +265,8 @@ class PoseNet(chainer.Chain):
 
         loss = 0
         for i in range(B):
+            n_point = quaternion_pred[i].shape[0]
+
             T_cad2cam_pred = objslampp.functions.quaternion_matrix(
                 quaternion_pred[i]
             )
@@ -270,7 +280,7 @@ class PoseNet(chainer.Chain):
             T_cad2cam_true = objslampp.functions.compose_transform(
                 T_cad2cam_true[:, :3, :3], translation_true[i:i + 1],
             )  # (1, 4, 4)
-            T_cad2cam_true = F.repeat(T_cad2cam_true, self._n_point, axis=0)
+            T_cad2cam_true = F.repeat(T_cad2cam_true, n_point, axis=0)
 
             class_id_i = int(class_id[i])
             cad_pcd = self._get_cad_pcd(class_id=class_id_i)
@@ -301,7 +311,7 @@ class PoseNet(chainer.Chain):
 # https://github.com/knorth55/chainer-dense-fusion/blob/master/chainer_dense_fusion/links/model/posenet.py  # NOQA
 class PoseNetExtractor(chainer.Chain):
 
-    def __init__(self, n_point):
+    def __init__(self):
         super().__init__()
         with self.init_scope():
             # conv1
@@ -314,10 +324,8 @@ class PoseNetExtractor(chainer.Chain):
             self.conv3 = L.Convolution1D(256, 512, 1)
             self.conv4 = L.Convolution1D(512, 1024, 1)
 
-        self._n_point = n_point
-
     def __call__(self, h_rgb, pcd):
-        B = h_rgb.shape[0]
+        B, _, n_point = h_rgb.shape
         # conv1
         h_rgb = F.relu(self.conv1_rgb(h_rgb))
         h_pcd = F.relu(self.conv1_pcd(pcd))
@@ -329,9 +337,9 @@ class PoseNetExtractor(chainer.Chain):
         # conv3, conv4
         h = F.relu(self.conv3(feat2))
         h = F.relu(self.conv4(h))
-        h = F.average_pooling_1d(h, self._n_point)
+        h = F.average_pooling_1d(h, n_point)
         h = h.reshape((B, 1024, 1))
-        feat3 = F.repeat(h, self._n_point, axis=2)
+        feat3 = F.repeat(h, n_point, axis=2)
         feat = F.concat((feat1, feat2, feat3), axis=1)
         return feat
 
@@ -347,7 +355,6 @@ if __name__ == '__main__':
     model = PoseNet(
         n_fg_class=21,
         freeze_until='conv4_3',
-        n_point=1000,
         lambda_confidence=0.015,
     )
     if gpu >= -1:
