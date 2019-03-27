@@ -36,14 +36,11 @@ class Model(chainer.Chain):
         *,
         class_id,
         quaternion_true,
-        quaternion_pred,
         translation_true,
+        quaternion_pred,
         translation_rough,
     ):
-        xp = self.xp
-
         batch_size = class_id.shape[0]
-        quaternion_pred = quaternion_pred[xp.arange(batch_size), class_id, :]
 
         T_cam2cad_true = objslampp.functions.quaternion_matrix(quaternion_true)
         T_cam2cad_pred = objslampp.functions.quaternion_matrix(quaternion_pred)
@@ -91,9 +88,8 @@ class Model(chainer.Chain):
     def predict(
         self,
         *,
+        class_id,
         rgb,
-        quaternion_true,
-        translation_true,
     ):
         xp = self.xp
 
@@ -103,7 +99,6 @@ class Model(chainer.Chain):
 
         # prepare
         rgb = rgb.transpose(0, 3, 1, 2).astype(np.float32)  # NHWC -> NCHW
-        quaternion_true = quaternion_true.astype(np.float32)
 
         # feature extraction
         mean = xp.asarray(self.extractor.mean)
@@ -131,6 +126,8 @@ class Model(chainer.Chain):
         quaternion = quaternion.reshape(batch_size, self._n_fg_class, 4)
         quaternion = F.normalize(quaternion, axis=1)
 
+        quaternion = quaternion[xp.arange(batch_size), class_id, :]
+
         return quaternion
 
     def __call__(
@@ -143,9 +140,8 @@ class Model(chainer.Chain):
         translation_rough,
     ):
         quaternion_pred = self.predict(
+            class_id=class_id,
             rgb=rgb,
-            quaternion_true=quaternion_true,
-            translation_true=translation_true,
         )
 
         self.evaluate(
@@ -164,11 +160,6 @@ class Model(chainer.Chain):
         return loss
 
     def loss(self, *, class_id, quaternion_true, quaternion_pred):
-        xp = self.xp
-
-        batch_size = class_id.shape[0]
-        quaternion_pred = quaternion_pred[xp.arange(batch_size), class_id, :]
-
         T_cam2cad_true = objslampp.functions.quaternion_matrix(
             quaternion_true
         )
