@@ -72,9 +72,11 @@ class Dataset(objslampp.datasets.base.DatasetBase):
         instance_id = np.where(class_ids == class_id)[0][0]
 
         mask = frame['label'] == class_id
+        if mask.sum() == 0:
+            return self._get_invalid_data()
+
         bbox = objslampp.geometry.masks_to_bboxes([mask])[0]
         y1, x1, y2, x2 = bbox.round().astype(int)
-
         if (y2 - y1) * (x2 - x1) == 0:
             return self._get_invalid_data()
 
@@ -91,6 +93,8 @@ class Dataset(objslampp.datasets.base.DatasetBase):
         pcd[~mask] = np.nan
         pcd = pcd[y1:y2, x1:x2]
         pcd = imgviz.centerize(pcd, (256, 256), cval=np.nan)
+        if np.isnan(pcd).all():
+            return self._get_invalid_data()
 
         T_cad2cam = frame['meta']['poses'][:, :, instance_id]
         quaternion_true = tf.quaternion_from_matrix(T_cad2cam)
