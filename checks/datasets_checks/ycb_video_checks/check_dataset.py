@@ -14,36 +14,25 @@ class MainApp(object):
         self._mainloop()
 
     def _mainloop(self):
-        index = 1000
 
-        play = False
-        while True:
-            image_id = self._dataset.ids[index]
-            termcolor.cprint(f'[{index}] {image_id}', attrs={'bold': True})
+        class Images(list):
+            def __init__(self, app):
+                self.app = app
+                self.index = 1000
 
-            frame = self._dataset[index]
-            image = self._process_frame(frame)
+            def __len__(self):
+                return len(self.app._dataset)
 
-            imgviz.io.cv_imshow(image, __file__)
+            def __getitem__(self, index):
+                image_id = self.app._dataset.ids[index]
+                termcolor.cprint(f'[{index}] {image_id}', attrs={'bold': True})
 
-            if play:
-                key = imgviz.io.cv_waitkey(1)
-                index += 15
-            else:
-                key = imgviz.io.cv_waitkey()
+                frame = self.app._dataset[index]
+                image = self.app._process_frame(frame)
+                return image
 
-            if key >= 0:
-                try:
-                    key = chr(key)
-                except Exception:
-                    pass
-                if key in list('qs'):
-                    print(f'key: {key}')
-
-            if key == 's':
-                play = not play
-            elif key == 'q':
-                break
+        imgviz.io.pyglet_imshow(Images(app=self))
+        imgviz.io.pyglet_run()
 
     def _process_frame(self, frame):
         meta = frame['meta']
