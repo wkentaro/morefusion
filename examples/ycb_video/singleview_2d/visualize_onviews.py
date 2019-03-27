@@ -13,8 +13,8 @@ import trimesh.transformations as tf
 
 import objslampp
 
-from lib import Model
-from lib import Dataset
+from contrib import Model
+from contrib import Dataset
 
 
 parser = argparse.ArgumentParser(
@@ -32,7 +32,7 @@ pprint.pprint(args_data)
 if args.gpu >= 0:
     chainer.cuda.get_device_from_id(args.gpu).use()
 
-model = Model()
+model = Model(n_fg_class=21, freeze_until='none')
 if args.gpu >= 0:
     model.to_gpu()
 
@@ -48,16 +48,22 @@ depth2rgb = imgviz.Depth2RGB()
 for index in range(len(dataset)):
     examples = dataset[index:index + 1]
     inputs = chainer.dataset.concat_examples(examples, device=args.gpu)
-    cad_pcd, rgb, quaternion_true, translation_true, translation_rough = inputs
     with chainer.no_backprop_mode() and chainer.using_config('train', False):
-        quaternion_pred = model.predict(*inputs)
+        quaternion_pred = model.predict(
+            rgb=inputs['rgb'],
+            quaternion_true=inputs['quaternion_true'],
+            translation_true=inputs['translation_true'],
+        )
+
+        class_id = cuda.to_cpu(inputs['class_id'])
+        quaternion_pred = quaternion_pred[np.arange(1), class_id]
         quaternion_pred = cuda.to_cpu(quaternion_pred.array)[0]
-        translation_pred = cuda.to_cpu(translation_rough)[0]
+        translation_pred = cuda.to_cpu(inputs['translation_rough'])[0]
         T_pred = tf.quaternion_matrix(quaternion_pred)
         T_pred[:3, 3] = translation_pred
 
-        translation_true = cuda.to_cpu(translation_true)[0]
-        quaternion_true = cuda.to_cpu(quaternion_true)[0]
+        quaternion_true = cuda.to_cpu(inputs['quaternion_true'])[0]
+        translation_true = cuda.to_cpu(inputs['translation_true'])[0]
         T_true = tf.quaternion_matrix(quaternion_true)
         T_true[:3, 3] = translation_true
 
@@ -76,7 +82,7 @@ for index in range(len(dataset)):
 
     scene = trimesh.Scene()
 
-    cad_file = objslampp.datasets.YCBVideoModelsDataset()\
+    cad_file = objslampp.datasets.YCBVideoModels()\
         .get_model(class_id=class_id)['textured_simple']
 
     import pybullet

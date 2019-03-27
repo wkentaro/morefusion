@@ -94,7 +94,6 @@ class Model(chainer.Chain):
         rgb,
         quaternion_true,
         translation_true,
-        translation_rough,
     ):
         xp = self.xp
 
@@ -147,7 +146,6 @@ class Model(chainer.Chain):
             rgb=rgb,
             quaternion_true=quaternion_true,
             translation_true=translation_true,
-            translation_rough=translation_rough,
         )
 
         self.evaluate(
