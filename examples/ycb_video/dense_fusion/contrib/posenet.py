@@ -17,8 +17,8 @@ class PoseNet(chainer.Chain):
         *,
         n_fg_class,
         freeze_until,
-        n_point,
         lambda_confidence,
+        n_point=1000,
     ):
         super().__init__()
         with self.init_scope():
@@ -52,7 +52,7 @@ class PoseNet(chainer.Chain):
         self._n_point = n_point
         self._lambda_confidence = lambda_confidence
 
-    def predict(self, *, rgb, pcd):
+    def predict(self, *, class_id, rgb, pcd):
         xp = self.xp
 
         B, H, W, C = rgb.shape
@@ -127,7 +127,15 @@ class PoseNet(chainer.Chain):
 
         cls_trans = pcd_masked[:, None, :, :] + cls_trans
 
-        return cls_rot, cls_trans, cls_conf
+        rot = cls_rot[xp.arange(B), class_id, :, :]
+        trans = cls_trans[xp.arange(B), class_id, :, :]
+        conf = cls_conf[xp.arange(B), class_id]
+
+        rot = F.normalize(rot, axis=1)
+        rot = rot.transpose(0, 2, 1)    # B4M -> BM4
+        trans = trans.transpose(0, 2, 1)  # B3M -> BM3
+
+        return rot, trans, conf
 
     def __call__(
         self,
@@ -138,19 +146,9 @@ class PoseNet(chainer.Chain):
         quaternion_true,
         translation_true,
     ):
-        B = class_id.shape[0]
-
         quaternion_pred, translation_pred, confidence_pred = self.predict(
-            rgb=rgb, pcd=pcd
+            class_id=class_id, rgb=rgb, pcd=pcd
         )
-
-        quaternion_pred = quaternion_pred[np.arange(B), class_id, :, :]
-        translation_pred = translation_pred[np.arange(B), class_id, :, :]
-        confidence_pred = confidence_pred[np.arange(B), class_id]
-
-        quaternion_pred = F.normalize(quaternion_pred, axis=1)
-        quaternion_pred = quaternion_pred.transpose(0, 2, 1)    # B4M -> BM4
-        translation_pred = translation_pred.transpose(0, 2, 1)  # B3M -> BM3
 
         self.evaluate(
             class_id=class_id,
