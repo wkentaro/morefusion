@@ -93,7 +93,7 @@ class PoseNet(chainer.Chain):
             if n_point >= self._n_point:
                 keep = xp.random.permutation(n_point)[:self._n_point]
             else:
-                keep = np.r_[
+                keep = xp.r_[
                     xp.arange(n_point),
                     xp.random.randint(0, n_point, self._n_point - n_point),
                 ]
