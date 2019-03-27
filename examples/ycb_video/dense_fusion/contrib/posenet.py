@@ -146,6 +146,16 @@ class PoseNet(chainer.Chain):
         quaternion_true,
         translation_true,
     ):
+        keep = class_id != -1
+        if keep.sum() == 0:
+            return chainer.Variable(self.xp.zeros((), dtype=np.float32))
+
+        class_id = class_id[keep]
+        rgb = rgb[keep]
+        pcd = pcd[keep]
+        quaternion_true = quaternion_true[keep]
+        translation_true = translation_true[keep]
+
         quaternion_pred, translation_pred, confidence_pred = self.predict(
             class_id=class_id, rgb=rgb, pcd=pcd
         )

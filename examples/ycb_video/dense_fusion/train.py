@@ -36,19 +36,19 @@ def main():
     parser.add_argument(
         '--freeze-until',
         choices=['conv4_3', 'conv3_3', 'conv2_2', 'conv1_2', 'none'],
-        default='conv4_3',
+        default='none',
         help='freeze until',
     )
     parser.add_argument(
         '--lr',
         type=float,
-        default=1e-5,
+        default=0.0001,
         help='learning rate',
     )
     parser.add_argument(
         '--lambda-confidence',
         type=float,
-        default=0.1,
+        default=0.015,
         help='lambda confidence',
     )
     parser.add_argument(
@@ -124,7 +124,7 @@ def main():
 
     # iterator initialization
     iter_train = chainer.iterators.SerialIterator(
-        data_train, batch_size=1, repeat=True, shuffle=True
+        data_train, batch_size=8, repeat=True, shuffle=True
     )
     iter_valid = chainer.iterators.SerialIterator(
         data_valid, batch_size=1, repeat=False, shuffle=False
