@@ -25,6 +25,7 @@ def main():
     parser.add_argument('model', help='model file in a log dir')
     parser.add_argument('--gpu', type=int, default=0, help='gpu id')
     parser.add_argument('--show', action='store_true', help='show')
+    parser.add_argument('--save', action='store_true', help='save')
     args = parser.parse_args()
 
     args_file = pathlib.Path(args.model).parent / 'args'
@@ -81,7 +82,7 @@ def main():
 
         print(f'[{index:08d}] [{image_id}] {observation}')
 
-        if not args.show:
+        if not (args.show or args.save):
             continue
 
         frame = dataset.get_frame(image_id)
@@ -136,7 +137,16 @@ def main():
             viz = imgviz.draw.text(viz, (1, 1), text, (0, 0, 0), font_size)
             vizs.append(viz)
         viz = imgviz.tile(vizs, (2, 1), border=(255, 255, 255))
-        yield viz
+
+        if args.save:
+            out_file = (
+                pathlib.Path(args.model).parent / f'video/{image_id}.jpg'
+            )
+            out_file.parent.mkdir(parents=True, exist_ok=True)
+            imgviz.io.imsave(out_file, viz)
+
+        if args.show:
+            yield viz
 
     df = pandas.DataFrame(list(observations))
 
