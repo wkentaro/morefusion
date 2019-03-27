@@ -10,6 +10,7 @@ from chainer import cuda
 import imgviz
 import matplotlib.pyplot as plt
 import pandas
+import trimesh
 import trimesh.transformations as tf
 
 import objslampp
@@ -50,6 +51,7 @@ def main():
     # -------------------------------------------------------------------------
 
     observations = []
+    depth2rgb = imgviz.Depth2RGB()
     for index in range(len(dataset)):
         image_id, class_id = dataset.ids[index]
         # if image_id.split('/')[0] != '0054':
@@ -86,6 +88,10 @@ def main():
         rgb = frame['color']
         meta = frame['meta']
         K = meta['intrinsic_matrix']
+        height, width = rgb.shape[:2]
+        fovy = trimesh.scene.Camera(
+            resolution=(width, height), focal=(K[0, 0], K[1, 1])
+        ).fov[1]
         cad_file = objslampp.datasets.YCBVideoModels()\
             .get_model(class_id=class_id)['textured_simple']
 
@@ -102,13 +108,17 @@ def main():
 
         vizs = []
         for which in ['true', 'pred']:
-            rgb_rendered, mask_rendered = contrib.render(
-                cad_file, Ts[which], K, height=480, width=640
+            rgb_rend, depth_rend, mask_rend = \
+                objslampp.extra.pybullet.render(
+                    cad_file, Ts[which], fovy=fovy, height=height, width=width
+                )
+            mask_rend = imgviz.label2rgb(mask_rend, img=rgb, alpha=0.7)
+            depth_rend = depth2rgb(depth_rend)
+            viz = imgviz.tile(
+                [rgb, mask_rend, rgb_rend, depth_rend],
+                (1, 4),
+                border=(255, 255, 255),
             )
-            mask_rendered = imgviz.label2rgb(
-                mask_rendered, img=rgb, alpha=0.7
-            )
-            viz = imgviz.tile([rgb, mask_rendered, rgb_rendered], (1, 3))
             viz = imgviz.resize(viz, width=1000)
 
             font_size = 20
@@ -125,7 +135,7 @@ def main():
             )
             viz = imgviz.draw.text(viz, (1, 1), text, (0, 0, 0), font_size)
             vizs.append(viz)
-        viz = imgviz.tile(vizs, (2, 1), border=(0, 0, 0))
+        viz = imgviz.tile(vizs, (2, 1), border=(255, 255, 255))
         yield viz
 
     df = pandas.DataFrame(list(observations))

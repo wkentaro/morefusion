@@ -3,6 +3,7 @@ import typing
 
 import numpy as np
 import trimesh
+import trimesh.transformations as tf
 
 from .. import geometry
 from ._trimesh import wired_box
@@ -280,3 +281,42 @@ def render_views(visual_file, eyes, targets, height=256, width=256, gui=False):
     ])
 
     return K, Ts_cam2world, rgbs, depths, segms
+
+
+def render(visual_file, T_cad2cam, fovy, height, width):
+    import pybullet
+
+    pybullet.connect(pybullet.DIRECT)
+
+    add_model(
+        visual_file,
+        position=tf.translation_from_matrix(T_cad2cam),
+        orientation=tf.quaternion_from_matrix(T_cad2cam)[[1, 2, 3, 0]],
+        register=False
+    )
+
+    far = 1000.
+    near = 0.01
+    projection_matrix = pybullet.computeProjectionMatrixFOV(
+        fov=fovy, aspect=1. * width / height, farVal=far, nearVal=near
+    )
+    view_matrix = pybullet.computeViewMatrix(
+        cameraEyePosition=[0, 0, 0],
+        cameraTargetPosition=[0, 0, 1],
+        cameraUpVector=[0, -1, 0],
+    )
+    _, _, rgb, depth, segm = pybullet.getCameraImage(
+        width,
+        height,
+        viewMatrix=view_matrix,
+        projectionMatrix=projection_matrix,
+    )
+
+    rgb = rgb[:, :, :3]
+    depth = np.asarray(depth, dtype=np.float32).reshape(height, width)
+    depth = far * near / (far - (far - near) * depth)
+    depth[segm == -1] = np.nan
+    mask = (segm == 0).astype(np.int32)
+
+    pybullet.disconnect()
+    return rgb, depth, mask
