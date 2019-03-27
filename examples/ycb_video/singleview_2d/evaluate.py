@@ -155,9 +155,12 @@ def main():
     errors = df['main/add_rotation/0002'].values
     auc, x, y = objslampp.metrics.auc_for_errors(errors, 0.1, return_xy=True)
     print('auc (add_rotation):', auc)
+
+    fig = plt.figure(figsize=(10, 5))
+
     plt.subplot(121)
     plt.title('ADD (rotation) (AUC={:.1f})'.format(auc * 100))
-    plt.plot(x, y)
+    plt.plot(x, y, color='b')
     plt.xlim(0, 0.1)
     plt.ylim(0, 1)
     plt.xlabel('average distance threshold [m]')
@@ -168,14 +171,17 @@ def main():
     auc, x, y = objslampp.metrics.auc_for_errors(errors, 0.1, return_xy=True)
     print('auc (add):', auc)
     plt.title('ADD (rotation + translation) (AUC={:.1f})'.format(auc * 100))
-    plt.plot(x, y)
+    plt.plot(x, y, color='b')
     plt.xlim(0, 0.1)
     plt.ylim(0, 1)
     plt.xlabel('average distance threshold [m]')
     plt.ylabel('accuracy')
 
     plt.tight_layout()
-    plt.show()
+    img = imgviz.io.pyplot_fig2arr(fig)
+    out_file = pathlib.Path(args.model).parent / 'auc.png'
+    print('==> Saved ADD curve plot:', out_file)
+    imgviz.io.imsave(out_file, img)
 
 
 if __name__ == '__main__':
