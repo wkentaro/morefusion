@@ -85,6 +85,8 @@ def main():
         if not (args.show or args.save):
             continue
 
+        # ---------------------------------------------------------------------
+
         frame = dataset.get_frame(image_id)
         rgb = frame['color']
         meta = frame['meta']
