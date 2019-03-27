@@ -61,7 +61,8 @@ class YCBVideoDataset(DatasetBase):
             for line in f:
                 image_id = line.strip()
                 video_id, frame_id = image_id.split('/')
-                if int(frame_id) % sampling == 0:
+                if (int(frame_id) - 1) % sampling == 0:
+                    # frame_id starts from 1
                     ids.append(image_id)
             return tuple(ids)
 
