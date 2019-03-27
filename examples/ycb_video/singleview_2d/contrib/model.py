@@ -139,6 +139,16 @@ class Model(chainer.Chain):
         translation_true,
         translation_rough,
     ):
+        keep = class_id != -1
+        if keep.sum() == 0:
+            return chainer.Variable(self.xp.zeros((), dtype=np.float32))
+
+        class_id = class_id[keep]
+        rgb = rgb[keep]
+        quaternion_true = quaternion_true[keep]
+        translation_true = translation_true[keep]
+        translation_rough = translation_rough[keep]
+
         quaternion_pred = self.predict(
             class_id=class_id,
             rgb=rgb,

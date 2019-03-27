@@ -54,12 +54,16 @@ def main():
     observations = []
     depth2rgb = imgviz.Depth2RGB()
     for index in range(len(dataset)):
-        image_id, class_id = dataset.ids[index]
+        is_real, image_id = dataset.ids[index]
         # if image_id.split('/')[0] != '0054':
         #     continue
 
         examples = dataset[index:index + 1]
         inputs = chainer.dataset.concat_examples(examples, device=args.gpu)
+
+        if inputs['class_id'][0] == -1:
+            continue
+
         with chainer.no_backprop_mode() and \
                 chainer.using_config('train', False):
             quaternion_pred = model.predict(
