@@ -44,10 +44,16 @@ class MainApp(object):
         label = frame['label']
         label_viz = imgviz.label2rgb(label)
 
-        labels = meta['cls_indexes']
+        labels = meta['cls_indexes'].astype(np.int32)
         # NOTE: cls_mask is the same as ins_mask in YCB_Video_Dataset
-        masks = [label == cls_id for cls_id in labels]
-        bboxes = imgviz.instances.mask_to_bbox(masks)
+        masks = np.asarray([label == cls_id for cls_id in labels])
+        bboxes = objslampp.geometry.masks_to_bboxes(masks)
+
+        keep = ~(bboxes == 0).all(axis=1)
+        labels = labels[keep]
+        bboxes = bboxes[keep]
+        masks = masks[keep]
+
         gray = imgviz.gray2rgb(imgviz.rgb2gray(color))
         ins_viz = imgviz.instances2rgb(
             gray, labels=labels, bboxes=bboxes, masks=masks
@@ -59,12 +65,9 @@ class MainApp(object):
         vert_viz_y = imgviz.depth2rgb(vertmap[:, :, 1])
         vert_viz_z = imgviz.depth2rgb(vertmap[:, :, 2])
 
-        feat_viz = np.zeros_like(color)
-
         roi_viz_color = []
         roi_viz_depth = []
         roi_viz_label = []
-        roi_viz_feat = []
         for bbox, mask in zip(bboxes, masks):
             y1, x1, y2, x2 = bbox.round().astype(int)
             mask_roi = mask[y1:y2, x1:x2]
@@ -74,16 +77,12 @@ class MainApp(object):
             depth_roi[~mask_roi] = 0
             label_roi = label_viz[y1:y2, x1:x2].copy()
             label_roi[~mask_roi] = 0
-            feat_roi = feat_viz[y1:y2, x1:x2].copy()
-            feat_roi[~mask_roi] = 0
             roi_viz_color.append(color_roi)
             roi_viz_depth.append(depth_roi)
             roi_viz_label.append(label_roi)
-            roi_viz_feat.append(feat_roi)
         roi_viz_color = imgviz.tile(roi_viz_color, border=(255, 255, 255))
         roi_viz_depth = imgviz.tile(roi_viz_depth, border=(255, 255, 255))
         roi_viz_label = imgviz.tile(roi_viz_label, border=(255, 255, 255))
-        roi_viz_feat = imgviz.tile(roi_viz_feat, border=(255, 255, 255))
 
         viz = imgviz.tile([
             color,
@@ -97,9 +96,9 @@ class MainApp(object):
             roi_viz_color,
             roi_viz_depth,
             roi_viz_label,
-            roi_viz_feat,
+            np.zeros_like(roi_viz_color),
         ], shape=(3, 4), border=(255, 255, 255))
-        viz = imgviz.resize(viz, height=500)
+        viz = imgviz.centerize(viz, (1000, 1000))
 
         return viz
 

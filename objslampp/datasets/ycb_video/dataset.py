@@ -12,9 +12,10 @@ from ..base import DatasetBase
 class YCBVideoDataset(DatasetBase):
 
     _root_dir = pathlib.Path.home() / 'data/datasets/YCB/YCB_Video_Dataset'
+    _data_dir = 'data'
 
     def __init__(self, split: str, sampling=1):
-        assert split in ('train', 'val', 'trainval')
+        assert split in ('train', 'val', 'trainval', 'keyframe')
         self._split = split
         self._ids = self.get_ids(split=split, sampling=sampling)
 
@@ -52,7 +53,7 @@ class YCBVideoDataset(DatasetBase):
         split: str,
         sampling: int = 1,
     ):
-        assert split in ['train', 'val', 'trainval']
+        assert split in ('train', 'val', 'trainval', 'keyframe')
 
         imageset_file: pathlib.Path = self.root_dir / f'image_sets/{split}.txt'
         with open(imageset_file) as f:
@@ -67,26 +68,28 @@ class YCBVideoDataset(DatasetBase):
     @classmethod
     def get_frame(cls, image_id: str) -> dict:
         meta_file: pathlib.Path = (
-            cls._root_dir / 'data' / (image_id + '-meta.mat')
+            cls._root_dir / cls._data_dir / (image_id + '-meta.mat')
         )
         meta = scipy.io.loadmat(
             meta_file, squeeze_me=True, struct_as_record=True
         )
 
         color_file: pathlib.Path = (
-            cls._root_dir / 'data' / (image_id + '-color.png')
+            cls._root_dir / cls._data_dir / (image_id + '-color.png')
         )
         color: np.ndarray = imgviz.io.imread(color_file)
+        if color.shape[2] == 4:
+            color = color[:, :, :3]  # rgba -> rgb
 
         depth_file: pathlib.Path = (
-            cls._root_dir / 'data' / (image_id + '-depth.png')
+            cls._root_dir / cls._data_dir / (image_id + '-depth.png')
         )
         depth: np.ndarray = imgviz.io.imread(depth_file)
         depth = depth.astype(float) / meta['factor_depth']
         depth[depth == 0] = float('nan')
 
         label_file: pathlib.Path = (
-            cls._root_dir / 'data' / (image_id + '-label.png')
+            cls._root_dir / cls._data_dir / (image_id + '-label.png')
         )
         label: np.ndarray = imgviz.io.imread(label_file)
 
