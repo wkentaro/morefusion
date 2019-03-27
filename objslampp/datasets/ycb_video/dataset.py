@@ -17,7 +17,7 @@ class YCBVideoDataset(DatasetBase):
     def __init__(self, split: str, sampling=1):
         assert split in ('train', 'val', 'trainval', 'keyframe')
         self._split = split
-        self._ids = self.get_ids(split=split, sampling=sampling)
+        self._ids = self.get_ids(sampling=sampling)
 
         if not self.root_dir.exists():
             self.download()
@@ -50,11 +50,9 @@ class YCBVideoDataset(DatasetBase):
 
     def get_ids(
         self,
-        split: str,
         sampling: int = 1,
     ):
-        assert split in ('train', 'val', 'trainval', 'keyframe')
-
+        split = self.split
         imageset_file: pathlib.Path = self.root_dir / f'image_sets/{split}.txt'
         with open(imageset_file) as f:
             ids = []
