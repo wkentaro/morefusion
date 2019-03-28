@@ -91,6 +91,8 @@ def main():
 
         # ---------------------------------------------------------------------
 
+        class_id = int(inputs['class_id'][0])
+
         frame = dataset.get_frame(image_id)
         rgb = frame['color']
         meta = frame['meta']

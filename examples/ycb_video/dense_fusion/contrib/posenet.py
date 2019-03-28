@@ -204,11 +204,11 @@ class PoseNet(chainer.Chain):
         quaternion_pred = quaternion_pred[xp.arange(B), indices]
         translation_pred = translation_pred[xp.arange(B), indices]
 
-        T_cam2cad_true = objslampp.functions.quaternion_matrix(quaternion_true)
-        T_cam2cad_pred = objslampp.functions.quaternion_matrix(quaternion_pred)
+        T_cad2cam_true = objslampp.functions.quaternion_matrix(quaternion_true)
+        T_cad2cam_pred = objslampp.functions.quaternion_matrix(quaternion_pred)
 
-        T_cam2cad_true = cuda.to_cpu(T_cam2cad_true.array)
-        T_cam2cad_pred = cuda.to_cpu(T_cam2cad_pred.array)
+        T_cad2cam_true = cuda.to_cpu(T_cad2cam_true.array)
+        T_cad2cam_pred = cuda.to_cpu(T_cad2cam_pred.array)
         translation_true = cuda.to_cpu(translation_true)
         translation_pred = cuda.to_cpu(translation_pred.array)
 
@@ -218,7 +218,7 @@ class PoseNet(chainer.Chain):
             class_id_i = int(class_id[i])
             cad_pcd = self._get_cad_pcd(class_id=class_id_i)
             add_rotation = objslampp.metrics.average_distance(
-                [cad_pcd], [T_cam2cad_true[i]], [T_cam2cad_pred[i]]
+                [cad_pcd], [T_cad2cam_true[i]], [T_cad2cam_pred[i]]
             )[0]
             if chainer.config.train:
                 summary.add({'add_rotation': add_rotation})
@@ -226,11 +226,11 @@ class PoseNet(chainer.Chain):
                 summary.add({f'add_rotation/{class_id_i:04d}': add_rotation})
         chainer.report(summary.compute_mean(), self)
 
-        T_cam2cad_true = objslampp.functions.compose_transform(
-            Rs=T_cam2cad_true[:, :3, :3], ts=translation_true,
+        T_cad2cam_true = objslampp.functions.compose_transform(
+            Rs=T_cad2cam_true[:, :3, :3], ts=translation_true,
         ).array
-        T_cam2cad_pred = objslampp.functions.compose_transform(
-            Rs=T_cam2cad_pred[:, :3, :3], ts=translation_pred
+        T_cad2cam_pred = objslampp.functions.compose_transform(
+            Rs=T_cad2cam_pred[:, :3, :3], ts=translation_pred
         ).array
 
         # add
@@ -239,7 +239,7 @@ class PoseNet(chainer.Chain):
             class_id_i = int(class_id[i])
             cad_pcd = self._get_cad_pcd(class_id=class_id_i)
             add = objslampp.metrics.average_distance(
-                [cad_pcd], [T_cam2cad_true[i]], [T_cam2cad_pred[i]]
+                [cad_pcd], [T_cad2cam_true[i]], [T_cad2cam_pred[i]]
             )[0]
             if chainer.config.train:
                 summary.add({'add': add})
