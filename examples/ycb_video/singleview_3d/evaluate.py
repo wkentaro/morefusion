@@ -38,9 +38,7 @@ def main():
         chainer.cuda.get_device_from_id(args.gpu).use()
 
     model = contrib.Model(
-        n_fg_class=21,
         freeze_until=args_data['freeze_until'],
-        lambda_confidence=args_data['lambda_confidence'],
     )
     if args.gpu >= 0:
         model.to_gpu()
@@ -68,8 +66,9 @@ def main():
 
         with chainer.no_backprop_mode() and \
                 chainer.using_config('train', False):
-            quaternion_pred, translation_pred, confidence_pred = model.predict(
+            quaternion_pred, translation_pred = model.predict(
                 class_id=inputs['class_id'],
+                pitch=inputs['pitch'],
                 rgb=inputs['rgb'],
                 pcd=inputs['pcd'],
             )
@@ -84,7 +83,6 @@ def main():
                     translation_true=inputs['translation_true'],
                     quaternion_pred=quaternion_pred,
                     translation_pred=translation_pred,
-                    confidence_pred=confidence_pred,
                 )
             observations.append(observation)
 
@@ -107,10 +105,6 @@ def main():
         ).fov[1]
         cad_file = objslampp.datasets.YCBVideoModels()\
             .get_model(class_id=class_id)['textured_simple']
-
-        index = confidence_pred.array.argmax(axis=1)
-        quaternion_pred = quaternion_pred[np.arange(1), index, :]
-        translation_pred = translation_pred[np.arange(1), index, :]
 
         quaternion_pred = cuda.to_cpu(quaternion_pred.array)[0]
         translation_pred = cuda.to_cpu(translation_pred.array)[0]
