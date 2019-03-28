@@ -9,19 +9,7 @@ import trimesh.viewer
 import objslampp
 
 
-def check_voxelization_3d(data, gpu, **kwargs):
-    np.random.seed(0)
-
-    origin = data['scan_origin']
-    pitch = data['pitch']
-    mask = data['scan_masks'][0]
-    pcd = data['scan_pcds'][0]
-    rgb = data['scan_rgbs'][0]
-
-    isnan = np.isnan(pcd).any(axis=2)
-    points = pcd[(~isnan) & mask].astype(np.float32)
-    values = rgb[(~isnan) & mask].astype(np.float32) / 255
-
+def check_voxelization_3d(origin, pitch, points, values, gpu, **kwargs):
     if gpu >= 0:
         cuda.get_device_from_id(gpu).use()
         values = cuda.to_gpu(values)
@@ -58,20 +46,59 @@ def check_voxelization_3d(data, gpu, **kwargs):
 
 
 def main():
-    dataset = objslampp.datasets.YCBVideoMultiViewAlignmentDataset(
-        split='train'
+    dataset = objslampp.datasets.YCBVideoDataset(split='train')
+    class_names = objslampp.datasets.ycb_video.class_names
+
+    example = dataset[1000]
+
+    rgb = example['color']
+    depth = example['depth']
+
+    K = example['meta']['intrinsic_matrix']
+    pcd = objslampp.geometry.pointcloud_from_depth(
+        depth, fx=K[0, 0], fy=K[1, 1], cx=K[0, 2], cy=K[1, 2]
     )
-    data = dataset[0]
+
+    class_id = example['meta']['cls_indexes'][0]
+    mask = example['label'] == class_id
+    mask = (~np.isnan(pcd).any(axis=2)) & mask
+
+    points = pcd[mask].astype(np.float32)
+    values = rgb[mask].astype(np.float32) / 255
+
+    # pitch
+    cad_file = objslampp.datasets.YCBVideoModels().get_model(
+        class_id=class_id
+    )['textured_simple']
+    bbox_diagonal = objslampp.datasets.YCBVideoModels.get_bbox_diagonal(
+        mesh_file=cad_file
+    )
+    pitch = bbox_diagonal / 32.0
+
+    # origin
+    centroid = points.mean(axis=0)
+    origin = centroid - pitch * 32 / 2.
+
+    print(f'class_id: {class_id}')
+    print(f'class_name: {class_names[class_id]}')
+    print(f'origin: {origin}')
+    print(f'pitch: {pitch}')
 
     check_voxelization_3d(
-        data=data,
+        origin,
+        pitch,
+        points,
+        values,
         gpu=-1,
         start_loop=False,
         caption='Voxelization3D (CPU)',
         resolution=(400, 400),
     )
     check_voxelization_3d(
-        data=data,
+        origin,
+        pitch,
+        points,
+        values,
         gpu=0,
         caption='Voxelization3D (GPU)',
         resolution=(400, 400),
