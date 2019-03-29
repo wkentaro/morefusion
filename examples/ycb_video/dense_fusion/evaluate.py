@@ -11,6 +11,7 @@ import imgviz
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas
+import pybullet  # NOQA
 import trimesh
 import trimesh.transformations as tf
 
