@@ -174,7 +174,7 @@ def main():
 
     plt.subplot(121)
     plt.title('ADD (rotation) (AUC={:.1f})'.format(auc * 100))
-    plt.plot(x, y)
+    plt.plot(x, y, color='b')
     plt.xlim(0, 0.1)
     plt.ylim(0, 1)
     plt.xlabel('average distance threshold [m]')
@@ -185,7 +185,7 @@ def main():
     auc, x, y = objslampp.metrics.auc_for_errors(errors, 0.1, return_xy=True)
     print('auc (add):', auc)
     plt.title('ADD (rotation + translation) (AUC={:.1f})'.format(auc * 100))
-    plt.plot(x, y)
+    plt.plot(x, y, color='b')
     plt.xlim(0, 0.1)
     plt.ylim(0, 1)
     plt.xlabel('average distance threshold [m]')
