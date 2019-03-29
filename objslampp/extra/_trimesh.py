@@ -90,3 +90,11 @@ def show_with_rotation(scene, step=None, **kwargs):
         scene.set_camera(angles=scene.angles)
 
     return trimesh.viewer.SceneViewer(scene=scene, callback=callback, **kwargs)
+
+
+def camera_transform(transform=None):
+    if transform is None:
+        transform = np.eye(4)
+    return transform @ trimesh.transformations.rotation_matrix(
+        np.deg2rad(-180), [1, 0, 0]
+    )
