@@ -10,11 +10,11 @@ class VoxelMapping(object):
         self,
         origin=None,
         pitch=None,
-        voxel_size=None,
+        voxel_dim=None,
         nchannel=None,
     ):
         self.origin = origin
-        self.voxel_size = voxel_size
+        self.voxel_dim = voxel_dim
         self.pitch = pitch
         self.nchannel = nchannel
 
@@ -24,26 +24,26 @@ class VoxelMapping(object):
     @property
     def matrix(self):
         if self._matrix is None:
-            self._matrix = np.zeros((self.voxel_size,) * 3, dtype=float)
+            self._matrix = np.zeros((self.voxel_dim,) * 3, dtype=float)
         return self._matrix
 
     @property
     def values(self):
         if self._values is None:
             self._values = np.zeros(
-                (self.voxel_size,) * 3 + (self.nchannel,), dtype=float
+                (self.voxel_dim,) * 3 + (self.nchannel,), dtype=float
             )
         return self._values
 
     @property
     def voxel_bbox_extents(self):
-        return np.array((self.voxel_size * self.pitch,) * 3, dtype=float)
+        return np.array((self.voxel_dim * self.pitch,) * 3, dtype=float)
 
     def add(self, points, values):
         indices = trimesh.voxel.points_to_indices(
             points, self.pitch, self.origin
         )
-        keep = ((indices >= 0) & (indices < self.voxel_size)).all(axis=1)
+        keep = ((indices >= 0) & (indices < self.voxel_dim)).all(axis=1)
         indices = indices[keep]
         I, J, K = zip(*indices)
         self.matrix[I, J, K] = True
