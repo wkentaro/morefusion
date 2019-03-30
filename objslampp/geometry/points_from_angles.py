@@ -21,6 +21,6 @@ def points_from_angles(
         azimuth = xp.radians(azimuth)
     return xp.stack([
         distance * xp.cos(elevation) * xp.sin(azimuth),
+        - distance * xp.cos(elevation) * xp.cos(azimuth),
         distance * xp.sin(elevation),
-        -distance * xp.cos(elevation) * xp.cos(azimuth),
     ]).transpose()

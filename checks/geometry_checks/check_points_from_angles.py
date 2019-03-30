@@ -8,13 +8,13 @@ from objslampp.geometry import points_from_angles
 
 
 def main():
-    point = points_from_angles(
-        distance=[1],
-        elevation=[135],
-        azimuth=[45],
+    points = points_from_angles(
+        distance=[1] * 2,
+        elevation=[0, 45, 90],
+        azimuth=[0] * 2,
         is_degree=True,
-    )[0]
-    print(point)
+    )
+    print(points)
 
     ax = plt.subplot(111, projection='3d')
 
@@ -25,11 +25,13 @@ def main():
     z = np.cos(v)
     ax.plot_wireframe(x, y, z, color='r')
 
-    # plot point
-    xs = [0, point[0]]
-    ys = [0, point[1]]
-    zs = [0, point[2]]
-    ax.plot(xs, ys, zs, marker='o', color='b')
+    for point in points:
+        # plot point
+        xs = [0, point[0]]
+        ys = [0, point[1]]
+        zs = [0, point[2]]
+        ax.plot(xs, ys, zs, marker='o', color='b')
+
     ax.set_xlim(-1, 1)
     ax.set_ylim(-1, 1)
     ax.set_zlim(-1, 1)
