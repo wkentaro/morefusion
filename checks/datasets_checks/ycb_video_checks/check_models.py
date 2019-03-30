@@ -1,9 +1,21 @@
 #!/usr/bin/env python
 
-import tqdm
+import concurrent.futures
 import trimesh
 
 import objslampp
+
+
+def get_uniform_scale_cad(models, class_name):
+    model = models.get_model(class_name=class_name)
+    cad_file = model['textured_simple']
+
+    cad = trimesh.load(str(cad_file), file_type='obj', process=False)
+    cad.visual = cad.visual.to_color()  # texture visualization is slow
+
+    scale = cad.bounding_box.extents.max()
+    cad.apply_scale(0.5 / scale)
+    return cad
 
 
 def main():
@@ -11,20 +23,11 @@ def main():
     class_names = objslampp.datasets.ycb_video.class_names
 
     cads = []
-    min_z = float('inf')
-    for class_name in tqdm.tqdm(class_names[1:]):
-        model = models.get_model(class_name=class_name)
-        cad_file = model['textured_simple']
-
-        cad = trimesh.load(str(cad_file), file_type='obj', process=False)
-        cad.visual = cad.visual.to_color()  # texture visualization is slow
-
-        scale = cad.bounding_box.extents.max()
-        cad.apply_scale(0.5 / scale)
-
-        min_z = min(min_z, cad.vertices.min())
-
-        cads.append(cad)
+    with concurrent.futures.ProcessPoolExecutor() as executor:
+        for class_name in class_names[1:]:
+            result = executor.submit(get_uniform_scale_cad, models, class_name)
+            cads.append(result)
+    cads = [future.result() for future in cads]
 
     scene = objslampp.extra.trimesh.tile_meshes(cads)
     scene.show()
