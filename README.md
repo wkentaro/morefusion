@@ -15,4 +15,3 @@
 <li><a href="https://drive.google.com/open?id=1EnOtEawvWUcihlsnSrIbNeB5oE-UJGDv">System Overview</a></li>
 <li><a href="https://github.com/wkentaro/scenenetrgb-d/tree/master/python/examples#object-level-slam-full-recon-and-physical-sim-for-navi-and-manip-in-heavy-clutter">Dataset Synthesizing</a></li>
 </ul>
-<h2>Examples</h2>
