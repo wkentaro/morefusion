@@ -51,7 +51,6 @@ def add_model(
     orientation: typing.Optional[typing.Sequence] = None,
     mesh_scale:
         typing.Optional[typing.Union[int, float, typing.Sequence]] = None,
-    com_position: typing.Optional[typing.Sequence] = None,
     register: bool = True,
 ) -> int:
     import pybullet
@@ -60,14 +59,6 @@ def add_model(
     if collision_file is None:
         collision_file = visual_file
     collision_file = str(collision_file)
-
-    if com_position is None:
-        import trimesh
-        mesh = trimesh.load(visual_file)
-        if mesh_scale is not None:
-            mesh.apply_scale(mesh_scale)
-        com_position = mesh.centroid
-        del trimesh, mesh
 
     if position is None:
         position = [0, 0, 0]
@@ -81,18 +72,18 @@ def add_model(
     visual_shape_id = pybullet.createVisualShape(
         shapeType=pybullet.GEOM_MESH,
         fileName=visual_file,
-        visualFramePosition=[0, 0, 0],
+        visualFramePosition=(0, 0, 0),
         meshScale=mesh_scale,
     )
     collision_shape_id = pybullet.createCollisionShape(
         shapeType=pybullet.GEOM_MESH,
         fileName=collision_file,
-        collisionFramePosition=[0, 0, 0],
+        collisionFramePosition=(0, 0, 0),
         meshScale=mesh_scale,
     )
     unique_id = pybullet.createMultiBody(
         baseMass=1,
-        baseInertialFramePosition=com_position,
+        baseInertialFramePosition=(0, 0, 0),
         baseCollisionShapeIndex=collision_shape_id,
         baseVisualShapeIndex=visual_shape_id,
         basePosition=position,
