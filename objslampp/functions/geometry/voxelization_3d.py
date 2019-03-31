@@ -4,7 +4,7 @@ import numpy as np
 import trimesh
 
 
-class Voxelization3D(chainer.Function):
+class Voxelization3DBase(chainer.Function):
 
     def __init__(self, *, pitch, origin, dimensions, channels):
         self.pitch = pitch
@@ -34,6 +34,9 @@ class Voxelization3D(chainer.Function):
             points_type.ndim == 2,
             points_type.shape[1] == 3,
         )
+
+
+class Voxelization3D(Voxelization3DBase):
 
     def forward_cpu(self, inputs):
         self.retain_inputs((1,))
