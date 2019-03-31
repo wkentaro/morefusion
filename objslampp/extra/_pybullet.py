@@ -311,3 +311,33 @@ def render(visual_file, T_cad2cam, fovy, height, width):
 
     pybullet.disconnect()
     return rgb, depth, mask
+
+
+def render_camera(T_camera2world, fovy, height, width):
+    import pybullet
+
+    far = 1000.
+    near = 0.01
+    projection_matrix = pybullet.computeProjectionMatrixFOV(
+        fov=fovy, aspect=1. * width / height, farVal=far, nearVal=near
+    )
+    view_matrix = T_camera2world.copy()
+    view_matrix[3, 2] = 1
+    view_matrix[:3, 3] = 0
+    view_matrix[:, 1] *= -1
+    view_matrix[:, 2] *= -1
+    view_matrix = view_matrix.flatten()
+    _, _, rgb, depth, segm = pybullet.getCameraImage(
+        width,
+        height,
+        viewMatrix=view_matrix,
+        projectionMatrix=projection_matrix,
+    )
+
+    rgb = rgb[:, :, :3]
+    depth = np.asarray(depth, dtype=np.float32).reshape(height, width)
+    depth = far * near / (far - (far - near) * depth)
+    depth[segm == -1] = np.nan
+    segm = segm.astype(np.int32)
+
+    return rgb, depth, segm
