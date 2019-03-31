@@ -1,8 +1,10 @@
 import copy
+import io
 import math
 import typing
 
 import numpy as np
+import PIL.Image
 import trimesh
 import trimesh.viewer
 
@@ -103,3 +105,10 @@ def camera_transform(transform=None):
     return transform @ trimesh.transformations.rotation_matrix(
         np.deg2rad(-180), [1, 0, 0]
     )
+
+
+def save_image(scene, **kwargs):
+    with io.BytesIO() as f:
+        data = scene.save_image(resolution=scene.camera.resolution, **kwargs)
+        f.write(data)
+        return np.asarray(PIL.Image.open(f))
