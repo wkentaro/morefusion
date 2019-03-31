@@ -6,7 +6,10 @@ all:
 install_anaconda3:
 	@.make/install_anaconda3.sh
 
-install: install_anaconda3
+install_vhacd:
+	@.make/install_vhacd.sh
+
+install: install_anaconda3 install_vhacd
 	@.make/install.sh
 
 lint:
