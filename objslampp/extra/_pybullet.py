@@ -322,8 +322,8 @@ def render_camera(T_camera2world, fovy, height, width):
         fov=fovy, aspect=1. * width / height, farVal=far, nearVal=near
     )
     view_matrix = T_camera2world.copy()
-    view_matrix[3, 2] = 1
     view_matrix[:3, 3] = 0
+    view_matrix[3, :3] = np.linalg.inv(T_camera2world)[:3, 3]
     view_matrix[:, 1] *= -1
     view_matrix[:, 2] *= -1
     view_matrix = view_matrix.flatten()
