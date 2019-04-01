@@ -45,8 +45,6 @@ class AverageVoxelization3D(Voxelization3D):
         self.retain_inputs((1,))
         values, points = inputs
 
-        n_points = points.shape[0]
-
         # validation
         if cuda.cupy.isnan(points).sum():
             raise ValueError('points include nan')
