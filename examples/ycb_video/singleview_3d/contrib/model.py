@@ -107,7 +107,7 @@ class Model(chainer.Chain):
             origin = centroid - pitch[i] * self._voxel_dim / 2.
             origins.append(origin[None])
 
-            h_i = objslampp.functions.voxelization_3d(
+            h_i = objslampp.functions.average_voxelization_3d(
                 values=values,
                 points=points,
                 origin=origin,

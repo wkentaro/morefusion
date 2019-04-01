@@ -2,10 +2,10 @@ from chainer.backends import cuda
 import numpy as np
 import trimesh
 
-from .voxelization_3d import Voxelization3DBase
+from .voxelization_3d import Voxelization3D
 
 
-class MaxVoxelization3D(Voxelization3DBase):
+class MaxVoxelization3D(Voxelization3D):
 
     def forward_cpu(self, inputs):
         values, points = inputs

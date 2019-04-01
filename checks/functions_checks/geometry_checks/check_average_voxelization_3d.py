@@ -9,13 +9,15 @@ import trimesh.viewer
 import objslampp
 
 
-def check_voxelization_3d(origin, pitch, points, values, gpu, **kwargs):
+def check_average_voxelization_3d(
+    origin, pitch, points, values, gpu, **kwargs
+):
     if gpu >= 0:
         cuda.get_device_from_id(gpu).use()
         values = cuda.to_gpu(values)
         points = cuda.to_gpu(points)
 
-    y = objslampp.functions.voxelization_3d(
+    y = objslampp.functions.average_voxelization_3d(
         values,
         points,
         origin=origin,
@@ -84,7 +86,7 @@ def main():
     print(f'origin: {origin}')
     print(f'pitch: {pitch}')
 
-    check_voxelization_3d(
+    check_average_voxelization_3d(
         origin,
         pitch,
         points,
@@ -94,7 +96,7 @@ def main():
         caption='Voxelization3D (CPU)',
         resolution=(400, 400),
     )
-    check_voxelization_3d(
+    check_average_voxelization_3d(
         origin,
         pitch,
         points,
