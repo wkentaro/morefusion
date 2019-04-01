@@ -1,10 +1,13 @@
 #!/usr/bin/env python
 
+import sys
+
 import numpy as np
 import pybullet
 
 import objslampp
 
+sys.path.insert(0, '.')  # NOQA
 import contrib
 
 
