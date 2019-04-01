@@ -100,10 +100,10 @@ def main():
         points,
         values,
         gpu=0,
+        start_loop=False,
         caption='Voxelization3D (GPU)',
         resolution=(400, 400),
     )
-
     pyglet.app.run()
 
 

@@ -2,7 +2,7 @@
 
 from chainer.backends import cuda
 import numpy as np
-import pybullet  # NOQA
+import pyglet
 import trimesh
 import trimesh.viewer
 
@@ -102,9 +102,11 @@ def main():
         points,
         values,
         gpu=0,
+        start_loop=False,
         caption='Voxelization3D (GPU)',
         resolution=(400, 400),
     )
+    pyglet.app.run()
 
 
 if __name__ == '__main__':
