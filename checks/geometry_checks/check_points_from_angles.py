@@ -9,9 +9,9 @@ from objslampp.geometry import points_from_angles
 
 def main():
     points = points_from_angles(
-        distance=[1] * 2,
+        distance=[1] * 3,
         elevation=[0, 45, 90],
-        azimuth=[0] * 2,
+        azimuth=[0] * 3,
         is_degree=True,
     )
     print(points)
