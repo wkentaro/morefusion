@@ -10,10 +10,11 @@ import objslampp
 
 class Model(chainer.Chain):
 
-    def __init__(self, *, freeze_until):
+    def __init__(self, *, freeze_until, voxelization):
         super().__init__()
 
         self._freeze_until = freeze_until
+        self._voxelization = voxelization
 
         kwargs = {'initialW': chainer.initializers.Normal(0.01)}
         with self.init_scope():
@@ -107,7 +108,12 @@ class Model(chainer.Chain):
             origin = centroid - pitch[i] * self._voxel_dim / 2.
             origins.append(origin[None])
 
-            h_i = objslampp.functions.average_voxelization_3d(
+            if self._voxelization == 'average':
+                func = objslampp.functions.average_voxelization_3d
+            else:
+                assert self._voxelization == 'max'
+                func = objslampp.functions.max_voxelization_3d
+            h_i = func(
                 values=values,
                 points=points,
                 origin=origin,

@@ -40,6 +40,12 @@ def main():
         help='freeze until',
     )
     parser.add_argument(
+        '--voxelization',
+        choices=['average', 'max'],
+        default='average',
+        help='voxelization function',
+    )
+    parser.add_argument(
         '--lr',
         type=float,
         default=0.0001,
@@ -85,7 +91,10 @@ def main():
     print('train={}, val={}'.format(len(data_train), len(data_valid)))
 
     # model initialization
-    model = Model(freeze_until=args.freeze_until)
+    model = Model(
+        freeze_until=args.freeze_until,
+        voxelization=args.voxelization,
+    )
     if args.gpu >= 0:
         model.to_gpu()
 
