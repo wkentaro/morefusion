@@ -132,25 +132,39 @@ class SceneGenerationBase:
             self._spawn_object(class_id=class_id)
         termcolor.cprint('==> Finished scene generation', attrs={'bold': True})
 
+    def render(self, T_camera2world, fovy, height, width):
+        rgb, depth, ins = objslampp.extra.pybullet.render_camera(
+            T_camera2world, fovy, height=height, width=width
+        )
+        cls = np.zeros_like(ins)
+        for ins_id, data in self._objects.items():
+            cls[ins == ins_id] = data['class_id']
+        return rgb, depth, ins, cls
+
     def debug_render(self, T_camera2world):
         class_names = self._models.class_names
+
+        height, width = 480, 640
+        fovx = 60
+        fovy = fovx / width * height
 
         scene = objslampp.extra.pybullet.get_trimesh_scene()
         list(scene.geometry.values())[0].visual.face_colors = (1., 1., 1.)
         for name, geometry in scene.geometry.items():
             if hasattr(geometry.visual, 'to_color'):
                 geometry.visual = geometry.visual.to_color()
-        scene.camera.resolution = (640, 480)
+        scene.camera.resolution = (width, height)
+        scene.camera.fov = (fovx, fovy)
         scene.camera.transform = objslampp.extra.trimesh.camera_transform(
             T_camera2world
         )
 
-        rgb, depth, ins = objslampp.extra.pybullet.render_camera(
-            T_camera2world, scene.camera.fov[1], height=480, width=640
+        rgb, depth, ins, cls = self.render(
+            T_camera2world,
+            fovy=scene.camera.fov[1],
+            height=height,
+            width=width,
         )
-        cls = np.zeros_like(ins)
-        for ins_id, data in self._objects.items():
-            cls[ins == ins_id] = data['class_id']
 
         ins_viz = imgviz.label2rgb(ins + 1, rgb)
         cls_viz = imgviz.label2rgb(
