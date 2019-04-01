@@ -285,8 +285,8 @@ class PoseNet(chainer.Chain):
             class_id_i = int(class_id[i])
             cad_pcd = self._get_cad_pcd(class_id=class_id_i)
             cad_pcd = xp.asarray(cad_pcd, dtype=np.float32)
-            add = objslampp.functions.average_distance(
-                cad_pcd, T_cad2cam_true, T_cad2cam_pred, sqrt=True
+            add = objslampp.functions.average_distance_l1(
+                cad_pcd, T_cad2cam_true, T_cad2cam_pred
             )
 
             # loss_i = F.mean(add)

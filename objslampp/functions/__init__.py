@@ -6,4 +6,5 @@ from .geometry import max_voxelization_3d
 from .geometry import quaternion_matrix
 from .geometry import transform_points
 
-from .loss import average_distance
+from .loss import average_distance_l1
+from .loss import average_distance_l2
