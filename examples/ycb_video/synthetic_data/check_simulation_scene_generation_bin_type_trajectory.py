@@ -3,7 +3,6 @@
 import imgviz
 import numpy as np
 import pybullet
-import termcolor
 
 import objslampp
 
@@ -28,44 +27,17 @@ def main():
     )
     generator.generate()
 
-    self = generator
-
-    n_keypoints = 10
-    n_points = 72
-
-    # targets
-    targets = self._random_state.uniform(*self._aabb, (n_keypoints, 3))
-    targets = contrib.geometry.trajectory.sort(targets)
-    targets = contrib.geometry.trajectory.interpolate(
-        targets, n_points=n_points
-    )
-    for i, target in enumerate(targets):
-        termcolor.cprint(f'==> target[{i}]: {target}', attrs={'bold': True})
-
-    # eyes
-    distance = np.full((n_keypoints,), 1, float)
-    elevation = self._random_state.uniform(30, 90, (n_keypoints,))
-    azimuth = self._random_state.uniform(0, 360, (n_keypoints,))
-    eyes = objslampp.geometry.points_from_angles(distance, elevation, azimuth)
-    indices = np.linspace(0, n_points - 1, num=len(eyes))
-    indices = indices.round().astype(int)
-    eyes = contrib.geometry.trajectory.sort_by(eyes, key=targets[indices])
-    eyes = contrib.geometry.trajectory.interpolate(eyes, n_points=n_points)
-    for i, eye in enumerate(eyes):
-        termcolor.cprint(f'==> eye[{i}]: {eye}', attrs={'bold': True})
+    Ts_cam2world = generator.random_camera_trajectory()
 
     # visualize
-    def images(self, eyes, targets):
+    def images(generator, Ts_cam2world):
         depth2rgb = imgviz.Depth2RGB()
-        n_points = len(eyes)
-        for i in range(n_points):
-            T_camera2world = objslampp.geometry.look_at(
-                eye=eyes[i], at=targets[i]
-            )
-            # generator.debug_render(T_camera2world)
+        n_points = len(Ts_cam2world)
+        for i, T_cam2world in enumerate(Ts_cam2world):
+            # generator.debug_render(T_cam2world)
 
-            rgb, depth, ins, cls = self.render(
-                T_camera2world, fovy=45, height=480, width=640,
+            rgb, depth, ins, cls = generator.render(
+                T_cam2world, fovy=45, height=480, width=640,
             )
             viz = imgviz.tile([
                 rgb,
@@ -87,7 +59,7 @@ def main():
 
             yield viz
 
-    imgviz.io.pyglet_imshow(images(self, eyes, targets))
+    imgviz.io.pyglet_imshow(images(generator, Ts_cam2world))
     imgviz.io.pyglet_run()
 
 

@@ -9,6 +9,8 @@ import termcolor
 
 import objslampp
 
+from ... import geometry as geometry_module
+
 
 class SceneGenerationBase:
 
@@ -188,6 +190,31 @@ class SceneGenerationBase:
         imgviz.io.pyglet_imshow(viz, 'trimesh')
 
         imgviz.io.pyglet_run()
+
+    def random_camera_trajectory(self, n_keypoints=8, n_points=64):
+        # targets
+        targets = self._random_state.uniform(*self._aabb, (n_keypoints, 3))
+        targets = geometry_module.trajectory.sort(targets)
+        targets = geometry_module.trajectory.interpolate(
+            targets, n_points=n_points
+        )
+
+        # eyes
+        distance = np.full((n_keypoints,), 1, dtype=float)
+        elevation = self._random_state.uniform(30, 90, (n_keypoints,))
+        azimuth = self._random_state.uniform(0, 360, (n_keypoints,))
+        eyes = objslampp.geometry.points_from_angles(
+            distance, elevation, azimuth
+        )
+        indices = np.linspace(0, n_points - 1, num=len(eyes))
+        indices = indices.round().astype(int)
+        eyes = geometry_module.trajectory.sort_by(eyes, key=targets[indices])
+        eyes = geometry_module.trajectory.interpolate(eyes, n_points=n_points)
+
+        Ts_cam2world = np.zeros((n_points, 4, 4), dtype=float)
+        for i in range(n_points):
+            Ts_cam2world[i] = objslampp.geometry.look_at(eyes[i], targets[i])
+        return Ts_cam2world
 
     def init_space(self):
         raise NotImplementedError
