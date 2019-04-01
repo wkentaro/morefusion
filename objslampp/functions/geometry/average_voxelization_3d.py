@@ -14,8 +14,6 @@ class AverageVoxelization3D(Voxelization3D):
         n_points = points.shape[0]
 
         # validation
-        assert values.shape[0] == n_points, \
-            'values and points must be the same length'
         if np.isnan(points).sum():
             raise ValueError('points include nan')
 
@@ -50,8 +48,6 @@ class AverageVoxelization3D(Voxelization3D):
         n_points = points.shape[0]
 
         # validation
-        assert values.shape[0] == n_points, \
-            'values and points must be the same length'
         if cuda.cupy.isnan(points).sum():
             raise ValueError('points include nan')
 
