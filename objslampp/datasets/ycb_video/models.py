@@ -13,7 +13,20 @@ from .class_names import class_names
 
 class YCBVideoModels(object):
 
-    root_dir = pathlib.Path.home() / 'data/datasets/YCB/YCB_Video_Models'
+    _root_dir = pathlib.Path.home() / 'data/datasets/YCB/YCB_Video_Models'
+    _class_names = class_names
+
+    @property
+    def root_dir(self):
+        return self._root_dir
+
+    @property
+    def class_names(self):
+        return self._class_names
+
+    @property
+    def n_class(self):
+        return len(self.class_names)
 
     @classmethod
     def download(cls) -> None:
@@ -58,6 +71,9 @@ class YCBVideoModels(object):
             'points_xyz':
                 self.root_dir / class_name / 'points.xyz',
         }
+
+    def get_cad_model(self, *args, **kwargs):
+        return self.get_model(*args, **kwargs)['textured_simple']
 
     @staticmethod
     def get_spherical_views(visual_file, angle_sampling=5, radius=0.3):
