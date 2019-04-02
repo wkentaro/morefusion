@@ -16,10 +16,20 @@ import contrib
 def generate_a_video(out, random_state):
     out.mkdir(parents=True, exist_ok=True)
 
+    models = objslampp.datasets.YCBVideoModels()
+
+    class_weight = np.zeros((models.n_class - 1,), dtype=float)
+    class_weight[[0, 1, 2, 3]] = 1  # only class_id 1,2,3,4 are used
+    class_weight /= class_weight.sum()
+
+    extents = random_state.uniform((0.3, 0.3, 0.2), (0.5, 0.5, 0.4))
+
     generator = contrib.simulation.BinTypeSceneGeneration(
-        models=objslampp.datasets.YCBVideoModels(),
-        n_object=random_state.randint(5, 10),
+        extents=extents,
+        models=models,
+        n_object=random_state.randint(10, 15),
         random_state=random_state,
+        class_weight=class_weight,
     )
     pybullet.resetDebugVisualizerCamera(
         cameraDistance=0.8,
