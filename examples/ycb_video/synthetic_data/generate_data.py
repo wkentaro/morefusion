@@ -81,7 +81,7 @@ def generate_a_video(out, random_state):
             depth=depth,
             instance_label=instance_label,
             class_label=class_label,
-            instrinsic_matrix=camera.K,
+            intrinsic_matrix=camera.K,
             T_cam2world=T_cam2world,
             Ts_cad2cam=Ts_cad2cam,
             instance_ids=instance_ids,
