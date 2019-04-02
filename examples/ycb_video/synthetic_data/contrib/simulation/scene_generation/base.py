@@ -134,13 +134,41 @@ class SceneGenerationBase:
             self._spawn_object(class_id=class_id)
         termcolor.cprint('==> Finished scene generation', attrs={'bold': True})
 
+    def unique_id_to_class_id(self, unique_id):
+        if unique_id in self._objects:
+            return self._objects[unique_id]['class_id']
+        else:
+            return 0  # background
+
+    def unique_ids_to_class_ids(self, unique_ids):
+        return np.array(
+            [self.unique_id_to_class_id(i) for i in unique_ids],
+            dtype=np.int32,
+        )
+
+    def unique_id_to_pose(self, unique_id):
+        pos, ori = pybullet.getBasePositionAndOrientation(unique_id)
+        R_cad2world = pybullet.getMatrixFromQuaternion(ori)
+        R_cad2world = np.asarray(R_cad2world, dtype=float).reshape(3, 3)
+        t_cad2world = np.asarray(pos, dtype=float)
+        T_cad2world = objslampp.geometry.compose_transform(
+            R=R_cad2world, t=t_cad2world
+        )
+        return T_cad2world
+
+    def unique_ids_to_poses(self, unique_ids):
+        return np.array(
+            [self.unique_id_to_pose(i) for i in unique_ids],
+            dtype=float,
+        )
+
     def render(self, T_camera2world, fovy, height, width):
         rgb, depth, ins = objslampp.extra.pybullet.render_camera(
             T_camera2world, fovy, height=height, width=width
         )
         cls = np.zeros_like(ins)
-        for ins_id, data in self._objects.items():
-            cls[ins == ins_id] = data['class_id']
+        for uid in self._objects:
+            cls[ins == uid] = self.unique_id_to_class_id(unique_id=uid)
         return rgb, depth, ins, cls
 
     def debug_render(self, T_camera2world):
