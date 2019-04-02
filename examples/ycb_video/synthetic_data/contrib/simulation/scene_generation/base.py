@@ -14,12 +14,20 @@ from ... import geometry as geometry_module
 
 class SceneGenerationBase:
 
-    def __init__(self, models, n_object, *, random_state=None):
+    def __init__(
+        self,
+        models,
+        n_object,
+        *,
+        random_state=None,
+        class_weight=None,
+    ):
         self._models = models
         self._n_object = n_object
         if random_state is None:
             random_state = np.random.RandomState()
         self._random_state = random_state
+        self._class_weight = class_weight
 
         self._objects = {}
         self._aabb = (None, None)
@@ -123,8 +131,11 @@ class SceneGenerationBase:
         )
         self.init_space()
 
-        class_ids = self._random_state.randint(
-            1, self._models.n_class, self._n_object
+        class_ids = self._random_state.choice(
+            np.arange(1, self._models.n_class),
+            self._n_object,
+            replace=True,  # allow duplicates
+            p=self._class_weight,
         )
         termcolor.cprint(
             f'==> Selected Classes: {class_ids}', attrs={'bold': True}
