@@ -1,6 +1,7 @@
 import pathlib
 import typing
 
+import chainer
 import gdown
 import imgviz
 import numpy as np
@@ -11,7 +12,10 @@ from ..base import DatasetBase
 
 class YCBVideoDataset(DatasetBase):
 
-    _root_dir = pathlib.Path.home() / 'data/datasets/YCB/YCB_Video_Dataset'
+    _root_dir = chainer.dataset.get_dataset_directory(
+        'ycb_video/YCB_Video_Dataset', create_directory=False
+    )
+    _root_dir = pathlib.Path(_root_dir)
     _data_dir = 'data'
 
     def __init__(self, split: str, sampling=1):

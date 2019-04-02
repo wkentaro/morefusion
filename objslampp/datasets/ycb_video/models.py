@@ -2,6 +2,7 @@ import pathlib
 import shutil
 import typing
 
+import chainer
 import gdown
 import numpy as np
 import trimesh
@@ -13,7 +14,10 @@ from .class_names import class_names
 
 class YCBVideoModels(object):
 
-    _root_dir = pathlib.Path.home() / 'data/datasets/YCB/YCB_Video_Models'
+    _root_dir = chainer.dataset.get_dataset_directory(
+        'ycb_video/YCB_Video_Models', create_directory=False
+    )
+    _root_dir = pathlib.Path(_root_dir)
     _class_names = class_names
 
     @property
