@@ -50,6 +50,19 @@ class Dataset(objslampp.datasets.base.DatasetBase):
             translation_true=np.zeros((3,), dtype=np.float64),
         )
 
+    def get_frame(self, index):
+        is_real, image_id = self._ids[index]
+        if is_real:
+            frame = objslampp.datasets.YCBVideoDataset.get_frame(image_id)
+        else:
+            frame = objslampp.datasets.YCBVideoSyntheticDataset.get_frame(
+                image_id
+            )
+        return dict(
+            rgb=frame['color'],
+            intrinsic_matrix=frame['meta']['intrinsic_matrix'],
+        )
+
     def get_example(self, index):
         is_real, image_id = self._ids[index]
 

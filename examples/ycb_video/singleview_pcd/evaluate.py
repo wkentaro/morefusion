@@ -28,6 +28,12 @@ def main():
     parser.add_argument('--gpu', type=int, default=0, help='gpu id')
     parser.add_argument('--show', action='store_true', help='show')
     parser.add_argument('--save', action='store_true', help='save')
+    parser.add_argument(
+        '--dataset',
+        default='ycb_video',
+        choices=['ycb_video', 'bin_type'],
+        help='dataset',
+    )
     args = parser.parse_args()
 
     args_file = pathlib.Path(args.model).parent / 'args'
@@ -50,17 +56,20 @@ def main():
     chainer.serializers.load_npz(args.model, model)
     print('==> Done model loading')
 
-    dataset = contrib.Dataset('val', class_ids=[2])
+    if args.dataset == 'ycb_video':
+        dataset = contrib.Dataset('val', class_ids=[2])
+    else:
+        assert args.dataset == 'bin_type'
+        dataset = contrib.BinTypeDataset(
+            '/home/wkentaro/data/datasets/wkentaro/objslampp/ycb_video/synthetic_data/20190402_174648.841996',  # NOQA
+            class_ids=[2],
+        )
 
     # -------------------------------------------------------------------------
 
     observations = []
     depth2rgb = imgviz.Depth2RGB()
     for index in range(len(dataset)):
-        is_real, image_id = dataset.ids[index]
-        # if image_id.split('/')[0] != '0054':
-        #     continue
-
         examples = dataset[index:index + 1]
         inputs = chainer.dataset.concat_examples(examples, device=args.gpu)
 
@@ -89,7 +98,7 @@ def main():
                 )
             observations.append(observation)
 
-        print(f'[{index:08d}] [{image_id}] {observation}')
+        print(f'[{index:08d}] {observation}')
 
         if not (args.show or args.save):
             continue
@@ -98,10 +107,9 @@ def main():
 
         class_id = int(inputs['class_id'][0])
 
-        frame = objslampp.datasets.YCBVideoDataset.get_frame(image_id)
-        rgb = frame['color']
-        meta = frame['meta']
-        K = meta['intrinsic_matrix']
+        frame = dataset.get_frame(index)
+        rgb = frame['rgb']
+        K = frame['intrinsic_matrix']
         height, width = rgb.shape[:2]
         fovy = trimesh.scene.Camera(
             resolution=(width, height), focal=(K[0, 0], K[1, 1])
@@ -137,7 +145,7 @@ def main():
                 (1, 4),
                 border=(255, 255, 255),
             )
-            viz = imgviz.resize(viz, width=1000)
+            viz = imgviz.resize(viz, width=1800)
 
             font_size = 20
             add = observation[f'main/add/{class_id:04d}']
@@ -157,7 +165,7 @@ def main():
 
         if args.save:
             out_file = (
-                pathlib.Path(args.model).parent / f'video/{image_id}.jpg'
+                pathlib.Path(args.model).parent / f'video/{index:08d}.jpg'
             )
             out_file.parent.mkdir(parents=True, exist_ok=True)
             imgviz.io.imsave(out_file, viz)
