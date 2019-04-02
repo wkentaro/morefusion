@@ -55,7 +55,9 @@ if __name__ == '__main__':
             T_cad2cam = example['Ts_cad2cam'][instance_index]
             class_id = example['class_ids'][instance_index]
 
-            cad_file = objslampp.datasets.YCBVideoModels().get_cad_model(class_id)
+            cad_file = objslampp.datasets.YCBVideoModels().get_cad_model(
+                class_id
+            )
             rgb_rend, _, mask_rend = objslampp.extra.pybullet.render(
                 cad_file, T_cad2cam, fovy=45, height=480, width=640
             )
@@ -69,7 +71,7 @@ if __name__ == '__main__':
                 rgb_rend,
                 mask_rend,
             ], (2, 3), border=(255, 255, 255))
-            img = imgviz.resize(img, height=1000)
+            img = imgviz.resize(img, width=1500)
             return img
 
     imgviz.io.pyglet_imshow(Images(dataset))
