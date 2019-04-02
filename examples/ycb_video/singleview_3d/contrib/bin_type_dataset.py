@@ -1,44 +1,31 @@
+import pathlib
+
 import imgviz
 import numpy as np
-import trimesh.transformations as tf
 
 import objslampp
+import trimesh.transformations as tf
 
 
-class Dataset(objslampp.datasets.base.DatasetBase):
-
-    _root_dir = objslampp.datasets.YCBVideoDataset._root_dir
+class BinTypeDataset(objslampp.datasets.DatasetBase):
 
     voxel_dim = 32
 
-    def __init__(self, split, class_ids=None):
+    def __init__(self, root_dir, class_ids=None):
         super().__init__()
-        assert split in ('train', 'val')
-        self._split = split
+        self._root_dir = pathlib.Path(root_dir)
         self._class_ids = class_ids
         self._ids = self._get_ids()
 
         self._cache_pitch = {}
 
     def _get_ids(self):
-        if self.split == 'val':
-            ids = objslampp.datasets.YCBVideoDataset(
-                split='keyframe'
-            ).get_ids()
-        else:
-            assert self.split == 'train'
-            ids = objslampp.datasets.YCBVideoDataset(
-                split='train'
-            ).get_ids(sampling=8)
-
-        ids = [(True, x) for x in ids]
-
-        if self.split == 'train':
-            ids_syn = objslampp.datasets.YCBVideoSyntheticDataset().get_ids()
-            ids_syn = [(False, x) for x in ids_syn]
-            ids += ids_syn
-
-        return tuple(ids)
+        ids = []
+        for video_dir in sorted(self.root_dir.iterdir()):
+            for npz_file in sorted(video_dir.iterdir()):
+                frame_id = f'{npz_file.parent.name}/{npz_file.stem}'
+                ids.append(frame_id)
+        return ids
 
     def _get_invalid_data(self):
         return dict(
@@ -48,19 +35,6 @@ class Dataset(objslampp.datasets.base.DatasetBase):
             pcd=np.zeros((256, 256, 3), dtype=np.float64),
             quaternion_true=np.zeros((4,), dtype=np.float64),
             translation_true=np.zeros((3,), dtype=np.float64),
-        )
-
-    def get_frame(self, index):
-        is_real, image_id = self._ids[index]
-        if is_real:
-            frame = objslampp.datasets.YCBVideoDataset.get_frame(image_id)
-        else:
-            frame = objslampp.datasets.YCBVideoSyntheticDataset.get_frame(
-                image_id
-            )
-        return dict(
-            rgb=frame['color'],
-            intrinsic_matrix=frame['meta']['intrinsic_matrix'],
         )
 
     def _get_pitch(self, class_id):
@@ -76,17 +50,28 @@ class Dataset(objslampp.datasets.base.DatasetBase):
         self._cache_pitch[class_id] = pitch
         return pitch
 
+    def get_frame(self, index):
+        frame_id = self.ids[index]
+        npz_file = self.root_dir / f'{frame_id}.npz'
+        example = np.load(npz_file)
+        return dict(
+            rgb=example['rgb'],
+            intrinsic_matrix=example['intrinsic_matrix'],
+        )
+
     def get_example(self, index):
-        is_real, image_id = self._ids[index]
+        frame_id = self.ids[index]
+        npz_file = self.root_dir / f'{frame_id}.npz'
+        example = np.load(npz_file)
 
-        if is_real:
-            frame = objslampp.datasets.YCBVideoDataset.get_frame(image_id)
-        else:
-            frame = objslampp.datasets.YCBVideoSyntheticDataset.get_frame(
-                image_id
-            )
+        class_ids = example['class_ids']
+        instance_ids = example['instance_ids']
+        Ts_cad2cam = example['Ts_cad2cam']
 
-        class_ids = frame['meta']['cls_indexes']
+        keep = class_ids > 0
+        class_ids = class_ids[keep]
+        instance_ids = instance_ids[keep]
+        Ts_cad2cam = Ts_cad2cam[keep]
 
         if self._class_ids is None:
             class_id = np.random.choice(class_ids)
@@ -95,12 +80,10 @@ class Dataset(objslampp.datasets.base.DatasetBase):
         else:
             class_id = np.random.choice(self._class_ids)
 
-        instance_id = np.where(class_ids == class_id)[0][0]
-        T_cad2cam = frame['meta']['poses'][:, :, instance_id]
-        quaternion_true = tf.quaternion_from_matrix(T_cad2cam)
-        translation_true = tf.translation_from_matrix(T_cad2cam)
+        instance_index = np.where(class_ids == class_id)[0][0]
+        instance_id = instance_ids[instance_index]
 
-        mask = frame['label'] == class_id
+        mask = example['instance_label'] == instance_id
         if mask.sum() == 0:
             return self._get_invalid_data()
 
@@ -109,13 +92,13 @@ class Dataset(objslampp.datasets.base.DatasetBase):
         if (y2 - y1) * (x2 - x1) == 0:
             return self._get_invalid_data()
 
-        rgb = frame['color'].copy()
+        rgb = example['rgb'].copy()
         rgb[~mask] = 0
         rgb = rgb[y1:y2, x1:x2]
         rgb = imgviz.centerize(rgb, (256, 256))
 
-        depth = frame['depth']
-        K = frame['meta']['intrinsic_matrix']
+        depth = example['depth']
+        K = example['intrinsic_matrix']
         pcd = objslampp.geometry.pointcloud_from_depth(
             depth, fx=K[0, 0], fy=K[1, 1], cx=K[0, 2], cy=K[1, 2],
         )
@@ -124,6 +107,10 @@ class Dataset(objslampp.datasets.base.DatasetBase):
         pcd = imgviz.centerize(pcd, (256, 256), cval=np.nan)
         if np.isnan(pcd).any(axis=2).all():
             return self._get_invalid_data()
+
+        T_cad2cam = Ts_cad2cam[instance_index]
+        quaternion_true = tf.quaternion_from_matrix(T_cad2cam)
+        translation_true = tf.translation_from_matrix(T_cad2cam)
 
         return dict(
             class_id=class_id,
