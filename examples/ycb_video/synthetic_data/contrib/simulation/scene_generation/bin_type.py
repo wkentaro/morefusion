@@ -45,6 +45,7 @@ class BinTypeSceneGeneration(SceneGenerationBase):
 
         aabb_min, aabb_max = pybullet.getAABB(unique_id)
         aabb_min, aabb_max = self._shrink_aabb(aabb_min, aabb_max, ratio=0.1)
+        aabb_max[2] *= 1.5
 
         self._objects[unique_id] = dict(class_id=0)
         self._aabb = aabb_min, aabb_max

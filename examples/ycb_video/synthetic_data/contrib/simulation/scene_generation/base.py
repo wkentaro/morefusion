@@ -59,7 +59,7 @@ class SceneGenerationBase:
         return aabb_min, aabb_max
 
     def _is_contained(self, unique_id):
-        threshold = 0.1
+        threshold = 0.5
         ratio = objslampp.extra.pybullet.aabb_contained_ratio(
             self._aabb, unique_id,
         )
@@ -104,7 +104,7 @@ class SceneGenerationBase:
             visual_file=cad_file,
             collision_file=self._get_collision_file(cad_file),
         )
-        for _ in range(100):  # n_trial
+        for _ in range(1000):  # n_trial
             position = self._random_state.uniform(*self._aabb)
             orientation = self._random_state.uniform(-1, 1, (4,))
             pybullet.resetBasePositionAndOrientation(
