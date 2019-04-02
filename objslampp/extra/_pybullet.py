@@ -32,6 +32,15 @@ def init_world(up: str = 'z') -> None:
         raise ValueError(f'Unsupported up direction: {up}')
 
 
+def del_world() -> None:
+    import pybullet
+
+    pybullet.disconnect()
+
+    global unique_ids
+    unique_ids = []
+
+
 def get_debug_visualizer_image(
 ) -> typing.Tuple[np.ndarray, np.ndarray, np.ndarray]:
     import pybullet
