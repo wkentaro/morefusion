@@ -34,6 +34,7 @@ def main():
         choices=['ycb_video', 'bin_type'],
         help='dataset',
     )
+    parser.add_argument('--instance-id', type=int, help='instance id')
     args = parser.parse_args()
 
     args_file = pathlib.Path(args.model).parent / 'args'
@@ -64,13 +65,15 @@ def main():
             '/home/wkentaro/data/datasets/wkentaro/objslampp/ycb_video/synthetic_data/20190402_174648.841996',  # NOQA
             class_ids=[2],
         )
+        dataset.instance_id = args.instance_id
 
     # -------------------------------------------------------------------------
 
     observations = []
     depth2rgb = imgviz.Depth2RGB()
     for index in range(len(dataset)):
-        examples = dataset[index:index + 1]
+        with chainer.using_config('debug', True):
+            examples = dataset[index:index + 1]
         inputs = chainer.dataset.concat_examples(examples, device=args.gpu)
 
         if inputs['class_id'][0] == -1:
@@ -141,25 +144,26 @@ def main():
             mask_rend = imgviz.label2rgb(mask_rend, img=rgb, alpha=0.7)
             depth_rend = depth2rgb(depth_rend)
             viz = imgviz.tile(
-                [rgb, mask_rend, rgb_rend, depth_rend],
-                (1, 4),
+                [rgb, examples[0]['rgb'], mask_rend, rgb_rend, depth_rend],
+                (1, 5),
                 border=(255, 255, 255),
             )
             viz = imgviz.resize(viz, width=1800)
 
-            font_size = 20
             add = observation[f'main/add/{class_id:04d}']
             add_rot = observation[f'main/add_rotation/{class_id:04d}']
             text = f'[{which}]: add={add * 100:.1f}cm, add_rot={add_rot * 100:.1f}cm' # NOQA
-            size = imgviz.draw.text_size(text, font_size)
-            viz = imgviz.draw.rectangle(
-                viz,
-                (0, 0),
-                (size[0] + 1, size[1] + 1),
-                color=(0, 255, 0),
-                fill=(0, 255, 0),
+            viz = imgviz.draw.text_in_rectangle(
+                viz, loc='lt', text=text, size=20
             )
-            viz = imgviz.draw.text(viz, (1, 1), text, (0, 0, 0), font_size)
+            if which == 'true':
+                viz = imgviz.draw.text_in_rectangle(
+                    viz,
+                    loc='rt',
+                    text='singleview_3d',
+                    size=20,
+                    background=(255, 0, 0),
+                )
             vizs.append(viz)
         viz = imgviz.tile(vizs, (2, 1), border=(255, 255, 255))
 

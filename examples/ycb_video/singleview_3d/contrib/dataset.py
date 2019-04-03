@@ -60,6 +60,7 @@ class Dataset(objslampp.datasets.base.DatasetBase):
             )
         return dict(
             rgb=frame['color'],
+            instance_label=frame['label'],
             intrinsic_matrix=frame['meta']['intrinsic_matrix'],
         )
 

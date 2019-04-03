@@ -1,4 +1,5 @@
 import pathlib
+import warnings
 
 import imgviz
 import numpy as np
@@ -18,6 +19,16 @@ class BinTypeDataset(objslampp.datasets.DatasetBase):
         self._ids = self._get_ids()
 
         self._cache_pitch = {}
+        self._instance_id = None
+
+    @property
+    def instance_id(self):
+        return self._instance_id
+
+    @instance_id.setter
+    def instance_id(self, value):
+        assert isinstance(value, int)
+        self._instance_id = value
 
     def _get_ids(self):
         ids = []
@@ -56,6 +67,7 @@ class BinTypeDataset(objslampp.datasets.DatasetBase):
         example = np.load(npz_file)
         return dict(
             rgb=example['rgb'],
+            instance_label=example['instance_label'],
             intrinsic_matrix=example['intrinsic_matrix'],
         )
 
@@ -73,15 +85,25 @@ class BinTypeDataset(objslampp.datasets.DatasetBase):
         instance_ids = instance_ids[keep]
         Ts_cad2cam = Ts_cad2cam[keep]
 
-        if self._class_ids is None:
-            class_id = np.random.choice(class_ids)
-        elif not any(c in class_ids for c in self._class_ids):
-            return self._get_invalid_data()
+        if self.instance_id is None:
+            if self._class_ids is None:
+                class_id = np.random.choice(class_ids)
+            elif not any(c in class_ids for c in self._class_ids):
+                return self._get_invalid_data()
+            else:
+                class_id = np.random.choice(self._class_ids)
+            instance_index = np.where(class_ids == class_id)[0][0]
+            instance_id = instance_ids[instance_index]
         else:
-            class_id = np.random.choice(self._class_ids)
-
-        instance_index = np.where(class_ids == class_id)[0][0]
-        instance_id = instance_ids[instance_index]
+            instance_id = self.instance_id
+            try:
+                instance_index = np.where(instance_ids == instance_id)[0][0]
+            except IndexError:
+                warnings.warn(
+                    f'instance_id {instance_id} is not found: {instance_ids}'
+                )
+                return self._get_invalid_data()
+            class_id = class_ids[instance_index]
 
         mask = example['instance_label'] == instance_id
         if mask.sum() == 0:

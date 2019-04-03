@@ -60,6 +60,7 @@ class Dataset(objslampp.datasets.base.DatasetBase):
             )
         return dict(
             rgb=frame['color'],
+            instance_label=frame['label'],
             intrinsic_matrix=frame['meta']['intrinsic_matrix'],
         )
 
@@ -129,7 +130,9 @@ if __name__ == '__main__':
             print(f"translation_true: {example['translation_true']}")
             print(f"translation_rough: {example['translation_rough']}")
             if example['class_id'] > 0:
-                yield example['rgb']
+                yield imgviz.tile(
+                    [dataset.get_frame(i)['rgb'], example['rgb']], (1, 2)
+                )
 
     imgviz.io.pyglet_imshow(images())
     imgviz.io.pyglet_run()
