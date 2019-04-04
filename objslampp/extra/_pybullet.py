@@ -9,7 +9,7 @@ from .. import geometry
 from ._trimesh import wired_box
 
 
-unique_ids = []
+unique_ids: list = []
 
 
 def init_world(up: str = 'z') -> None:
