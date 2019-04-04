@@ -45,11 +45,12 @@ def get_debug_visualizer_image(
     import pybullet
 
     width, height, *_ = pybullet.getDebugVisualizerCamera()
-    width, height, rgba, depth, segm = pybullet.getCameraImage(width, height)
-    rgba = np.array(rgba, dtype=np.uint8).reshape(height, width, 4)
-    depth = np.array(depth, dtype=np.float32).reshape(height, width)
-    segm = np.array(segm, dtype=np.int32).reshape(height, width)
-    return rgba, depth, segm
+    _, _, rgba, depth, segm = pybullet.getCameraImage(
+        width=width, height=height
+    )
+    rgb = rgba[:, :, :3]
+    depth[segm == -1] = np.nan
+    return rgb, depth, segm
 
 
 def add_model(
