@@ -8,7 +8,7 @@ import numpy as np
 import objslampp
 
 
-class Model(chainer.Chain):
+class BaselineModel(chainer.Chain):
 
     def __init__(self, *, freeze_until, voxelization):
         super().__init__()

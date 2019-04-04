@@ -142,3 +142,30 @@ class BinTypeDataset(objslampp.datasets.DatasetBase):
             quaternion_true=quaternion_true,
             translation_true=translation_true,
         )
+
+
+if __name__ == '__main__':
+    dataset = BinTypeDataset(
+        '/home/wkentaro/data/datasets/wkentaro/objslampp/ycb_video/synthetic_data/20190402_174648.841996',  # NOQA
+        class_ids=[2],
+    )
+    print(f'dataset_size: {len(dataset)}')
+
+    def images():
+        for i in range(0, len(dataset)):
+            example = dataset[i]
+            print(f"class_id: {example['class_id']}")
+            print(f"pitch: {example['pitch']}")
+            print(f"quaternion_true: {example['quaternion_true']}")
+            print(f"translation_true: {example['translation_true']}")
+            if example['class_id'] > 0:
+                viz = imgviz.tile([
+                    example['rgb'],
+                    imgviz.depth2rgb(example['pcd'][:, :, 0]),
+                    imgviz.depth2rgb(example['pcd'][:, :, 1]),
+                    imgviz.depth2rgb(example['pcd'][:, :, 2]),
+                ], (1, 4), border=(255, 255, 255))
+                yield viz
+
+    imgviz.io.pyglet_imshow(images())
+    imgviz.io.pyglet_run()

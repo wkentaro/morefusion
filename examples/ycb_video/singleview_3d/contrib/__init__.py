@@ -1,7 +1,5 @@
 # flake8: noqa
 
-from .bin_type_dataset import BinTypeDataset
+from . import datasets
 
-from .dataset import Dataset
-
-from .model import Model
+from . import models
