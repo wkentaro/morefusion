@@ -4,12 +4,14 @@ import warnings
 import chainer
 import imgviz
 import numpy as np
-
-import objslampp
 import trimesh.transformations as tf
 
+import objslampp
 
-class BinTypeDataset(objslampp.datasets.DatasetBase):
+from .base import DatasetBase
+
+
+class BinTypeDataset(DatasetBase):
 
     def __init__(self, root_dir, class_ids=None):
         super().__init__()
@@ -35,15 +37,6 @@ class BinTypeDataset(objslampp.datasets.DatasetBase):
                 frame_id = f'{npz_file.parent.name}/{npz_file.stem}'
                 ids.append(frame_id)
         return ids
-
-    def _get_invalid_data(self):
-        return dict(
-            class_id=-1,
-            rgb=np.zeros((256, 256, 3), dtype=np.uint8),
-            quaternion_true=np.zeros((4,), dtype=np.float64),
-            translation_true=np.zeros((3,), dtype=np.float64),
-            translation_rough=np.zeros((3,), dtype=np.float64),
-        )
 
     def get_frame(self, index):
         frame_id = self.ids[index]

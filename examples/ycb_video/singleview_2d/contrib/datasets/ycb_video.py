@@ -4,8 +4,10 @@ import trimesh.transformations as tf
 
 import objslampp
 
+from .base import DatasetBase
 
-class YCBVideoDataset(objslampp.datasets.base.DatasetBase):
+
+class YCBVideoDataset(DatasetBase):
 
     _root_dir = objslampp.datasets.YCBVideoDataset._root_dir
 
@@ -40,15 +42,6 @@ class YCBVideoDataset(objslampp.datasets.base.DatasetBase):
             ids += ids_syn
 
         return tuple(ids)
-
-    def _get_invalid_data(self):
-        return dict(
-            class_id=-1,
-            rgb=np.zeros((256, 256, 3), dtype=np.uint8),
-            quaternion_true=np.zeros((4,), dtype=np.float64),
-            translation_true=np.zeros((3,), dtype=np.float64),
-            translation_rough=np.zeros((3,), dtype=np.float64),
-        )
 
     def get_frame(self, index):
         is_real, image_id = self._ids[index]
@@ -85,23 +78,28 @@ class YCBVideoDataset(objslampp.datasets.base.DatasetBase):
 
         instance_id = np.where(class_ids == class_id)[0][0]
 
-        mask = frame['label'] == class_id
-        bbox = objslampp.geometry.masks_to_bboxes([mask])[0]
-        y1, x1, y2, x2 = bbox.round().astype(int)
-
-        if (y2 - y1) * (x2 - x1) == 0:
-            return self._get_invalid_data()
-
         rgb = frame['color'].copy()
-        rgb[~mask] = 0
-        rgb = rgb[y1:y2, x1:x2]
-        rgb = imgviz.centerize(rgb, (256, 256))
-
+        mask = frame['label'] == class_id
         depth = frame['depth']
         K = frame['meta']['intrinsic_matrix']
         pcd = objslampp.geometry.pointcloud_from_depth(
             depth, fx=K[0, 0], fy=K[1, 1], cx=K[0, 2], cy=K[1, 2],
         )
+
+        # crop
+        bbox = objslampp.geometry.masks_to_bboxes([mask])[0]
+        y1, x1, y2, x2 = bbox.round().astype(int)
+        if (y2 - y1) * (x2 - x1) == 0:
+            return self._get_invalid_data()
+        rgb = rgb[y1:y2, x1:x2]
+        mask = mask[y1:y2, x1:x2]
+        pcd = pcd[y1:y2, x1:x2]
+
+        rgb = imgviz.centerize(rgb, (256, 256))
+        mask = imgviz.centerize(mask.astype(np.uint8), (256, 256)).astype(bool)
+        pcd = imgviz.centerize(pcd, (256, 256))
+
+        rgb[~mask] = 0
         translation_rough = np.nanmean(pcd[mask], axis=0)
 
         T_cad2cam = frame['meta']['poses'][:, :, instance_id]
