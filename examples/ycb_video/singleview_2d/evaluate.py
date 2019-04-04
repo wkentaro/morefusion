@@ -146,7 +146,7 @@ def main():
             add_rot = observation[f'main/add_rotation/{class_id:04d}']
             text = f'[{which}]: add={add * 100:.1f}cm, add_rot={add_rot * 100:.1f}cm' # NOQA
             viz = imgviz.draw.text_in_rectangle(
-                viz, loc='lt', text=text, size=20
+                viz, loc='lt', text=text, size=20, background=(0, 255, 0)
             )
             if which == 'true':
                 viz = imgviz.draw.text_in_rectangle(
