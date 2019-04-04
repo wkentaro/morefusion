@@ -8,10 +8,10 @@ import numpy as np
 import objslampp
 
 
-class Model(chainer.Chain):
+class BaselineModel(chainer.Chain):
 
     def __init__(self, n_fg_class, freeze_until):
-        super(Model, self).__init__()
+        super().__init__()
 
         initialW = chainer.initializers.Normal(0.01)
         kwargs = {'initialW': initialW}

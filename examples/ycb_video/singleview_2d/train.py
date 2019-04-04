@@ -15,8 +15,7 @@ import tensorboardX
 
 import objslampp
 
-from contrib import Dataset
-from contrib import Model
+import contrib
 
 
 here = pathlib.Path(__file__).resolve().parent
@@ -77,15 +76,15 @@ def main():
         chainer.cuda.cupy.random.seed(args.seed)
 
     # dataset initialization
-    data_train = Dataset('train', class_ids=[2])
-    data_valid = Dataset('val', class_ids=[2])
+    data_train = contrib.datasets.YCBVideoDataset('train', class_ids=[2])
+    data_valid = contrib.datasets.YCBVideoDataset('val', class_ids=[2])
     class_names = objslampp.datasets.ycb_video.class_names
 
     termcolor.cprint('==> Dataset size', attrs={'bold': True})
     print('train={}, val={}'.format(len(data_train), len(data_valid)))
 
     # model initialization
-    model = Model(
+    model = contrib.models.BaselineModel(
         n_fg_class=len(class_names) - 1,
         freeze_until=args.freeze_until,
     )

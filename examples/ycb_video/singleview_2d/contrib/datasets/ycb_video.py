@@ -5,7 +5,7 @@ import trimesh.transformations as tf
 import objslampp
 
 
-class Dataset(objslampp.datasets.base.DatasetBase):
+class YCBVideoDataset(objslampp.datasets.base.DatasetBase):
 
     _root_dir = objslampp.datasets.YCBVideoDataset._root_dir
 
@@ -118,7 +118,7 @@ class Dataset(objslampp.datasets.base.DatasetBase):
 
 
 if __name__ == '__main__':
-    dataset = Dataset('train', class_ids=[2])
+    dataset = YCBVideoDataset('train', class_ids=[2])
     print(f'dataset_size: {len(dataset)}')
 
     def images():
