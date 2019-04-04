@@ -45,7 +45,7 @@ def main():
     if args.gpu >= 0:
         chainer.cuda.get_device_from_id(args.gpu).use()
 
-    model = contrib.Model(
+    model = contrib.models.PoseNet(
         n_fg_class=21,
         freeze_until=args_data['freeze_until'],
         lambda_confidence=args_data['lambda_confidence'],
@@ -58,10 +58,10 @@ def main():
     print('==> Done model loading')
 
     if args.dataset == 'ycb_video':
-        dataset = contrib.Dataset('val', class_ids=[2])
+        dataset = contrib.datasets.YCBVideoDataset('val', class_ids=[2])
     else:
         assert args.dataset == 'bin_type'
-        dataset = contrib.BinTypeDataset(
+        dataset = contrib.datasets.BinTypeDataset(
             '/home/wkentaro/data/datasets/wkentaro/objslampp/ycb_video/synthetic_data/20190402_174648.841996',  # NOQA
             class_ids=[2],
         )
