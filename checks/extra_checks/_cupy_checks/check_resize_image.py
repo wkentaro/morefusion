@@ -24,13 +24,13 @@ def main(gpu=-1):
     img = cuda.to_cpu(img)
 
     assert img.shape == (2 * H, 2 * W, 3)
+    plt.figure()
     plt.subplot(121)
     plt.imshow(img_org)
     plt.subplot(122)
     plt.imshow(img)
     plt.suptitle('uint8')
     plt.tight_layout()
-    plt.show()
 
     # float32
     img = scipy.misc.face()
@@ -43,13 +43,13 @@ def main(gpu=-1):
     img = (img * 255).round().astype(np.uint8)
 
     assert img.shape == (2 * H, 2 * W, 3)
+    plt.figure()
     plt.subplot(121)
     plt.imshow(img_org)
     plt.subplot(122)
     plt.imshow(img)
     plt.suptitle('float32')
     plt.tight_layout()
-    plt.show()
 
     # bool
     img = scipy.misc.face()
@@ -61,12 +61,14 @@ def main(gpu=-1):
     mask = cuda.to_cpu(mask)
     mask = resize_image(mask, (2 * H, 2 * W), order='HW')
 
+    plt.figure()
     plt.subplot(121)
     plt.imshow(mask_org, cmap='gray')
     plt.subplot(122)
     plt.imshow(mask, cmap='gray')
     plt.suptitle('bool')
     plt.tight_layout()
+
     plt.show()
 
 
