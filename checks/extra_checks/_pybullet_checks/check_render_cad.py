@@ -6,17 +6,9 @@ import imgviz
 import trimesh
 
 
-example = objslampp.datasets.YCBVideoDataset(split='train')[0]
-
-instance_id = 0
-class_ids = example['meta']['cls_indexes']
-class_id = class_ids[instance_id]
-rgb = example['color']
-K = example['meta']['intrinsic_matrix']
-camera = trimesh.scene.Camera(resolution=(640, 480), focal=(K[0, 0], K[1, 1]))
-
 models = objslampp.datasets.YCBVideoModels()
-visual_file = models.get_model(class_id=class_id)['textured_simple']
+visual_file = models.get_model(class_id=8)['textured_simple']
+camera = trimesh.scene.Camera(resolution=(640, 480), fov=(60, 45))
 
 T_cad2cam = objslampp.geometry.look_at(
     eye=(0, 0.05, 0.3),
