@@ -12,7 +12,7 @@ def normalize(x: np.ndarray) -> np.ndarray:
 
 def look_at(
     eye,
-    at: typing.Optional[typing.Any] = None,
+    target: typing.Optional[typing.Any] = None,
     up: typing.Optional[typing.Any] = None,
 ) -> np.ndarray:
     """Returns transformation matrix with eye, at and up.
@@ -21,7 +21,7 @@ def look_at(
     ----------
     eye: (3,) float
         Camera position.
-    at: (3,) float
+    target: (3,) float
         Camera look_at position.
     up: (3,) float
         Vector that defines y-axis of camera (z-axis is vector from eye to at).
@@ -39,10 +39,10 @@ def look_at(
     """
     eye = np.asarray(eye, dtype=float)
 
-    if at is None:
-        at = np.array([0, 0, 0], dtype=float)
+    if target is None:
+        target = np.array([0, 0, 0], dtype=float)
     else:
-        at = np.asarray(at, dtype=float)
+        target = np.asarray(target, dtype=float)
 
     if up is None:
         up = np.array([0, -1, 0], dtype=float)
@@ -50,11 +50,11 @@ def look_at(
         up = np.asarray(up, dtype=float)
 
     assert eye.shape == (3,), 'eye must be (3,) float'
-    assert at.shape == (3,), 'at must be (3,) float'
-    assert up.shape == (3,), 'at must be (3,) float'
+    assert target.shape == (3,), 'target must be (3,) float'
+    assert up.shape == (3,), 'up must be (3,) float'
 
     # create new axes
-    z_axis: np.ndarray = normalize(at - eye)
+    z_axis: np.ndarray = normalize(target - eye)
     x_axis: np.ndarray = normalize(np.cross(up, z_axis))
     y_axis: np.ndarray = normalize(np.cross(z_axis, x_axis))
 

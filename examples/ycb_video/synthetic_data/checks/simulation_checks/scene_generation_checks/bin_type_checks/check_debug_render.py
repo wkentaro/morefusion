@@ -31,7 +31,7 @@ def main():
     )[0]
     T_camera2world = objslampp.geometry.look_at(
         eye=eye,
-        at=(0, 0, 0),
+        target=(0, 0, 0),
         up=(0, -1, 0),
     )
     generator.debug_render(T_camera2world)

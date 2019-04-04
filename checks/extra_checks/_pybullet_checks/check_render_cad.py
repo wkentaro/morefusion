@@ -20,7 +20,7 @@ visual_file = models.get_model(class_id=class_id)['textured_simple']
 
 T_cad2cam = objslampp.geometry.look_at(
     eye=(0, 0.05, 0.3),
-    at=(0, 0, 0),
+    target=(0, 0, 0),
     up=(0, -1, 0),
 )
 
