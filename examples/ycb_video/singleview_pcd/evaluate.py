@@ -138,7 +138,7 @@ def main():
         vizs = []
         for which in ['true', 'pred']:
             rgb_rend, depth_rend, mask_rend = \
-                objslampp.extra.pybullet.render(
+                objslampp.extra.pybullet.render_cad(
                     cad_file, Ts[which], fovy=fovy, height=height, width=width
                 )
             mask_rend = imgviz.label2rgb(mask_rend, img=rgb, alpha=0.7)

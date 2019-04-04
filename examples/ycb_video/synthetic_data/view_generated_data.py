@@ -58,10 +58,10 @@ if __name__ == '__main__':
             cad_file = objslampp.datasets.YCBVideoModels().get_cad_model(
                 class_id
             )
-            rgb_rend, _, mask_rend = objslampp.extra.pybullet.render(
+            rgb_rend, _, mask_rend = objslampp.extra.pybullet.render_cad(
                 cad_file, T_cad2cam, fovy=45, height=480, width=640
             )
-            mask_rend = imgviz.label2rgb(mask_rend, rgb)
+            mask_rend = imgviz.label2rgb(mask_rend.astype(int), rgb)
 
             img = imgviz.tile([
                 rgb,

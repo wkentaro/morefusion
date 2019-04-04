@@ -45,7 +45,7 @@ scene.show(
 
 fovy = camera.fov[1]
 width, height = camera.resolution
-rgb, depth, mask = objslampp.extra.pybullet.render(
+rgb, depth, mask = objslampp.extra.pybullet.render_cad(
     visual_file, T_cad2cam, fovy, height, width
 )
 imgviz.io.pyglet_imshow(rgb, 'pybullet')

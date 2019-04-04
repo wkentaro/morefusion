@@ -7,8 +7,6 @@ import gdown
 import numpy as np
 import trimesh
 
-from ... import extra
-from ... import geometry
 from .class_names import class_names
 
 
@@ -78,18 +76,6 @@ class YCBVideoModels(object):
 
     def get_cad_model(self, *args, **kwargs):
         return self.get_model(*args, **kwargs)['textured_simple']
-
-    @staticmethod
-    def get_spherical_views(visual_file, angle_sampling=5, radius=0.3):
-        eyes = geometry.uniform_points_on_sphere(
-            angle_sampling=angle_sampling, radius=radius
-        )
-        targets = np.tile([[0, 0, 0]], (len(eyes), 1))
-
-        K, Ts_cam2world, rgbs, depths, segms = extra.pybullet.render_views(
-            visual_file, eyes, targets, height=320, width=320,
-        )
-        return K, Ts_cam2world, rgbs, depths, segms
 
     @staticmethod
     def get_bbox_diagonal(mesh_file=None, mesh=None):

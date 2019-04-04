@@ -3,7 +3,6 @@ import typing
 
 import numpy as np
 import trimesh
-import trimesh.transformations as tf
 
 from .. import geometry
 from ._trimesh import wired_box
@@ -223,130 +222,79 @@ def get_top_image(visual_file: typing.Union[str, pathlib.Path]) -> np.ndarray:
     return rgb
 
 
-def render_views(visual_file, eyes, targets, height=256, width=256, gui=False):
+def get_camera_image(view_matrix, fovy, height, width):
     import pybullet
 
-    if gui:
-        pybullet.connect(pybullet.GUI)
-    else:
-        pybullet.connect(pybullet.DIRECT)
-
-    add_model(visual_file=visual_file, register=False)
-
+    far = 1000
     near = 0.01
-    far = 1000.
     projection_matrix = pybullet.computeProjectionMatrixFOV(
-        fov=60, aspect=1. * width / height, nearVal=near, farVal=far
+        fov=fovy, aspect=1. * width / height, farVal=far, nearVal=near
     )
-
-    rgbs = []
-    depths = []
-    segms = []
-    for eye, target in zip(eyes, targets):
-        view_matrix = pybullet.computeViewMatrix(
-            cameraEyePosition=eye,
-            cameraTargetPosition=target,
-            cameraUpVector=[0, 1, 0],
-        )
-        H, W, rgba, depth, segm = pybullet.getCameraImage(
-            height,
-            width,
-            viewMatrix=view_matrix,
-            projectionMatrix=projection_matrix,
-        )
-        rgba = np.asarray(rgba, dtype=np.uint8).reshape(H, W, 4)
-        rgb = rgba[:, :, :3]
-
-        segm = np.asarray(segm, dtype=np.int32)
-
-        depth = np.asarray(depth, dtype=np.float32).reshape(H, W)
-        depth = far * near / (far - (far - near) * depth)
-        depth[segm == -1] = np.nan
-
-        rgbs.append(rgb)
-        depths.append(depth)
-        segms.append(segm)
-    rgbs = np.asarray(rgbs)
-    depths = np.asarray(depths)
-    segms = np.asarray(segms)
-
-    pybullet.disconnect()
-
-    fovx = 60
-    fovy = 1. * fovx * height / width
-    K = trimesh.scene.Camera(resolution=(width, height), fov=(fovx, fovy)).K
-    Ts_cam2world = np.asarray([
-        geometry.look_at(eye, target, up=[0, -1, 0])
-        for eye, target in zip(eyes, targets)
-    ])
-
-    return K, Ts_cam2world, rgbs, depths, segms
+    _, _, rgba, depth, segm = pybullet.getCameraImage(
+        width=width,
+        height=height,
+        viewMatrix=view_matrix,
+        projectionMatrix=projection_matrix,
+    )
+    rgb = rgba[:, :, :3]
+    depth = np.asarray(depth, dtype=np.float32).reshape(height, width)
+    depth = far * near / (far - (far - near) * depth)
+    depth[segm == -1] = np.nan
+    return rgb, depth, segm
 
 
-def render(visual_file, T_cad2cam, fovy, height, width):
+def render_camera(T_cam2world, fovy, height, width):
+    view_matrix = T_cam2world.copy()
+    view_matrix[:3, 3] = 0
+    view_matrix[3, :3] = np.linalg.inv(T_cam2world)[:3, 3]
+    view_matrix[:, 1] *= -1
+    view_matrix[:, 2] *= -1
+    view_matrix = view_matrix.flatten()
+    rgb, depth, segm = get_camera_image(
+        view_matrix=view_matrix,
+        fovy=fovy,
+        height=height,
+        width=width,
+    )
+    return rgb, depth, segm
+
+
+def render_cad(visual_file, Ts_cad2cam, fovy, height, width):
+    assert isinstance(visual_file, (str, pathlib.Path))
+
+    Ts_cad2cam = np.asarray(Ts_cad2cam)
+    ndim = Ts_cad2cam.ndim
+    if ndim == 2:
+        Ts_cad2cam = Ts_cad2cam[None]
+    assert Ts_cad2cam.shape == (Ts_cad2cam.shape[0], 4, 4)
+
     import pybullet
 
     pybullet.connect(pybullet.DIRECT)
 
-    add_model(
-        visual_file,
-        position=tf.translation_from_matrix(T_cad2cam),
-        orientation=tf.quaternion_from_matrix(T_cad2cam)[[1, 2, 3, 0]],
-        register=False
-    )
+    add_model(visual_file, register=False)
 
-    far = 1000.
-    near = 0.01
-    projection_matrix = pybullet.computeProjectionMatrixFOV(
-        fov=fovy, aspect=1. * width / height, farVal=far, nearVal=near
-    )
-    view_matrix = pybullet.computeViewMatrix(
-        cameraEyePosition=[0, 0, 0],
-        cameraTargetPosition=[0, 0, 1],
-        cameraUpVector=[0, -1, 0],
-    )
-    _, _, rgb, depth, segm = pybullet.getCameraImage(
-        width,
-        height,
-        viewMatrix=view_matrix,
-        projectionMatrix=projection_matrix,
-    )
-
-    rgb = rgb[:, :, :3]
-    depth = np.asarray(depth, dtype=np.float32).reshape(height, width)
-    depth = far * near / (far - (far - near) * depth)
-    depth[segm == -1] = np.nan
-    mask = (segm == 0).astype(np.int32)
+    rgbs = []
+    depths = []
+    masks = []
+    for T_cad2cam in Ts_cad2cam:
+        T_cam2cad = np.linalg.inv(T_cad2cam)
+        rgb, depth, segm = render_camera(
+            T_cam2world=T_cam2cad, fovy=fovy, height=height, width=width
+        )
+        rgbs.append(rgb)
+        depths.append(depth)
+        masks.append(segm == 0)
+    rgbs = np.asarray(rgbs)
+    depths = np.asarray(depths)
+    masks = np.asarray(masks)
 
     pybullet.disconnect()
-    return rgb, depth, mask
 
+    if ndim == 2:
+        assert len(rgbs) == len(depths) == len(masks) == 1
+        rgbs = rgbs[0]
+        depths = depths[0]
+        masks = masks[0]
 
-def render_camera(T_camera2world, fovy, height, width):
-    import pybullet
-
-    far = 1000.
-    near = 0.01
-    projection_matrix = pybullet.computeProjectionMatrixFOV(
-        fov=fovy, aspect=1. * width / height, farVal=far, nearVal=near
-    )
-    view_matrix = T_camera2world.copy()
-    view_matrix[:3, 3] = 0
-    view_matrix[3, :3] = np.linalg.inv(T_camera2world)[:3, 3]
-    view_matrix[:, 1] *= -1
-    view_matrix[:, 2] *= -1
-    view_matrix = view_matrix.flatten()
-    _, _, rgb, depth, segm = pybullet.getCameraImage(
-        width,
-        height,
-        viewMatrix=view_matrix,
-        projectionMatrix=projection_matrix,
-    )
-
-    rgb = rgb[:, :, :3]
-    depth = np.asarray(depth, dtype=np.float32).reshape(height, width)
-    depth = far * near / (far - (far - near) * depth)
-    depth[segm == -1] = np.nan
-    segm = segm.astype(np.int32)
-
-    return rgb, depth, segm
+    return rgbs, depths, masks
