@@ -12,13 +12,13 @@ def points_from_angles(
     distance = xp.asarray(distance)
     elevation = xp.asarray(elevation)
     azimuth = xp.asarray(azimuth)
-
-    assert distance.ndim == elevation.ndim == azimuth.ndim == 1
-    assert len(distance) == len(elevation) == len(azimuth)
-
     if is_degree:
         elevation = xp.radians(elevation)
         azimuth = xp.radians(azimuth)
+
+    assert distance.shape == elevation.shape == azimuth.shape
+    assert distance.ndim in (0, 1)
+
     return xp.stack([
         distance * xp.cos(elevation) * xp.sin(azimuth),
         - distance * xp.cos(elevation) * xp.cos(azimuth),
