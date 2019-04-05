@@ -103,19 +103,19 @@ def main():
 
     termcolor.cprint('==> Link update rules', attrs={'bold': True})
     if args.freeze_until in ['conv1_2', 'conv2_2', 'conv3_3', 'conv4_3']:
-        model.vgg_extractor.conv1_1.disable_update()
-        model.vgg_extractor.conv1_2.disable_update()
+        model.extractor.conv1_1.disable_update()
+        model.extractor.conv1_2.disable_update()
     if args.freeze_until in ['conv2_2', 'conv3_3', 'conv4_3']:
-        model.vgg_extractor.conv2_1.disable_update()
-        model.vgg_extractor.conv2_2.disable_update()
+        model.extractor.conv2_1.disable_update()
+        model.extractor.conv2_2.disable_update()
     if args.freeze_until in ['conv3_3', 'conv4_3']:
-        model.vgg_extractor.conv3_1.disable_update()
-        model.vgg_extractor.conv3_2.disable_update()
-        model.vgg_extractor.conv3_3.disable_update()
+        model.extractor.conv3_1.disable_update()
+        model.extractor.conv3_2.disable_update()
+        model.extractor.conv3_3.disable_update()
     if args.freeze_until in ['conv4_3']:
-        model.vgg_extractor.conv4_1.disable_update()
-        model.vgg_extractor.conv4_2.disable_update()
-        model.vgg_extractor.conv4_3.disable_update()
+        model.extractor.conv4_1.disable_update()
+        model.extractor.conv4_2.disable_update()
+        model.extractor.conv4_3.disable_update()
     for name, link in model.namedlinks():
         print(name, link.update_enabled)
 
