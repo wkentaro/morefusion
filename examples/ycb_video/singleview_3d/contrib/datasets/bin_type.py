@@ -7,18 +7,16 @@ import numpy as np
 import objslampp
 import trimesh.transformations as tf
 
+from .base import DatasetBase
 
-class BinTypeDataset(objslampp.datasets.DatasetBase):
 
-    voxel_dim = 32
+class BinTypeDataset(DatasetBase):
 
     def __init__(self, root_dir, class_ids=None):
         super().__init__()
         self._root_dir = pathlib.Path(root_dir)
         self._class_ids = class_ids
         self._ids = self._get_ids()
-
-        self._cache_pitch = {}
         self._instance_id = None
 
     @property
@@ -37,29 +35,6 @@ class BinTypeDataset(objslampp.datasets.DatasetBase):
                 frame_id = f'{npz_file.parent.name}/{npz_file.stem}'
                 ids.append(frame_id)
         return ids
-
-    def _get_invalid_data(self):
-        return dict(
-            class_id=-1,
-            pitch=0.,
-            rgb=np.zeros((256, 256, 3), dtype=np.uint8),
-            pcd=np.zeros((256, 256, 3), dtype=np.float64),
-            quaternion_true=np.zeros((4,), dtype=np.float64),
-            translation_true=np.zeros((3,), dtype=np.float64),
-        )
-
-    def _get_pitch(self, class_id):
-        if class_id in self._cache_pitch:
-            return self._cache_pitch[class_id]
-
-        models = objslampp.datasets.YCBVideoModels()
-        cad_file = models.get_model(class_id=class_id)['textured_simple']
-        bbox_diagonal = models.get_bbox_diagonal(mesh_file=cad_file)
-        pitch = 1. * bbox_diagonal / self.voxel_dim
-        pitch = pitch.astype(np.float32)
-
-        self._cache_pitch[class_id] = pitch
-        return pitch
 
     def get_frame(self, index):
         frame_id = self.ids[index]

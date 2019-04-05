@@ -4,12 +4,12 @@ import trimesh.transformations as tf
 
 import objslampp
 
+from .base import DatasetBase
 
-class YCBVideoDataset(objslampp.datasets.DatasetBase):
+
+class YCBVideoDataset(DatasetBase):
 
     _root_dir = objslampp.datasets.YCBVideoDataset._root_dir
-
-    voxel_dim = 32
 
     def __init__(self, split, class_ids=None):
         super().__init__()
@@ -17,8 +17,6 @@ class YCBVideoDataset(objslampp.datasets.DatasetBase):
         self._split = split
         self._class_ids = class_ids
         self._ids = self._get_ids()
-
-        self._cache_pitch = {}
 
     def _get_ids(self):
         if self.split == 'val':
@@ -40,16 +38,6 @@ class YCBVideoDataset(objslampp.datasets.DatasetBase):
 
         return tuple(ids)
 
-    def _get_invalid_data(self):
-        return dict(
-            class_id=-1,
-            pitch=0.,
-            rgb=np.zeros((256, 256, 3), dtype=np.uint8),
-            pcd=np.zeros((256, 256, 3), dtype=np.float64),
-            quaternion_true=np.zeros((4,), dtype=np.float64),
-            translation_true=np.zeros((3,), dtype=np.float64),
-        )
-
     def get_frame(self, index):
         is_real, image_id = self._ids[index]
         if is_real:
@@ -63,19 +51,6 @@ class YCBVideoDataset(objslampp.datasets.DatasetBase):
             instance_label=frame['label'],
             intrinsic_matrix=frame['meta']['intrinsic_matrix'],
         )
-
-    def _get_pitch(self, class_id):
-        if class_id in self._cache_pitch:
-            return self._cache_pitch[class_id]
-
-        models = objslampp.datasets.YCBVideoModels()
-        cad_file = models.get_model(class_id=class_id)['textured_simple']
-        bbox_diagonal = models.get_bbox_diagonal(mesh_file=cad_file)
-        pitch = 1. * bbox_diagonal / self.voxel_dim
-        pitch = pitch.astype(np.float32)
-
-        self._cache_pitch[class_id] = pitch
-        return pitch
 
     def get_example(self, index):
         is_real, image_id = self._ids[index]
