@@ -13,25 +13,27 @@ class YCBVideoDataset(DatasetBase):
 
     def __init__(self, split, class_ids=None):
         super().__init__()
-        assert split in ('train', 'val')
         self._split = split
         self._class_ids = class_ids
         self._ids = self._get_ids()
 
     def _get_ids(self):
+        assert self.split in ['train', 'syn', 'val']
+
         if self.split == 'val':
             ids = objslampp.datasets.YCBVideoDataset(
                 split='keyframe'
             ).get_ids()
-        else:
-            assert self.split == 'train'
+        elif self.split == 'train':
             ids = objslampp.datasets.YCBVideoDataset(
                 split='train'
             ).get_ids(sampling=8)
+        elif self.split == 'syn':
+            ids = []
 
         ids = [(True, x) for x in ids]
 
-        if self.split == 'train':
+        if self.split in ['train', 'syn']:
             ids_syn = objslampp.datasets.YCBVideoSyntheticDataset().get_ids()
             ids_syn = [(False, x) for x in ids_syn]
             ids += ids_syn

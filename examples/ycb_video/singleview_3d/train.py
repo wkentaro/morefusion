@@ -33,6 +33,19 @@ def main():
     parser.add_argument('--gpu', type=int, default=0, help='gpu id')
     parser.add_argument('--seed', type=int, default=0, help='random seed')
     parser.add_argument(
+        '--dataset',
+        choices=['ycb_video', 'ycb_video_syn', 'cad_only'],
+        default='cad_only',
+        help='dataset',
+    )
+    parser.add_argument(
+        '--augmentation',
+        nargs='*',
+        default=['rgb', 'depth', 'segm', 'occl'],
+        choices=['rgb', 'depth', 'segm', 'occl'],
+        help='augmentation (used only for cad_only dataset)',
+    )
+    parser.add_argument(
         '--freeze-until',
         choices=['conv4_3', 'conv3_3', 'conv2_2', 'conv1_2', 'none'],
         default='conv4_3',
@@ -41,7 +54,7 @@ def main():
     parser.add_argument(
         '--voxelization',
         choices=['average', 'max'],
-        default='average',
+        default='max',
         help='voxelization function',
     )
     parser.add_argument(
@@ -82,7 +95,22 @@ def main():
         chainer.cuda.cupy.random.seed(args.seed)
 
     # dataset initialization
-    data_train = contrib.datasets.YCBVideoDataset('train', class_ids=[2])
+    args.class_ids = [2]
+    if args.dataset == 'ycb_video':
+        data_train = contrib.datasets.YCBVideoDataset(
+            'train', class_ids=args.class_ids
+        )
+    elif args.dataset == 'ycb_video_syn':
+        data_train = contrib.datasets.YCBVideoDataset(
+            'syn', class_ids=args.class_ids
+        )
+    elif args.dataset == 'cad_only':
+        data_train = contrib.datasets.CADOnlyDataset(
+            class_ids=args.class_ids,
+            augmentation=args.augmentation,
+        )
+    else:
+        raise ValueError(f'unsupported dataset: {args.dataset}')
     data_valid = contrib.datasets.YCBVideoDataset('val', class_ids=[2])
     # class_names = objslampp.datasets.ycb_video.class_names
 
