@@ -41,7 +41,7 @@ def main():
     parser.add_argument(
         '--lr',
         type=float,
-        default=1e-2,
+        default=0.0001,
         help='learning rate',
     )
     parser.add_argument(
