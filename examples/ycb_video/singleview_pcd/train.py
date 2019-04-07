@@ -35,7 +35,7 @@ def main():
     parser.add_argument(
         '--freeze-until',
         choices=['conv4_3', 'conv3_3', 'conv2_2', 'conv1_2', 'none'],
-        default='none',
+        default='conv4_3',
         help='freeze until',
     )
     parser.add_argument(
