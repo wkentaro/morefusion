@@ -34,9 +34,16 @@ def main():
     parser.add_argument('--seed', type=int, default=0, help='random seed')
     parser.add_argument(
         '--dataset',
-        choices=['ycb_video', 'ycb_video_syn'],
-        default='ycb_video',
+        choices=['ycb_video', 'ycb_video_syn', 'cad_only'],
+        default='cad_only',
         help='dataset',
+    )
+    parser.add_argument(
+        '--augmentation',
+        nargs='*',
+        default=['rgb', 'depth', 'segm', 'occl'],
+        choices=['rgb', 'depth', 'segm', 'occl'],
+        help='augmentation (used only for cad_only dataset)',
     )
     parser.add_argument(
         '--freeze-until',
@@ -55,6 +62,11 @@ def main():
         type=int,
         default=30,
         help='max epoch',
+    )
+    parser.add_argument(
+        '--nocall-evaluation-before-training',
+        action='store_true',
+        help='no call evaluation before training',
     )
     args = parser.parse_args()
 
@@ -82,13 +94,25 @@ def main():
         chainer.cuda.cupy.random.seed(args.seed)
 
     # dataset initialization
+    args.class_ids = [2]
     if args.dataset == 'ycb_video':
-        data_train = contrib.datasets.YCBVideoDataset('train', class_ids=[2])
+        data_train = contrib.datasets.YCBVideoDataset(
+            'train', class_ids=args.class_ids
+        )
     elif args.dataset == 'ycb_video_syn':
-        data_train = contrib.datasets.YCBVideoDataset('syn', class_ids=[2])
+        data_train = contrib.datasets.YCBVideoDataset(
+            'syn', class_ids=args.class_ids
+        )
+    elif args.dataset == 'cad_only':
+        data_train = contrib.datasets.CADOnlyDataset(
+            class_ids=args.class_ids,
+            augmentation=args.augmentation,
+        )
     else:
         raise ValueError(f'unsupported dataset: {args.dataset}')
-    data_valid = contrib.datasets.YCBVideoDataset('val', class_ids=[2])
+    data_valid = contrib.datasets.YCBVideoDataset(
+        'val', class_ids=args.class_ids
+    )
     class_names = objslampp.datasets.ycb_video.class_names
 
     termcolor.cprint('==> Dataset size', attrs={'bold': True})
@@ -171,7 +195,7 @@ def main():
     trainer.extend(
         evaluator,
         trigger=eval_interval,
-        call_before_training=True,
+        call_before_training=not args.nocall_evaluation_before_training,
     )
 
     # snapshot
