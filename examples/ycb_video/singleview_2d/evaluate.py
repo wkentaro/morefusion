@@ -27,13 +27,6 @@ def main():
     parser.add_argument('--gpu', type=int, default=0, help='gpu id')
     parser.add_argument('--show', action='store_true', help='show')
     parser.add_argument('--save', action='store_true', help='save')
-    parser.add_argument(
-        '--dataset',
-        default='ycb_video',
-        choices=['ycb_video', 'bin_type'],
-        help='dataset',
-    )
-    parser.add_argument('--instance-id', type=int, help='instance id')
     args = parser.parse_args()
 
     args_file = pathlib.Path(args.model).parent / 'args'
@@ -55,15 +48,7 @@ def main():
     chainer.serializers.load_npz(args.model, model)
     print('==> Done model loading')
 
-    if args.dataset == 'ycb_video':
-        dataset = contrib.datasets.YCBVideoDataset('val', class_ids=[2])
-    else:
-        assert args.dataset == 'bin_type'
-        dataset = contrib.datasets.BinTypeDataset(
-            '/home/wkentaro/data/datasets/wkentaro/objslampp/ycb_video/synthetic_data/20190402_174648.841996',  # NOQA
-            class_ids=[2],
-        )
-        dataset.instance_id = args.instance_id
+    dataset = contrib.datasets.YCBVideoDataset('val', class_ids=[2])
 
     # -------------------------------------------------------------------------
 
