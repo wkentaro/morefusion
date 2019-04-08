@@ -40,12 +40,12 @@ class YCBVideoModels(object):
             path_extracted: pathlib.Path = pathlib.Path(path).parent / 'models'
             shutil.move(
                 str(path_extracted),
-                str(cls.root_dir),
+                str(cls._root_dir),
             )
 
         gdown.cached_download(
             url=url,
-            path=str(cls.root_dir) + '.zip',
+            path=str(cls._root_dir) + '.zip',
             md5=md5,
             postprocess=postprocess,
         )
