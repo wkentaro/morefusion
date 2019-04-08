@@ -88,7 +88,7 @@ class YCBVideoDataset(DatasetBase):
         )
 
         # crop
-        bbox = objslampp.geometry.masks_to_bboxes([mask])[0]
+        bbox = objslampp.geometry.masks_to_bboxes(mask)
         y1, x1, y2, x2 = bbox.round().astype(int)
         if (y2 - y1) * (x2 - x1) == 0:
             return self._get_invalid_data()

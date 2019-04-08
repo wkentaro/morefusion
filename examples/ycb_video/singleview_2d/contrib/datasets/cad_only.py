@@ -199,7 +199,7 @@ class CADOnlyDataset(DatasetBase):
         mask = ~np.isnan(depth)
         translation_rough = np.nanmean(pcd[mask], axis=0)
 
-        bbox = objslampp.geometry.masks_to_bboxes([mask])[0]
+        bbox = objslampp.geometry.masks_to_bboxes(mask)
         y1, x1, y2, x2 = bbox.round().astype(int)
         rgb = rgb[y1:y2, x1:x2]
         pcd = pcd[y1:y2, x1:x2]
