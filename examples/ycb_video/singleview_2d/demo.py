@@ -1,0 +1,188 @@
+#!/usr/bin/env python
+
+import argparse
+import json
+import pathlib
+import pprint
+
+import chainer
+from chainer import cuda
+import imgviz
+import numpy as np
+import pybullet  # NOQA
+import trimesh
+import trimesh.transformations as tf
+
+import objslampp
+
+import contrib
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument('model', help='model file in a log dir')
+    parser.add_argument('--gpu', type=int, default=0, help='gpu id')
+    parser.add_argument('--save', action='store_true', help='save')
+    args = parser.parse_args()
+
+    args_file = pathlib.Path(args.model).parent / 'args'
+    with open(args_file) as f:
+        args_data = json.load(f)
+    pprint.pprint(args_data)
+
+    if args.gpu >= 0:
+        chainer.cuda.get_device_from_id(args.gpu).use()
+
+    model = contrib.models.BaselineModel(
+        n_fg_class=21,
+        freeze_until='none',
+    )
+    if args.gpu >= 0:
+        model.to_gpu()
+
+    print('==> Loading trained model: {}'.format(args.model))
+    chainer.serializers.load_npz(args.model, model)
+    print('==> Done model loading')
+
+    args.root_dir = chainer.dataset.get_dataset_directory(
+        'wkentaro/objslampp/ycb_video/synthetic_data/20190408_143724.600111'
+    )
+    args.class_ids = [2]
+    dataset = contrib.datasets.BinTypeDataset(
+        args.root_dir, class_ids=args.class_ids
+    )
+
+    # -------------------------------------------------------------------------
+
+    observations = []
+    depth2rgb = imgviz.Depth2RGB()
+    for index in range(len(dataset)):
+        with chainer.using_config('debug', True):
+            examples = dataset.get_examples(index)
+        inputs = chainer.dataset.concat_examples(examples, device=args.gpu)
+
+        with chainer.no_backprop_mode() and \
+                chainer.using_config('train', False):
+            quaternion_pred = model.predict(
+                class_id=inputs['class_id'],
+                rgb=inputs['rgb'],
+            )
+
+            reporter = chainer.Reporter()
+            reporter.add_observer('main', model)
+            observation = {}
+            with reporter.scope(observation):
+                model.evaluate(
+                    class_id=inputs['class_id'],
+                    quaternion_true=inputs['quaternion_true'],
+                    translation_true=inputs['translation_true'],
+                    quaternion_pred=quaternion_pred,
+                    translation_rough=inputs['translation_rough'],
+                )
+            observations.append(observation)
+
+        print(f'[{index:08d}] {observation}')
+
+        # ---------------------------------------------------------------------
+
+        frame = dataset.get_frame(index)
+        rgb = frame['rgb']
+        K = frame['intrinsic_matrix']
+        height, width = rgb.shape[:2]
+        fovy = trimesh.scene.Camera(
+            resolution=(width, height), focal=(K[0, 0], K[1, 1])
+        ).fov[1]
+
+        batch_size = len(inputs['class_id'])
+        class_ids = cuda.to_cpu(inputs['class_id'])
+        quaternion_pred = cuda.to_cpu(quaternion_pred.array)
+        translation_pred = cuda.to_cpu(inputs['translation_rough'])
+        quaternion_true = cuda.to_cpu(inputs['quaternion_true'])
+        translation_true = cuda.to_cpu(inputs['translation_true'])
+
+        Ts_pred = []
+        Ts_true = []
+        for i in range(batch_size):
+            cad_file = objslampp.datasets.YCBVideoModels()\
+                .get_model(class_id=class_ids[i])['textured_simple']
+
+            # T_cad2cam
+            T_pred = tf.quaternion_matrix(quaternion_pred[i])
+            T_pred[:3, 3] = translation_pred[i]
+            T_true = tf.quaternion_matrix(quaternion_true[i])
+            T_true[:3, 3] = translation_true[i]
+
+            Ts_pred.append(T_pred)
+            Ts_true.append(T_true)
+
+        Ts = dict(true=Ts_true, pred=Ts_pred)
+
+        vizs = []
+        for which in ['true', 'pred']:
+            pybullet.connect(pybullet.DIRECT)
+            for T in Ts[which]:
+                objslampp.extra.pybullet.add_model(
+                    cad_file,
+                    position=tf.translation_from_matrix(T),
+                    orientation=tf.quaternion_from_matrix(T)[[1, 2, 3, 0]],
+                )
+            rgb_rend, depth_rend, segm_rend = \
+                objslampp.extra.pybullet.render_camera(
+                    np.eye(4), fovy, height, width
+                )
+            pybullet.disconnect()
+
+            segm_rend = imgviz.label2rgb(segm_rend + 1, img=rgb, alpha=0.7)
+            depth_rend = depth2rgb(depth_rend)
+            rgb_input = imgviz.tile(
+                cuda.to_cpu(inputs['rgb']), border=(255, 255, 255)
+            )
+            viz = imgviz.tile(
+                [rgb, rgb_input, segm_rend, rgb_rend, depth_rend],
+                (1, 5),
+                border=(255, 255, 255),
+            )
+            viz = imgviz.resize(viz, width=1800)
+
+            text = []
+            for class_id in np.unique(class_ids):
+                add = observation[f'main/add/{class_id:04d}']
+                add_rot = observation[f'main/add_rotation/{class_id:04d}']
+                text.append(
+                    f'[{which}] [{class_id:04d}]: add={add * 100:.1f}cm, '
+                    f'add_rot={add_rot * 100:.1f}cm'
+                )
+            text = '\n'.join(text)
+            viz = imgviz.draw.text_in_rectangle(
+                viz, loc='lt', text=text, size=20, background=(0, 255, 0)
+            )
+            if which == 'true':
+                viz = imgviz.draw.text_in_rectangle(
+                    viz,
+                    loc='rt',
+                    text='singleview_2d',
+                    size=20,
+                    background=(255, 0, 0),
+                )
+            vizs.append(viz)
+        viz = imgviz.tile(vizs, (2, 1), border=(255, 255, 255))
+
+        if args.save:
+            out_file = (
+                pathlib.Path(args.model).parent / f'video/{index:08d}.jpg'
+            )
+            out_file.parent.mkdir(parents=True, exist_ok=True)
+            imgviz.io.imsave(out_file, viz)
+
+        yield viz
+
+
+if __name__ == '__main__':
+    vizs = main()
+    try:
+        imgviz.io.pyglet_imshow(vizs)
+        imgviz.io.pyglet_run()
+    except StopIteration:
+        pass
