@@ -1,3 +1,1 @@
-[logboard]
--summary=out,gpu,seed,loglevel,timestamp,lr .*,.*main/loss.*(max),.*main/loss.*/.*,debug,.*/auc/.*(min),.*/add/.*,.*/add_rotation/.*
-figure=loss.png
+../singleview_3d/.logboard
