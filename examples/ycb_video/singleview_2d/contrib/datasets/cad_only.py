@@ -220,7 +220,7 @@ class CADOnlyDataset(DatasetBase):
 
 
 if __name__ == '__main__':
-    dataset = CADOnlyDataset(class_ids=[2], augmentation=True)
+    dataset = CADOnlyDataset(class_ids=[2])
     print(f'dataset_size: {len(dataset)}')
 
     def images():
