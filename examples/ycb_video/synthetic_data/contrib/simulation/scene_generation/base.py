@@ -9,8 +9,6 @@ import termcolor
 
 import objslampp
 
-from ... import geometry as geometry_module
-
 
 class SceneGenerationBase:
 
@@ -233,8 +231,8 @@ class SceneGenerationBase:
     def random_camera_trajectory(self, n_keypoints=8, n_points=64):
         # targets
         targets = self._random_state.uniform(*self._aabb, (n_keypoints, 3))
-        targets = geometry_module.trajectory.sort(targets)
-        targets = geometry_module.trajectory.interpolate(
+        targets = objslampp.geometry.trajectory.sort(targets)
+        targets = objslampp.geometry.trajectory.interpolate(
             targets, n_points=n_points
         )
 
@@ -247,8 +245,12 @@ class SceneGenerationBase:
         )
         indices = np.linspace(0, n_points - 1, num=len(eyes))
         indices = indices.round().astype(int)
-        eyes = geometry_module.trajectory.sort_by(eyes, key=targets[indices])
-        eyes = geometry_module.trajectory.interpolate(eyes, n_points=n_points)
+        eyes = objslampp.geometry.trajectory.sort_by(
+            eyes, key=targets[indices]
+        )
+        eyes = objslampp.geometry.trajectory.interpolate(
+            eyes, n_points=n_points
+        )
 
         Ts_cam2world = np.zeros((n_points, 4, 4), dtype=float)
         for i in range(n_points):

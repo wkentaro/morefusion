@@ -1,5 +1,7 @@
 # flake8: noqa
 
+from . import trajectory
+
 from .compose_transform import compose_transform
 
 from .get_aabb_from_points import get_aabb_from_points
