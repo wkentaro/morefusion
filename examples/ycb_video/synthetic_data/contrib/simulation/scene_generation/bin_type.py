@@ -8,7 +8,6 @@ import trimesh
 import objslampp
 
 from .base import SceneGenerationBase
-from ... import extra
 
 
 class BinTypeSceneGeneration(SceneGenerationBase):
@@ -26,7 +25,7 @@ class BinTypeSceneGeneration(SceneGenerationBase):
         super().__init__(*args, **kwargs)
 
     def init_space(self):
-        cad = extra.trimesh.bin_model(
+        cad = objslampp.extra.trimesh.bin_model(
             extents=self._extents,
             thickness=self._thickness,
         )
