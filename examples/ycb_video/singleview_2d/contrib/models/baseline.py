@@ -183,7 +183,7 @@ class BaselineModel(chainer.Chain):
         for i in range(batch_size):
             cad_pcd = self._get_cad_pcd(class_id=int(class_id[i]))
             cad_pcd = self.xp.asarray(cad_pcd)
-            loss_i = objslampp.functions.average_distance_l2(
+            loss_i = objslampp.functions.average_distance_l1(
                 cad_pcd, T_cad2cam_true[i:i + 1], T_cad2cam_pred[i:i + 1]
             )[0]
             loss += loss_i
