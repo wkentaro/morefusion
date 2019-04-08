@@ -14,3 +14,6 @@ def test_masks_to_bboxes():
     mask[6:9, 6:9] = True
     bbox = masks_to_bboxes([mask])[0]
     np.testing.assert_allclose(bbox, (6, 6, 9, 9))
+
+    bbox = masks_to_bboxes(mask)
+    np.testing.assert_allclose(bbox, (6, 6, 9, 9))

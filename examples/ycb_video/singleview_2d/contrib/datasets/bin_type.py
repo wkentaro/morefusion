@@ -87,7 +87,7 @@ class BinTypeDataset(DatasetBase):
             class_id = class_ids[instance_index]
 
         mask = example['instance_label'] == instance_id
-        bbox = objslampp.geometry.masks_to_bboxes([mask])[0]
+        bbox = objslampp.geometry.masks_to_bboxes(mask)
         y1, x1, y2, x2 = bbox.round().astype(int)
 
         if (y2 - y1) * (x2 - x1) == 0:
