@@ -29,26 +29,38 @@ class BinTypeDataset(DatasetBase):
     def get_frame(self, index):
         frame_id = self.ids[index]
         npz_file = self.root_dir / f'{frame_id}.npz'
-        example = np.load(npz_file)
-        return dict(
-            rgb=example['rgb'],
-            instance_label=example['instance_label'],
-            intrinsic_matrix=example['intrinsic_matrix'],
-        )
-
-    def get_examples(self, index):
-        frame_id = self.ids[index]
-        npz_file = self.root_dir / f'{frame_id}.npz'
         frame = np.load(npz_file)
 
-        class_ids = frame['class_ids']
         instance_ids = frame['instance_ids']
+        class_ids = frame['class_ids']
         Ts_cad2cam = frame['Ts_cad2cam']
 
         keep = class_ids > 0
-        class_ids = class_ids[keep]
         instance_ids = instance_ids[keep]
+        class_ids = class_ids[keep]
         Ts_cad2cam = Ts_cad2cam[keep]
+
+        return dict(
+            instance_ids=instance_ids,
+            class_ids=class_ids,
+            rgb=frame['rgb'],
+            depth=frame['depth'],
+            instance_label=frame['instance_label'],
+            intrinsic_matrix=frame['intrinsic_matrix'],
+            T_cam2world=frame['T_cam2world'],
+            Ts_cad2cam=Ts_cad2cam,
+        )
+
+    def get_examples(self, index):
+        frame = self.get_frame(index)
+
+        instance_ids = frame['instance_ids']
+        class_ids = frame['class_ids']
+        rgb = frame['rgb']
+        depth = frame['depth']
+        instance_label = frame['instance_label']
+        K = frame['intrinsic_matrix']
+        Ts_cad2cam = frame['Ts_cad2cam']
 
         if chainer.is_debug():
             print(f'[{index:08d}]: class_ids: {class_ids.tolist()}')
@@ -62,7 +74,7 @@ class BinTypeDataset(DatasetBase):
                     class_id not in self._class_ids):
                 continue
 
-            mask = frame['instance_label'] == instance_id
+            mask = instance_label == instance_id
             bbox = objslampp.geometry.masks_to_bboxes(mask)
             y1, x1, y2, x2 = bbox.round().astype(int)
             if (y2 - y1) * (x2 - x1) == 0:
@@ -73,8 +85,6 @@ class BinTypeDataset(DatasetBase):
             rgb = rgb[y1:y2, x1:x2]
             rgb = imgviz.centerize(rgb, (256, 256))
 
-            depth = frame['depth']
-            K = frame['intrinsic_matrix']
             pcd = objslampp.geometry.pointcloud_from_depth(
                 depth, fx=K[0, 0], fy=K[1, 1], cx=K[0, 2], cy=K[1, 2],
             )
