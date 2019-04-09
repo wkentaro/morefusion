@@ -16,7 +16,7 @@ class YCBVideoDataset(DatasetBase):
         self,
         split,
         class_ids=None,
-        augmentation={'rgb', 'depth', 'segm', 'occl'},
+        augmentation={},
     ):
         super().__init__()
         self._split = split
