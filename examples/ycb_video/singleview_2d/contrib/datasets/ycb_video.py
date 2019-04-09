@@ -97,6 +97,7 @@ class YCBVideoDataset(DatasetBase):
             # augment
             if self._augmentation:
                 rgb, depth = self._augment(rgb, depth)
+                mask = ~np.isnan(depth)
 
             # get point cloud
             K = frame['meta']['intrinsic_matrix']

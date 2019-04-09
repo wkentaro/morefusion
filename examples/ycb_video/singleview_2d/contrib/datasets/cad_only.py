@@ -81,6 +81,7 @@ class CADOnlyDataset(DatasetBase):
         # augment
         if self._augmentation:
             rgb, depth = self._augment(rgb, depth)
+            mask = ~np.isnan(depth)
 
         # get point cloud
         K = self.camera.K
@@ -113,7 +114,10 @@ class CADOnlyDataset(DatasetBase):
 
 
 if __name__ == '__main__':
-    dataset = CADOnlyDataset(class_ids=[2])
+    dataset = CADOnlyDataset(
+        class_ids=[2],
+        augmentation={'rgb', 'depth', 'segm', 'occl'},
+    )
     print(f'dataset_size: {len(dataset)}')
 
     def images():
