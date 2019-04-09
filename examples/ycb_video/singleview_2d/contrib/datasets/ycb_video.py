@@ -12,11 +12,20 @@ class YCBVideoDataset(DatasetBase):
 
     _root_dir = objslampp.datasets.YCBVideoDataset._root_dir
 
-    def __init__(self, split, class_ids=None):
+    def __init__(
+        self,
+        split,
+        class_ids=None,
+        augmentation={'rgb', 'depth', 'segm', 'occl'},
+    ):
         super().__init__()
         self._split = split
         self._class_ids = class_ids
         self._ids = self._get_ids()
+
+        augmentation_all = {'rgb', 'depth', 'segm', 'occl'}
+        assert augmentation_all.issuperset(set(augmentation))
+        self._augmentation = augmentation
 
     def _get_ids(self):
         assert self.split in ['train', 'syn', 'val']
@@ -77,9 +86,19 @@ class YCBVideoDataset(DatasetBase):
                     class_id not in self._class_ids):
                 continue
 
+            # get frame
             rgb = frame['color'].copy()
             mask = frame['label'] == class_id
             depth = frame['depth']
+            rgb[~mask] = 0
+            depth[~mask] = np.nan
+            mask = ~np.isnan(depth)
+
+            # augment
+            if self._augmentation:
+                rgb, depth = self._augment(rgb, depth)
+
+            # get point cloud
             K = frame['meta']['intrinsic_matrix']
             pcd = objslampp.geometry.pointcloud_from_depth(
                 depth, fx=K[0, 0], fy=K[1, 1], cx=K[0, 2], cy=K[1, 2],
@@ -90,23 +109,16 @@ class YCBVideoDataset(DatasetBase):
             y1, x1, y2, x2 = bbox.round().astype(int)
             if (y2 - y1) * (x2 - x1) == 0:
                 continue
-
             rgb = rgb[y1:y2, x1:x2]
-            mask = mask[y1:y2, x1:x2]
             pcd = pcd[y1:y2, x1:x2]
 
+            # finalize
             rgb = imgviz.centerize(rgb, (256, 256))
-            mask = imgviz.centerize(
-                mask.astype(np.uint8), (256, 256)
-            ).astype(bool)
-            pcd = imgviz.centerize(pcd, (256, 256))
-
-            rgb[~mask] = 0
-            translation_rough = np.nanmean(pcd[mask], axis=0)
 
             T_cad2cam = frame['meta']['poses'][:, :, instance_id]
             quaternion_true = tf.quaternion_from_matrix(T_cad2cam)
             translation_true = tf.translation_from_matrix(T_cad2cam)
+            translation_rough = np.nanmean(pcd, axis=(0, 1))
 
             examples.append(dict(
                 class_id=class_id,

@@ -97,11 +97,15 @@ def main():
     args.class_ids = [2]
     if args.dataset == 'ycb_video':
         data_train = contrib.datasets.YCBVideoDataset(
-            'train', class_ids=args.class_ids
+            'train',
+            class_ids=args.class_ids,
+            augmentation=args.augmentation,
         )
     elif args.dataset == 'ycb_video_syn':
         data_train = contrib.datasets.YCBVideoDataset(
-            'syn', class_ids=args.class_ids
+            'syn',
+            class_ids=args.class_ids,
+            augmentation=args.augmentation,
         )
     elif args.dataset == 'cad_only':
         data_train = contrib.datasets.CADOnlyDataset(
