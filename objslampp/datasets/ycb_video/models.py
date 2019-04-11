@@ -77,6 +77,9 @@ class YCBVideoModels(object):
     def get_cad_model(self, *args, **kwargs):
         return self.get_model(*args, **kwargs)['textured_simple']
 
+    def get_pcd_model(self, *args, **kwargs):
+        return self.get_model(*args, **kwargs)['points_xyz']
+
     @staticmethod
     def get_bbox_diagonal(mesh_file=None, mesh=None):
         if mesh is None:
