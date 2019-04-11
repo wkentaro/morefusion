@@ -93,6 +93,8 @@ class YCBVideoDataset(DatasetBase):
             rgb[~mask] = 0
             depth[~mask] = np.nan
             mask = ~np.isnan(depth)
+            if mask.sum() == 0:
+                continue
 
             # augment
             if self._augmentation:
@@ -132,7 +134,11 @@ class YCBVideoDataset(DatasetBase):
 
 
 if __name__ == '__main__':
-    dataset = YCBVideoDataset('train', class_ids=[2])
+    dataset = YCBVideoDataset(
+        'train',
+        class_ids=[2],
+        augmentation={'rgb', 'depth', 'segm', 'occl'},
+    )
     print(f'dataset_size: {len(dataset)}')
 
     def images():

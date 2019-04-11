@@ -11,11 +11,20 @@ class YCBVideoDataset(DatasetBase):
 
     _root_dir = objslampp.datasets.YCBVideoDataset._root_dir
 
-    def __init__(self, split, class_ids=None):
+    def __init__(
+        self,
+        split,
+        class_ids=None,
+        augmentation={},
+    ):
         super().__init__()
         self._split = split
         self._class_ids = class_ids
         self._ids = self._get_ids()
+
+        augmentation_all = {'rgb', 'depth', 'segm', 'occl'}
+        assert augmentation_all.issuperset(set(augmentation))
+        self._augmentation = augmentation
 
     def _get_ids(self):
         assert self.split in ['train', 'syn', 'val']
@@ -73,35 +82,44 @@ class YCBVideoDataset(DatasetBase):
         else:
             class_id = np.random.choice(self._class_ids)
 
-        instance_id = np.where(class_ids == class_id)[0][0]
-        T_cad2cam = frame['meta']['poses'][:, :, instance_id]
-        quaternion_true = tf.quaternion_from_matrix(T_cad2cam)
-        translation_true = tf.translation_from_matrix(T_cad2cam)
-
+        rgb = frame['color'].copy()
+        depth = frame['depth'].copy()
         mask = frame['label'] == class_id
+        rgb[~mask] = 0
+        depth[~mask] = np.nan
         if mask.sum() == 0:
             return self._get_invalid_data()
 
-        bbox = objslampp.geometry.masks_to_bboxes(mask)
-        y1, x1, y2, x2 = bbox.round().astype(int)
-        if (y2 - y1) * (x2 - x1) == 0:
-            return self._get_invalid_data()
+        # augment
+        if self._augmentation:
+            rgb, depth = self._augment(rgb, depth)
 
-        rgb = frame['color'].copy()
-        rgb[~mask] = 0
-        rgb = rgb[y1:y2, x1:x2]
-        rgb = imgviz.centerize(rgb, (256, 256))
+        mask = ~np.isnan(depth)
 
-        depth = frame['depth']
+        # get point cloud
         K = frame['meta']['intrinsic_matrix']
         pcd = objslampp.geometry.pointcloud_from_depth(
             depth, fx=K[0, 0], fy=K[1, 1], cx=K[0, 2], cy=K[1, 2],
         )
-        pcd[~mask] = np.nan
+
+        # crop
+        bbox = objslampp.geometry.masks_to_bboxes(mask)
+        y1, x1, y2, x2 = bbox.round().astype(int)
+        if (y2 - y1) * (x2 - x1) == 0:
+            return self._get_invalid_data()
+        rgb = rgb[y1:y2, x1:x2]
         pcd = pcd[y1:y2, x1:x2]
+
+        # finalize
+        rgb = imgviz.centerize(rgb, (256, 256))
         pcd = imgviz.centerize(pcd, (256, 256), cval=np.nan)
         if np.isnan(pcd).any(axis=2).all():
             return self._get_invalid_data()
+
+        instance_id = np.where(class_ids == class_id)[0][0]
+        T_cad2cam = frame['meta']['poses'][:, :, instance_id]
+        quaternion_true = tf.quaternion_from_matrix(T_cad2cam)
+        translation_true = tf.translation_from_matrix(T_cad2cam)
 
         return dict(
             class_id=class_id,
@@ -114,7 +132,11 @@ class YCBVideoDataset(DatasetBase):
 
 
 if __name__ == '__main__':
-    dataset = YCBVideoDataset('train', class_ids=[2])
+    dataset = YCBVideoDataset(
+        'train',
+        class_ids=[2],
+        augmentation={'rgb', 'depth', 'segm', 'occl'},
+    )
     print(f'dataset_size: {len(dataset)}')
 
     def images():

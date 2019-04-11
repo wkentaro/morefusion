@@ -99,6 +99,8 @@ class DatasetBase(objslampp.datasets.DatasetBase):
         bbox = objslampp.geometry.masks_to_bboxes(mask)
         by1, bx1, by2, bx2 = bbox.round().astype(int)
         bh, bw = by2 - by1, bx2 - bx1
+        if bh * bw == 0:
+            return rgb, depth
 
         cy, cx = random_state.uniform(
             (bh, bw), (rgb_bg.shape[0] - bh, rgb_bg.shape[1] - bw)
