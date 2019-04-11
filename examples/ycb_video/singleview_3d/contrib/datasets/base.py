@@ -104,10 +104,15 @@ class DatasetBase(objslampp.datasets.DatasetBase):
             (bh, bw), (rgb_bg.shape[0] - bh, rgb_bg.shape[1] - bw)
         ).round().astype(int)
 
-        y1 = int(round(cy - bh / 2))
-        x1 = int(round(cx - bw / 2))
-        y2 = y1 + bh
-        x2 = x1 + bw
+        H, W = rgb_bg.shape[:2]
+        y1 = np.clip(int(round(cy - bh / 2)), 0, H - 1)
+        x1 = np.clip(int(round(cx - bw / 2)), 0, W - 1)
+        y2 = np.clip(y1 + bh, 0, H - 1)
+        x2 = np.clip(x1 + bw, 0, H - 1)
+
+        by2 = by1 + (y2 - y1)
+        bx2 = bx1 + (x2 - x1)
+
         mask_roi = mask[by1:by2, bx1:bx2]
         rgb_bg[y1:y2, x1:x2][mask_roi] = rgb[by1:by2, bx1:bx2][mask_roi]
         depth_bg[y1:y2, x1:x2][mask_roi] = depth[by1:by2, bx1:bx2][mask_roi]
@@ -166,28 +171,23 @@ class DatasetBase(objslampp.datasets.DatasetBase):
         mask_occl = mask_occl[by1:by2, bx1:bx2]
 
         H, W = rgb.shape[:2]
+        cy1, cx1, cy2, cx2 = objslampp.geometry.masks_to_bboxes(mask)
         cy, cx = random_state.uniform(
-            (0, 0), rgb.shape[:2]
+            (cy1, cx1), (cy2, cx2),
         ).round().astype(int)
 
-        y1 = np.clip(int(round(cy - bh / 2)), 0, H)
-        x1 = np.clip(int(round(cx - bw / 2)), 0, W)
-        y2 = np.clip(y1 + bh, 0, H)
-        x2 = np.clip(x1 + bw, 0, W)
+        y1 = np.clip(int(round(cy - bh / 2)), 0, H - 1)
+        x1 = np.clip(int(round(cx - bw / 2)), 0, W - 1)
+        y2 = np.clip(y1 + bh, 0, H - 1)
+        x2 = np.clip(x1 + bw, 0, W - 1)
 
-        if (y2 - y1) == rgb_occl.shape[0]:
-            y1_occl = 0
-        else:
-            y1_occl = random_state.randint(0, rgb_occl.shape[0] - (y2 - y1))
-        if (x2 - x1) == rgb_occl.shape[1]:
-            x1_occl = 0
-        else:
-            x1_occl = random_state.randint(0, rgb_occl.shape[1] - (x2 - x1))
-        y2_occl = y1_occl + (y2 - y1)
-        x2_occl = x1_occl + (x2 - x1)
-        slice_occl = slice(y1_occl, y2_occl), slice(x1_occl, x2_occl)
-        mask_occl = mask_occl[slice_occl]
-        rgb[y1:y2, x1:x2][mask_occl] = rgb_occl[slice_occl][mask_occl]
+        by1 = 0
+        bx1 = 0
+        by2 = by1 + (y2 - y1)
+        bx2 = bx1 + (x2 - x1)
+
+        mask_occl = mask_occl[by1:by2, bx1:bx2]
+        rgb[y1:y2, x1:x2][mask_occl] = rgb_occl[by1:by2, bx1:bx2][mask_occl]
         mask[y1:y2, x1:x2][mask_occl] = 0
 
         rgb[~mask] = 0
