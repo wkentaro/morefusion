@@ -22,12 +22,9 @@ class CADOnlyDataset(DatasetBase):
         if class_ids is None:
             class_ids = np.arange(1, self._models.n_class)
         self._class_ids = class_ids
+        self._augmentation = augmentation
 
         self._n_sample = n_sample_per_class * len(class_ids)
-
-        augmentation_all = {'rgb', 'depth', 'segm', 'occl'}
-        assert augmentation_all.issuperset(set(augmentation))
-        self._augmentation = augmentation
 
     def __len__(self):
         return self._n_sample
@@ -72,16 +69,17 @@ class CADOnlyDataset(DatasetBase):
             width=self.camera.resolution[0],
         )
         mask = ~np.isnan(depth)
-        rgb[~mask] = 0
-        depth[~mask] = np.nan
 
         # keep rgb and index for get_frame
         self._rgb = index, rgb
 
         # augment
         if self._augmentation:
-            rgb, depth = self._augment(rgb, depth)
-            mask = ~np.isnan(depth)
+            rgb, depth, mask = self._augment(rgb, depth, mask)
+
+        # masking
+        rgb[~mask] = 0
+        depth[~mask] = np.nan
 
         # get point cloud
         K = self.camera.K

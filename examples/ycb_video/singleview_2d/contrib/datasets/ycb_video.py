@@ -22,9 +22,6 @@ class YCBVideoDataset(DatasetBase):
         self._split = split
         self._class_ids = class_ids
         self._ids = self._get_ids()
-
-        augmentation_all = {'rgb', 'depth', 'segm', 'occl'}
-        assert augmentation_all.issuperset(set(augmentation))
         self._augmentation = augmentation
 
     def _get_ids(self):
@@ -88,18 +85,18 @@ class YCBVideoDataset(DatasetBase):
 
             # get frame
             rgb = frame['color'].copy()
-            mask = frame['label'] == class_id
             depth = frame['depth']
-            rgb[~mask] = 0
-            depth[~mask] = np.nan
-            mask = ~np.isnan(depth)
+            mask = frame['label'] == class_id
             if mask.sum() == 0:
                 continue
 
             # augment
             if self._augmentation:
-                rgb, depth = self._augment(rgb, depth)
-                mask = ~np.isnan(depth)
+                rgb, depth, mask = self._augment(rgb, depth, mask)
+
+            # masking
+            rgb[~mask] = 0
+            depth[~mask] = np.nan
 
             # get point cloud
             K = frame['meta']['intrinsic_matrix']

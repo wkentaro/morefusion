@@ -85,16 +85,16 @@ class YCBVideoDataset(DatasetBase):
         rgb = frame['color'].copy()
         depth = frame['depth'].copy()
         mask = frame['label'] == class_id
-        rgb[~mask] = 0
-        depth[~mask] = np.nan
         if mask.sum() == 0:
             return self._get_invalid_data()
 
         # augment
         if self._augmentation:
-            rgb, depth = self._augment(rgb, depth)
+            rgb, depth, mask = self._augment(rgb, depth, mask)
 
-        mask = ~np.isnan(depth)
+        # masking
+        rgb[~mask] = 0
+        depth[~mask] = np.nan
 
         # get point cloud
         K = frame['meta']['intrinsic_matrix']
@@ -109,12 +109,12 @@ class YCBVideoDataset(DatasetBase):
             return self._get_invalid_data()
         rgb = rgb[y1:y2, x1:x2]
         pcd = pcd[y1:y2, x1:x2]
+        if np.isnan(pcd).any(axis=2).all():
+            return self._get_invalid_data()
 
         # finalize
         rgb = imgviz.centerize(rgb, (256, 256))
         pcd = imgviz.centerize(pcd, (256, 256), cval=np.nan)
-        if np.isnan(pcd).any(axis=2).all():
-            return self._get_invalid_data()
 
         instance_id = np.where(class_ids == class_id)[0][0]
         T_cad2cam = frame['meta']['poses'][:, :, instance_id]
