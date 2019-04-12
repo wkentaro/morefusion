@@ -72,7 +72,7 @@ class YCBVideoDataset(DatasetBase):
                 image_id
             )
 
-        class_ids = frame['meta']['cls_indexes']
+        class_ids = frame['meta']['cls_indexes'].astype(int)
 
         if chainer.is_debug():
             print(f'[{index:08d}]: class_ids: {class_ids.tolist()}')
