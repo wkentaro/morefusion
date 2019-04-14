@@ -1,6 +1,8 @@
 import unittest
 
+from chainer.backends import cuda
 import chainer.gradient_check
+from chainer import testing
 from chainer.testing import condition
 import numpy as np
 
@@ -21,9 +23,9 @@ class TestOccupancyGrid3D(unittest.TestCase):
             -1, 1, self.dimension
         ).astype(np.float32)
 
-    def test_forward_cpu(self):
+    def check_forward(self, points_data):
         matrix = occupancy_grid_3d(
-            self.points,
+            points_data,
             pitch=self.pitch,
             origin=self.origin,
             dimension=self.dimension,
@@ -38,7 +40,33 @@ class TestOccupancyGrid3D(unittest.TestCase):
         ]
         matrix_bool = np.zeros(matrix.shape, dtype=bool)
         matrix_bool[tuple(zip(*nonzero))] = True
-        np.testing.assert_allclose((matrix.array > 0), matrix_bool, rtol=0)
+        testing.assert_allclose(matrix.array > 0, matrix_bool, rtol=0, atol=0)
+
+    def test_forward_cpu(self):
+        self.check_forward(self.points)
+
+    @testing.attr.gpu
+    def test_forward_gpu(self):
+        self.check_forward(cuda.to_gpu(self.points))
+
+    @testing.attr.gpu
+    @condition.retry(3)
+    def test_forward_cpu_gpu_equal(self):
+        y_cpu = occupancy_grid_3d(
+            self.points,
+            pitch=self.pitch,
+            origin=self.origin,
+            dimension=self.dimension,
+        )
+
+        y_gpu = occupancy_grid_3d(
+            cuda.to_gpu(self.points),
+            pitch=self.pitch,
+            origin=self.origin,
+            dimension=self.dimension,
+        )
+
+        testing.assert_allclose(y_cpu.array, cuda.to_cpu(y_gpu.array))
 
     def check_backward(self, points_data, grad_matrix):
         chainer.gradient_check.check_backward(
@@ -55,3 +83,10 @@ class TestOccupancyGrid3D(unittest.TestCase):
     @condition.retry(5)
     def test_backward_cpu(self):
         self.check_backward(self.points, self.grad_matrix)
+
+    @testing.attr.gpu
+    @condition.retry(5)
+    def test_backward_gpu(self):
+        self.check_backward(
+            cuda.to_gpu(self.points), cuda.to_gpu(self.grad_matrix)
+        )
