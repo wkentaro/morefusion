@@ -1,6 +1,7 @@
 import numbers
 
 import chainer
+from chainer.backends import cuda
 import chainer.functions as F
 import numpy as np
 
@@ -25,32 +26,32 @@ class OccupancyGrid1D(chainer.Function):
             points_type.ndim == 1,
         )
 
-    def forward_cpu(self, inputs):
-        self.retain_inputs((0,))
+    def forward(self, inputs):
+        xp = cuda.get_array_module(*inputs)
+
         points, = inputs
+        self._points_shape = points.shape
         dtype = points.dtype
 
         dimension = self.dimension
-        origin = np.asarray(self.origin, dtype=dtype)
-        pitch = np.asarray(self.pitch, dtype=dtype)
+        origin = xp.asarray(self.origin, dtype=dtype)
+        pitch = xp.asarray(self.pitch, dtype=dtype)
 
-        I, J = np.meshgrid(
-            np.arange(dimension),
-            np.arange(points.shape[0]),
+        I, J = xp.meshgrid(
+            xp.arange(dimension),
+            xp.arange(points.shape[0]),
         )
         d_IJ = I.astype(dtype) - ((points[J] - origin) / pitch)
         return d_IJ,
 
-    def backward_cpu(self, inputs, grad_outputs):
-        points, = inputs
-        dtype = points.dtype
+    def backward(self, inputs, grad_outputs):
+        xp = cuda.get_array_module(*grad_outputs)
 
         grad_d_IJ, = grad_outputs
-        grad_points = np.zeros_like(points)
+        dtype = grad_d_IJ.dtype
 
-        pitch = np.asarray(self.pitch, dtype=dtype)
-        for j in range(points.shape[0]):
-            grad_points[j] = (- grad_d_IJ[j, :] / pitch).sum()
+        pitch = xp.asarray(self.pitch, dtype=dtype)
+        grad_points = (- grad_d_IJ / pitch).sum(axis=1)
         return grad_points,
 
 

@@ -2,6 +2,7 @@ import collections
 import numbers
 
 import chainer
+from chainer.backends import cuda
 import chainer.functions as F
 import numpy as np
 
@@ -28,38 +29,43 @@ class OccupancyGrid3D(chainer.Function):
             points_type.shape[1] == 3,
         )
 
-    def forward_cpu(self, inputs):
-        self.retain_inputs((0,))
+    def forward(self, inputs):
+        xp = cuda.get_array_module(*inputs)
+
         points, = inputs
+        self._points_shape = points.shape
         dtype = points.dtype
 
         dimension = self.dimension
-        origin = np.asarray(self.origin, dtype=dtype)
-        pitch = np.asarray(self.pitch, dtype=dtype)
+        origin = xp.asarray(self.origin, dtype=dtype)
+        pitch = xp.asarray(self.pitch, dtype=dtype)
 
-        J, I, K, P = np.meshgrid(
-            np.arange(dimension[1]),
-            np.arange(dimension[0]),
-            np.arange(dimension[2]),
-            np.arange(points.shape[0]),
+        J, I, K, P = xp.meshgrid(
+            xp.arange(dimension[1]),
+            xp.arange(dimension[0]),
+            xp.arange(dimension[2]),
+            xp.arange(points.shape[0]),
         )
         d_IP = I.astype(dtype) - ((points[P, 0] - origin[0]) / pitch)
         d_JP = J.astype(dtype) - ((points[P, 1] - origin[1]) / pitch)
         d_KP = K.astype(dtype) - ((points[P, 2] - origin[2]) / pitch)
         return d_IP, d_JP, d_KP
 
-    def backward_cpu(self, inputs, grad_outputs):
-        points, = inputs
-        dtype = points.dtype
+    def backward(self, inputs, grad_outputs):
+        xp = cuda.get_array_module(*grad_outputs)
 
         grad_d_IP, grad_d_JP, grad_d_KP = grad_outputs
-        grad_points = np.zeros_like(points)
+        dtype = grad_d_IP.dtype
 
-        pitch = np.asarray(self.pitch, dtype=dtype)
-        for p in range(points.shape[0]):
-            grad_points[p, 0] = (- grad_d_IP[:, :, :, p] / pitch).sum()
-            grad_points[p, 1] = (- grad_d_JP[:, :, :, p] / pitch).sum()
-            grad_points[p, 2] = (- grad_d_KP[:, :, :, p] / pitch).sum()
+        pitch = xp.asarray(self.pitch, dtype=dtype)
+        grad_points_x = (- grad_d_IP / pitch).sum(axis=(0, 1, 2))
+        grad_points_y = (- grad_d_JP / pitch).sum(axis=(0, 1, 2))
+        grad_points_z = (- grad_d_KP / pitch).sum(axis=(0, 1, 2))
+        grad_points = xp.concatenate((
+            grad_points_x[:, None],
+            grad_points_y[:, None],
+            grad_points_z[:, None]
+        ), axis=1)
         return grad_points,
 
 
