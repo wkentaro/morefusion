@@ -1,8 +1,11 @@
 #!/bin/bash
 
+set -e
+
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT=$HERE/..
 
+mkdir -p $ROOT/src
 cd $ROOT/src
 
 if [ ! -e v-hacd ]; then
