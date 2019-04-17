@@ -36,6 +36,23 @@ class DatasetBase(objslampp.datasets.DatasetBase):
         self._cache_pitch[class_id] = pitch
         return pitch
 
+    def get_example(self, index):
+        examples = self.get_examples(index)
+
+        class_ids = [e['class_id'] for e in examples]
+
+        if self._class_ids is None:
+            class_id = np.random.choice(class_ids)
+        else:
+            options = set(self._class_ids) & set(class_ids)
+            if options:
+                class_id = np.random.choice(list(options))
+            else:
+                return self._get_invalid_data()
+        instance_index = np.random.choice(np.where(class_ids == class_id)[0])
+
+        return examples[instance_index]
+
     def _augment(self, rgb, depth, mask):
         augmentation_all = {'rgb', 'depth', 'segm', 'occl'}
         assert augmentation_all.issuperset(set(self._augmentation))
