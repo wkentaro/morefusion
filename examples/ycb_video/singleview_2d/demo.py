@@ -138,7 +138,7 @@ def main():
             mask_real = instance_label == instance_id
             mask_intersect = mask_real & mask_rend
             ratio_cover = mask_intersect.sum() / mask_real.sum()
-            is_poor = ratio_cover < 0.9
+            is_poor = ratio_cover < 0.85
             if is_poor:
                 continue
 
