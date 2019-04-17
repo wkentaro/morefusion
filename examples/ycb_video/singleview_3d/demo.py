@@ -48,7 +48,10 @@ def main():
     print('==> Done model loading')
 
     args.root_dir = chainer.dataset.get_dataset_directory(
-        'wkentaro/objslampp/ycb_video/synthetic_data/20190408_143724.600111'
+        # plane type
+        # 'wkentaro/objslampp/ycb_video/synthetic_data/20190408_143724.600111',
+        # bin type
+        'wkentaro/objslampp/ycb_video/synthetic_data/20190402_174648.841996',
     )
     args.class_ids = [2]
     dataset = contrib.datasets.BinTypeDataset(
