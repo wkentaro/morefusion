@@ -40,9 +40,7 @@ class VoxelMapping(object):
         return np.array((self.voxel_dim * self.pitch,) * 3, dtype=float)
 
     def add(self, points, values):
-        indices = trimesh.voxel.points_to_indices(
-            points, self.pitch, self.origin
-        )
+        indices = ((points - self.origin) / self.pitch).round().astype(int)
         keep = ((indices >= 0) & (indices < self.voxel_dim)).all(axis=1)
         indices = indices[keep]
         I, J, K = zip(*indices)

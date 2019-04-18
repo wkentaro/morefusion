@@ -1,6 +1,5 @@
 from chainer.backends import cuda
 import numpy as np
-import trimesh
 
 from .voxelization_3d import Voxelization3D
 
@@ -25,10 +24,7 @@ class AverageVoxelization3D(Voxelization3D):
             point = points[i]
             value = values[i]
 
-            index = trimesh.voxel.points_to_indices(
-                [point], pitch=self.pitch, origin=self.origin
-            )[0]
-
+            index = ((point - self.origin) / self.pitch).round().astype(int)
             valid = ((0 <= index) & (index < self.dimensions)).all()
             if valid:
                 ix, iy, iz = index
@@ -73,9 +69,9 @@ class AverageVoxelization3D(Voxelization3D):
             float y = points[n * 3 + 1];
             float z = points[n * 3 + 2];
 
-            int ix = static_cast<int>(round((x - origin[0]) / pitch + 0.5f));
-            int iy = static_cast<int>(round((y - origin[1]) / pitch + 0.5f));
-            int iz = static_cast<int>(round((z - origin[2]) / pitch + 0.5f));
+            int ix = static_cast<int>(round((x - origin[0]) / pitch));
+            int iy = static_cast<int>(round((y - origin[1]) / pitch));
+            int iz = static_cast<int>(round((z - origin[2]) / pitch));
 
             if (ix >= 0 && ix < shape[1] &&
                 iy >= 0 && iy < shape[2] &&
@@ -113,10 +109,7 @@ class AverageVoxelization3D(Voxelization3D):
         for i in range(n_points):
             point = points[i]
 
-            index = trimesh.voxel.points_to_indices(
-                [point], pitch=self.pitch, origin=self.origin
-            )[0]
-
+            index = ((point - self.origin) / self.pitch).round().astype(int)
             valid = ((0 <= index) & (index < self.dimensions)).all()
             if valid:
                 ix, iy, iz = index
@@ -154,9 +147,9 @@ class AverageVoxelization3D(Voxelization3D):
             float y = points[n * 3 + 1];
             float z = points[n * 3 + 2];
 
-            int ix = static_cast<int>(round((x - origin[0]) / pitch + 0.5f));
-            int iy = static_cast<int>(round((y - origin[1]) / pitch + 0.5f));
-            int iz = static_cast<int>(round((z - origin[2]) / pitch + 0.5f));
+            int ix = static_cast<int>(round((x - origin[0]) / pitch));
+            int iy = static_cast<int>(round((y - origin[1]) / pitch));
+            int iz = static_cast<int>(round((z - origin[2]) / pitch));
 
             if (ix >= 0 && ix < shape[1] &&
                 iy >= 0 && iy < shape[2] &&
