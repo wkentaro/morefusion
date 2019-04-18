@@ -1,6 +1,11 @@
-import imgaug
+import os
+os.environ['PYOPENGL_PLATFORM'] = 'osmesa'  # NOQA
+import pathlib
+
+import chainer
 import imgviz
 import numpy as np
+import pyrender
 import trimesh
 import trimesh.transformations as tf
 
@@ -10,6 +15,11 @@ from .base import DatasetBase
 
 
 class CADOnlyDataset(DatasetBase):
+
+    _cache_dir = chainer.dataset.get_dataset_directory(
+        'wkentaro/objslampp/ycb_video/cad_only'
+    )
+    _cache_dir = pathlib.Path(_cache_dir)
 
     def __init__(
         self,
@@ -41,7 +51,7 @@ class CADOnlyDataset(DatasetBase):
         )
 
     def get_example(self, index):
-        random_state = imgaug.current_random_state()
+        random_state = np.random.RandomState(index)
 
         # prepare class_id and cad_file
         class_id = random_state.choice(self._class_ids)
@@ -61,13 +71,44 @@ class CADOnlyDataset(DatasetBase):
             eye=eye, target=target, up=up
         )
         T_cad2cam = np.linalg.inv(T_cam2cad)
-        rgb, depth, _ = objslampp.extra.pybullet.render_cad(
-            cad_file,
-            T_cad2cam,
-            fovy=self.camera.fov[1],
-            height=self.camera.resolution[1],
-            width=self.camera.resolution[0],
-        )
+
+        cache_file = self._cache_dir / f'{class_id:04d}/{index:08d}.npz'
+        cache_file.parent.mkdir(parents=True, exist_ok=True)
+        load_cache = True
+        if cache_file.exists():
+            try:
+                data = np.load(cache_file)
+                rgb = data['rgb']
+                depth = data['depth']
+                load_cache = False
+            except Exception:
+                load_cache = True
+        if load_cache:
+            scene = pyrender.Scene(bg_color=(0, 0, 0))
+            scene.add(pyrender.Mesh.from_trimesh(cad), pose=T_cad2cam)
+            camera_pose = objslampp.extra.trimesh.camera_transform()
+            camera_node = pyrender.Node(
+                camera=pyrender.PerspectiveCamera(
+                    yfov=np.deg2rad(self.camera.fov[1]),
+                    zfar=1000,
+                    znear=0.01,
+                ),
+                matrix=camera_pose,
+            )
+            scene.add_node(camera_node)
+            for node in create_raymond_lights(
+                intensity=random_state.uniform(3, 7)
+            ):
+                scene.add_node(node, parent_node=camera_node)
+            renderer = pyrender.OffscreenRenderer(
+                self.camera.resolution[0], self.camera.resolution[1]
+            )
+            rgb, depth = renderer.render(scene)
+            rgb = rgb.copy()
+            depth = depth.copy()
+            depth[depth == 0] = np.nan
+            del renderer
+            np.savez_compressed(cache_file, rgb=rgb, depth=depth)
         mask = ~np.isnan(depth)
 
         # keep rgb and index for get_frame
@@ -109,6 +150,37 @@ class CADOnlyDataset(DatasetBase):
             translation_true=translation_true,
             translation_rough=translation_rough,
         )
+
+
+def create_raymond_lights(intensity):
+    thetas = np.pi * np.array([1.0 / 6.0, 1.0 / 6.0, 1.0 / 6.0])
+    phis = np.pi * np.array([0.0, 2.0 / 3.0, 4.0 / 3.0])
+
+    nodes = []
+
+    for phi, theta in zip(phis, thetas):
+        xp = np.sin(theta) * np.cos(phi)
+        yp = np.sin(theta) * np.sin(phi)
+        zp = np.cos(theta)
+
+        z = np.array([xp, yp, zp])
+        z = z / np.linalg.norm(z)
+        x = np.array([-z[1], z[0], 0.0])
+        if np.linalg.norm(x) == 0:
+            x = np.array([1.0, 0.0, 0.0])
+        x = x / np.linalg.norm(x)
+        y = np.cross(z, x)
+
+        matrix = np.eye(4)
+        matrix[:3, :3] = np.c_[x, y, z]
+        nodes.append(pyrender.Node(
+            light=pyrender.DirectionalLight(
+                color=np.ones(3), intensity=intensity
+            ),
+            matrix=matrix
+        ))
+
+    return nodes
 
 
 if __name__ == '__main__':

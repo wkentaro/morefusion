@@ -71,8 +71,10 @@ class DatasetBase(objslampp.datasets.DatasetBase):
                     ),
                 ]),
             ),
-            iaa.GaussianBlur(sigma=(0, 1.0)),
-            iaa.KeepSizeByResize(children=iaa.Resize((0.25, 1.0))),
+            iaa.Sometimes(0.1, iaa.GaussianBlur(sigma=(0, 1.0))),
+            iaa.Sometimes(
+                0.3, iaa.KeepSizeByResize(children=iaa.Resize((0.25, 1.0))),
+            )
         ])
         rgb = augmenter.augment_image(rgb)
 
