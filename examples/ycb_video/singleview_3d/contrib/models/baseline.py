@@ -4,54 +4,62 @@ import chainer.functions as F
 import chainer.links as L
 from chainercv.links.model.vgg import VGG16
 import numpy as np
+import pybullet  # NOQA
 
 import objslampp
 
 
 class BaselineModel(chainer.Chain):
 
-    def __init__(self, *, freeze_until, voxelization):
+    def __init__(
+        self,
+        *,
+        freeze_until,
+        voxelization='max',
+        lambda_confidence=0.015,
+        n_point=1000,
+    ):
         super().__init__()
 
         self._freeze_until = freeze_until
         self._voxelization = voxelization
+        self._n_point = n_point
+        self._lambda_confidence = lambda_confidence
 
-        kwargs = {'initialW': chainer.initializers.Normal(0.01)}
         with self.init_scope():
             self.extractor = VGG16(pretrained_model='imagenet')
             self.extractor.pick = ['conv4_3', 'conv3_3', 'conv2_2', 'conv1_2']
             self.extractor.remove_unused()
             self.conv5 = L.Convolution2D(
                 in_channels=512,
-                out_channels=16,
+                out_channels=32,
                 ksize=1,
-                **kwargs,
+                initialW=chainer.initializers.Normal(0.01),
             )
 
             # voxelization_3d -> (16, 32, 32, 32)
             self._voxel_dim = 32
 
             self.conv6 = L.Convolution3D(
-                in_channels=16,
-                out_channels=16,
-                ksize=8,
-                stride=2,
-                pad=3,
-                **kwargs,
-            )  # 32x32x32 -> 16x16x16
-            self.conv7 = L.Convolution3D(
-                in_channels=16,
-                out_channels=16,
+                in_channels=32,
+                out_channels=32,
                 ksize=3,
-                stride=2,
+                stride=1,
                 pad=1,
-                **kwargs,
-            )  # 16x16x16 -> 8x8x8
+            )  # 32x32x32 -> 32x32x32
+            self.conv7 = L.Convolution3D(
+                in_channels=32,
+                out_channels=32,
+                ksize=3,
+                stride=1,
+                pad=1,
+            )  # 32x32x32 -> 32x32x32
 
             # 16 * 8 * 8 * 8 = 8192
-            self.fc8 = L.Linear(8192, 1024, **kwargs)
-            self.fc_quaternion = L.Linear(1024, 4, **kwargs)
-            self.fc_translation = L.Linear(1024, 3, **kwargs)
+            self.fc8 = L.Linear(32, 32)
+            self.fc_quaternion = L.Linear(32, 4)
+            self.fc_translation = L.Linear(32, 3)
+            self.fc_confidence = L.Linear(32, 1)
 
     def predict(
         self,
@@ -106,7 +114,7 @@ class BaselineModel(chainer.Chain):
             points = pcd_i[mask_i, :]  # M3
             centroid = points.mean(axis=0)  # 3
             origin = centroid - pitch[i] * self._voxel_dim / 2.
-            origins.append(origin[None])
+            origins.append(origin)
 
             if self._voxelization == 'average':
                 func = objslampp.functions.average_voxelization_3d
@@ -122,21 +130,53 @@ class BaselineModel(chainer.Chain):
                 channels=h_i.shape[2],
             )  # CXYZ
             h_vox.append(h_i[None])
-        origins = F.concat(origins, axis=0)  # B3
+        origins = xp.stack(origins, axis=0)  # B3
         h = F.concat(h_vox, axis=0)          # BCXYZ
         del h_vox
 
+        nonzero = (h.array != 0).any(axis=1)
+
         h = F.relu(self.conv6(h))
         h = F.relu(self.conv7(h))
+
+        h_point = []
+        point_ijk = []
+        for b in range(nonzero.shape[0]):
+            n_point = int(nonzero[b].sum())
+            if n_point >= self._n_point:
+                keep = xp.random.permutation(n_point)[:self._n_point]
+            else:
+                keep = xp.r_[
+                    xp.arange(n_point),
+                    xp.random.randint(0, n_point, self._n_point - n_point),
+                ]
+            i, j, k = xp.where(nonzero[b])
+            h_point.append(h[b:b + 1, :, i[keep], j[keep], k[keep]])
+            point_ijk.append(xp.c_[i[keep], j[keep], k[keep]])
+        h = F.concat(h_point, axis=0)
+        del h_point
+        point_ijk = xp.stack(point_ijk, axis=0)
+
+        h = h.transpose(0, 2, 1)  # B,C,P -> B,P,C
+        h = h.reshape(B * h.shape[1], h.shape[2])  # B,P,C -> B*P,C
         h = F.relu(self.fc8(h))
 
         quaternion_pred = F.normalize(self.fc_quaternion(h))
+        quaternion_pred = quaternion_pred.reshape(B, self._n_point, 4)
         translation_pred = F.cos(self.fc_translation(h))
-        translation_pred = (
-            origins + translation_pred * pitch[:, None] * self._voxel_dim
-        )
+        translation_pred = translation_pred.reshape(B, self._n_point, 3)
+        confidence_pred = F.sigmoid(self.fc_confidence(h))
+        confidence_pred = confidence_pred.reshape(B, self._n_point, 1)
 
-        return quaternion_pred, translation_pred
+        # TODO(wkentaro): extend to multi-class
+        offset = origins[:, None, :]
+        # offset = origins[:, None, :] + point_ijk * pitch[:, None, None]
+        translation_pred = (
+            offset + translation_pred * self._voxel_dim * pitch[:, None, None]
+        )
+        confidence_pred = confidence_pred[:, :, 0]
+
+        return quaternion_pred, translation_pred, confidence_pred
 
     def __call__(
         self,
@@ -159,7 +199,7 @@ class BaselineModel(chainer.Chain):
         quaternion_true = quaternion_true[keep]
         translation_true = translation_true[keep]
 
-        quaternion_pred, translation_pred = self.predict(
+        quaternion_pred, translation_pred, confidence_pred = self.predict(
             class_id=class_id,
             pitch=pitch,
             rgb=rgb,
@@ -172,6 +212,7 @@ class BaselineModel(chainer.Chain):
             translation_true=translation_true,
             quaternion_pred=quaternion_pred,
             translation_pred=translation_pred,
+            confidence_pred=confidence_pred,
         )
 
         loss = self.loss(
@@ -180,13 +221,9 @@ class BaselineModel(chainer.Chain):
             translation_true=translation_true,
             quaternion_pred=quaternion_pred,
             translation_pred=translation_pred,
+            confidence_pred=confidence_pred,
         )
         return loss
-
-    def _get_cad_pcd(self, *, class_id):
-        models = objslampp.datasets.YCBVideoModels()
-        pcd_file = models.get_model(class_id=class_id)['points_xyz']
-        return np.loadtxt(pcd_file)
 
     def evaluate(
         self,
@@ -196,8 +233,14 @@ class BaselineModel(chainer.Chain):
         translation_true,
         quaternion_pred,
         translation_pred,
+        confidence_pred,
     ):
-        batch_size = class_id.shape[0]
+        xp = self.xp
+        B = class_id.shape[0]
+
+        indices = F.argmax(confidence_pred, axis=1).array
+        quaternion_pred = quaternion_pred[xp.arange(B), indices]
+        translation_pred = translation_pred[xp.arange(B), indices]
 
         T_cad2cam_true = objslampp.functions.quaternion_matrix(quaternion_true)
         T_cad2cam_pred = objslampp.functions.quaternion_matrix(quaternion_pred)
@@ -209,7 +252,7 @@ class BaselineModel(chainer.Chain):
 
         # add_rotation
         summary = chainer.DictSummary()
-        for i in range(batch_size):
+        for i in range(B):
             class_id_i = int(class_id[i])
             cad_pcd = self._get_cad_pcd(class_id=class_id_i)
             add_rotation = objslampp.metrics.average_distance(
@@ -225,57 +268,79 @@ class BaselineModel(chainer.Chain):
             Rs=T_cad2cam_true[:, :3, :3], ts=translation_true,
         ).array
         T_cad2cam_pred = objslampp.functions.compose_transform(
-            Rs=T_cad2cam_pred[:, :3, :3], ts=translation_pred,
+            Rs=T_cad2cam_pred[:, :3, :3], ts=translation_pred
         ).array
 
         # add
         summary = chainer.DictSummary()
-        for i in range(batch_size):
+        for i in range(B):
             class_id_i = int(class_id[i])
             cad_pcd = self._get_cad_pcd(class_id=class_id_i)
-            add_rotation = objslampp.metrics.average_distance(
+            add = objslampp.metrics.average_distance(
                 [cad_pcd], [T_cad2cam_true[i]], [T_cad2cam_pred[i]]
             )[0]
             if chainer.config.train:
-                summary.add({'add': add_rotation})
+                summary.add({'add': add})
             else:
-                summary.add({f'add/{class_id_i:04d}': add_rotation})
+                summary.add({f'add/{class_id_i:04d}': add})
         chainer.report(summary.compute_mean(), self)
 
     def loss(
         self,
-        *,
         class_id,
         quaternion_true,
         translation_true,
         quaternion_pred,
         translation_pred,
+        confidence_pred,
     ):
-        T_cad2cam_true = objslampp.functions.quaternion_matrix(quaternion_true)
-        T_cad2cam_pred = objslampp.functions.quaternion_matrix(quaternion_pred)
+        xp = self.xp
+        B = class_id.shape[0]
 
-        T_cad2cam_true = objslampp.functions.compose_transform(
-            T_cad2cam_true[:, :3, :3], translation_true,
-        )
-        T_cad2cam_pred = objslampp.functions.compose_transform(
-            T_cad2cam_pred[:, :3, :3], translation_pred,
-        )
-
-        batch_size = class_id.shape[0]
+        # prepare
+        quaternion_true = quaternion_true.astype(np.float32)
+        translation_true = translation_true.astype(np.float32)
 
         loss = 0
-        for i in range(batch_size):
-            cad_pcd = self._get_cad_pcd(class_id=int(class_id[i]))
-            cad_pcd = self.xp.asarray(cad_pcd)
-            loss_i = objslampp.functions.average_distance_l1(
-                cad_pcd,
-                T_cad2cam_true[i:i + 1],
-                T_cad2cam_pred[i:i + 1],
-            )[0]
+        for i in range(B):
+            n_point = quaternion_pred[i].shape[0]
+
+            T_cad2cam_pred = objslampp.functions.quaternion_matrix(
+                quaternion_pred[i]
+            )
+            T_cad2cam_pred = objslampp.functions.compose_transform(
+                T_cad2cam_pred[:, :3, :3], translation_pred[i],
+            )  # (M, 4, 4)
+
+            T_cad2cam_true = objslampp.functions.quaternion_matrix(
+                quaternion_true[i:i + 1]
+            )
+            T_cad2cam_true = objslampp.functions.compose_transform(
+                T_cad2cam_true[:, :3, :3], translation_true[i:i + 1],
+            )  # (1, 4, 4)
+            T_cad2cam_true = F.repeat(T_cad2cam_true, n_point, axis=0)
+
+            class_id_i = int(class_id[i])
+            cad_pcd = self._get_cad_pcd(class_id=class_id_i)
+            cad_pcd = xp.asarray(cad_pcd, dtype=np.float32)
+            add = objslampp.functions.average_distance_l1(
+                cad_pcd, T_cad2cam_true, T_cad2cam_pred
+            )
+
+            # loss_i = F.mean(add)
+            loss_i = F.mean(
+                add * confidence_pred[i] -
+                self._lambda_confidence * F.log(confidence_pred[i])
+            )
             loss += loss_i
-        loss /= batch_size
+        loss /= B
 
         values = {'loss': loss}
         chainer.report(values, observer=self)
 
         return loss
+
+    def _get_cad_pcd(self, *, class_id):
+        models = objslampp.datasets.YCBVideoModels()
+        pcd_file = models.get_model(class_id=class_id)['points_xyz']
+        return np.loadtxt(pcd_file)

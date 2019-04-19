@@ -64,10 +64,21 @@ def main():
         help='learning rate',
     )
     parser.add_argument(
+        '--lambda-confidence',
+        type=float,
+        default=0.015,
+        help='lambda confidence',
+    )
+    parser.add_argument(
         '--max-epoch',
         type=int,
         default=30,
         help='max epoch',
+    )
+    parser.add_argument(
+        '--nocall-evaluation-before-training',
+        action='store_true',
+        help='no call evaluation before training',
     )
     args = parser.parse_args()
 
@@ -125,6 +136,8 @@ def main():
     model = contrib.models.BaselineModel(
         freeze_until=args.freeze_until,
         voxelization=args.voxelization,
+        lambda_confidence=args.lambda_confidence,
+        n_point=1000,
     )
     if args.gpu >= 0:
         model.to_gpu()
@@ -198,7 +211,7 @@ def main():
     trainer.extend(
         evaluator,
         trigger=eval_interval,
-        call_before_training=True,
+        call_before_training=not args.nocall_evaluation_before_training,
     )
 
     # snapshot
