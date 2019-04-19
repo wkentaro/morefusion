@@ -5,7 +5,7 @@ import chainer.links as L
 from chainercv.links.model.vgg import VGG16
 import numpy as np
 
-from .pspnet import PSPNetExtractor
+# from .pspnet import PSPNetExtractor
 
 import objslampp
 
@@ -28,7 +28,13 @@ class PoseNet(chainer.Chain):
                 'conv4_3', 'conv3_3', 'conv2_2', 'conv1_2'
             ]
             self.vgg_extractor.remove_unused()
-            self.pspnet_extractor = PSPNetExtractor()
+            self.conv5_extractor = L.Convolution2D(
+                in_channels=512,
+                out_channels=32,
+                ksize=1,
+                initialW=chainer.initializers.Normal(0.01),
+            )
+            # self.pspnet_extractor = PSPNetExtractor()
             self.posenet_extractor = PoseNetExtractor()
             # conv1
             self.conv1_rot = L.Convolution1D(1408, 640, 1)
@@ -83,11 +89,14 @@ class PoseNet(chainer.Chain):
             assert self._freeze_until == 'none'
         del h_conv3_3, h_conv2_2, h_conv1_2
         h_rgb = h_conv4_3  # 1/8, 256x256 -> 32x32
-        h_rgb = self.pspnet_extractor(h_rgb)  # 1/1
+        # h_rgb = self.pspnet_extractor(h_rgb)  # 1/1
+        h_rgb = F.relu(self.conv5_extractor(h_rgb))
+        h_rgb = F.resize_images(h_rgb, (H, W))  # 1/1
 
         # extract indices
         h_rgb_masked = []
         pcd_masked = []
+        centroids = []
         for i in range(B):
             n_point = int(mask[i].sum())
             if n_point >= self._n_point:
@@ -99,6 +108,7 @@ class PoseNet(chainer.Chain):
                 ]
             assert keep.shape == (self._n_point,)
             iy, ix = xp.where(mask[i])
+            centroid = pcd[i, :, iy, ix].mean(axis=0)
             iy, ix = iy[keep], ix[keep]
             h_rgb_i = h_rgb[i, :, iy, ix]      # CHW -> MC, M = self._n_point
             pcd_i = pcd[i, :, iy, ix]          # CHW -> MC
@@ -106,9 +116,12 @@ class PoseNet(chainer.Chain):
             pcd_i = pcd_i.transpose(1, 0)      # MC -> CM
             h_rgb_masked.append(h_rgb_i[None])
             pcd_masked.append(pcd_i[None])
+            centroids.append(centroid[None])
         h_rgb_masked = F.concat(h_rgb_masked, axis=0)
-        pcd_masked = F.concat(pcd_masked, axis=0)
+        pcd_masked = xp.concatenate(pcd_masked, axis=0)
+        centroids = xp.concatenate(centroids, axis=0)
 
+        pcd_masked = pcd_masked - centroids[:, :, None]
         h = self.posenet_extractor(h_rgb_masked, pcd_masked)
 
         # conv1
@@ -133,6 +146,7 @@ class PoseNet(chainer.Chain):
         cls_trans = cls_trans.reshape((B, self._n_fg_class, 3, self._n_point))
         cls_conf = cls_conf.reshape((B, self._n_fg_class, self._n_point))
 
+        pcd_masked = pcd_masked + centroids[:, :, None]
         cls_trans = pcd_masked[:, None, :, :] + cls_trans
 
         rot = cls_rot[xp.arange(B), class_id, :, :]
