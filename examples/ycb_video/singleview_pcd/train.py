@@ -56,6 +56,11 @@ def main():
         default=30,
         help='max epoch',
     )
+    parser.add_argument(
+        '--nocall-evaluation-before-training',
+        action='store_true',
+        help='no call evaluation before training',
+    )
     args = parser.parse_args()
 
     chainer.global_config.debug = args.debug
@@ -168,7 +173,7 @@ def main():
     trainer.extend(
         evaluator,
         trigger=eval_interval,
-        call_before_training=True,
+        call_before_training=not args.nocall_evaluation_before_training,
     )
 
     # snapshot
