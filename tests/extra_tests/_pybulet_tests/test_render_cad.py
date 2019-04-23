@@ -12,15 +12,16 @@ def test_render_cad():
     H, W = 256, 256
 
     # batch_size: 1
-    Ts_cad2cam = geometry.look_at((1, 1, 1), (0, 0, 0), up=(0, -1, 0))
+    T_cam2cad = geometry.look_at((1, 1, 1), (0, 0, 0), up=(0, -1, 0))
+    T_cad2cam = np.linalg.inv(T_cam2cad)
     rgbs, depths, masks = pybullet_module.render_cad(
         visual_file,
-        Ts_cad2cam,
+        T_cad2cam,
         fovy=45,
         height=H,
         width=W,
     )
-    assert Ts_cad2cam.shape == (4, 4)
+    assert T_cad2cam.shape == (4, 4)
     assert rgbs.shape == (H, W, 3)
     assert rgbs.dtype == np.uint8
     assert depths.shape == (H, W)
@@ -29,8 +30,9 @@ def test_render_cad():
     assert masks.dtype == bool
 
     # batch_size: N
-    Ts_cad2cam = geometry.look_at((1, 1, 1), (0, 0, 0), up=(0, -1, 0))
-    Ts_cad2cam = Ts_cad2cam[None].repeat(2, axis=0)
+    T_cam2cad = geometry.look_at((1, 1, 1), (0, 0, 0), up=(0, -1, 0))
+    T_cad2cam = np.linalg.inv(T_cam2cad)
+    Ts_cad2cam = T_cad2cam[None].repeat(2, axis=0)
     rgbs, depths, masks = pybullet_module.render_cad(
         visual_file,
         Ts_cad2cam,

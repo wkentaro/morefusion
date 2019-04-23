@@ -3,6 +3,7 @@
 import objslampp
 
 import imgviz
+import numpy as np
 import trimesh
 
 
@@ -10,13 +11,15 @@ models = objslampp.datasets.YCBVideoModels()
 visual_file = models.get_model(class_id=8)['textured_simple']
 camera = trimesh.scene.Camera(resolution=(640, 480), fov=(60, 45))
 
-T_cad2cam = objslampp.geometry.look_at(
+T_cam2cad = objslampp.geometry.look_at(
     eye=(0, 0.05, 0.3),
     target=(0, 0, 0),
     up=(0, -1, 0),
 )
+T_cad2cam = np.linalg.inv(T_cam2cad)
 
 # -----------------------------------------------------------------------------
+# in camera coords
 
 scene = trimesh.Scene()
 cad = trimesh.load(str(visual_file))
