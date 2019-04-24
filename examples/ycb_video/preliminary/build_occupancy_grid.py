@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+import pathlib
+
+import glooey
 import numpy as np
 import octomap
 import imgviz
@@ -70,7 +73,7 @@ octree.insertPointCloud(
 )
 
 centers = trimesh.voxel.matrix_to_points(
-    np.ones((dim, dim, dim), dtype=bool), pitch, aabb_min + pitch
+    np.ones((dim, dim, dim), dtype=bool), pitch, aabb_min
 )
 
 leaves = walktree(octree)
@@ -120,7 +123,7 @@ coords_occupied = coords[is_occupied]
 sizes_empty = sizes[~is_occupied]
 coords_empty = coords[~is_occupied]
 
-# occupied by target
+# occupied by untarget
 kdtree = sklearn.neighbors.KDTree(coords_occupied)
 dist, indices = kdtree.query(centers, k=1)
 labels[dist[:, 0].reshape(dim, dim, dim) < pitch / 2] = LABEL_UNTARGET
@@ -130,14 +133,36 @@ kdtree = sklearn.neighbors.KDTree(coords_empty)
 dist, indices = kdtree.query(centers, k=1)
 labels[dist[:, 0].reshape(dim, dim, dim) < pitch / 2] = LABEL_EMPTY
 
+here = pathlib.Path(__file__).resolve().parent
+(here / 'logs').mkdir(exist_ok=True)
+npz_file = here / 'logs/occupancy_grid.npz'
+T_cad2cam = np.vstack((frame['meta']['poses'][:, :, 0], [0, 0, 0, 1]))
+np.savez_compressed(
+    npz_file,
+    labels=labels,
+    pitch=pitch,
+    origin=aabb_min,
+    T_cad2cam=T_cad2cam,
+)
+print(f'==> Saved to {npz_file}')
+
 # -----------------------------------------------------------------------------
 # visualize occupancy grids
 
-viewer_kwargs = dict(
-    init_angles=(0, 0, np.deg2rad(180)),
-    start_loop=False,
-    resolution=(500, 500),
-)
+window = pyglet.window.Window(width=480 * 3, height=320)
+
+
+@window.event
+def on_key_press(symbol, modifiers):
+    if modifiers == 0:
+        if symbol == pyglet.window.key.Q:
+            window.on_close()
+
+
+gui = glooey.Gui(window)
+
+hbox = glooey.HBox()
+hbox.set_padding(5)
 
 for i in range(2):
     scene = trimesh.Scene()
@@ -147,7 +172,7 @@ for i in range(2):
     # scene.add_geometry(geom)
 
     # bbox
-    geom = objslampp.extra.trimesh.wired_box(aabb_max - aabb_min)
+    geom = trimesh.path.creation.box_outline(aabb_max - aabb_min)
     geom.apply_translation(centroid)
     scene.add_geometry(geom)
 
@@ -160,23 +185,26 @@ for i in range(2):
         caption = 'empty'
         matrix = np.isin(labels, [LABEL_EMPTY])
 
-    voxel = trimesh.voxel.Voxel(matrix, pitch, aabb_min + pitch)
+    voxel = trimesh.voxel.Voxel(matrix, pitch, aabb_min)
     colors = imgviz.label2rgb(labels.reshape(1, -1)).reshape(dim, dim, dim, 3)
     alpha = np.full((dim, dim, dim, 1), 127, dtype=np.uint8)
     colors = np.concatenate((colors, alpha), axis=3)
     geom = voxel.as_boxes(colors=colors)
     scene.add_geometry(geom)
 
-    objslampp.extra.trimesh.show_with_rotation(
-        scene,
-        caption=caption,
-        **viewer_kwargs,
-    )
+    vbox = glooey.VBox()
+    vbox.add(glooey.text.Label(caption, color=(255, 255, 255)), size=0)
+    vbox.add(trimesh.viewer.SceneWidget(scene))
+    hbox.add(vbox)
 
 # -----------------------------------------------------------------------------
 # visualize point cloud
 
 scene = trimesh.Scene()
+# bbox
+geom = trimesh.path.creation.box_outline(aabb_max - aabb_min)
+geom.apply_translation(centroid)
+scene.add_geometry(geom)
 # point cloud
 incube = np.greater(pcd, aabb_min, where=~np.isnan(pcd)).all(axis=2)
 incube = incube & np.less(pcd, aabb_max, where=~np.isnan(pcd)).all(axis=2)
@@ -184,12 +212,28 @@ geom = trimesh.PointCloud(
     vertices=pcd[incube & nonnan], colors=rgb[incube & nonnan]
 )
 scene.add_geometry(geom)
-objslampp.extra.trimesh.show_with_rotation(
-    scene,
-    caption='point cloud',
-    **viewer_kwargs,
-)
+vbox = glooey.VBox()
+vbox.add(glooey.text.Label('point_cloud', color=(255, 255, 255)), size=0)
+vbox.add(trimesh.viewer.SceneWidget(scene))
+hbox.add(vbox)
 
 # -----------------------------------------------------------------------------
+
+gui.add(hbox)
+
+
+def callback(dt, hbox, angles):
+    scene_occupied = hbox.children[0].children[1].scene
+    scene_empty = hbox.children[1].children[1].scene
+    scene_pcd = hbox.children[2].children[1].scene
+
+    scene_occupied.set_camera(angles=angles)
+    scene_empty.set_camera(angles=angles)
+    scene_pcd.set_camera(angles=angles)
+    angles[1] += np.deg2rad(1)
+
+
+angles = [0, 0, np.deg2rad(180)]
+pyglet.clock.schedule_interval(callback, 1 / 30, hbox, angles)
 
 pyglet.app.run()
