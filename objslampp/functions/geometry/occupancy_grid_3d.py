@@ -10,10 +10,13 @@ import numpy as np
 class OccupancyGrid3D(chainer.Function):
 
     def __init__(self, *, pitch, origin, dimension):
-        assert isinstance(pitch, numbers.Real)
-        assert isinstance(origin, collections.Sequence) and len(origin) == 3
-        assert isinstance(dimension, collections.Sequence) and \
-            len(dimension) == 3
+        pitch = np.asarray(pitch, dtype=np.float32)
+        origin = np.asarray(origin, dtype=np.float32)
+        dimension = np.asarray(dimension, dtype=np.float32)
+
+        assert pitch.ndim == 0
+        assert origin.shape == (3,)
+        assert dimension.shape == (3,)
 
         self.pitch = pitch
         self.origin = origin
