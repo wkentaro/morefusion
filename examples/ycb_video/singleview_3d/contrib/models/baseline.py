@@ -163,7 +163,7 @@ class BaselineModel(chainer.Chain):
 
         quaternion_pred = F.normalize(self.fc_quaternion(h))
         quaternion_pred = quaternion_pred.reshape(B, self._n_point, 4)
-        translation_pred = F.cos(self.fc_translation(h))
+        translation_pred = self.fc_translation(h)
         translation_pred = translation_pred.reshape(B, self._n_point, 3)
         confidence_pred = F.sigmoid(self.fc_confidence(h))
         confidence_pred = confidence_pred.reshape(B, self._n_point, 1)
