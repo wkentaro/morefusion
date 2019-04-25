@@ -169,8 +169,8 @@ class BaselineModel(chainer.Chain):
         confidence_pred = confidence_pred.reshape(B, self._n_point, 1)
 
         # TODO(wkentaro): extend to multi-class
-        offset = origins[:, None, :]
-        # offset = origins[:, None, :] + point_ijk * pitch[:, None, None]
+        # offset = origins[:, None, :]
+        offset = origins[:, None, :] + point_ijk * pitch[:, None, None]
         translation_pred = (
             offset + translation_pred * self._voxel_dim * pitch[:, None, None]
         )
@@ -240,7 +240,11 @@ class BaselineModel(chainer.Chain):
 
         indices = F.argmax(confidence_pred, axis=1).array
         quaternion_pred = quaternion_pred[xp.arange(B), indices]
-        translation_pred = translation_pred[xp.arange(B), indices]
+        # translation_pred = translation_pred[xp.arange(B), indices]
+        translation_pred = (
+            F.sum(translation_pred * confidence_pred[:, :, None], axis=1) /
+            F.sum(confidence_pred, axis=1)[:, None]
+        )
 
         T_cad2cam_true = objslampp.functions.quaternion_matrix(quaternion_true)
         T_cad2cam_pred = objslampp.functions.quaternion_matrix(quaternion_pred)
