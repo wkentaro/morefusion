@@ -73,7 +73,7 @@ class YCBVideoDataset(DatasetBase):
                 image_id
             )
 
-        class_ids = frame['meta']['cls_indexes']
+        class_ids = frame['meta']['cls_indexes'].astype(np.int32)
 
         examples = []
         for class_id in class_ids:
