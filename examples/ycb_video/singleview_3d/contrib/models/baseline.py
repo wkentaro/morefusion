@@ -8,6 +8,45 @@ import numpy as np
 import objslampp
 
 
+class SelfAttention3D(chainer.Chain):
+
+    def __init__(self, in_channels):
+        super().__init__()
+        with self.init_scope():
+            self.conv_query = L.Convolution3D(
+                in_channels=in_channels,
+                out_channels=in_channels // 8,
+                ksize=1,
+            )
+            self.conv_key = L.Convolution3D(
+                in_channels=in_channels,
+                out_channels=in_channels // 8,
+                ksize=1,
+            )
+            self.conv_value = L.Convolution3D(
+                in_channels=in_channels,
+                out_channels=in_channels,
+                ksize=1,
+            )
+            self.gamma = chainer.Parameter(
+                initializer=chainer.initializers.Zero(), shape=(1,)
+            )
+
+    def __call__(self, x):
+        B, C, X, Y, Z = x.shape
+        C2 = C // 8
+        query = self.conv_query(x).reshape(B, C2, X * Y * Z)
+        key = self.conv_key(x).reshape(B, C2, X * Y * Z)
+        # B, (X*Y*Z, C2) x (C2, X*Y*Z) -> (B, X*Y*Z, X*Y*Z)
+        energy = F.matmul(query, key, transa=True)
+        attention = F.softmax(energy)
+        value = self.conv_value(x).reshape(B, C, X * Y * Z)
+        out = F.matmul(value, attention, transb=True)
+        out = out.reshape(B, C, X, Y, Z)
+        out = self.gamma * out + x
+        return out
+
+
 class BaselineModel(chainer.Chain):
 
     def __init__(self, *, freeze_until, voxelization):
@@ -39,6 +78,7 @@ class BaselineModel(chainer.Chain):
                 pad=3,
                 **kwargs,
             )  # 32x32x32 -> 16x16x16
+            self.attention1 = SelfAttention3D(in_channels=16)
             self.conv7 = L.Convolution3D(
                 in_channels=16,
                 out_channels=16,
@@ -47,6 +87,7 @@ class BaselineModel(chainer.Chain):
                 pad=1,
                 **kwargs,
             )  # 16x16x16 -> 8x8x8
+            self.attention2 = SelfAttention3D(in_channels=16)
 
             # 16 * 8 * 8 * 8 = 8192
             self.fc8 = L.Linear(8192, 1024, **kwargs)
@@ -127,7 +168,9 @@ class BaselineModel(chainer.Chain):
         del h_vox
 
         h = F.relu(self.conv6(h))
+        h = self.attention1(h)
         h = F.relu(self.conv7(h))
+        h = self.attention2(h)
         h = F.relu(self.fc8(h))
 
         quaternion_pred = F.normalize(self.fc_quaternion(h))
