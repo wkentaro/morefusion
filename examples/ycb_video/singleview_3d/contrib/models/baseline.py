@@ -131,7 +131,7 @@ class BaselineModel(chainer.Chain):
         h = F.relu(self.fc8(h))
 
         quaternion_pred = F.normalize(self.fc_quaternion(h))
-        translation_pred = F.cos(self.fc_translation(h))
+        translation_pred = self.fc_translation(h)
         translation_pred = (
             origins + translation_pred * pitch[:, None] * self._voxel_dim
         )
