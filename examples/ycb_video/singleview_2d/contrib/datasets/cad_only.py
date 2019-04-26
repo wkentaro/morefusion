@@ -31,7 +31,10 @@ class CADOnlyDataset(DatasetBase):
 
     @property
     def camera(self):
-        return trimesh.scene.Camera(resolution=(320, 320), fov=(60, 60))
+        return trimesh.scene.Camera(
+            resolution=(640, 480),
+            focal=(1066.778, 1067.487),
+        )
 
     def get_frame(self, index):
         assert self._rgb[0] == index
@@ -48,19 +51,23 @@ class CADOnlyDataset(DatasetBase):
         cad_file = self._models.get_cad_model(class_id=class_id)
 
         # get frame
-        eye = objslampp.geometry.points_from_angles(
-            distance=0.3,
-            elevation=random_state.uniform(-90, 90),
-            azimuth=random_state.uniform(-180, 180),
+        width, height = self.camera.resolution
+        K = self.camera.K
+        position = objslampp.geometry.backproject_pixel(
+            u=random_state.uniform(0, width),
+            v=random_state.uniform(0, height),
+            z=random_state.uniform(0.5, 2.0),
+            fx=K[0, 0],
+            fy=K[1, 1],
+            cx=K[0, 2],
+            cy=K[1, 2],
         )
-        cad = trimesh.load(str(cad_file))
-        target = random_state.uniform(- cad.extents / 2, cad.extents / 2, (3,))
-        up = random_state.uniform(-1, 1, (3,))
-        up /= np.linalg.norm(up)
-        T_cam2cad = objslampp.geometry.look_at(
-            eye=eye, target=target, up=up
+        quaternion = random_state.uniform(-1, 1, (4,))
+        quaternion /= np.linalg.norm(quaternion)
+        T_cad2cam = (
+            tf.translation_matrix(position) @ tf.quaternion_matrix(quaternion)
         )
-        T_cad2cam = np.linalg.inv(T_cam2cad)
+        T_cam2cad = np.linalg.inv(T_cad2cam)
         rgb, depth, _ = objslampp.extra.pybullet.render_cad(
             cad_file,
             T_cad2cam,

@@ -2,6 +2,8 @@
 
 from . import trajectory
 
+from .backproject_pixel import backproject_pixel
+
 from .compose_transform import compose_transform
 
 from .get_aabb_from_points import get_aabb_from_points
