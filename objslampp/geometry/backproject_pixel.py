@@ -12,4 +12,4 @@ def backproject_pixel(
 ) -> np.ndarray:
     x = z * (u - cx) / fx
     y = z * (v - cy) / fy
-    return np.dstack((x, y, z))
+    return np.hstack((x, y, z))
