@@ -1,6 +1,7 @@
 import imgaug
 import imgviz
 import numpy as np
+import pybullet
 import trimesh
 import trimesh.transformations as tf
 
@@ -49,6 +50,9 @@ class CADOnlyDataset(DatasetBase):
         # prepare class_id and cad_file
         class_id = random_state.choice(self._class_ids)
         cad_file = self._models.get_cad_model(class_id=class_id)
+        cad = trimesh.load(str(cad_file))
+
+        pybullet.connect(pybullet.DIRECT)
 
         # get frame
         width, height = self.camera.resolution
@@ -62,17 +66,35 @@ class CADOnlyDataset(DatasetBase):
             cx=K[0, 2],
             cy=K[1, 2],
         )
-        rotation_matrix = tf.random_rotation_matrix(random_state.rand(3))
-        T_cad2cam = tf.translation_matrix(position) @ rotation_matrix
-        T_cam2cad = np.linalg.inv(T_cad2cam)
-        rgb, depth, _ = objslampp.extra.pybullet.render_cad(
-            cad_file,
-            T_cad2cam,
+        quaternion = tf.random_quaternion(random_state.rand(3))
+        T_cad2cam = (
+            tf.translation_matrix(position) @ tf.quaternion_matrix(quaternion)
+        )
+        objslampp.extra.pybullet.add_model(
+            cad_file, position=position, orientation=quaternion[[1, 2, 3, 0]]
+        )
+
+        for _ in range(random_state.randint(0, 4)):
+            aabb_min = position - cad.extents / 2 + [0, 0, -0.5]
+            aabb_max = position - cad.extents / 2
+            position2 = random_state.uniform(aabb_min, aabb_max, (3,))
+            quaternion2 = tf.random_quaternion(random_state.rand(3))
+            class_id2 = random_state.randint(1, len(self._models.class_names))
+            objslampp.extra.pybullet.add_model(
+                self._models.get_cad_model(class_id=class_id2),
+                position=position2,
+                orientation=quaternion2[[1, 2, 3, 0]],
+            )
+
+        rgb, depth, segm = objslampp.extra.pybullet.render_camera(
+            np.eye(4),
             fovy=self.camera.fov[1],
             height=self.camera.resolution[1],
             width=self.camera.resolution[0],
         )
-        mask = ~np.isnan(depth)
+        mask = segm == 0
+
+        pybullet.disconnect()
 
         # keep rgb and index for get_frame
         self._rgb = index, rgb
