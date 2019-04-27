@@ -56,17 +56,14 @@ class CADOnlyDataset(DatasetBase):
         position = objslampp.geometry.backproject_pixel(
             u=random_state.uniform(0, width),
             v=random_state.uniform(0, height),
-            z=random_state.uniform(0.5, 2.0),
+            z=random_state.uniform(0.5, 1.6),
             fx=K[0, 0],
             fy=K[1, 1],
             cx=K[0, 2],
             cy=K[1, 2],
         )
-        quaternion = random_state.uniform(-1, 1, (4,))
-        quaternion /= np.linalg.norm(quaternion)
-        T_cad2cam = (
-            tf.translation_matrix(position) @ tf.quaternion_matrix(quaternion)
-        )
+        rotation_matrix = tf.random_rotation_matrix(random_state.rand(3))
+        T_cad2cam = tf.translation_matrix(position) @ rotation_matrix
         T_cam2cad = np.linalg.inv(T_cad2cam)
         rgb, depth, _ = objslampp.extra.pybullet.render_cad(
             cad_file,
