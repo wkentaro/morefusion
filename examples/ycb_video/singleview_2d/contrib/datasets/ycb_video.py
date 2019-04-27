@@ -56,6 +56,8 @@ class YCBVideoDataset(DatasetBase):
             frame = objslampp.datasets.YCBVideoSyntheticDataset.get_frame(
                 image_id
             )
+        class_ids = frame['meta']['cls_indexes'].astype(int)
+
         return dict(
             rgb=frame['color'],
             instance_label=frame['label'],
@@ -76,6 +78,42 @@ class YCBVideoDataset(DatasetBase):
 
         if chainer.is_debug():
             print(f'[{index:08d}]: class_ids: {class_ids.tolist()}')
+
+        if not is_real:
+            if 2 not in class_ids:
+                return []
+            import pybullet
+            import trimesh
+            pybullet.connect(pybullet.DIRECT)
+            models = objslampp.datasets.YCBVideoModels()
+            for instance_id, class_id in enumerate(class_ids):
+                cad_file = models.get_cad_model(class_id)
+                T_cad2cam = np.r_[
+                    frame['meta']['poses'][:, :, instance_id], [[0, 0, 0, 1]]
+                ]
+                objslampp.extra.pybullet.add_model(
+                    cad_file,
+                    position=tf.translation_from_matrix(T_cad2cam),
+                    orientation=tf.quaternion_from_matrix(T_cad2cam)[[1, 2, 3, 0]],
+                )
+            K = frame['meta']['intrinsic_matrix']
+            camera = trimesh.scene.Camera(
+                focal=(K[0, 0], K[1, 1]),
+                resolution=(frame['color'].shape[1], frame['color'].shape[0]),
+            )
+            rgb, depth, segm = objslampp.extra.pybullet.render_camera(
+                np.eye(4),
+                camera.fov[1],
+                height=camera.resolution[1],
+                width=camera.resolution[0],
+            )
+            pybullet.disconnect()
+            label = np.zeros_like(frame['label'])
+            for instance_id, class_id in enumerate(class_ids):
+                label[segm == instance_id] = class_id
+            frame['color'] = rgb
+            frame['depth'] = depth
+            frame['label'] = label
 
         examples = []
         for instance_id, class_id in enumerate(class_ids):
@@ -132,7 +170,7 @@ class YCBVideoDataset(DatasetBase):
 
 if __name__ == '__main__':
     dataset = YCBVideoDataset(
-        'train',
+        'syn',
         class_ids=[2],
         augmentation={'rgb', 'depth', 'segm', 'occl'},
     )
