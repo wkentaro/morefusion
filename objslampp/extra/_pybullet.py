@@ -11,11 +11,13 @@ from ._trimesh import wired_box
 unique_ids: list = []
 
 
-def init_world(up: str = 'z') -> None:
+def init_world(up: str = 'z', connection_method=None) -> None:
     import pybullet
     import pybullet_data
 
-    pybullet.connect(pybullet.GUI)
+    if connection_method is None:
+        connection_method = pybullet.GUI
+    pybullet.connect(connection_method)
     pybullet.setAdditionalSearchPath(pybullet_data.getDataPath())
 
     if up == 'z':
