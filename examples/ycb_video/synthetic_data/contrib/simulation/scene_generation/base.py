@@ -141,6 +141,7 @@ class SceneGenerationBase:
 
         for class_id in class_ids:
             self._spawn_object(class_id=class_id)
+        self._simulate(nstep=10000)
         termcolor.cprint('==> Finished scene generation', attrs={'bold': True})
 
     def unique_id_to_class_id(self, unique_id):
