@@ -62,7 +62,7 @@ class BaselineModel(chainer.Chain):
             self.extractor.remove_unused()
             self.conv5 = L.Convolution2D(
                 in_channels=512,
-                out_channels=16,
+                out_channels=32,
                 ksize=1,
                 **kwargs,
             )
@@ -71,26 +71,26 @@ class BaselineModel(chainer.Chain):
             self._voxel_dim = 32
 
             self.conv6 = L.Convolution3D(
-                in_channels=16,
-                out_channels=16,
+                in_channels=32,
+                out_channels=32,
                 ksize=8,
                 stride=2,
                 pad=3,
                 **kwargs,
             )  # 32x32x32 -> 16x16x16
-            self.attention1 = SelfAttention3D(in_channels=16)
+            self.attention1 = SelfAttention3D(in_channels=32)
             self.conv7 = L.Convolution3D(
-                in_channels=16,
-                out_channels=16,
+                in_channels=32,
+                out_channels=32,
                 ksize=3,
                 stride=2,
                 pad=1,
                 **kwargs,
             )  # 16x16x16 -> 8x8x8
-            self.attention2 = SelfAttention3D(in_channels=16)
+            self.attention2 = SelfAttention3D(in_channels=32)
 
-            # 16 * 8 * 8 * 8 = 8192
-            self.fc8 = L.Linear(8192, 1024, **kwargs)
+            # 32 * 8 * 8 * 8
+            self.fc8 = L.Linear(32 * 8 * 8 * 8, 1024, **kwargs)
             self.fc_quaternion = L.Linear(1024, 4, **kwargs)
             self.fc_translation = L.Linear(1024, 3, **kwargs)
 
