@@ -2,15 +2,19 @@
 
 import chainer
 import chainer.functions as F
+import glooey
 import numpy as np
+import octomap
 import pyglet
 import trimesh
 import trimesh.transformations as tf
 
 import objslampp
 
+from build_occupancy_grid import get_instance_grid
 
-class OccupancyGridAlignment(chainer.Link):
+
+class OccupancyGridAlignmentModel(chainer.Link):
 
     def __init__(self, quaternion_init=None, translation_init=None):
         super().__init__()
@@ -28,13 +32,13 @@ class OccupancyGridAlignment(chainer.Link):
 
     def forward(
         self,
-        grid_target,
         points_source,
+        grid_target,
+        id_target,
         *,
         pitch,
         origin,
         connectivity,
-        return_grid=False,
     ):
         transform = objslampp.functions.quaternion_matrix(
             self.quaternion[None]
@@ -54,52 +58,196 @@ class OccupancyGridAlignment(chainer.Link):
             connectivity=connectivity,
         )
 
-        if 0:
-            mask = grid_target > 0
-            loss1 = F.mean_squared_error(grid_target[mask], grid_source[mask])
-            mask = grid_source.array > 0
-            loss2 = F.mean_squared_error(grid_target[mask], grid_source[mask])
-            loss = loss1 + loss2
-            # loss = F.mean_squared_error(grid_target, grid_source)
-        else:
-            if grid_target.dtype == np.float32:
-                # iou loss is more robust
-                intersection = F.sum(grid_target * grid_source)
-                union = F.sum(grid_target)
-                # union = F.sum(
-                #     grid_target + grid_source - grid_target * grid_source
-                # )
-                iou = intersection / union
-                loss = 1 - iou
-            else:
-                assert grid_target.dtype == np.int32
-                occupied_target = (grid_target == 1).astype(np.float32)
-                intersection = F.sum(occupied_target * grid_source)
-                union = F.sum(occupied_target)
-                iou1 = intersection / union
+        assert grid_target.dtype == np.uint8
+        occupied_target = (grid_target == id_target).astype(np.float32)
+        intersection = F.sum(occupied_target * grid_source)
+        denominator = F.sum(occupied_target)
+        reward = intersection / denominator
 
-                occupied_untarget = (
-                    np.isin(grid_target, [2, 7])).astype(np.float32)
-                intersection = F.sum(occupied_untarget * grid_source)
-                union = F.sum(occupied_untarget)
-                iou2 = intersection / union
-                # iou2 = 0
+        # unknown: 255
+        # free: 254
+        # occupied background: 0
+        # occupied instance1: 1
+        # ...
+        # occupied by untarget or empty
+        unoccupied_target = ~np.isin(grid_target, [id_target, 255])
+        unoccupied_target = unoccupied_target.astype(np.float32)
+        intersection = F.sum(unoccupied_target * grid_source)
+        denominator = F.sum(grid_source)
+        penalty = intersection / denominator
 
-                loss = - iou1 + iou2
+        loss = - reward + penalty
+        return loss
 
-        if return_grid:
-            return loss, grid_source
-        else:
-            return loss
+
+class RegisterationOccupancyGrid:
+
+    def __init__(
+        self,
+        points_source,
+        grid_target,
+        id_target,
+        *,
+        pitch,
+        origin,
+        connectivity,
+    ):
+        self._points_source = points_source
+        self._grid_target = grid_target
+        self._id_target = id_target
+        self._pitch = pitch
+        self._origin = origin
+        self._connectivity = connectivity
+
+        model = OccupancyGridAlignmentModel()
+        self._optimizer = chainer.optimizers.Adam(alpha=0.2)
+        self._optimizer.setup(model)
+        model.translation.update_rule.hyperparam.alpha *= 0.1
+
+        self._iteration = -1
+
+    def step(self):
+        self._iteration += 1
+
+        model = self._optimizer.target
+
+        loss = model(
+            points_source=self._points_source,
+            grid_target=self._grid_target,
+            id_target=self._id_target,
+            pitch=self._pitch,
+            origin=self._origin,
+            connectivity=self._connectivity,
+        )
+        loss.backward()
+        self._optimizer.update()
+        model.cleargrads()
+
+        loss = float(loss.array)
+
+        print(f'[{self._iteration:08d}] {loss}')
+        print(f'quaternion:', model.quaternion.array.tolist())
+        print(f'translation:', model.translation.array.tolist())
+
+    @property
+    def transform(self):
+        model = self._optimizer.target
+        quaternion = model.quaternion.array
+        translation = model.translation.array
+        transform = tf.quaternion_matrix(quaternion)
+        transform = objslampp.geometry.compose_transform(
+            transform[:3, :3], translation
+        )
+        return transform
+
+    def nstep(self, iteration):
+        yield self.transform
+        for _ in range(iteration):
+            self.step()
+            yield self.transform
+
+    def visualize(self, cad, transform_true, transform_pred):
+        scenes = {}
+
+        grid_target = self._grid_target
+        id_target = self._id_target
+        pitch = self._pitch
+        origin = self._origin
+
+        scene = trimesh.Scene()
+        # occupied target/untarget
+        voxel = trimesh.voxel.Voxel(
+            matrix=grid_target == id_target, pitch=pitch, origin=origin)
+        geom = voxel.as_boxes((1., 0, 0, 0.5))
+        scene.add_geometry(geom, geom_name='occupied_target')
+        voxel = trimesh.voxel.Voxel(
+            matrix=~np.isin(grid_target, [id_target, 254, 255]),
+            pitch=pitch,
+            origin=origin,
+        )
+        geom = voxel.as_boxes((0, 1., 0, 0.5))
+        scene.add_geometry(geom, geom_name='occupied_untarget')
+        # bbox
+        aabb_min = origin
+        aabb_max = aabb_min + pitch * np.array(grid_target.shape)
+        geom = trimesh.path.creation.box_outline(aabb_max - aabb_min)
+        geom.apply_translation((aabb_min + aabb_max) / 2)
+        scene.add_geometry(geom)
+        scenes['occupied'] = scene
+
+        # empty
+        scene = trimesh.Scene()
+        voxel = trimesh.voxel.Voxel(
+            matrix=grid_target == 254, pitch=pitch, origin=origin)
+        geom = voxel.as_boxes((0.5, 0.5, 0.5, 0.5))
+        scene.add_geometry(geom, geom_name='empty')
+        scenes['empty'] = scene
+
+        scene = trimesh.Scene()
+        # cad_pred
+        cad_copy = cad.copy()
+        cad_copy.apply_transform(transform_pred)
+        scene.add_geometry(cad_copy, geom_name='cad_pred')
+        scenes['occupied'].add_geometry(cad_copy, geom_name='cad_pred')
+        scenes['empty'].add_geometry(cad_copy, geom_name='cad_pred')
+        # cad_true
+        cad_copy = cad.copy()
+        cad_copy.visual.vertex_colors[:, 3] = 127
+        cad_copy.apply_transform(transform_true)
+        scene.add_geometry(cad_copy, geom_name='cad_true')
+        scenes['cad'] = scene
+
+        center = scenes['cad'].centroid
+        for scene in scenes.values():
+            scene.set_camera(
+                angles=[np.deg2rad(180), 0, 0],
+                distance=0.6,
+                center=center,
+            )
+        return scenes
 
 
 def main():
-    nstep = 1000
-    connectivity = 2
-    dim = 16
-    class_id = 8
-
     models = objslampp.datasets.YCBVideoModels()
+    dataset = objslampp.datasets.YCBVideoDataset('train')
+    frame = dataset[1000]
+    class_ids = frame['meta']['cls_indexes']
+    instance_ids = class_ids
+    depth = frame['depth']
+    K = frame['meta']['intrinsic_matrix']
+    pcd = objslampp.geometry.pointcloud_from_depth(
+        depth, fx=K[0, 0], fy=K[1, 1], cx=K[0, 2], cy=K[1, 2]
+    )
+    instance_label = frame['label']
+
+    index = 1
+    instance_id = instance_ids[index]
+    class_id = class_ids[index]
+    T_cad2cam = np.r_[frame['meta']['poses'][:, :, index], [[0, 0, 0, 1]]]
+    pitch = models.get_bbox_diagonal(
+        models.get_cad_model(class_id=class_id)) / 20
+
+    nonnan = ~np.isnan(depth)
+    octrees = {}
+    for ins_id in np.r_[0, instance_ids]:
+        mask = instance_label == ins_id
+        octree = octomap.OcTree(pitch)
+        octree.insertPointCloud(
+            pcd[mask & nonnan],
+            np.array([0, 0, 0], dtype=float),
+        )
+        octrees[ins_id] = octree
+
+    mask = instance_label == instance_id
+    cad_file = models.get_cad_model(class_id=class_id)
+    diagonal = models.get_bbox_diagonal(cad_file)
+    extents = np.array((diagonal * 1.1,) * 3)
+    grid_target, origin, _ = get_instance_grid(
+        octrees, pitch, pcd, mask, instance_id, extents
+    )
+    dim = np.array(grid_target.shape)
+    print(dim)
+
     pcd_file = models.get_pcd_model(class_id=class_id)
     points = np.loadtxt(pcd_file, dtype=np.float32)
 
@@ -107,173 +255,72 @@ def main():
     indices = np.random.permutation(len(points))[:1000]
     points_source = points[indices]
 
-    model = OccupancyGridAlignment()
+    transform_to_center = tf.translation_matrix(
+        - (origin + pitch * dim / 2))
+    origin = - pitch * dim / 2
 
-    optimizer = chainer.optimizers.Adam(alpha=0.1)
-    optimizer.setup(model)
-    model.translation.update_rule.hyperparam.alpha *= 0.1
-
-    data = np.load('logs/occupancy_grid.npz')
-    grid_target = data['labels']
-    pitch = data['pitch']
-    origin = data['origin']
-    T_cad2cam = data['T_cad2cam']
-
-    transform_to_center = tf.translation_matrix(- (origin + pitch * dim / 2))
-    origin = np.array((- pitch * dim / 2, ) * 3)
-
-    transform_true = transform_to_center @ T_cad2cam
+    T_cad2cam_true = transform_to_center @ T_cad2cam
 
     cad_file = models.get_cad_model(class_id=class_id)
     cad = trimesh.load(str(cad_file))
     cad.visual = cad.visual.to_color()
 
-    scenes = align(
-        model,
-        grid_target,
+    registration_occ = RegisterationOccupancyGrid(
         points_source,
-        optimizer,
-        connectivity,
-        nstep,
-        pitch,
-        origin,
-        dim,
-        cad,
-        transform_true,
+        grid_target,
+        id_target=instance_id,
+        pitch=pitch,
+        origin=origin,
+        connectivity=2,
     )
+    Ts_cad2cam_pred = registration_occ.nstep(100)
 
-    def on_update(dt, scenes, viewer):
-        if not viewer.play:
-            return
-        try:
-            scene = next(scenes)
-        except StopIteration:
-            viewer.on_close()
-        viewer.scene.geometry = scene.geometry
-        viewer._update_vertex_list()
+    # -------------------------------------------------------------------------
 
-    viewer = trimesh.viewer.SceneViewer(
-        next(scenes), resolution=(640, 480), start_loop=False
-    )
-    viewer.play = False
+    window = pyglet.window.Window(width=640 * 3, height=480)
+    window.play = False
 
-    @viewer.event
+    @window.event
     def on_key_press(symbol, modifiers):
         if modifiers == 0:
-            if symbol == pyglet.window.key.S:
-                viewer.play = not viewer.play
+            if symbol == pyglet.window.key.Q:
+                window.on_close()
+            elif symbol == pyglet.window.key.S:
+                window.play = not window.play
 
-    pyglet.clock.schedule_interval(on_update, 1 / 30, scenes, viewer)
+    def callback(dt, widgets=None):
+        if widgets and not window.play:
+            return
+        try:
+            T_cad2cam_pred = next(Ts_cad2cam_pred)
+        except StopIteration:
+            pyglet.clock.unschedule(callback)
+            return
+        scenes = registration_occ.visualize(
+            cad=cad,
+            transform_true=T_cad2cam_true,
+            transform_pred=T_cad2cam_pred,
+        )
+        if widgets:
+            for key, widget in widgets.items():
+                widget.scene.geometry.update(scenes[key].geometry)
+                widget.scene.graph.load(scenes[key].graph.to_edgelist())
+                widget._draw()
+        return scenes
+
+    gui = glooey.Gui(window)
+
+    hbox = glooey.HBox()
+    hbox.set_padding(5)
+    widgets = {}
+    scenes = callback(-1)
+    for key, scene in scenes.items():
+        widgets[key] = trimesh.viewer.SceneWidget(scene)
+        hbox.add(widgets[key])
+    gui.add(hbox)
+
+    pyglet.clock.schedule_interval(callback, 1 / 30, widgets)
     pyglet.app.run()
-
-
-def align(
-    model,
-    grid_target,
-    points_source,
-    optimizer,
-    connectivity,
-    nstep,
-    pitch,
-    origin,
-    dim,
-    cad,
-    transform_true,
-):
-    scene = trimesh.Scene()
-
-    for iteration in range(-1, nstep):
-        if iteration != -1:
-            loss, grid_source = model(
-                grid_target,
-                points_source,
-                pitch=pitch,
-                origin=origin,
-                connectivity=connectivity,
-                return_grid=True,
-            )
-            grid_source = grid_source.array
-            loss.backward()
-            optimizer.update()
-            model.cleargrads()
-
-            loss = float(loss.array)
-            print(f'[{iteration:08d}] {loss}')
-            print(f'quaternion:', model.quaternion.array.tolist())
-            print(f'translation:', model.translation.array.tolist())
-
-            quaternion_pred = model.quaternion.array
-            translation_pred = model.translation.array
-            transform_pred = tf.quaternion_matrix(quaternion_pred)
-            transform_pred = objslampp.geometry.compose_transform(
-                transform_pred[:3, :3], translation_pred
-            )
-        else:
-            transform_pred = np.eye(4)
-
-        # # geom = trimesh.PointCloud(vertices=points_target)
-        # geom = trimesh.Trimesh()
-        # for xyz in points_target:
-        #     geom_i = trimesh.creation.icosphere(radius=0.005)
-        #     geom_i.apply_translation(xyz)
-        #     geom += geom_i
-        # if 'pcd_target' in scene.geometry:
-        #     scene.geometry['pcd_target'] = geom
-        # else:
-        #     scene.add_geometry(geom, geom_name='pcd_target')
-
-        # grid_target
-        voxel = trimesh.voxel.Voxel(
-            matrix=grid_target == 1, pitch=pitch, origin=origin)
-        geom = voxel.as_boxes((1., 0, 0, 0.7))
-        if 'grid_target' in scene.geometry:
-            scene.geometry['grid_target'] = geom
-        else:
-            scene.add_geometry(geom, geom_name='grid_target')
-        voxel = trimesh.voxel.Voxel(
-            matrix=grid_target == 2, pitch=pitch, origin=origin)
-        geom = voxel.as_boxes((0, 1., 0, 0.7))
-        if 'grid_target2' in scene.geometry:
-            scene.geometry['grid_target2'] = geom
-        else:
-            scene.add_geometry(geom, geom_name='grid_target2')
-
-        # # grid_source
-        # grid = grid_source
-        # voxel = trimesh.voxel.Voxel(matrix=grid, pitch=pitch, origin=origin)
-        # colors = imgviz.depth2rgb(
-        #     grid.reshape(1, -1), min_value=0, max_value=1
-        # )
-        # colors = colors.reshape(dim, dim, dim, 3)
-        # colors = np.concatenate(
-        #     (colors, np.full((dim, dim, dim, 1), 127)), axis=3
-        # )
-        # geom = voxel.as_boxes(colors)
-        # if 'grid_source' in scene.geometry:
-        #     scene.geometry['grid_source'] = geom
-        # else:
-        #     scene.add_geometry(geom, geom_name='grid_source')
-
-        # cad_source
-        cad_copy = cad.copy()
-        cad_copy.apply_transform(transform_pred)
-        if 'cad_source' in scene.geometry:
-            scene.geometry['cad_source'] = cad_copy
-        else:
-            scene.add_geometry(cad_copy, geom_name='cad_source')
-
-        # cad_target
-        cad_copy = cad.copy()
-        cad_copy.visual.vertex_colors[:, 3] = 127
-        cad_copy.apply_transform(transform_true)
-        if 'cad_target' in scene.geometry:
-            scene.geometry['cad_target'] = cad_copy
-        else:
-            scene.add_geometry(cad_copy, geom_name='cad_target')
-
-        scene.set_camera(angles=[np.deg2rad(180), 0, 0], distance=0.3)
-
-        yield scene
 
 
 if __name__ == '__main__':
