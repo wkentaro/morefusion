@@ -62,6 +62,8 @@ def main():
     dummy_geom.visual.face_colors = (0, 0, 0, 0)
     scene.add_geometry(dummy_geom)
 
+    scene.camera.resolution = (640, 480)
+
     window = trimesh.viewer.SceneViewer(
         scene, callback=callback, start_loop=False
     )
