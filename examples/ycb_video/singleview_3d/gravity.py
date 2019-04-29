@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import io
 import json
 import pathlib
 
@@ -9,7 +8,6 @@ from chainer.backends import cuda
 import glooey
 import imgviz
 import numpy as np
-import PIL.Image
 import pybullet
 import pyglet
 import tqdm
@@ -99,9 +97,7 @@ T_world2cam = np.linalg.inv(T_cam2world)
 # -----------------------------------------------------------------------------
 # rgb
 
-with io.BytesIO() as f:
-    PIL.Image.fromarray(frame['rgb']).save(f, format='JPEG')
-    image = pyglet.image.load(filename=None, file=f)
+image = objslampp.extra.pyglet.numpy_to_image(frame['rgb'])
 widget = glooey.Image(image, responsive=True)
 vbox = glooey.VBox()
 vbox.add(glooey.Label(text='input rgb', color=(255, 255, 255)), size=0)
@@ -197,9 +193,7 @@ for _ in tqdm.tqdm(range(60)):
 pybullet.disconnect()
 
 
-with io.BytesIO() as f:
-    PIL.Image.fromarray(rgbs_sim[0]).save(f, format='JPEG')
-    image = pyglet.image.load(filename=None, file=f)
+image = objslampp.extra.pyglet.numpy_to_image(rgbs_sim[0])
 widget = glooey.Image(image, responsive=True)
 vbox = glooey.VBox()
 vbox.add(glooey.Label(text='pred rendered', color=(255, 255, 255)), size=0)
@@ -212,9 +206,7 @@ def callback(dt, image_widget):
         image_widget.index = 0
     rgb = rgbs_sim[image_widget.index]
     image_widget.index += 1
-    with io.BytesIO() as f:
-        PIL.Image.fromarray(rgb).save(f, format='JPEG')
-        image = pyglet.image.load(filename=None, file=f)
+    image = objslampp.extra.pyglet.numpy_to_image(rgb)
     image_widget.set_image(image)
 
 
