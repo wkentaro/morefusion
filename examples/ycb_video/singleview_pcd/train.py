@@ -61,6 +61,13 @@ def main():
         action='store_true',
         help='no call evaluation before training',
     )
+    parser.add_argument(
+        '--class-ids',
+        type=int,
+        nargs='*',
+        default=[2],
+        help='class ids',
+    )
     args = parser.parse_args()
 
     chainer.global_config.debug = args.debug
@@ -87,8 +94,12 @@ def main():
         chainer.cuda.cupy.random.seed(args.seed)
 
     # dataset initialization
-    data_train = contrib.datasets.YCBVideoDataset('train', class_ids=[2])
-    data_valid = contrib.datasets.YCBVideoDataset('val', class_ids=[2])
+    data_train = contrib.datasets.YCBVideoDataset(
+        'train', class_ids=args.class_ids
+    )
+    data_valid = contrib.datasets.YCBVideoDataset(
+        'val', class_ids=args.class_ids
+    )
     class_names = objslampp.datasets.ycb_video.class_names
 
     termcolor.cprint('==> Dataset size', attrs={'bold': True})
