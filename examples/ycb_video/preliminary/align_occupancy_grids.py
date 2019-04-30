@@ -100,7 +100,7 @@ class RegisterationOccupancyGrid:
         self._connectivity = connectivity
 
         model = OccupancyGridAlignmentModel()
-        self._optimizer = chainer.optimizers.Adam(alpha=0.2)
+        self._optimizer = chainer.optimizers.Adam(alpha=0.1)
         self._optimizer.setup(model)
         model.translation.update_rule.hyperparam.alpha *= 0.1
 
