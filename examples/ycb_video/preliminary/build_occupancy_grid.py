@@ -166,7 +166,9 @@ def visualize_instance_grids(
     pyglet.app.run()
 
 
-def get_instance_grid(octrees, pitch, pcd, mask, instance_id, extents):
+def get_instance_grid(
+    octrees, pitch, pcd, mask, instance_id, extents, threshold=None
+):
     nonnan = ~np.isnan(pcd).any(axis=2)
     pcd_ins = pcd[mask & nonnan]
     centroid = pcd_ins.mean(axis=0)
@@ -183,17 +185,19 @@ def get_instance_grid(octrees, pitch, pcd, mask, instance_id, extents):
     centers = trimesh.voxel.matrix_to_points(
         grid == 255, pitch=pitch, origin=aabb_min
     )
-    dist_threshold = pitch / 2 * np.sqrt(3)
+    if threshold is None:
+        threshold = 2 * np.sqrt(3)
+    threshold *= pitch  # thershold in dimension to metric
     for instance_id, octree in octrees.items():
         occupied, empty = leaves_from_tree(octree)
-        # occupied
-        kdtree = sklearn.neighbors.KDTree(occupied)
-        dist, indices = kdtree.query(centers, k=1)
-        grid[dist[:, 0].reshape(grid.shape) < dist_threshold] = instance_id
         # empty
         kdtree = sklearn.neighbors.KDTree(empty)
         dist, indices = kdtree.query(centers, k=1)
-        grid[dist[:, 0].reshape(grid.shape) < dist_threshold] = 254
+        grid[dist[:, 0].reshape(grid.shape) < threshold] = 254
+        # occupied
+        kdtree = sklearn.neighbors.KDTree(occupied)
+        dist, indices = kdtree.query(centers, k=1)
+        grid[dist[:, 0].reshape(grid.shape) < threshold] = instance_id
     return grid, aabb_min, aabb_max
 
 
