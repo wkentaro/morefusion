@@ -336,6 +336,43 @@ class SceneOccupancyGridRegistration:
             cad=cad,
         )
 
+    def visualize(self, registration_ins, T_cad2cam_true, T_cad2cam_pred, T_com2cam, cad, rgb):  # NOQA
+        pcd = self._pcd
+
+        scenes = {}
+        # scene_pcd
+        scene = trimesh.Scene()
+        nonnan = ~np.isnan(pcd).any(axis=2)
+        geom = trimesh.PointCloud(vertices=pcd[nonnan], colors=rgb[nonnan])
+        scene.add_geometry(geom, geom_name='pcd')
+        scene.add_geometry(cad, transform=T_cad2cam_pred, node_name='cad_pred')
+        scenes['scene_pcd'] = scene
+        # scene_occupancy
+        colormap = imgviz.label_colormap()
+        scenes['scene_occupied'] = trimesh.Scene()
+        scenes['scene_empty'] = trimesh.Scene()
+        for instance_id, octree in self._octrees.items():
+            occupied, empty = leaves_from_tree(octree)
+            geom = trimesh.PointCloud(
+                vertices=occupied, colors=colormap[instance_id]
+            )
+            scenes['scene_occupied'].add_geometry(geom, geom_name='occupied')
+            geom = trimesh.PointCloud(vertices=empty, colors=[0.5, 0.5, 0.5])
+            scenes['scene_empty'].add_geometry(geom)
+        for scene in scenes.values():
+            scene.camera.transform = objslampp.extra.trimesh.camera_transform(
+                tf.translation_matrix([0, 0, 0.2])
+            )
+
+        all_scenes = registration_ins.visualize(
+            cad=cad,
+            T_cad2cam_true=T_cad2cam_true,
+            T_cad2cam_pred=T_cad2cam_pred,
+            T_com2cam=T_com2cam,
+        )
+        all_scenes.update(scenes)
+        return all_scenes
+
 
 def main():
     dataset = objslampp.datasets.YCBVideoDataset('train')
@@ -385,41 +422,6 @@ def main():
                 except StopIteration:
                     pass
 
-    def visualize(cad, T_cad2cam_true, T_cad2cam_pred, T_com2cam):
-        scenes = {}
-        # scene_pcd
-        scene = trimesh.Scene()
-        nonnan = ~np.isnan(pcd).any(axis=2)
-        geom = trimesh.PointCloud(vertices=pcd[nonnan], colors=rgb[nonnan])
-        scene.add_geometry(geom, geom_name='pcd')
-        scene.add_geometry(cad, transform=T_cad2cam_pred, node_name='cad_pred')
-        scenes['scene_pcd'] = scene
-        # scene_occupancy
-        colormap = imgviz.label_colormap()
-        scenes['scene_occupied'] = trimesh.Scene()
-        scenes['scene_empty'] = trimesh.Scene()
-        for instance_id, octree in registration_scene._octrees.items():
-            occupied, empty = leaves_from_tree(octree)
-            geom = trimesh.PointCloud(
-                vertices=occupied, colors=colormap[instance_id]
-            )
-            scenes['scene_occupied'].add_geometry(geom, geom_name='occupied')
-            geom = trimesh.PointCloud(vertices=empty, colors=[0.5, 0.5, 0.5])
-            scenes['scene_empty'].add_geometry(geom)
-        for scene in scenes.values():
-            scene.camera.transform = objslampp.extra.trimesh.camera_transform(
-                tf.translation_matrix([0, 0, 0.2])
-            )
-
-        all_scenes = window.result['registration_ins'].visualize(
-            cad=cad,
-            T_cad2cam_true=T_cad2cam_true,
-            T_cad2cam_pred=T_cad2cam_pred,
-            T_com2cam=T_com2cam,
-        )
-        all_scenes.update(scenes)
-        return all_scenes
-
     def callback(dt, widgets=None):
         if widgets and not window.play:
             return
@@ -431,11 +433,13 @@ def main():
             except StopIteration:
                 pyglet.clock.unschedule(callback)
             return
-        scenes = visualize(
-            window.result['cad'],
-            window.result['T_cad2cam_true'],
-            T_cad2cam_pred,
-            window.result['T_com2cam'],
+        scenes = registration_scene.visualize(
+            registration_ins=window.result['registration_ins'],
+            T_cad2cam_true=window.result['T_cad2cam_true'],
+            T_cad2cam_pred=T_cad2cam_pred,
+            T_com2cam=window.result['T_com2cam'],
+            cad=window.result['cad'],
+            rgb=rgb,
         )
         if widgets:
             for key, widget in widgets.items():
