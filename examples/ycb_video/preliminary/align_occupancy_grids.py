@@ -18,6 +18,11 @@ from build_occupancy_grid import get_instance_grid
 from build_occupancy_grid import leaves_from_tree
 
 
+def printbold(text):
+    import termcolor
+    termcolor.cprint(text, attrs={'bold': True})
+
+
 class OccupancyGridAlignmentModel(chainer.Link):
 
     def __init__(self, quaternion_init=None, translation_init=None):
@@ -229,6 +234,7 @@ class SceneOccupancyGridRegistration:
         instance_ids,
         class_ids,
         Ts_cad2cam_true,
+        rgb,
         pcd,
         instance_label,
     ):
@@ -243,9 +249,15 @@ class SceneOccupancyGridRegistration:
         self._class_ids = class_ids
         self._instance_ids = instance_ids
         self._Ts_cad2cam_true = Ts_cad2cam_true
+        self._rgb = rgb
         self._pcd = pcd
         self._instance_label = instance_label
         self._octrees = self.build_octrees(0.01)
+
+        self._cads = [None] * N
+        self._registration_ins = [None] * N
+        self._Ts_cad2cam_pred = [None] * N
+        self._Ts_com2cam = [None] * N
 
     def build_octrees(self, pitch):
         pcd = self._pcd
@@ -271,21 +283,18 @@ class SceneOccupancyGridRegistration:
         # parameters
         connectivity = 2
         dim = 20
-        step = 100
 
         # scene-level data
         class_ids = self._class_ids
         instance_ids = self._instance_ids
         pcd = self._pcd
         instance_label = self._instance_label
-        Ts_cad2cam_true = self._Ts_cad2cam_true
         octrees = self._octrees
 
         # instance-level data
         index = np.where(instance_ids == instance_id)[0][0]
         instance_id = instance_ids[index]
         class_id = class_ids[index]
-        T_cad2cam_true = Ts_cad2cam_true[index]
         cad_file = models.get_cad_model(class_id=class_id)
         diagonal = models.get_bbox_diagonal(cad_file)
         pitch = diagonal * 1.1 / dim
@@ -321,32 +330,47 @@ class SceneOccupancyGridRegistration:
             origin=origin,
             connectivity=connectivity,
         )
-        Ts_cad2com_pred = registration.nstep(step)
-        Ts_cad2cam_pred = (T_com2cam @ T for T in Ts_cad2com_pred)
+        Ts_cad2cam_pred = self._nstep_ins(instance_id, registration, T_com2cam)
 
         cad_file = models.get_cad_model(class_id=class_id)
         cad = trimesh.load(str(cad_file))
         cad.visual = cad.visual.to_color()
 
-        return dict(
-            registration_ins=registration,
-            Ts_cad2cam_pred=Ts_cad2cam_pred,
-            T_cad2cam_true=T_cad2cam_true,
-            T_com2cam=T_com2cam,
-            cad=cad,
-        )
+        self._instance_id = instance_id
+        index = np.where(self._instance_ids == instance_id)[0][0]
+        self._registration_ins[index] = registration
+        self._Ts_com2cam[index] = T_com2cam
+        self._cads[index] = cad
 
-    def visualize(self, registration_ins, T_cad2cam_true, T_cad2cam_pred, T_com2cam, cad, rgb):  # NOQA
+        return Ts_cad2cam_pred
+
+    def _nstep_ins(self, instance_id, registration_ins, T_com2cam):
+        index = np.where(self._instance_ids == instance_id)[0][0]
+        for T_cad2com_pred in registration_ins.nstep(100):
+            T_cad2cam_pred = T_com2cam @ T_cad2com_pred
+            self._Ts_cad2cam_pred[index] = T_cad2cam_pred
+            yield T_cad2cam_pred
+
+    def visualize(self):  # NOQA
+        # scene-level
+        rgb = self._rgb
         pcd = self._pcd
 
         scenes = {}
         # scene_pcd
-        scene = trimesh.Scene()
+        scenes['scene_pcd'] = trimesh.Scene()
         nonnan = ~np.isnan(pcd).any(axis=2)
         geom = trimesh.PointCloud(vertices=pcd[nonnan], colors=rgb[nonnan])
-        scene.add_geometry(geom, geom_name='pcd')
-        scene.add_geometry(cad, transform=T_cad2cam_pred, node_name='cad_pred')
-        scenes['scene_pcd'] = scene
+        scenes['scene_pcd'].add_geometry(geom, geom_name='pcd')
+        for index in range(len(self._instance_ids)):
+            cad = self._cads[index]
+            T_cad2cam_pred = self._Ts_cad2cam_pred[index]
+            if cad:
+                scenes['scene_pcd'].add_geometry(
+                    cad,
+                    transform=T_cad2cam_pred,
+                    node_name=f'cad_pred_{index}',
+                )
         # scene_occupancy
         colormap = imgviz.label_colormap()
         scenes['scene_occupied'] = trimesh.Scene()
@@ -364,12 +388,22 @@ class SceneOccupancyGridRegistration:
                 tf.translation_matrix([0, 0, 0.2])
             )
 
+        # instance-level
+        instance_id = self._instance_id
+        index = np.where(self._instance_ids == instance_id)[0][0]
+        cad = self._cads[index]
+        registration_ins = self._registration_ins[index]
+        T_cad2cam_true = self._Ts_cad2cam_true[index]
+        T_cad2cam_pred = self._Ts_cad2cam_pred[index]
+        T_com2cam = self._Ts_com2cam[index]
+
         all_scenes = registration_ins.visualize(
             cad=cad,
             T_cad2cam_true=T_cad2cam_true,
             T_cad2cam_pred=T_cad2cam_pred,
             T_com2cam=T_com2cam,
         )
+
         all_scenes.update(scenes)
         return all_scenes
 
@@ -393,6 +427,7 @@ def main():
         instance_ids=instance_ids,
         class_ids=class_ids,
         Ts_cad2cam_true=Ts_cad2cam_true,
+        rgb=rgb,
         pcd=pcd,
         instance_label=instance_label,
     )
@@ -414,11 +449,12 @@ def main():
                 window.on_close()
             elif symbol == pyglet.window.key.S:
                 window.play = not window.play
+                printbold(f'==> window.play: {window.play}')
             elif symbol == pyglet.window.key.N:
                 try:
-                    window.result = registration_scene(
-                        next(window.instance_ids)
-                    )
+                    instance_id = next(window.instance_ids)
+                    printbold(f'==> instance_id: {instance_id}')
+                    window.result = registration_scene(instance_id)
                 except StopIteration:
                     pass
 
@@ -426,21 +462,14 @@ def main():
         if widgets and not window.play:
             return
         try:
-            T_cad2cam_pred = next(window.result['Ts_cad2cam_pred'])
+            next(window.result)
         except StopIteration:
             try:
                 window.result = registration_scene(next(window.instance_ids))
             except StopIteration:
                 pyglet.clock.unschedule(callback)
             return
-        scenes = registration_scene.visualize(
-            registration_ins=window.result['registration_ins'],
-            T_cad2cam_true=window.result['T_cad2cam_true'],
-            T_cad2cam_pred=T_cad2cam_pred,
-            T_com2cam=window.result['T_com2cam'],
-            cad=window.result['cad'],
-            rgb=rgb,
-        )
+        scenes = registration_scene.visualize()
         if widgets:
             for key, widget in widgets.items():
                 widget.scene.geometry.update(scenes[key].geometry)
