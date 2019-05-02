@@ -277,6 +277,23 @@ class SceneOccupancyGridRegistration:
 
         return octrees
 
+    def update_octrees(self):
+        for instance_id, cad in zip(self._instance_ids, self._cads):
+            index = np.where(self._instance_ids == instance_id)[0][0]
+            T_cad2cam_pred = self._Ts_cad2cam_pred[index]
+            if T_cad2cam_pred is None:
+                continue
+
+            class_id = self._class_ids[index]
+            pcd_file = self._models.get_pcd_model(class_id=class_id)
+            points = np.loadtxt(pcd_file)
+            points = tf.transform_points(points, T_cad2cam_pred)
+
+            printbold(f'==> Updating OcTree: {instance_id}')
+            octree = self._octrees[instance_id]
+            octree.updateNodes(points, True, lazy_eval=True)
+            octree.updateInnerOccupancy()
+
     def __call__(self, instance_id):
         models = self._models
 
@@ -322,7 +339,7 @@ class SceneOccupancyGridRegistration:
         T_com2cam = tf.translation_matrix(centroid)
         origin = - pitch * dimension / 2
 
-        registration = InstanceOccupancyGridRegistration(
+        registration_ins = InstanceOccupancyGridRegistration(
             points_source,
             grid_target,
             id_target=instance_id,
@@ -330,7 +347,9 @@ class SceneOccupancyGridRegistration:
             origin=origin,
             connectivity=connectivity,
         )
-        Ts_cad2cam_pred = self._nstep_ins(instance_id, registration, T_com2cam)
+        Ts_cad2cam_pred = self._nstep_ins(
+            instance_id, registration_ins, T_com2cam
+        )
 
         cad_file = models.get_cad_model(class_id=class_id)
         cad = trimesh.load(str(cad_file))
@@ -338,7 +357,7 @@ class SceneOccupancyGridRegistration:
 
         self._instance_id = instance_id
         index = np.where(self._instance_ids == instance_id)[0][0]
-        self._registration_ins[index] = registration
+        self._registration_ins[index] = registration_ins
         self._Ts_com2cam[index] = T_com2cam
         self._cads[index] = cad
 
@@ -441,6 +460,17 @@ def main():
     window.play = False
     window.instance_ids = iter(instance_ids)
     window.result = registration_scene(next(window.instance_ids))
+    window.rotate = 0
+
+    usage = '''\
+==> Usage
+q: Close window.
+n: Next iteration.
+s: Play iterations.
+r: Rotate camera around y axis.
+R: Rotate camera around -y axis.
+N: Next instance.'''
+    printbold(usage)
 
     @window.event
     def on_key_press(symbol, modifiers):
@@ -452,23 +482,47 @@ def main():
                 printbold(f'==> window.play: {window.play}')
             elif symbol == pyglet.window.key.N:
                 try:
+                    next(window.result)
+                except StopIteration:
+                    on_key_press(
+                        symbol=pyglet.window.key.N,
+                        modifiers=pyglet.window.key.MOD_SHIFT,
+                    )
+                    return
+        if symbol == pyglet.window.key.R:
+            # rotate camera
+            window.rotate = not window.rotate  # 0/1
+            if modifiers == pyglet.window.key.MOD_SHIFT:
+                window.rotate *= -1
+        if modifiers == pyglet.window.key.MOD_SHIFT:
+            if symbol == pyglet.window.key.N:
+                try:
                     instance_id = next(window.instance_ids)
                     printbold(f'==> instance_id: {instance_id}')
+                    registration_scene.update_octrees()
                     window.result = registration_scene(instance_id)
                 except StopIteration:
-                    pass
+                    pyglet.clock.unschedule(callback)
+                return
 
     def callback(dt, widgets=None):
-        if widgets and not window.play:
+        if window.rotate:
+            point = widgets['scene_pcd'].scene.centroid
+            for widget in widgets.values():
+                camera = widget.scene.camera
+                camera.transform = tf.rotation_matrix(
+                    np.deg2rad(window.rotate), [0, 1, 0], point=point
+                ) @ camera.transform
             return
-        try:
-            next(window.result)
-        except StopIteration:
+        if window.play:
             try:
-                window.result = registration_scene(next(window.instance_ids))
+                next(window.result)
             except StopIteration:
-                pyglet.clock.unschedule(callback)
-            return
+                on_key_press(
+                    symbol=pyglet.window.key.N,
+                    modifiers=pyglet.window.key.MOD_SHIFT,
+                )
+                return
         scenes = registration_scene.visualize()
         if widgets:
             for key, widget in widgets.items():
