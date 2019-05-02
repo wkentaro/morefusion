@@ -179,7 +179,7 @@ class InstanceOccupancyGridRegistration:
         )
         geom = voxel.as_boxes((0, 1., 0, 0.5))
         scene.add_geometry(geom, geom_name='occupied_untarget')
-        scenes['occupied'] = scene
+        scenes['instance_occupied'] = scene
 
         # empty
         scene = trimesh.Scene()
@@ -188,7 +188,7 @@ class InstanceOccupancyGridRegistration:
         )
         geom = voxel.as_boxes((0.5, 0.5, 0.5, 0.5))
         scene.add_geometry(geom, geom_name='empty')
-        scenes['empty'] = scene
+        scenes['instance_empty'] = scene
 
         scene = trimesh.Scene()
         # cad_true
@@ -200,7 +200,7 @@ class InstanceOccupancyGridRegistration:
             geom_name='cad_true',
             node_name='cad_true',
         )
-        scenes['cad'] = scene
+        scenes['instance_cad'] = scene
 
         # cad_pred
         for scene in scenes.values():
@@ -219,10 +219,6 @@ class InstanceOccupancyGridRegistration:
         for scene in scenes.values():
             scene.add_geometry(geom, geom_name='bbox')
 
-        for scene in scenes.values():
-            scene.camera.transform = objslampp.extra.trimesh.camera_transform(
-                tf.translation_matrix([0, 0, 0.2])
-            )
         return scenes
 
 
@@ -257,6 +253,9 @@ class SceneOccupancyGridRegistration:
         self._instance_label = instance_label
         self._octrees = self.build_octrees(0.01)
 
+        self._occupied_empty = {}
+        self.update_occupied_empty()
+
         self._cads = [None] * N
         self._registration_ins = [None] * N
         self._Ts_cad2cam_pred = [None] * N
@@ -280,6 +279,11 @@ class SceneOccupancyGridRegistration:
 
         return octrees
 
+    def update_occupied_empty(self):
+        for instance_id, octree in self._octrees.items():
+            occupied, empty = leaves_from_tree(octree)
+            self._occupied_empty[instance_id] = (occupied, empty)
+
     def update_octrees(self):
         for instance_id, cad in zip(self._instance_ids, self._cads):
             index = np.where(self._instance_ids == instance_id)[0][0]
@@ -296,6 +300,7 @@ class SceneOccupancyGridRegistration:
             octree = self._octrees[instance_id]
             octree.updateNodes(points, True, lazy_eval=True)
             octree.updateInnerOccupancy()
+        self.update_occupied_empty()
 
     def __call__(self, instance_id):
         models = self._models
@@ -364,6 +369,9 @@ class SceneOccupancyGridRegistration:
         self._Ts_com2cam[index] = T_com2cam
         self._cads[index] = cad
 
+        T_cad2cam_pred = next(Ts_cad2cam_pred)
+        self._Ts_cad2cam_pred[index] = T_cad2cam_pred
+
         return Ts_cad2cam_pred
 
     def _nstep_ins(self, instance_id, registration_ins, T_com2cam):
@@ -398,8 +406,7 @@ class SceneOccupancyGridRegistration:
         colormap = imgviz.label_colormap()
         scenes['scene_occupied'] = trimesh.Scene()
         scenes['scene_empty'] = trimesh.Scene()
-        for instance_id, octree in self._octrees.items():
-            occupied, empty = leaves_from_tree(octree)
+        for instance_id, (occupied, empty) in self._occupied_empty.items():
             geom = trimesh.PointCloud(
                 vertices=occupied, colors=colormap[instance_id]
             )
@@ -410,10 +417,6 @@ class SceneOccupancyGridRegistration:
             scenes['scene_empty'].add_geometry(
                 geom, geom_name=f'empty_{instance_id}'
             )
-        for scene in scenes.values():
-            scene.camera.transform = objslampp.extra.trimesh.camera_transform(
-                tf.translation_matrix([0, 0, 0.2])
-            )
 
         # instance-level
         instance_id = self._instance_id
@@ -423,15 +426,22 @@ class SceneOccupancyGridRegistration:
         T_cad2cam_true = self._Ts_cad2cam_true[index]
         T_cad2cam_pred = self._Ts_cad2cam_pred[index]
         T_com2cam = self._Ts_com2cam[index]
-
         all_scenes = registration_ins.visualize(
             cad=cad,
             T_cad2cam_true=T_cad2cam_true,
             T_cad2cam_pred=T_cad2cam_pred,
             T_com2cam=T_com2cam,
         )
-
         all_scenes.update(scenes)
+
+        # set camera
+        camera = trimesh.scene.Camera(
+            resolution=(640, 480),
+            fov=(60, 45),
+            transform=objslampp.extra.trimesh.camera_transform(),
+        )
+        for scene in all_scenes.values():
+            scene.camera = camera
         return all_scenes
 
 
@@ -475,6 +485,7 @@ def main():
 q: Close window.
 n: Next iteration.
 s: Play iterations.
+z: Reset view.
 r: Rotate camera around y axis.
 R: Rotate camera around -y axis.
 N: Next instance.'''
@@ -497,6 +508,11 @@ N: Next instance.'''
                         modifiers=pyglet.window.key.MOD_SHIFT,
                     )
                     return
+            elif symbol == pyglet.window.key.Z:
+                for widget in widgets.values():
+                    camera = widget.scene.camera
+                    camera.transform = \
+                        objslampp.extra.trimesh.camera_transform()
         if symbol == pyglet.window.key.R:
             # rotate camera
             window.rotate = not window.rotate  # 0/1
@@ -515,7 +531,7 @@ N: Next instance.'''
 
     def callback(dt, widgets=None):
         if window.rotate:
-            point = widgets['occupied'].scene.centroid
+            point = registration_scene._Ts_cad2cam_true[:, :3, 3].mean(axis=0)
             for widget in widgets.values():
                 camera = widget.scene.camera
                 camera.transform = tf.rotation_matrix(
