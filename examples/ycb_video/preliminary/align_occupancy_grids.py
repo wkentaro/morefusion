@@ -205,7 +205,10 @@ class InstanceOccupancyGridRegistration:
         # cad_pred
         for scene in scenes.values():
             scene.add_geometry(
-                cad, transform=T_cad2cam_pred, node_name='cad_pred'
+                cad,
+                transform=T_cad2cam_pred,
+                geom_name='cad_pred',
+                node_name='cad_pred',
             )
 
         # bbox
@@ -352,7 +355,7 @@ class SceneOccupancyGridRegistration:
         )
 
         cad_file = models.get_cad_model(class_id=class_id)
-        cad = trimesh.load(str(cad_file))
+        cad = trimesh.load(str(cad_file), process=False)
         cad.visual = cad.visual.to_color()
 
         self._instance_id = instance_id
@@ -381,14 +384,15 @@ class SceneOccupancyGridRegistration:
         nonnan = ~np.isnan(pcd).any(axis=2)
         geom = trimesh.PointCloud(vertices=pcd[nonnan], colors=rgb[nonnan])
         scenes['scene_pcd'].add_geometry(geom, geom_name='pcd')
-        for index in range(len(self._instance_ids)):
+        for index, instance_id in enumerate(self._instance_ids):
             cad = self._cads[index]
             T_cad2cam_pred = self._Ts_cad2cam_pred[index]
             if cad:
                 scenes['scene_pcd'].add_geometry(
                     cad,
                     transform=T_cad2cam_pred,
-                    node_name=f'cad_pred_{index}',
+                    geom_name=f'cad_pred_{instance_id}',
+                    node_name=f'cad_pred_{instance_id}',
                 )
         # scene_occupancy
         colormap = imgviz.label_colormap()
@@ -399,9 +403,13 @@ class SceneOccupancyGridRegistration:
             geom = trimesh.PointCloud(
                 vertices=occupied, colors=colormap[instance_id]
             )
-            scenes['scene_occupied'].add_geometry(geom, geom_name='occupied')
+            scenes['scene_occupied'].add_geometry(
+                geom, geom_name=f'occupied_{instance_id}'
+            )
             geom = trimesh.PointCloud(vertices=empty, colors=[0.5, 0.5, 0.5])
-            scenes['scene_empty'].add_geometry(geom)
+            scenes['scene_empty'].add_geometry(
+                geom, geom_name=f'empty_{instance_id}'
+            )
         for scene in scenes.values():
             scene.camera.transform = objslampp.extra.trimesh.camera_transform(
                 tf.translation_matrix([0, 0, 0.2])
@@ -507,7 +515,7 @@ N: Next instance.'''
 
     def callback(dt, widgets=None):
         if window.rotate:
-            point = widgets['scene_pcd'].scene.centroid
+            point = widgets['occupied'].scene.centroid
             for widget in widgets.values():
                 camera = widget.scene.camera
                 camera.transform = tf.rotation_matrix(
