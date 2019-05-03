@@ -13,6 +13,8 @@ import objslampp
 
 class PointCloudRegistration:
 
+    _models = objslampp.datasets.YCBVideoModels()
+
     def __init__(
         self,
         rgb,
@@ -21,41 +23,50 @@ class PointCloudRegistration:
         instance_ids,
         class_ids,
         Ts_cad2cam_true,
+        Ts_cad2cam_pred=None,
     ):
         self._rgb = rgb
         self._pcd = pcd
         self._instance_label = instance_label
         self._instance_label_viz = imgviz.label2rgb(instance_label)
         self._instance_ids = instance_ids
-        self._class_ids = class_ids
-        self._Ts_cad2cam_true = Ts_cad2cam_true
+        self._class_ids = dict(zip(instance_ids, class_ids))
+        self._Ts_cad2cam_true = dict(zip(instance_ids, Ts_cad2cam_true))
 
         self._cads = {}
-        self._Ts_cam2cad_pred = {}
+        for instance_id in self._instance_ids:
+            class_id = self._class_ids[instance_id]
+            cad_file = self._models.get_cad_model(class_id=class_id)
+            cad = trimesh.load(str(cad_file))
+            cad.visual = cad.visual.to_color()
+            self._cads[instance_id] = cad
+
+        if Ts_cad2cam_pred is None:
+            self._Ts_cad2cam_pred = {}
+            nonnan = ~np.isnan(pcd).any(axis=2)
+            for instance_id in instance_ids:
+                mask = instance_label == instance_id
+                centroid = pcd[nonnan & mask].mean(axis=0)
+                T_cad2cam_pred = tf.translation_matrix(centroid)
+                self._Ts_cad2cam_pred[instance_id] = T_cad2cam_pred
+        else:
+            assert len(instance_ids) == len(Ts_cad2cam_pred)
+            self._Ts_cad2cam_pred = dict(zip(instance_ids, Ts_cad2cam_pred))
 
     def register_instance(self, instance_id):
         pcd = self._pcd
         nonnan = ~np.isnan(pcd).any(axis=2)
 
-        models = objslampp.datasets.YCBVideoModels()
-
-        index = np.where(self._instance_ids == instance_id)[0][0]
-        class_id = self._class_ids[index]
+        class_id = self._class_ids[instance_id]
         mask = self._instance_label == instance_id
 
-        pcd_file = models.get_pcd_model(class_id=class_id)
+        pcd_file = self._models.get_pcd_model(class_id=class_id)
         points_cad = np.loadtxt(pcd_file, dtype=np.float32)
-
-        cad_file = models.get_cad_model(class_id=class_id)
-        cad = trimesh.load(str(cad_file))
-        cad.visual = cad.visual.to_color()
 
         target = open3d.PointCloud()
         target.points = open3d.Vector3dVector(points_cad)
 
         pcd_ins = pcd[nonnan & mask]
-        centroid = pcd_ins.mean(axis=0)
-        T_cam2com = tf.translation_matrix(- centroid)
 
         source = open3d.PointCloud()
         source.points = open3d.Vector3dVector(pcd_ins)
@@ -67,35 +78,30 @@ class PointCloudRegistration:
         self._target = target
         self._instance_id = instance_id
 
-        self._cads[instance_id] = cad
-        self._Ts_cam2cad_pred[instance_id] = T_cam2com
         yield
         for i in range(300):
             result = open3d.registration_icp(
                 source,  # points_from_depth
                 target,  # points_from_cad
                 0.02,
-                self._Ts_cam2cad_pred[instance_id],
+                tf.inverse_matrix(self._Ts_cad2cam_pred[instance_id]),
                 open3d.TransformationEstimationPointToPoint(False),
                 open3d.ICPConvergenceCriteria(max_iteration=1),
             )
-            self._Ts_cam2cad_pred[instance_id] = result.transformation
+            self._Ts_cad2cam_pred[instance_id] = tf.inverse_matrix(
+                result.transformation
+            )
             yield
-
-    @property
-    def T_cad2cam_pred(self):
-        return np.linalg.inv(self._T_cam2cad_pred)
 
     def visualize(self):
         rgb = self._rgb
         pcd = self._pcd
 
         instance_id = self._instance_id
-        index = np.where(self._instance_ids == instance_id)[0][0]
-        T_cad2cam_true = self._Ts_cad2cam_true[index]
+        T_cad2cam_true = self._Ts_cad2cam_true[instance_id]
 
         cad = self._cads[instance_id]
-        T_cad2cam_pred = np.linalg.inv(self._Ts_cam2cad_pred[instance_id])
+        T_cad2cam_pred = self._Ts_cad2cam_pred[instance_id]
 
         source = self._source
         target = self._target
@@ -149,10 +155,10 @@ class PointCloudRegistration:
         geom = trimesh.PointCloud(pcd[nonnan], colors=rgb[nonnan])
         scenes['scene_pcd'].add_geometry(geom, geom_name='pcd')
         for instance_id in self._instance_ids:
-            if instance_id not in self._Ts_cam2cad_pred:
+            if instance_id not in self._Ts_cad2cam_pred:
                 continue
             assert instance_id in self._cads
-            T_cad2cam_pred = np.linalg.inv(self._Ts_cam2cad_pred[instance_id])
+            T_cad2cam_pred = self._Ts_cad2cam_pred[instance_id]
             scenes['scene_pcd'].add_geometry(
                 self._cads[instance_id],
                 transform=T_cad2cam_pred,
@@ -170,23 +176,9 @@ class PointCloudRegistration:
         return scenes
 
 
-def main():
-    dataset = objslampp.datasets.YCBVideoDataset('train')
-
-    frame = dataset[1000]
-
-    class_ids = frame['meta']['cls_indexes']
-    instance_ids = class_ids
-    depth = frame['depth']
-    K = frame['meta']['intrinsic_matrix']
-    rgb = frame['color']
-    pcd = objslampp.geometry.pointcloud_from_depth(
-        depth, fx=K[0, 0], fy=K[1, 1], cx=K[0, 2], cy=K[1, 2]
-    )
-    instance_label = frame['label']
-    Ts_cad2cam_true = np.tile(np.eye(4), (len(instance_ids), 1, 1))
-    Ts_cad2cam_true[:, :3, :4] = frame['meta']['poses'].transpose(2, 0, 1)
-
+def refinement(
+    instance_ids, class_ids, rgb, pcd, instance_label, Ts_cad2cam_true
+):
     registration = PointCloudRegistration(
         rgb=rgb,
         pcd=pcd,
@@ -194,6 +186,7 @@ def main():
         instance_ids=instance_ids,
         class_ids=class_ids,
         Ts_cad2cam_true=Ts_cad2cam_true,
+        Ts_cad2cam_pred=None,
     )
 
     instance_ids = iter(instance_ids)
@@ -202,7 +195,11 @@ def main():
 
     def callback(dt, widget=None):
         if window.rotate:
-            point = registration._Ts_cad2cam_true[:, :3, 3].mean(axis=0)
+            centers = [
+                tf.translation_from_matrix(T) for T in
+                registration._Ts_cad2cam_true.values()
+            ]
+            point = np.mean(centers, axis=0)
             for widget in widgets.values():
                 camera = widget.scene.camera
                 camera.transform = tf.rotation_matrix(
@@ -285,6 +282,33 @@ N: next instance''')
 
     pyglet.clock.schedule_interval(callback, 1 / 30, widgets)
     pyglet.app.run()
+
+
+def main():
+    dataset = objslampp.datasets.YCBVideoDataset('train')
+
+    frame = dataset[1000]
+
+    class_ids = frame['meta']['cls_indexes']
+    instance_ids = class_ids
+    depth = frame['depth']
+    K = frame['meta']['intrinsic_matrix']
+    rgb = frame['color']
+    pcd = objslampp.geometry.pointcloud_from_depth(
+        depth, fx=K[0, 0], fy=K[1, 1], cx=K[0, 2], cy=K[1, 2]
+    )
+    instance_label = frame['label']
+    Ts_cad2cam_true = np.tile(np.eye(4), (len(instance_ids), 1, 1))
+    Ts_cad2cam_true[:, :3, :4] = frame['meta']['poses'].transpose(2, 0, 1)
+
+    refinement(
+        instance_ids,
+        class_ids,
+        rgb,
+        pcd,
+        instance_label,
+        Ts_cad2cam_true,
+    )
 
 
 if __name__ == '__main__':
