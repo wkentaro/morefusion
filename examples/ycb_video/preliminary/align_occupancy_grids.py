@@ -18,11 +18,6 @@ from build_occupancy_grid import get_instance_grid
 from build_occupancy_grid import leaves_from_tree
 
 
-def printbold(text):
-    import termcolor
-    termcolor.cprint(text, attrs={'bold': True})
-
-
 class OccupancyGridAlignmentModel(chainer.Link):
 
     def __init__(self, quaternion_init=None, translation_init=None):
@@ -134,9 +129,9 @@ class InstanceOccupancyGridRegistration:
 
         loss = float(loss.array)
 
-        print(f'[{self._iteration:08d}] {loss}')
-        print(f'quaternion:', model.quaternion.array.tolist())
-        print(f'translation:', model.translation.array.tolist())
+        # print(f'[{self._iteration:08d}] {loss}')
+        # print(f'quaternion:', model.quaternion.array.tolist())
+        # print(f'translation:', model.translation.array.tolist())
 
     @property
     def transform(self):
@@ -222,7 +217,7 @@ class InstanceOccupancyGridRegistration:
         return scenes
 
 
-class SceneOccupancyGridRegistration:
+class OccupancyGridRegistration:
 
     _models = objslampp.datasets.YCBVideoModels()
 
@@ -451,7 +446,7 @@ def main():
     )
     instance_label = frame['label']
 
-    registration_scene = SceneOccupancyGridRegistration(
+    registration = OccupancyGridRegistration(
         instance_ids=instance_ids,
         class_ids=class_ids,
         Ts_cad2cam_true=Ts_cad2cam_true,
@@ -468,22 +463,18 @@ def main():
     window = pyglet.window.Window(width=width, height=height)
     window.play = False
     window.instance_ids = iter(instance_ids)
-    window.result = registration_scene.register_instance(
-        next(window.instance_ids)
-    )
+    window.result = registration.register_instance(next(window.instance_ids))
     next(window.result)
     window.rotate = 0
 
-    usage = '''\
+    print('''\
 ==> Usage
-q: Close window.
-n: Next iteration.
-s: Play iterations.
-z: Reset view.
-r: Rotate camera around y axis.
-R: Rotate camera around -y axis.
-N: Next instance.'''
-    printbold(usage)
+q: close window
+n: next iteration
+s: play iterations
+z: reset camera
+r/R: rotate camera
+N: next instance''')
 
     @window.event
     def on_key_press(symbol, modifiers):
@@ -492,7 +483,7 @@ N: Next instance.'''
                 window.on_close()
             elif symbol == pyglet.window.key.S:
                 window.play = not window.play
-                printbold(f'==> window.play: {window.play}')
+                print(f'==> window.play: {window.play}')
             elif symbol == pyglet.window.key.N:
                 try:
                     next(window.result)
@@ -515,21 +506,21 @@ N: Next instance.'''
         if modifiers == pyglet.window.key.MOD_SHIFT:
             if symbol == pyglet.window.key.N:
                 try:
-                    printbold('==> Updating OcTrees')
-                    registration_scene.update_octrees()
+                    print('==> updating octrees')
+                    registration.update_octrees()
+                    print('==> updated octrees')
 
                     instance_id = next(window.instance_ids)
-                    printbold(f'==> instance_id: {instance_id}')
-                    window.result = registration_scene.register_instance(
-                        instance_id
-                    )
+                    print(f'==> initializing next instance: {instance_id}')
+                    window.result = registration.register_instance(instance_id)
                     next(window.result)
+                    print(f'==> initialized instance: {instance_id}')
                 except StopIteration:
                     return
 
     def callback(dt, widgets=None):
         if window.rotate:
-            point = registration_scene._Ts_cad2cam_true[:, :3, 3].mean(axis=0)
+            point = registration._Ts_cad2cam_true[:, :3, 3].mean(axis=0)
             for widget in widgets.values():
                 camera = widget.scene.camera
                 camera.transform = tf.rotation_matrix(
@@ -545,7 +536,7 @@ N: Next instance.'''
                     modifiers=pyglet.window.key.MOD_SHIFT,
                 )
                 return
-        scenes = registration_scene.visualize()
+        scenes = registration.visualize()
         if widgets:
             for key, widget in widgets.items():
                 widget.scene.geometry.update(scenes[key].geometry)
