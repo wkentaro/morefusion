@@ -80,6 +80,7 @@ class PointCloudRegistration:
 
         yield
         for i in range(300):
+            print(f'[{i:08d}] instance_id={instance_id} class_id={class_id}')
             result = open3d.registration_icp(
                 source,  # points_from_depth
                 target,  # points_from_cad
@@ -177,7 +178,13 @@ class PointCloudRegistration:
 
 
 def refinement(
-    instance_ids, class_ids, rgb, pcd, instance_label, Ts_cad2cam_true
+    instance_ids,
+    class_ids,
+    rgb,
+    pcd,
+    instance_label,
+    Ts_cad2cam_true,
+    Ts_cad2cam_pred=None,
 ):
     registration = PointCloudRegistration(
         rgb=rgb,
@@ -186,7 +193,7 @@ def refinement(
         instance_ids=instance_ids,
         class_ids=class_ids,
         Ts_cad2cam_true=Ts_cad2cam_true,
-        Ts_cad2cam_pred=None,
+        Ts_cad2cam_pred=Ts_cad2cam_pred,
     )
 
     instance_ids = iter(instance_ids)
@@ -261,7 +268,10 @@ N: next instance''')
                 window.rotate *= -1
         if modifiers == pyglet.window.key.MOD_SHIFT:
             if symbol == pyglet.window.key.N:
-                instance_id = next(instance_ids)
+                try:
+                    instance_id = next(instance_ids)
+                except StopIteration:
+                    return
                 print(f'==> initializing next instance: {instance_id}')
                 window.result = registration.register_instance(instance_id)
                 next(window.result)
@@ -301,6 +311,8 @@ def main():
     Ts_cad2cam_true = np.tile(np.eye(4), (len(instance_ids), 1, 1))
     Ts_cad2cam_true[:, :3, :4] = frame['meta']['poses'].transpose(2, 0, 1)
 
+    Ts_cad2cam_pred = Ts_cad2cam_true @ tf.random_rotation_matrix()
+
     refinement(
         instance_ids,
         class_ids,
@@ -308,6 +320,7 @@ def main():
         pcd,
         instance_label,
         Ts_cad2cam_true,
+        Ts_cad2cam_pred,
     )
 
 
