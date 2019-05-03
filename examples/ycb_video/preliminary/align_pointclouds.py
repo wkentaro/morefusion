@@ -10,8 +10,6 @@ import trimesh.transformations as tf
 
 import objslampp
 
-from align_occupancy_grids import printbold
-
 
 class PointCloudRegistration:
 
@@ -237,11 +235,13 @@ def main():
     next(window.result)
     scenes = registration.visualize()
 
-    printbold('''\
+    print('''\
 ==> Usage
 q: close window
 n: next iteration
 s: play iterations
+r: rotate camera
+z: reset view
 N: next instance''')
 
     @window.event
@@ -253,6 +253,11 @@ N: next instance''')
                 next(window.result)
             elif symbol == pyglet.window.key.S:
                 window.play = not window.play
+            elif symbol == pyglet.window.key.Z:
+                for widget in widgets.values():
+                    camera = widget.scene.camera
+                    camera.transform = \
+                        objslampp.extra.trimesh.camera_transform()
         if symbol == pyglet.window.key.R:
             window.rotate = not window.rotate
             if modifiers == pyglet.window.key.MOD_SHIFT:
@@ -260,9 +265,10 @@ N: next instance''')
         if modifiers == pyglet.window.key.MOD_SHIFT:
             if symbol == pyglet.window.key.N:
                 instance_id = next(instance_ids)
-                printbold(f'==> Next instance: {instance_id}')
+                print(f'==> initializing next instance: {instance_id}')
                 window.result = registration.register_instance(instance_id)
                 next(window.result)
+                print(f'==> initialized: {instance_id}')
 
     gui = glooey.Gui(window)
     grid = glooey.Grid(nrow, ncol)
