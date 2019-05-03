@@ -256,10 +256,9 @@ class SceneOccupancyGridRegistration:
         self._occupied_empty = {}
         self.update_occupied_empty()
 
-        self._cads = [None] * N
-        self._registration_ins = [None] * N
-        self._Ts_cad2cam_pred = [None] * N
-        self._Ts_com2cam = [None] * N
+        self._cads = {}
+        self._Ts_cad2cam_pred = {}
+        self._Ts_com2cam = {}
 
     def build_octrees(self, pitch):
         pcd = self._pcd
@@ -286,23 +285,22 @@ class SceneOccupancyGridRegistration:
 
     def update_octrees(self):
         for instance_id, cad in zip(self._instance_ids, self._cads):
-            index = np.where(self._instance_ids == instance_id)[0][0]
-            T_cad2cam_pred = self._Ts_cad2cam_pred[index]
-            if T_cad2cam_pred is None:
+            if instance_id not in self._Ts_cad2cam_pred:
                 continue
+            T_cad2cam_pred = self._Ts_cad2cam_pred[instance_id]
 
+            index = np.where(self._instance_ids == instance_id)[0][0]
             class_id = self._class_ids[index]
             pcd_file = self._models.get_pcd_model(class_id=class_id)
             points = np.loadtxt(pcd_file)
             points = tf.transform_points(points, T_cad2cam_pred)
 
-            printbold(f'==> Updating OcTree: {instance_id}')
             octree = self._octrees[instance_id]
             octree.updateNodes(points, True, lazy_eval=True)
             octree.updateInnerOccupancy()
         self.update_occupied_empty()
 
-    def __call__(self, instance_id):
+    def register_instance(self, instance_id):
         models = self._models
 
         # parameters
@@ -347,6 +345,14 @@ class SceneOccupancyGridRegistration:
         T_com2cam = tf.translation_matrix(centroid)
         origin = - pitch * dimension / 2
 
+        cad_file = models.get_cad_model(class_id=class_id)
+        cad = trimesh.load(str(cad_file), process=False)
+        cad.visual = cad.visual.to_color()
+
+        self._instance_id = instance_id
+        self._Ts_com2cam[instance_id] = T_com2cam
+        self._cads[instance_id] = cad
+
         registration_ins = InstanceOccupancyGridRegistration(
             points_source,
             grid_target,
@@ -355,31 +361,14 @@ class SceneOccupancyGridRegistration:
             origin=origin,
             connectivity=connectivity,
         )
-        Ts_cad2cam_pred = self._nstep_ins(
-            instance_id, registration_ins, T_com2cam
-        )
+        self._registration_ins = registration_ins
 
-        cad_file = models.get_cad_model(class_id=class_id)
-        cad = trimesh.load(str(cad_file), process=False)
-        cad.visual = cad.visual.to_color()
-
-        self._instance_id = instance_id
-        index = np.where(self._instance_ids == instance_id)[0][0]
-        self._registration_ins[index] = registration_ins
-        self._Ts_com2cam[index] = T_com2cam
-        self._cads[index] = cad
-
-        T_cad2cam_pred = next(Ts_cad2cam_pred)
-        self._Ts_cad2cam_pred[index] = T_cad2cam_pred
-
-        return Ts_cad2cam_pred
-
-    def _nstep_ins(self, instance_id, registration_ins, T_com2cam):
-        index = np.where(self._instance_ids == instance_id)[0][0]
-        for T_cad2com_pred in registration_ins.nstep(100):
-            T_cad2cam_pred = T_com2cam @ T_cad2com_pred
-            self._Ts_cad2cam_pred[index] = T_cad2cam_pred
-            yield T_cad2cam_pred
+        Ts_cad2com_pred = registration_ins.nstep(100)
+        self._Ts_cad2cam_pred[instance_id] = T_com2cam @ next(Ts_cad2com_pred)
+        yield
+        for T_cad2com_pred in Ts_cad2com_pred:
+            self._Ts_cad2cam_pred[instance_id] = T_com2cam @ T_cad2com_pred
+            yield
 
     def visualize(self):  # NOQA
         # scene-level
@@ -392,9 +381,11 @@ class SceneOccupancyGridRegistration:
         nonnan = ~np.isnan(pcd).any(axis=2)
         geom = trimesh.PointCloud(vertices=pcd[nonnan], colors=rgb[nonnan])
         scenes['scene_pcd'].add_geometry(geom, geom_name='pcd')
-        for index, instance_id in enumerate(self._instance_ids):
-            cad = self._cads[index]
-            T_cad2cam_pred = self._Ts_cad2cam_pred[index]
+        for instance_id in self._instance_ids:
+            if instance_id not in self._cads:
+                continue
+            cad = self._cads[instance_id]
+            T_cad2cam_pred = self._Ts_cad2cam_pred[instance_id]
             if cad:
                 scenes['scene_pcd'].add_geometry(
                     cad,
@@ -420,12 +411,12 @@ class SceneOccupancyGridRegistration:
 
         # instance-level
         instance_id = self._instance_id
+        registration_ins = self._registration_ins
+        cad = self._cads[instance_id]
         index = np.where(self._instance_ids == instance_id)[0][0]
-        cad = self._cads[index]
-        registration_ins = self._registration_ins[index]
         T_cad2cam_true = self._Ts_cad2cam_true[index]
-        T_cad2cam_pred = self._Ts_cad2cam_pred[index]
-        T_com2cam = self._Ts_com2cam[index]
+        T_cad2cam_pred = self._Ts_cad2cam_pred[instance_id]
+        T_com2cam = self._Ts_com2cam[instance_id]
         all_scenes = registration_ins.visualize(
             cad=cad,
             T_cad2cam_true=T_cad2cam_true,
@@ -437,7 +428,7 @@ class SceneOccupancyGridRegistration:
         # set camera
         camera = trimesh.scene.Camera(
             resolution=(640, 480),
-            fov=(60, 45),
+            fov=(60 * 0.7, 45 * 0.7),
             transform=objslampp.extra.trimesh.camera_transform(),
         )
         for scene in all_scenes.values():
@@ -477,7 +468,10 @@ def main():
     window = pyglet.window.Window(width=width, height=height)
     window.play = False
     window.instance_ids = iter(instance_ids)
-    window.result = registration_scene(next(window.instance_ids))
+    window.result = registration_scene.register_instance(
+        next(window.instance_ids)
+    )
+    next(window.result)
     window.rotate = 0
 
     usage = '''\
@@ -521,13 +515,17 @@ N: Next instance.'''
         if modifiers == pyglet.window.key.MOD_SHIFT:
             if symbol == pyglet.window.key.N:
                 try:
+                    printbold('==> Updating OcTrees')
+                    registration_scene.update_octrees()
+
                     instance_id = next(window.instance_ids)
                     printbold(f'==> instance_id: {instance_id}')
-                    registration_scene.update_octrees()
-                    window.result = registration_scene(instance_id)
+                    window.result = registration_scene.register_instance(
+                        instance_id
+                    )
+                    next(window.result)
                 except StopIteration:
-                    pyglet.clock.unschedule(callback)
-                return
+                    return
 
     def callback(dt, widgets=None):
         if window.rotate:
