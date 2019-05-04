@@ -1,10 +1,5 @@
 #!/usr/bin/env python
 
-import json
-import pathlib
-
-import chainer
-from chainer.backends import cuda
 import glooey
 import imgviz
 import numpy as np
@@ -17,61 +12,18 @@ import trimesh.transformations as tf
 
 import objslampp
 
-import contrib
 import synthetic_data
 
+from common import Inference
 
-gpu = 0
-log_dir = pathlib.Path('./logs.20190417.cad_only/20190412_142459.904281')
-args_file = log_dir / 'args'
-model_file = log_dir / 'snapshot_model_best_auc_add.npz'
-root_dir = '~/data/datasets/wkentaro/objslampp/ycb_video/synthetic_data/20190428_165745.028250'  # NOQA
-root_dir = pathlib.Path(root_dir).expanduser()
-class_ids = [2]
-
-# -----------------------------------------------------------------------------
-
-with open(args_file) as f:
-    args_data = json.load(f)
-
-model = contrib.models.BaselineModel(
-    freeze_until=args_data['freeze_until'],
-    voxelization=args_data.get('voxelization', 'average'),
-)
-if gpu >= 0:
-    cuda.get_device_from_id(gpu).use()
-    model.to_gpu()
-chainer.serializers.load_npz(model_file, model)
-
-dataset = contrib.datasets.BinTypeDataset(
-    root_dir=root_dir,
-    class_ids=class_ids,
-)
 
 models = objslampp.datasets.YCBVideoModels()
 
-# -----------------------------------------------------------------------------
+inference = Inference(gpu=0)
+frame, T_cad2cam_true, T_cad2cam_pred = inference(index=0)
 
-index = 0
-frame = dataset.get_frame(index)
-with chainer.using_config('debug', True):
-    examples = dataset.get_examples(index)
-
-inputs = chainer.dataset.concat_examples(examples, device=gpu)
-
-with chainer.no_backprop_mode() and \
-        chainer.using_config('train', False):
-    quaternion_pred, translation_pred = model.predict(
-        class_id=inputs['class_id'],
-        pitch=inputs['pitch'],
-        rgb=inputs['rgb'],
-        pcd=inputs['pcd'],
-    )
-
-quaternion_pred = cuda.to_cpu(quaternion_pred.array)
-translation_pred = cuda.to_cpu(translation_pred.array)
-quaternion_true = cuda.to_cpu(inputs['quaternion_true'])
-translation_true = cuda.to_cpu(inputs['translation_true'])
+T_cad2world_pred = frame['T_cam2world'] @ T_cad2cam_pred
+T_cad2world_true = frame['T_cam2world'] @ T_cad2cam_true
 
 # -----------------------------------------------------------------------------
 
@@ -126,20 +78,8 @@ scene.add_geometry(geom, transform=T_cam2world)
 # -----------------------------------------------------------------------------
 # cad
 
-batch_size = len(examples)
-T_cad2world_pred = np.zeros((batch_size, 4, 4), dtype=float)
-T_cad2world_true = np.zeros((batch_size, 4, 4), dtype=float)
-for i in range(batch_size):
-    T_cad2cam_pred = tf.quaternion_matrix(quaternion_pred[i])
-    T_cad2cam_pred[:3, 3] = translation_pred[i]
-    T_cad2world_pred[i] = frame['T_cam2world'] @ T_cad2cam_pred
-
-    T_cad2cam_true = tf.quaternion_matrix(quaternion_true[i])
-    T_cad2cam_true[:3, 3] = translation_true[i]
-    T_cad2world_true[i] = frame['T_cam2world'] @ T_cad2cam_true
-
-for i in range(batch_size):
-    class_id = int(inputs['class_id'][i])
+for i in range(T_cad2world_pred.shape[0]):
+    class_id = frame['class_ids'][i]
     cad_file = models.get_cad_model(class_id=class_id)
     cad = trimesh.load(str(cad_file))
     cad.visual = cad.visual.to_color()
@@ -167,8 +107,8 @@ objslampp.extra.pybullet.init_world(connection_method=pybullet.DIRECT)
 #     cameraTargetPosition=(0, 0, 0),
 # )
 
-for i in range(len(examples)):
-    class_id = int(inputs['class_id'][i])
+for i in range(T_cad2world_pred.shape[0]):
+    class_id = frame['class_ids'][i]
     visual_file = models.get_cad_model(class_id=class_id)
     collision_file = synthetic_data.simulation\
         .scene_generation.base.SceneGenerationBase\
