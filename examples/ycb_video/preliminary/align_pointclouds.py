@@ -209,8 +209,13 @@ def refinement(
             point = np.mean(centers, axis=0)
             for widget in widgets.values():
                 camera = widget.scene.camera
+                axis = tf.transform_points(
+                    [[0, 1, 0]], camera.transform, translate=False
+                )[0]
                 camera.transform = tf.rotation_matrix(
-                    np.deg2rad(window.rotate), [0, 1, 0], point=point
+                    np.deg2rad(window.rotate),
+                    axis,
+                    point=point,
                 ) @ camera.transform
             return
 
