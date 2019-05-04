@@ -80,7 +80,6 @@ class PointCloudRegistration:
 
         yield
         for i in range(300):
-            print(f'[{i:08d}] instance_id={instance_id} class_id={class_id}')
             result = open3d.registration_icp(
                 source,  # points_from_depth
                 target,  # points_from_cad
@@ -89,6 +88,9 @@ class PointCloudRegistration:
                 open3d.TransformationEstimationPointToPoint(False),
                 open3d.ICPConvergenceCriteria(max_iteration=1),
             )
+            print(f'[{i:08d}] instance_id={instance_id} class_id={class_id} '
+                  f'fitness={result.fitness:.2g} '
+                  f'inlier_rmse={result.inlier_rmse:.2g}')
             self._Ts_cad2cam_pred[instance_id] = tf.inverse_matrix(
                 result.transformation
             )
