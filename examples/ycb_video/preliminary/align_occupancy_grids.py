@@ -93,6 +93,7 @@ class InstanceOccupancyGridRegistration:
         pitch,
         origin,
         connectivity,
+        transform_init,
     ):
         self._points_source = points_source
         self._grid_target = grid_target
@@ -101,7 +102,12 @@ class InstanceOccupancyGridRegistration:
         self._origin = origin
         self._connectivity = connectivity
 
-        model = OccupancyGridAlignmentModel()
+        quaternion_init = tf.quaternion_from_matrix(transform_init)
+        quaternion_init = quaternion_init.astype(np.float32)
+        translation_init = tf.translation_from_matrix(transform_init)
+        translation_init = translation_init.astype(np.float32)
+
+        model = OccupancyGridAlignmentModel(quaternion_init, translation_init)
         self._optimizer = chainer.optimizers.Adam(alpha=0.1)
         self._optimizer.setup(model)
         model.translation.update_rule.hyperparam.alpha *= 0.1
@@ -148,15 +154,13 @@ class InstanceOccupancyGridRegistration:
             self.step()
             yield self.transform
 
-    def visualize(self, cad, T_cad2cam_true, T_cad2cam_pred, T_com2cam):
+    def visualize(self, cad, T_cad2cam_true, T_cad2cam_pred):
         scenes = {}
 
         grid_target = self._grid_target
         id_target = self._id_target
         pitch = self._pitch
         origin = self._origin
-
-        origin = tf.transform_points([origin], T_com2cam)[0]
 
         scene = trimesh.Scene()
         # occupied target/untarget
@@ -250,8 +254,6 @@ class OccupancyGridRegistration:
         self._occupied_empty = {}
         self.update_occupied_empty()
 
-        self._Ts_com2cam = {}
-
         self._cads = {}
         for instance_id in self._instance_ids:
             class_id = self._class_ids[instance_id]
@@ -335,7 +337,6 @@ class OccupancyGridRegistration:
             extents,
             threshold=connectivity * 0.75
         )
-        dimension = np.array(grid_target.shape)
         #
         pcd_file = models.get_pcd_model(class_id=class_id)
         points_source = np.loadtxt(pcd_file, dtype=np.float32)
@@ -343,34 +344,25 @@ class OccupancyGridRegistration:
             points_source, voxel_size=pitch
         )
         points_source = points_source.astype(np.float32)
-        #
-        centroid = aabb_min + pitch * dimension / 2
-        T_com2cam = tf.translation_matrix(centroid)
-        origin = - pitch * dimension / 2
-
-        cad_file = models.get_cad_model(class_id=class_id)
-        cad = trimesh.load(str(cad_file), process=False)
-        cad.visual = cad.visual.to_color()
 
         self._instance_id = instance_id
-        self._Ts_com2cam[instance_id] = T_com2cam
-        self._cads[instance_id] = cad
 
         registration_ins = InstanceOccupancyGridRegistration(
             points_source,
             grid_target,
             id_target=instance_id,
             pitch=pitch,
-            origin=origin,
+            origin=aabb_min,
             connectivity=connectivity,
+            transform_init=self._Ts_cad2cam_pred[instance_id],
         )
         self._registration_ins = registration_ins
 
-        Ts_cad2com_pred = registration_ins.nstep(100)
-        self._Ts_cad2cam_pred[instance_id] = T_com2cam @ next(Ts_cad2com_pred)
+        Ts_cad2cam_pred = registration_ins.nstep(100)
+        self._Ts_cad2cam_pred[instance_id] = next(Ts_cad2cam_pred)
         yield
-        for T_cad2com_pred in Ts_cad2com_pred:
-            self._Ts_cad2cam_pred[instance_id] = T_com2cam @ T_cad2com_pred
+        for T_cad2cam_pred in Ts_cad2cam_pred:
+            self._Ts_cad2cam_pred[instance_id] = T_cad2cam_pred
             yield
 
     def visualize(self):  # NOQA
@@ -418,12 +410,10 @@ class OccupancyGridRegistration:
         cad = self._cads[instance_id]
         T_cad2cam_true = self._Ts_cad2cam_true[instance_id]
         T_cad2cam_pred = self._Ts_cad2cam_pred[instance_id]
-        T_com2cam = self._Ts_com2cam[instance_id]
         all_scenes = registration_ins.visualize(
             cad=cad,
             T_cad2cam_true=T_cad2cam_true,
             T_cad2cam_pred=T_cad2cam_pred,
-            T_com2cam=T_com2cam,
         )
         all_scenes.update(scenes)
 
@@ -522,7 +512,10 @@ N: next instance''')
 
     def callback(dt, widgets=None):
         if window.rotate:
-            point = registration._Ts_cad2cam_true[:, :3, 3].mean(axis=0)
+            point = np.mean([
+                tf.translation_from_matrix(T)
+                for T in registration._Ts_cad2cam_true.values()
+            ], axis=0)
             for widget in widgets.values():
                 camera = widget.scene.camera
                 camera.transform = tf.rotation_matrix(
