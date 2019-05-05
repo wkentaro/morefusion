@@ -225,12 +225,13 @@ class OccupancyGridRegistration:
 
     def __init__(
         self,
-        instance_ids,
-        class_ids,
-        Ts_cad2cam_true,
         rgb,
         pcd,
         instance_label,
+        instance_ids,
+        class_ids,
+        Ts_cad2cam_true,
+        Ts_cad2cam_pred=None,
     ):
         N = len(instance_ids)
         assert instance_ids.shape == (N,) and 0 not in instance_ids
@@ -240,20 +241,38 @@ class OccupancyGridRegistration:
         assert pcd.shape == (H, W, 3)
         assert instance_label.shape == (H, W)
 
-        self._class_ids = class_ids
         self._instance_ids = instance_ids
-        self._Ts_cad2cam_true = Ts_cad2cam_true
+        self._class_ids = dict(zip(instance_ids, class_ids))
+        self._Ts_cad2cam_true = dict(zip(instance_ids, Ts_cad2cam_true))
         self._rgb = rgb
         self._pcd = pcd
         self._instance_label = instance_label
-        self._octrees = self.build_octrees(0.01)
+        self.build_octrees(0.01)
 
         self._occupied_empty = {}
         self.update_occupied_empty()
 
-        self._cads = {}
-        self._Ts_cad2cam_pred = {}
         self._Ts_com2cam = {}
+
+        self._cads = {}
+        for instance_id in self._instance_ids:
+            class_id = self._class_ids[instance_id]
+            cad_file = self._models.get_cad_model(class_id=class_id)
+            cad = trimesh.load(str(cad_file))
+            cad.visual = cad.visual.to_color()
+            self._cads[instance_id] = cad
+
+        if Ts_cad2cam_pred is None:
+            self._Ts_cad2cam_pred = {}
+            nonnan = ~np.isnan(pcd).any(axis=2)
+            for instance_id in instance_ids:
+                mask = instance_label == instance_id
+                centroid = pcd[nonnan & mask].mean(axis=0)
+                T_cad2cam_pred = tf.translation_matrix(centroid)
+                self._Ts_cad2cam_pred[instance_id] = T_cad2cam_pred
+        else:
+            assert len(instance_ids) == len(Ts_cad2cam_pred)
+            self._Ts_cad2cam_pred = dict(zip(instance_ids, Ts_cad2cam_pred))
 
     def build_octrees(self, pitch):
         pcd = self._pcd
@@ -261,7 +280,7 @@ class OccupancyGridRegistration:
         instance_label = self._instance_label
 
         nonnan = ~np.isnan(pcd).any(axis=2)
-        octrees = {}
+        self._octrees = {}
         for ins_id in np.r_[0, instance_ids]:
             mask = instance_label == ins_id
             octree = octomap.OcTree(pitch)
@@ -269,30 +288,24 @@ class OccupancyGridRegistration:
                 pcd[mask & nonnan],
                 np.array([0, 0, 0], dtype=float),
             )
-            octrees[ins_id] = octree
-
-        return octrees
+            self._octrees[ins_id] = octree
 
     def update_occupied_empty(self):
         for instance_id, octree in self._octrees.items():
             occupied, empty = leaves_from_tree(octree)
             self._occupied_empty[instance_id] = (occupied, empty)
 
-    def update_octrees(self):
-        for instance_id, cad in zip(self._instance_ids, self._cads):
-            if instance_id not in self._Ts_cad2cam_pred:
-                continue
-            T_cad2cam_pred = self._Ts_cad2cam_pred[instance_id]
+    def update_octree(self, instance_id):
+        T_cad2cam_pred = self._Ts_cad2cam_pred[instance_id]
 
-            index = np.where(self._instance_ids == instance_id)[0][0]
-            class_id = self._class_ids[index]
-            pcd_file = self._models.get_pcd_model(class_id=class_id)
-            points = np.loadtxt(pcd_file)
-            points = tf.transform_points(points, T_cad2cam_pred)
+        class_id = self._class_ids[instance_id]
+        pcd_file = self._models.get_pcd_model(class_id=class_id)
+        points = np.loadtxt(pcd_file)
+        points = tf.transform_points(points, T_cad2cam_pred)
 
-            octree = self._octrees[instance_id]
-            octree.updateNodes(points, True, lazy_eval=True)
-            octree.updateInnerOccupancy()
+        octree = self._octrees[instance_id]
+        octree.updateNodes(points, True, lazy_eval=True)
+        octree.updateInnerOccupancy()
         self.update_occupied_empty()
 
     def register_instance(self, instance_id):
@@ -304,15 +317,12 @@ class OccupancyGridRegistration:
 
         # scene-level data
         class_ids = self._class_ids
-        instance_ids = self._instance_ids
         pcd = self._pcd
         instance_label = self._instance_label
         octrees = self._octrees
 
         # instance-level data
-        index = np.where(instance_ids == instance_id)[0][0]
-        instance_id = instance_ids[index]
-        class_id = class_ids[index]
+        class_id = class_ids[instance_id]
         cad_file = models.get_cad_model(class_id=class_id)
         diagonal = models.get_bbox_diagonal(cad_file)
         pitch = diagonal * 1.1 / dim
@@ -408,8 +418,7 @@ class OccupancyGridRegistration:
         instance_id = self._instance_id
         registration_ins = self._registration_ins
         cad = self._cads[instance_id]
-        index = np.where(self._instance_ids == instance_id)[0][0]
-        T_cad2cam_true = self._Ts_cad2cam_true[index]
+        T_cad2cam_true = self._Ts_cad2cam_true[instance_id]
         T_cad2cam_pred = self._Ts_cad2cam_pred[instance_id]
         T_com2cam = self._Ts_com2cam[instance_id]
         all_scenes = registration_ins.visualize(
@@ -431,28 +440,23 @@ class OccupancyGridRegistration:
         return all_scenes
 
 
-def main():
-    dataset = objslampp.datasets.YCBVideoDataset('train')
-    frame = dataset.get_example(1000)
-
-    # scene-level data
-    instance_ids = class_ids = frame['meta']['cls_indexes']
-    Ts_cad2cam_true = np.tile(np.eye(4), (len(instance_ids), 1, 1))
-    Ts_cad2cam_true[:, :3, :4] = frame['meta']['poses'].transpose(2, 0, 1)
-    K = frame['meta']['intrinsic_matrix']
-    rgb = frame['color']
-    pcd = objslampp.geometry.pointcloud_from_depth(
-        frame['depth'], fx=K[0, 0], fy=K[1, 1], cx=K[0, 2], cy=K[1, 2]
-    )
-    instance_label = frame['label']
-
+def refinement(
+    instance_ids,
+    class_ids,
+    rgb,
+    pcd,
+    instance_label,
+    Ts_cad2cam_true,
+    Ts_cad2cam_pred=None,
+):
     registration = OccupancyGridRegistration(
-        instance_ids=instance_ids,
-        class_ids=class_ids,
-        Ts_cad2cam_true=Ts_cad2cam_true,
         rgb=rgb,
         pcd=pcd,
         instance_label=instance_label,
+        instance_ids=instance_ids,
+        class_ids=class_ids,
+        Ts_cad2cam_true=Ts_cad2cam_true,
+        Ts_cad2cam_pred=Ts_cad2cam_pred,
     )
 
     # -------------------------------------------------------------------------
@@ -507,7 +511,7 @@ N: next instance''')
             if symbol == pyglet.window.key.N:
                 try:
                     print('==> updating octrees')
-                    registration.update_octrees()
+                    registration.update_octree(registration._instance_id)
                     print('==> updated octrees')
 
                     instance_id = next(window.instance_ids)
@@ -560,6 +564,31 @@ N: next instance''')
 
     pyglet.clock.schedule_interval(callback, 1 / 30, widgets)
     pyglet.app.run()
+
+
+def main():
+    dataset = objslampp.datasets.YCBVideoDataset('train')
+    frame = dataset.get_example(1000)
+
+    # scene-level data
+    instance_ids = class_ids = frame['meta']['cls_indexes']
+    Ts_cad2cam_true = np.tile(np.eye(4), (len(instance_ids), 1, 1))
+    Ts_cad2cam_true[:, :3, :4] = frame['meta']['poses'].transpose(2, 0, 1)
+    K = frame['meta']['intrinsic_matrix']
+    rgb = frame['color']
+    pcd = objslampp.geometry.pointcloud_from_depth(
+        frame['depth'], fx=K[0, 0], fy=K[1, 1], cx=K[0, 2], cy=K[1, 2]
+    )
+    instance_label = frame['label']
+
+    refinement(
+        instance_ids=instance_ids,
+        class_ids=class_ids,
+        rgb=rgb,
+        pcd=pcd,
+        instance_label=instance_label,
+        Ts_cad2cam_true=Ts_cad2cam_true,
+    )
 
 
 if __name__ == '__main__':
