@@ -12,8 +12,6 @@ import trimesh.transformations as tf
 
 import objslampp
 
-import contrib
-
 from build_occupancy_grid import get_instance_grid
 from build_occupancy_grid import leaves_from_tree
 
@@ -341,7 +339,7 @@ class OccupancyGridRegistration:
         #
         pcd_file = models.get_pcd_model(class_id=class_id)
         points_source = np.loadtxt(pcd_file, dtype=np.float32)
-        points_source = contrib.extra.open3d.voxel_down_sample(
+        points_source = objslampp.extra.open3d.voxel_down_sample(
             points_source, voxel_size=pitch
         )
         points_source = points_source.astype(np.float32)
