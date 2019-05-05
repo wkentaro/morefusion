@@ -215,9 +215,7 @@ def refinement(
                     [[0, 1, 0]], camera.transform, translate=False
                 )[0]
                 camera.transform = tf.rotation_matrix(
-                    np.deg2rad(window.rotate),
-                    axis,
-                    point=point,
+                    np.deg2rad(window.rotate), axis, point=point,
                 ) @ camera.transform
             return
 
