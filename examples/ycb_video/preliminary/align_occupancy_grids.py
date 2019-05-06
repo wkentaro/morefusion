@@ -281,7 +281,9 @@ class OccupancyGridRegistration:
 
         nonnan = ~np.isnan(pcd).any(axis=2)
         self._octrees = {}
-        for ins_id in np.r_[0, instance_ids]:
+        for ins_id in np.unique(instance_label):
+            if ins_id == -1:
+                continue
             mask = instance_label == ins_id
             octree = octomap.OcTree(pitch)
             octree.insertPointCloud(
