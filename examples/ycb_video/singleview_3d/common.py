@@ -17,7 +17,7 @@ class Inference:
         args_file = model_file.parent / 'args'
 
         class_ids = [2]
-        root_dir = '~/data/datasets/wkentaro/objslampp/ycb_video/synthetic_data/20190428_165745.028250'  # NOQA
+        root_dir = '~/data/datasets/wkentaro/objslampp/ycb_video/synthetic_data/20190506_205133.487421'  # NOQA
         root_dir = pathlib.Path(root_dir).expanduser()
 
         with open(args_file) as f:
