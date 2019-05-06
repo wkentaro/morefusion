@@ -12,8 +12,6 @@ import trimesh.transformations as tf
 
 import objslampp
 
-import synthetic_data
-
 from common import Inference
 
 
@@ -110,9 +108,7 @@ objslampp.extra.pybullet.init_world(connection_method=pybullet.DIRECT)
 for i in range(T_cad2world_pred.shape[0]):
     class_id = frame['class_ids'][i]
     visual_file = models.get_cad_model(class_id=class_id)
-    collision_file = synthetic_data.simulation\
-        .scene_generation.base.SceneGenerationBase\
-        ._get_collision_file(visual_file)
+    collision_file = objslampp.utils.get_collision_file(visual_file)
     T = T_cad2world_pred[i]
     # T = T_cad2world_true[i]
     objslampp.extra.pybullet.add_model(

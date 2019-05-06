@@ -1,7 +1,3 @@
-import pathlib
-import shlex
-import subprocess
-
 import imgviz
 import numpy as np
 import pybullet
@@ -32,19 +28,6 @@ class SceneGenerationBase:
 
         # launch simulator
         objslampp.extra.pybullet.init_world()
-
-    @staticmethod
-    def _get_collision_file(visual_file):
-        visual_file = pathlib.Path(visual_file)
-        name = visual_file.name
-        name_noext, ext = name.rsplit('.')
-        collision_file = visual_file.parent / (name_noext + '_convex.' + ext)
-        if not collision_file.exists():
-            cmd = f'testVHACD --input {visual_file} --output {collision_file}'\
-                  ' --log /tmp/testVHACD.log --resolution 200000'
-            # print(f'+ {cmd}')
-            subprocess.check_output(shlex.split(cmd))
-        return collision_file
 
     @staticmethod
     def _shrink_aabb(aabb_min, aabb_max, ratio):
@@ -100,7 +83,7 @@ class SceneGenerationBase:
         cad_file = self._models.get_cad_model(class_id=class_id)
         unique_id = objslampp.extra.pybullet.add_model(
             visual_file=cad_file,
-            collision_file=self._get_collision_file(cad_file),
+            collision_file=objslampp.utils.get_collision_file(cad_file),
         )
         for _ in range(1000):  # n_trial
             position = self._random_state.uniform(*self._aabb)

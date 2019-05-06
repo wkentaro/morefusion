@@ -37,7 +37,7 @@ class BinTypeSceneGeneration(SceneGenerationBase):
 
         unique_id = objslampp.extra.pybullet.add_model(
             visual_file=cad_file,
-            collision_file=self._get_collision_file(cad_file),
+            collision_file=objslampp.utils.get_collision_file(cad_file),
             position=(0, 0, self._extents[2] / 2),
         )
         self._simulate(nstep=100)
