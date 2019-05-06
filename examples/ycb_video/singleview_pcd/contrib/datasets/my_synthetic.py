@@ -9,9 +9,7 @@ import objslampp
 import trimesh.transformations as tf
 
 
-class BinTypeDataset(objslampp.datasets.DatasetBase):
-
-    voxel_dim = 32
+class MySyntheticDataset(objslampp.datasets.DatasetBase):
 
     def __init__(self, root_dir, class_ids=None):
         super().__init__()
@@ -133,7 +131,7 @@ class BinTypeDataset(objslampp.datasets.DatasetBase):
 
 
 if __name__ == '__main__':
-    dataset = BinTypeDataset(
+    dataset = MySyntheticDataset(
         '/home/wkentaro/data/datasets/wkentaro/objslampp/ycb_video/synthetic_data/20190402_174648.841996',  # NOQA
         class_ids=[2],
     )

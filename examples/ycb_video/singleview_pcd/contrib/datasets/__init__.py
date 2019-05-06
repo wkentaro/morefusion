@@ -1,5 +1,5 @@
 # flake8: noqa
 
-from .bin_type import BinTypeDataset
+from .my_synthetic import MySyntheticDataset
 
 from .ycb_video import YCBVideoDataset
