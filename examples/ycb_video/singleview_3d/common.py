@@ -32,7 +32,7 @@ class Inference:
             model.to_gpu()
         chainer.serializers.load_npz(model_file, model)
 
-        dataset = contrib.datasets.BinTypeDataset(
+        dataset = contrib.datasets.MySyntheticDataset(
             root_dir=root_dir,
             class_ids=class_ids,
         )

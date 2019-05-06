@@ -59,7 +59,7 @@ def main():
         dataset = contrib.datasets.YCBVideoDataset('val', class_ids=[2])
     else:
         assert args.dataset == 'bin_type'
-        dataset = contrib.datasets.BinTypeDataset(
+        dataset = contrib.datasets.MySyntheticDataset(
             '/home/wkentaro/data/datasets/wkentaro/objslampp/ycb_video/synthetic_data/20190402_174648.841996',  # NOQA
             class_ids=[2],
         )

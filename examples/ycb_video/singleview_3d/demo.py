@@ -55,7 +55,7 @@ def main():
         # 'wkentaro/objslampp/ycb_video/synthetic_data/20190402_174648.841996',
     )
     args.class_ids = [2]
-    dataset = contrib.datasets.BinTypeDataset(
+    dataset = contrib.datasets.MySyntheticDataset(
         args.root_dir, class_ids=args.class_ids
     )
 
