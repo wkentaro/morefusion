@@ -10,7 +10,7 @@ import objslampp
 from .base import DatasetBase
 
 
-class BinTypeDataset(DatasetBase):
+class MySyntheticDataset(DatasetBase):
 
     def __init__(self, root_dir, class_ids=None):
         super().__init__()
@@ -107,7 +107,7 @@ if __name__ == '__main__':
     root_dir = chainer.dataset.get_dataset_directory(
         'wkentaro/objslampp/ycb_video/synthetic_data/20190402_174648.841996'
     )
-    dataset = BinTypeDataset(root_dir, class_ids=[2])
+    dataset = MySyntheticDataset(root_dir, class_ids=[2])
     print(f'dataset_size: {len(dataset)}')
 
     def images():
