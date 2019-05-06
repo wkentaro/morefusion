@@ -449,6 +449,12 @@ def refinement(
         Ts_cad2cam_pred=Ts_cad2cam_pred,
     )
 
+    coms = np.array([
+        np.nanmean(pcd[instance_label == i], axis=0) for i in instance_ids
+    ])
+    instance_ids = np.array(instance_ids)[np.argsort(coms[:, 2])]
+    instance_ids = iter(instance_ids)
+
     # -------------------------------------------------------------------------
 
     nrow, ncol = 2, 3
@@ -456,8 +462,7 @@ def refinement(
     width = int(round(0.8 * 640)) * ncol
     window = pyglet.window.Window(width=width, height=height)
     window.play = False
-    window.instance_ids = iter(instance_ids)
-    window.result = registration.register_instance(next(window.instance_ids))
+    window.result = registration.register_instance(next(instance_ids))
     next(window.result)
     window.rotate = 0
 
@@ -504,7 +509,7 @@ N: next instance''')
                     registration.update_octree(registration._instance_id)
                     print('==> updated octrees')
 
-                    instance_id = next(window.instance_ids)
+                    instance_id = next(instance_ids)
                     print(f'==> initializing next instance: {instance_id}')
                     window.result = registration.register_instance(instance_id)
                     next(window.result)

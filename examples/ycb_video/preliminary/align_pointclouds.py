@@ -198,6 +198,10 @@ def refinement(
         Ts_cad2cam_pred=Ts_cad2cam_pred,
     )
 
+    coms = np.array([
+        np.nanmean(pcd[instance_label == i], axis=0) for i in instance_ids
+    ])
+    instance_ids = np.array(instance_ids)[np.argsort(coms[:, 2])]
     instance_ids = iter(instance_ids)
 
     # -------------------------------------------------------------------------
