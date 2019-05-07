@@ -199,7 +199,7 @@ def refinement(
     )
 
     coms = np.array([
-        np.nanmean(pcd[instance_label == i], axis=0) for i in instance_ids
+        np.nanmedian(pcd[instance_label == i], axis=0) for i in instance_ids
     ])
     instance_ids = np.array(instance_ids)[np.argsort(coms[:, 2])]
     instance_ids = iter(instance_ids)
