@@ -1,5 +1,7 @@
 import numbers
 import pathlib
+import shutil
+import tempfile
 
 import numpy as np
 import pybullet
@@ -22,7 +24,15 @@ class BinTypeSceneGeneration(SceneGenerationBase):
         assert isinstance(thickness, numbers.Number)
         self._thickness = thickness
 
+        self._temp_dir = pathlib.Path(tempfile.mkdtemp())
+
         super().__init__(*args, **kwargs)
+
+    def __del__(self):
+        try:
+            shutil.rmtree(self._temp_dir)
+        except OSError:
+            pass
 
     def init_space(self):
         cad = objslampp.extra.trimesh.bin_model(
@@ -30,8 +40,7 @@ class BinTypeSceneGeneration(SceneGenerationBase):
             thickness=self._thickness,
         )
 
-        cache_dir = pathlib.Path('/tmp')
-        cad_file = cache_dir / f'{cad.md5()}.obj'
+        cad_file = self._temp_dir / f'{cad.md5()}.obj'
         if not cad_file.exists():
             trimesh.exchange.export.export_mesh(cad, str(cad_file))
 
@@ -46,5 +55,5 @@ class BinTypeSceneGeneration(SceneGenerationBase):
         aabb_min, aabb_max = self._shrink_aabb(aabb_min, aabb_max, ratio=0.1)
         aabb_max[2] *= 1.5
 
-        self._objects[unique_id] = dict(class_id=0)
+        self._objects[unique_id] = dict(class_id=0, cad_file=cad_file)
         self._aabb = aabb_min, aabb_max

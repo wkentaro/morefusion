@@ -2,6 +2,7 @@
 
 import datetime
 import pathlib
+import shutil
 
 import chainer
 import numpy as np
@@ -15,6 +16,7 @@ import contrib
 
 def generate_a_video(out, random_state):
     out.mkdir(parents=True, exist_ok=True)
+    (out / 'models').mkdir(exist_ok=True)
 
     models = objslampp.datasets.YCBVideoModels()
 
@@ -40,6 +42,12 @@ def generate_a_video(out, random_state):
         cameraTargetPosition=(0, 0, 0),
     )
     generator.generate()
+
+    for ins_id, data in generator._objects.items():
+        if 'cad_file' in data:
+            dst_file = out / f'models/{ins_id:08d}.obj'
+            print(f'Saved: {dst_file}')
+            shutil.copy(data['cad_file'], dst_file)
 
     Ts_cam2world = generator.random_camera_trajectory()
     camera = trimesh.scene.Camera(resolution=(640, 480), fov=(60, 45))
