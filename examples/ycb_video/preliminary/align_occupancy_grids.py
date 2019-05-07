@@ -276,7 +276,6 @@ class OccupancyGridRegistration:
 
     def build_octrees(self, pitch):
         pcd = self._pcd
-        instance_ids = self._instance_ids
         instance_label = self._instance_label
 
         nonnan = ~np.isnan(pcd).any(axis=2)

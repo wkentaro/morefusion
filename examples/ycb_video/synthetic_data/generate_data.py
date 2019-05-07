@@ -23,10 +23,10 @@ def generate_a_video(out, random_state):
     class_weight[[1]] = 1  # only class_id 2 are used
     class_weight /= class_weight.sum()
 
-    generator = contrib.simulation.BinTypeSceneGeneration(
-       extents=random_state.uniform((0.3, 0.3, 0.2), (0.5, 0.5, 0.4)),
     # generator = contrib.simulation.PlaneTypeSceneGeneration(
     #     extents=random_state.uniform((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+    generator = contrib.simulation.BinTypeSceneGeneration(
+        extents=random_state.uniform((0.3, 0.3, 0.2), (0.5, 0.5, 0.4)),
         models=models,
         n_object=random_state.randint(6, 7),
         # n_object=random_state.randint(10, 15),
