@@ -17,7 +17,7 @@ class Inference:
         args_file = model_file.parent / 'args'
 
         class_ids = [2]
-        root_dir = '~/data/datasets/wkentaro/objslampp/ycb_video/synthetic_data/20190506_205133.487421'  # NOQA
+        root_dir = '~/data/datasets/wkentaro/objslampp/ycb_video/synthetic_data/20190507_121544.807309'  # NOQA
         root_dir = pathlib.Path(root_dir).expanduser()
 
         with open(args_file) as f:
@@ -41,8 +41,8 @@ class Inference:
         self.model = model
         self.dataset = dataset
 
-    def __call__(self, index):
-        frame = self.dataset.get_frame(index)
+    def __call__(self, index, bg_class=False):
+        frame = self.dataset.get_frame(index, bg_class=bg_class)
         examples = self.dataset.get_examples(index)
 
         inputs = chainer.dataset.concat_examples(examples, device=self.gpu)

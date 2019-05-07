@@ -26,7 +26,7 @@ class MySyntheticDataset(DatasetBase):
                 ids.append(frame_id)
         return ids
 
-    def get_frame(self, index):
+    def get_frame(self, index, bg_class=False):
         frame_id = self.ids[index]
         npz_file = self.root_dir / f'{frame_id}.npz'
         frame = np.load(npz_file)
@@ -35,10 +35,17 @@ class MySyntheticDataset(DatasetBase):
         class_ids = frame['class_ids']
         Ts_cad2cam = frame['Ts_cad2cam']
 
-        keep = class_ids > 0
-        instance_ids = instance_ids[keep]
-        class_ids = class_ids[keep]
-        Ts_cad2cam = Ts_cad2cam[keep]
+        cad_files = {}
+        for ins_id in instance_ids:
+            cad_file = npz_file.parent / f'models/{ins_id:08d}.obj'
+            if cad_file.exists():
+                cad_files[ins_id] = cad_file
+
+        if not bg_class:
+            keep = class_ids > 0
+            instance_ids = instance_ids[keep]
+            class_ids = class_ids[keep]
+            Ts_cad2cam = Ts_cad2cam[keep]
 
         return dict(
             instance_ids=instance_ids,
@@ -49,6 +56,7 @@ class MySyntheticDataset(DatasetBase):
             intrinsic_matrix=frame['intrinsic_matrix'],
             T_cam2world=frame['T_cam2world'],
             Ts_cad2cam=Ts_cad2cam,
+            cad_files=cad_files,
         )
 
     def get_examples(self, index):

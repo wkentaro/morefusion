@@ -18,7 +18,9 @@ from common import Inference
 models = objslampp.datasets.YCBVideoModels()
 
 inference = Inference(gpu=0)
-frame, T_cad2cam_true, T_cad2cam_pred = inference(index=0)
+frame, T_cad2cam_true, T_cad2cam_pred = inference(index=0, bg_class=True)
+keep = frame['class_ids'] > 0
+class_ids_fg = frame['class_ids'][keep]
 
 T_cad2world_pred = frame['T_cam2world'] @ T_cad2cam_pred
 T_cad2world_true = frame['T_cam2world'] @ T_cad2cam_true
@@ -77,7 +79,7 @@ scene.add_geometry(geom, transform=T_cam2world)
 # cad
 
 for i in range(T_cad2world_pred.shape[0]):
-    class_id = frame['class_ids'][i]
+    class_id = class_ids_fg[i]
     cad_file = models.get_cad_model(class_id=class_id)
     cad = trimesh.load(str(cad_file))
     cad.visual = cad.visual.to_color()
@@ -105,8 +107,19 @@ objslampp.extra.pybullet.init_world(connection_method=pybullet.DIRECT)
 #     cameraTargetPosition=(0, 0, 0),
 # )
 
+for ins_id, cad_file in frame['cad_files'].items():
+    index = np.where(frame['instance_ids'] == ins_id)[0][0]
+    T_cad2cam = frame['Ts_cad2cam'][index]
+    T = frame['T_cam2world'] @ T_cad2cam
+    objslampp.extra.pybullet.add_model(
+        visual_file=cad_file,
+        collision_file=objslampp.utils.get_collision_file(cad_file),
+        position=tf.translation_from_matrix(T),
+        orientation=tf.quaternion_from_matrix(T)[[1, 2, 3, 0]],
+    )
+
 for i in range(T_cad2world_pred.shape[0]):
-    class_id = frame['class_ids'][i]
+    class_id = class_ids_fg[i]
     visual_file = models.get_cad_model(class_id=class_id)
     collision_file = objslampp.utils.get_collision_file(visual_file)
     T = T_cad2world_pred[i]
