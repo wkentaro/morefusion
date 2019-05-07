@@ -112,6 +112,11 @@ def visualize_instance_grids(
                 # visualize occupied spaces
                 voxel = trimesh.voxel.Voxel(
                     ~np.isin(grid, [254, 255]), pitch, aabb_min)
+
+                geom = trimesh.PointCloud(
+                    vertices=pcd[nonnan], colors=rgb[nonnan]
+                )
+                scene.add_geometry(geom)
             else:
                 voxel = trimesh.voxel.Voxel(
                     np.isin(grid, [254]), pitch, aabb_min)
@@ -133,18 +138,30 @@ def visualize_instance_grids(
         )
 
     window = pyglet.window.Window(width=640 * 3, height=480)
+    window.rotate = 0
 
     @window.event
     def on_key_press(symbol, modifiers):
         if modifiers == 0:
             if symbol == pyglet.window.key.Q:
                 window.on_close()
+        if symbol == pyglet.window.key.R:
+            # rotate camera
+            window.rotate = not window.rotate  # 0/1
+            if modifiers == pyglet.window.key.MOD_SHIFT:
+                window.rotate *= -1
 
     def callback(dt):
-        for scene in [scene_pcd, scene_occupied, scene_empty]:
-            scene.camera.transform = tf.rotation_matrix(
-                np.deg2rad(1), [0, 1, 0], point=scene_occupied.centroid
-            ) @ scene.camera.transform
+        if window.rotate:
+            for scene in [scene_pcd, scene_occupied, scene_empty]:
+                axis = tf.transform_points(
+                    [[0, 1, 0]], scene.camera.transform, translate=False
+                )[0]
+                scene.camera.transform = tf.rotation_matrix(
+                    np.deg2rad(window.rotate),
+                    axis,
+                    point=scene_occupied.centroid,
+                ) @ scene.camera.transform
 
     gui = glooey.Gui(window)
     hbox = glooey.HBox()
