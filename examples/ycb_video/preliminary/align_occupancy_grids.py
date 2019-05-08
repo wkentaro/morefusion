@@ -585,6 +585,9 @@ N: next instance''')
 
     pyglet.clock.schedule_interval(callback, 1 / 30, widgets)
     pyglet.app.run()
+    pyglet.clock.unschedule(callback)
+
+    return registration
 
 
 def main():
