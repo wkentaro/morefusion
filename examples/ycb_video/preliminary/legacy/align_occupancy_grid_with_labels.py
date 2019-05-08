@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import sys
+
 import chainer
 from chainer.backends import cuda
 import chainer.functions as F
@@ -8,61 +10,13 @@ import imgviz
 import numpy as np
 import octomap
 import pyglet
-import sklearn.neighbors
 import trimesh
 import trimesh.transformations as tf
 
 import objslampp
 
-
-def get_grid_target(
-    octrees, pitch, pcd, mask, extents, instance_id, threshold=2
-):
-    nonnan = ~np.isnan(pcd).any(axis=2)
-    pcd_ins = pcd[mask & nonnan]
-    centroid = pcd_ins.mean(axis=0)
-    aabb_min = centroid - extents / 2
-    aabb_max = aabb_min + extents
-    grid_shape = np.ceil(extents / pitch).astype(int)
-
-    grid_target = np.zeros(grid_shape, dtype=np.float32)
-    grid_nontarget = np.zeros(grid_shape, dtype=np.float32)
-    grid_empty = np.zeros(grid_shape, np.float32)
-
-    centers = trimesh.voxel.matrix_to_points(
-        np.ones(grid_shape), pitch=pitch, origin=aabb_min
-    )
-
-    for ins_id, octree in octrees.items():
-        occupied, empty = octree.extractPointCloud()
-
-        kdtree = sklearn.neighbors.KDTree(occupied)
-        dist, indices = kdtree.query(centers, k=1)
-        if ins_id == instance_id:
-            # occupied by target
-            g = np.minimum(1, np.maximum(0, threshold - (dist / pitch)))
-            g = g.reshape(grid_shape)
-            grid_target = np.maximum(grid_target, g)
-        else:
-            # occupied by non-target
-            g = np.minimum(1, np.maximum(0, 1 - (dist / pitch)))
-            g = g.reshape(grid_shape)
-            grid_nontarget = np.maximum(grid_nontarget, g)
-
-        # empty
-        kdtree = sklearn.neighbors.KDTree(empty)
-        dist, indices = kdtree.query(centers, k=1)
-        g = np.minimum(1, np.maximum(0, 1 - (dist / pitch)))
-        g = g.reshape(grid_shape)
-        grid_empty = np.maximum(grid_empty, g)
-
-    grid_nontarget[grid_target > 0] = 0
-    grid_empty[grid_target > 0] = 0
-
-    grid = np.stack(
-        (grid_target, grid_nontarget, grid_empty)
-    ).astype(np.float32)
-    return grid, aabb_min, aabb_max
+sys.path.insert(0, '..')  # NOQA
+from build_occupancy_grid import get_instance_grid
 
 
 class OccupancyGridAlignmentModel(chainer.Link):
@@ -85,11 +39,14 @@ class OccupancyGridAlignmentModel(chainer.Link):
         self,
         points_source,
         grid_target,
+        id_target,
         *,
         pitch,
         origin,
         threshold,
     ):
+        xp = self.xp
+
         transform = objslampp.functions.quaternion_matrix(
             self.quaternion[None]
         )
@@ -104,18 +61,28 @@ class OccupancyGridAlignmentModel(chainer.Link):
             points_source,
             pitch=pitch,
             origin=origin,
-            dimension=grid_target.shape[1:],
+            dimension=grid_target.shape,
             threshold=threshold,
         )
 
-        assert grid_target.dtype == np.float32
-        occupied_target = grid_target[0]
+        assert grid_target.dtype == np.uint8
+        occupied_target = (grid_target == id_target).astype(np.float32)
         intersection = F.sum(occupied_target * grid_source)
         denominator = F.sum(occupied_target)
         reward = intersection / denominator
 
-        assert grid_target.dtype == np.float32
-        unoccupied_target = np.maximum(grid_target[1], grid_target[2])
+        # unknown: 255
+        # free: 254
+        # occupied background: 0
+        # occupied instance1: 1
+        # ...
+        # occupied by untarget or empty
+        if xp == np:
+            unoccupied_target = ~np.isin(grid_target, [id_target, 255])
+        else:
+            unoccupied_target = ~xp.bitwise_or(
+                grid_target == id_target, grid_target == 255
+            )
         unoccupied_target = unoccupied_target.astype(np.float32)
         intersection = F.sum(unoccupied_target * grid_source)
         denominator = F.sum(grid_source)
@@ -131,6 +98,7 @@ class InstanceOccupancyGridRegistration:
         self,
         points_source,
         grid_target,
+        id_target,
         *,
         pitch,
         origin,
@@ -154,6 +122,7 @@ class InstanceOccupancyGridRegistration:
 
         self._points_source = points_source
         self._grid_target = grid_target
+        self._id_target = id_target
         self._pitch = pitch
         self._origin = origin
         self._threshold = threshold
@@ -172,6 +141,7 @@ class InstanceOccupancyGridRegistration:
         loss = model(
             points_source=self._points_source,
             grid_target=self._grid_target,
+            id_target=self._id_target,
             pitch=self._pitch,
             origin=self._origin,
             threshold=self._threshold,
@@ -207,18 +177,19 @@ class InstanceOccupancyGridRegistration:
         scenes = {}
 
         grid_target = self._grid_target_cpu
+        id_target = self._id_target
         pitch = self._pitch
         origin = self._origin
 
         scene = trimesh.Scene()
         # occupied target/untarget
         voxel = trimesh.voxel.Voxel(
-            matrix=grid_target[0], pitch=pitch, origin=origin
+            matrix=grid_target == id_target, pitch=pitch, origin=origin
         )
         geom = voxel.as_boxes((1., 0, 0, 0.5))
         scene.add_geometry(geom, geom_name='occupied_target')
         voxel = trimesh.voxel.Voxel(
-            matrix=grid_target[1],
+            matrix=~np.isin(grid_target, [id_target, 254, 255]),
             pitch=pitch,
             origin=origin,
         )
@@ -229,7 +200,7 @@ class InstanceOccupancyGridRegistration:
         # empty
         scene = trimesh.Scene()
         voxel = trimesh.voxel.Voxel(
-            matrix=grid_target[2], pitch=pitch, origin=origin
+            matrix=grid_target == 254, pitch=pitch, origin=origin
         )
         geom = voxel.as_boxes((0.5, 0.5, 0.5, 0.5))
         scene.add_geometry(geom, geom_name='empty')
@@ -258,7 +229,7 @@ class InstanceOccupancyGridRegistration:
 
         # bbox
         aabb_min = origin - pitch / 2
-        aabb_max = aabb_min + pitch * np.array(grid_target.shape[1:])
+        aabb_max = aabb_min + pitch * np.array(grid_target.shape)
         geom = trimesh.path.creation.box_outline(aabb_max - aabb_min)
         geom.apply_translation((aabb_min + aabb_max) / 2)
         for scene in scenes.values():
@@ -375,14 +346,13 @@ class OccupancyGridRegistration:
         pitch = diagonal * 1.1 / dim
         mask = instance_label == instance_id
         extents = np.array((pitch * dim,) * 3)
-        grid_target, aabb_min, _ = get_grid_target(
+        grid_target, aabb_min, _ = get_instance_grid(
             octrees,
             pitch,
             pcd,
             mask,
             extents,
-            instance_id,
-            threshold=threshold,
+            threshold=1.5,
         )
         #
         pcd_file = models.get_pcd_model(class_id=class_id)
@@ -397,6 +367,7 @@ class OccupancyGridRegistration:
         registration_ins = InstanceOccupancyGridRegistration(
             points_source,
             grid_target,
+            id_target=instance_id,
             pitch=pitch,
             origin=aabb_min,
             threshold=threshold,
