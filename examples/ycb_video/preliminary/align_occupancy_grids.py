@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import chainer
+from chainer.backends import cuda
 import chainer.functions as F
 import glooey
 import imgviz
@@ -41,6 +42,8 @@ class OccupancyGridAlignmentModel(chainer.Link):
         origin,
         threshold,
     ):
+        xp = self.xp
+
         transform = objslampp.functions.quaternion_matrix(
             self.quaternion[None]
         )
@@ -71,7 +74,12 @@ class OccupancyGridAlignmentModel(chainer.Link):
         # occupied instance1: 1
         # ...
         # occupied by untarget or empty
-        unoccupied_target = ~np.isin(grid_target, [id_target, 255])
+        if xp == np:
+            unoccupied_target = ~np.isin(grid_target, [id_target, 255])
+        else:
+            unoccupied_target = ~xp.bitwise_or(
+                grid_target == id_target, grid_target == 255
+            )
         unoccupied_target = unoccupied_target.astype(np.float32)
         intersection = F.sum(unoccupied_target * grid_source)
         denominator = F.sum(grid_source)
@@ -93,7 +101,20 @@ class InstanceOccupancyGridRegistration:
         origin,
         threshold,
         transform_init,
+        gpu=0,
     ):
+        quaternion_init = tf.quaternion_from_matrix(transform_init)
+        quaternion_init = quaternion_init.astype(np.float32)
+        translation_init = tf.translation_from_matrix(transform_init)
+        translation_init = translation_init.astype(np.float32)
+
+        model = OccupancyGridAlignmentModel(quaternion_init, translation_init)
+
+        if gpu >= 0:
+            model.to_gpu(gpu)
+            points_source = model.xp.asarray(points_source)
+            grid_target = model.xp.asarray(grid_target)
+
         self._points_source = points_source
         self._grid_target = grid_target
         self._id_target = id_target
@@ -101,12 +122,6 @@ class InstanceOccupancyGridRegistration:
         self._origin = origin
         self._threshold = threshold
 
-        quaternion_init = tf.quaternion_from_matrix(transform_init)
-        quaternion_init = quaternion_init.astype(np.float32)
-        translation_init = tf.translation_from_matrix(transform_init)
-        translation_init = translation_init.astype(np.float32)
-
-        model = OccupancyGridAlignmentModel(quaternion_init, translation_init)
         self._optimizer = chainer.optimizers.Adam(alpha=0.1)
         self._optimizer.setup(model)
         model.translation.update_rule.hyperparam.alpha *= 0.1
@@ -139,8 +154,8 @@ class InstanceOccupancyGridRegistration:
     @property
     def transform(self):
         model = self._optimizer.target
-        quaternion = model.quaternion.array
-        translation = model.translation.array
+        quaternion = cuda.to_cpu(model.quaternion.array)
+        translation = cuda.to_cpu(model.translation.array)
         transform = tf.quaternion_matrix(quaternion)
         transform = objslampp.geometry.compose_transform(
             transform[:3, :3], translation
@@ -156,7 +171,7 @@ class InstanceOccupancyGridRegistration:
     def visualize(self, cad, T_cad2cam_true, T_cad2cam_pred):
         scenes = {}
 
-        grid_target = self._grid_target
+        grid_target = cuda.to_cpu(self._grid_target)
         id_target = self._id_target
         pitch = self._pitch
         origin = self._origin
@@ -390,8 +405,10 @@ class OccupancyGridRegistration:
         scenes['scene_occupied'] = trimesh.Scene()
         scenes['scene_empty'] = trimesh.Scene()
         for instance_id, (occupied, empty) in self._occupied_empty.items():
-            geom = trimesh.PointCloud(
-                vertices=occupied, colors=colormap[instance_id]
+            color = trimesh.visual.to_rgba(colormap[instance_id])
+            color[3] = 127
+            geom = trimesh.voxel.multibox(
+                occupied, pitch=0.01, colors=color
             )
             scenes['scene_occupied'].add_geometry(
                 geom, geom_name=f'occupied_{instance_id}'
