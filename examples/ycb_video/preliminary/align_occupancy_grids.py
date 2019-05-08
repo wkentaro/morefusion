@@ -450,6 +450,7 @@ def refinement(
     instance_label,
     Ts_cad2cam_true,
     Ts_cad2cam_pred=None,
+    points_occupied=None,
 ):
     registration = OccupancyGridRegistration(
         rgb=rgb,
@@ -460,6 +461,13 @@ def refinement(
         Ts_cad2cam_true=Ts_cad2cam_true,
         Ts_cad2cam_pred=Ts_cad2cam_pred,
     )
+
+    if points_occupied:
+        for ins_id, points in points_occupied.items():
+            octree = registration._octrees[ins_id]
+            octree.updateNodes(points, True, lazy_eval=True)
+            octree.updateInnerOccupancy()
+            registration.update_occupied_empty()
 
     coms = np.array([
         np.nanmedian(pcd[instance_label == i], axis=0) for i in instance_ids
