@@ -334,7 +334,7 @@ class OccupancyGridRegistration:
             pcd,
             mask,
             extents,
-            threshold=connectivity * 0.75
+            connectivity=1.5,
         )
         #
         pcd_file = models.get_pcd_model(class_id=class_id)
