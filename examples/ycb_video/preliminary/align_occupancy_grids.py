@@ -13,7 +13,6 @@ import trimesh.transformations as tf
 import objslampp
 
 from build_occupancy_grid import get_instance_grid
-from build_occupancy_grid import leaves_from_tree
 
 
 class OccupancyGridAlignmentModel(chainer.Link):
@@ -293,7 +292,7 @@ class OccupancyGridRegistration:
 
     def update_occupied_empty(self):
         for instance_id, octree in self._octrees.items():
-            occupied, empty = leaves_from_tree(octree)
+            occupied, empty = octree.extractPointCloud()
             self._occupied_empty[instance_id] = (occupied, empty)
 
     def update_octree(self, instance_id):

@@ -12,24 +12,6 @@ import sklearn.neighbors
 import objslampp
 
 
-def leaves_from_tree(tree):
-    root = tree.begin_tree()
-
-    occupied = []
-    empty = []
-    for node in root:
-        if node.isLeaf():
-            coord = node.getCoordinate()
-            if tree.isNodeOccupied(node):
-                occupied.append(coord)
-            else:
-                empty.append(coord)
-
-    occupied = np.array(occupied, dtype=float)
-    empty = np.array(empty, dtype=float)
-    return occupied, empty
-
-
 def visualize_occupied_empty_points(
     octrees,
     height,
@@ -41,7 +23,7 @@ def visualize_occupied_empty_points(
     scene_empty = trimesh.Scene()
     colormap = imgviz.label_colormap()
     for instance_id, octree in octrees.items():
-        occupied, empty = leaves_from_tree(octree)
+        occupied, empty = octree.extractPointCloud()
         geom = trimesh.PointCloud(
             vertices=occupied, colors=colormap[instance_id]
         )
@@ -206,7 +188,7 @@ def get_instance_grid(
         threshold = 2 * np.sqrt(3)
     threshold *= pitch  # thershold in dimension to metric
     for instance_id, octree in octrees.items():
-        occupied, empty = leaves_from_tree(octree)
+        occupied, empty = octree.extractPointCloud()
         # empty
         kdtree = sklearn.neighbors.KDTree(empty)
         dist, indices = kdtree.query(centers, k=1)
