@@ -333,7 +333,6 @@ class OccupancyGridRegistration:
             pitch,
             pcd,
             mask,
-            instance_id,
             extents,
             threshold=connectivity * 0.75
         )

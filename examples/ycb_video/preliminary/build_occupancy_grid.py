@@ -86,7 +86,7 @@ def visualize_instance_grids(
         mask = instance_label == instance_id
         extents = instance_extents[instance_id == instance_ids][0]
         grid, aabb_min, aabb_max = get_instance_grid(
-            octrees, pitch, pcd, mask, instance_id, extents
+            octrees, pitch, pcd, mask, extents
         )
 
         for i, scene in enumerate([scene_occupied, scene_empty]):
@@ -165,9 +165,7 @@ def visualize_instance_grids(
     pyglet.app.run()
 
 
-def get_instance_grid(
-    octrees, pitch, pcd, mask, instance_id, extents, threshold=None
-):
+def get_instance_grid(octrees, pitch, pcd, mask, extents, threshold=None):
     nonnan = ~np.isnan(pcd).any(axis=2)
     pcd_ins = pcd[mask & nonnan]
     centroid = pcd_ins.mean(axis=0)
