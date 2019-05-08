@@ -110,6 +110,8 @@ class InstanceOccupancyGridRegistration:
 
         model = OccupancyGridAlignmentModel(quaternion_init, translation_init)
 
+        self._grid_target_cpu = grid_target
+
         if gpu >= 0:
             model.to_gpu(gpu)
             points_source = model.xp.asarray(points_source)
@@ -171,7 +173,7 @@ class InstanceOccupancyGridRegistration:
     def visualize(self, cad, T_cad2cam_true, T_cad2cam_pred):
         scenes = {}
 
-        grid_target = cuda.to_cpu(self._grid_target)
+        grid_target = self._grid_target_cpu
         id_target = self._id_target
         pitch = self._pitch
         origin = self._origin
