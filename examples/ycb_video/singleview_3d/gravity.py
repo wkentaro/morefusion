@@ -116,6 +116,7 @@ for ins_id, cad_file in frame['cad_files'].items():
         collision_file=objslampp.utils.get_collision_file(cad_file),
         position=tf.translation_from_matrix(T),
         orientation=tf.quaternion_from_matrix(T)[[1, 2, 3, 0]],
+        base_mass=0,
     )
 
 for i in range(T_cad2world_pred.shape[0]):

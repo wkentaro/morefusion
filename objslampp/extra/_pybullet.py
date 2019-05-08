@@ -63,6 +63,7 @@ def add_model(
     mesh_scale:
         typing.Optional[typing.Union[int, float, typing.Sequence]] = None,
     register: bool = True,
+    base_mass=1,
 ) -> int:
     import pybullet
 
@@ -93,7 +94,7 @@ def add_model(
         meshScale=mesh_scale,
     )
     unique_id = pybullet.createMultiBody(
-        baseMass=1,
+        baseMass=base_mass,
         baseInertialFramePosition=(0, 0, 0),
         baseCollisionShapeIndex=collision_shape_id,
         baseVisualShapeIndex=visual_shape_id,
