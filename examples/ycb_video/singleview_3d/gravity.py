@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+import argparse
+import sys
+
 import glooey
 import imgviz
 import numpy as np
@@ -15,12 +18,40 @@ import objslampp
 from common import Inference
 
 
+parser = argparse.ArgumentParser(
+    formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+)
+parser.add_argument('--refinement', choices=['icp'], help='refinement')
+args = parser.parse_args()
+
 models = objslampp.datasets.YCBVideoModels()
 
 inference = Inference(gpu=0)
 frame, T_cad2cam_true, T_cad2cam_pred = inference(index=0, bg_class=True)
 keep = frame['class_ids'] > 0
 class_ids_fg = frame['class_ids'][keep]
+instance_ids_fg = frame['instance_ids'][keep]
+K = frame['intrinsic_matrix']
+pcd = objslampp.geometry.pointcloud_from_depth(
+    frame['depth'], fx=K[0, 0], fy=K[1, 1], cx=K[0, 2], cy=K[1, 2],
+)
+
+if args.refinement == 'icp':
+    sys.path.insert(0, '../preliminary')
+    from align_pointclouds import refinement  # NOQA
+
+    registration = refinement(
+        instance_ids=instance_ids_fg,
+        class_ids=class_ids_fg,
+        rgb=frame['rgb'],
+        pcd=pcd,
+        instance_label=frame['instance_label'],
+        Ts_cad2cam_true=T_cad2cam_true,
+        Ts_cad2cam_pred=T_cad2cam_pred,
+    )
+    T_cad2cam_pred = np.array([
+        registration._Ts_cad2cam_pred[i] for i in instance_ids_fg
+    ], dtype=float)
 
 T_cad2world_pred = frame['T_cam2world'] @ T_cad2cam_pred
 T_cad2world_true = frame['T_cam2world'] @ T_cad2cam_true

@@ -301,6 +301,9 @@ N: next instance''')
 
     pyglet.clock.schedule_interval(callback, 1 / 30, widgets)
     pyglet.app.run()
+    pyglet.clock.unschedule(callback)
+
+    return registration
 
 
 def main():
@@ -322,7 +325,7 @@ def main():
 
     Ts_cad2cam_pred = Ts_cad2cam_true @ tf.random_rotation_matrix()
 
-    refinement(
+    return refinement(
         instance_ids,
         class_ids,
         rgb,
