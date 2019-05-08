@@ -31,10 +31,6 @@ frame, T_cad2cam_true, T_cad2cam_pred = inference(index=0, bg_class=True)
 keep = frame['class_ids'] > 0
 class_ids_fg = frame['class_ids'][keep]
 instance_ids_fg = frame['instance_ids'][keep]
-K = frame['intrinsic_matrix']
-pcd = objslampp.geometry.pointcloud_from_depth(
-    frame['depth'], fx=K[0, 0], fy=K[1, 1], cx=K[0, 2], cy=K[1, 2],
-)
 
 if args.refinement == 'icp':
     sys.path.insert(0, '../preliminary')
@@ -44,7 +40,7 @@ if args.refinement == 'icp':
         instance_ids=instance_ids_fg,
         class_ids=class_ids_fg,
         rgb=frame['rgb'],
-        pcd=pcd,
+        pcd=frame['pcd'],
         instance_label=frame['instance_label'],
         Ts_cad2cam_true=T_cad2cam_true,
         Ts_cad2cam_pred=T_cad2cam_pred,
@@ -93,9 +89,7 @@ grid[0, 0] = vbox
 scene = trimesh.Scene()
 
 depth = frame['depth']
-pcd = objslampp.geometry.pointcloud_from_depth(
-    depth, fx=K[0, 0], fy=K[1, 1], cx=K[0, 2], cy=K[1, 2]
-)
+pcd = frame['pcd']
 nonnan = ~np.isnan(depth)
 # depth_viz = imgviz.depth2rgb(frame['depth'])
 colormap = imgviz.label_colormap(value=200)

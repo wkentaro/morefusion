@@ -6,6 +6,8 @@ from chainer.backends import cuda
 import numpy as np
 import trimesh.transformations as tf
 
+import objslampp
+
 import contrib
 
 
@@ -63,6 +65,11 @@ class Inference:
 
         T_true = self.T(quaternion_true, translation_true)
         T_pred = self.T(quaternion_pred, translation_pred)
+
+        K = frame['intrinsic_matrix']
+        frame['pcd'] = objslampp.geometry.pointcloud_from_depth(
+            frame['depth'], fx=K[0, 0], fy=K[1, 1], cx=K[0, 2], cy=K[1, 2],
+        )
 
         return frame, T_true, T_pred
 
