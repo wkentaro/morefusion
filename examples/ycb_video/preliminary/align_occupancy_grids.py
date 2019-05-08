@@ -39,7 +39,7 @@ class OccupancyGridAlignmentModel(chainer.Link):
         *,
         pitch,
         origin,
-        connectivity,
+        threshold,
     ):
         transform = objslampp.functions.quaternion_matrix(
             self.quaternion[None]
@@ -56,7 +56,7 @@ class OccupancyGridAlignmentModel(chainer.Link):
             pitch=pitch,
             origin=origin,
             dimension=grid_target.shape,
-            connectivity=connectivity,
+            threshold=threshold,
         )
 
         assert grid_target.dtype == np.uint8
@@ -91,7 +91,7 @@ class InstanceOccupancyGridRegistration:
         *,
         pitch,
         origin,
-        connectivity,
+        threshold,
         transform_init,
     ):
         self._points_source = points_source
@@ -99,7 +99,7 @@ class InstanceOccupancyGridRegistration:
         self._id_target = id_target
         self._pitch = pitch
         self._origin = origin
-        self._connectivity = connectivity
+        self._threshold = threshold
 
         quaternion_init = tf.quaternion_from_matrix(transform_init)
         quaternion_init = quaternion_init.astype(np.float32)
@@ -124,7 +124,7 @@ class InstanceOccupancyGridRegistration:
             id_target=self._id_target,
             pitch=self._pitch,
             origin=self._origin,
-            connectivity=self._connectivity,
+            threshold=self._threshold,
         )
         loss.backward()
         self._optimizer.update()
@@ -222,8 +222,6 @@ class OccupancyGridRegistration:
 
     _models = objslampp.datasets.YCBVideoModels()
 
-    connectivity = 2  # threshold for occupancy grid voxelization
-
     def __init__(
         self,
         rgb,
@@ -312,7 +310,7 @@ class OccupancyGridRegistration:
         models = self._models
 
         # parameters
-        connectivity = 2
+        threshold = 2
         dim = 20
 
         # scene-level data
@@ -334,7 +332,7 @@ class OccupancyGridRegistration:
             pcd,
             mask,
             extents,
-            connectivity=1.5,
+            threshold=1.5,
         )
         #
         pcd_file = models.get_pcd_model(class_id=class_id)
@@ -352,7 +350,7 @@ class OccupancyGridRegistration:
             id_target=instance_id,
             pitch=pitch,
             origin=aabb_min,
-            connectivity=connectivity,
+            threshold=threshold,
             transform_init=self._Ts_cad2cam_pred[instance_id],
         )
         self._registration_ins = registration_ins

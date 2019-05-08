@@ -69,12 +69,12 @@ class OccupancyGrid3D(chainer.Function):
         return grad_points,
 
 
-def occupancy_grid_3d(points, *, pitch, origin, dimension, connectivity=1):
+def occupancy_grid_3d(points, *, pitch, origin, dimension, threshold=1):
     d_IP, d_JP, d_KP = OccupancyGrid3D(
         pitch=pitch, origin=origin, dimension=dimension
     )(points)
     d_IJKP = F.sqrt(d_IP ** 2 + d_JP ** 2 + d_KP ** 2)
-    m_IJKP = F.relu(connectivity - d_IJKP)
+    m_IJKP = F.relu(threshold- d_IJKP)
     m_IJKP = F.minimum(m_IJKP, m_IJKP.array * 0 + 1)
     m = F.max(m_IJKP, axis=3)
     return m

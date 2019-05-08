@@ -30,7 +30,7 @@ grid = objslampp.functions.occupancy_grid_3d(
     pitch=pitch,
     origin=tuple(origin),        # definition origin is center
     dimension=(dim, dim, dim),
-    connectivity=2,
+    threshold=2,
 ).array
 print('voxelization done')
 colors = imgviz.depth2rgb(grid.reshape(1, -1), min_value=0, max_value=1)
@@ -47,4 +47,4 @@ I, J, K = zip(*np.argwhere(grid))
 geom.visual.face_colors = colors[I, J, K].repeat(12, axis=0)
 scene.add_geometry(geom)
 
-objslampp.extra.trimesh.show_with_rotation(scene)
+objslampp.extra.trimesh.show_with_rotation(scene, resolution=(500, 500))

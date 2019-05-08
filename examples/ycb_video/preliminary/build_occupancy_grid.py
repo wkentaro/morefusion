@@ -165,7 +165,7 @@ def visualize_instance_grids(
     pyglet.app.run()
 
 
-def get_instance_grid(octrees, pitch, pcd, mask, extents, connectivity=2):
+def get_instance_grid(octrees, pitch, pcd, mask, extents, threshold=2):
     nonnan = ~np.isnan(pcd).any(axis=2)
     pcd_ins = pcd[mask & nonnan]
     centroid = pcd_ins.mean(axis=0)
@@ -182,7 +182,7 @@ def get_instance_grid(octrees, pitch, pcd, mask, extents, connectivity=2):
     centers = trimesh.voxel.matrix_to_points(
         grid == 255, pitch=pitch, origin=aabb_min
     )
-    threshold = connectivity * pitch  # thershold in metric
+    threshold = threshold * pitch  # threshold in metric
     for instance_id, octree in octrees.items():
         occupied, empty = octree.extractPointCloud()
         # empty

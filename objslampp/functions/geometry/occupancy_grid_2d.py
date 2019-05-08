@@ -64,12 +64,12 @@ class OccupancyGrid2D(chainer.Function):
         return grad_points,
 
 
-def occupancy_grid_2d(points, *, pitch, origin, dimension, connectivity=1):
+def occupancy_grid_2d(points, *, pitch, origin, dimension, threshold=1):
     d_IK, d_JK = OccupancyGrid2D(
         pitch=pitch, origin=origin, dimension=dimension
     )(points)
     d_IJK = F.sqrt(d_IK ** 2 + d_JK ** 2)
-    m_IJK = F.relu(connectivity - F.absolute(d_IJK))
+    m_IJK = F.relu(threshold - F.absolute(d_IJK))
     m_IJK = F.minimum(m_IJK, m_IJK.array * 0 + 1)
     m = F.max(m_IJK, axis=2)
     return m
