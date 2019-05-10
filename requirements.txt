@@ -1,7 +1,5 @@
 chainer
 chainercv
-fire
-frozendict
 gdown>=3.7.0
 imgaug
 imgviz[all]
