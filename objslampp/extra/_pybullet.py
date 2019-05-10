@@ -1,4 +1,3 @@
-import pathlib
 import typing
 
 import numpy as np
@@ -56,8 +55,8 @@ def get_debug_visualizer_image(
 
 
 def add_model(
-    visual_file: typing.Union[str, pathlib.Path],
-    collision_file: typing.Optional[typing.Union[str, pathlib.Path]] = None,
+    visual_file: str,
+    collision_file: typing.Optional[str] = None,
     position: typing.Optional[typing.Sequence] = None,
     orientation: typing.Optional[typing.Sequence] = None,
     mesh_scale:
@@ -199,7 +198,7 @@ def aabb_contained_ratio(aabb1, aabb2) -> float:
     return ratio
 
 
-def get_top_image(visual_file: typing.Union[str, pathlib.Path]) -> np.ndarray:
+def get_top_image(visual_file: str) -> np.ndarray:
     import pybullet
 
     pybullet.connect(pybullet.DIRECT)
@@ -264,7 +263,7 @@ def render_camera(T_cam2world, fovy, height, width):
 
 
 def render_cad(visual_file, Ts_cad2cam, fovy, height, width):
-    assert isinstance(visual_file, (str, pathlib.Path))
+    assert isinstance(visual_file, str)
 
     Ts_cad2cam = np.asarray(Ts_cad2cam)
     ndim = Ts_cad2cam.ndim

@@ -1,9 +1,9 @@
 import json
-import pathlib
 
 import chainer
 from chainer.backends import cuda
 import numpy as np
+import path
 import trimesh.transformations as tf
 
 import objslampp
@@ -15,12 +15,12 @@ class Inference:
 
     def __init__(self, gpu=0):
         model_file = './logs.20190417.cad_only/20190412_142459.904281/snapshot_model_best_auc_add.npz'  # NOQA
-        model_file = pathlib.Path(model_file)
+        model_file = path.Path(model_file)
         args_file = model_file.parent / 'args'
 
         class_ids = [2]
         root_dir = '~/data/datasets/wkentaro/objslampp/ycb_video/synthetic_data/20190507_121544.807309'  # NOQA
-        root_dir = pathlib.Path(root_dir).expanduser()
+        root_dir = path.Path(root_dir).expanduser()
 
         with open(args_file) as f:
             args_data = json.load(f)

@@ -2,7 +2,6 @@
 
 import argparse
 import datetime
-import pathlib
 import pprint
 import random
 import socket
@@ -10,6 +9,7 @@ import textwrap
 
 import chainer
 import numpy as np
+import path
 import termcolor
 import tensorboardX
 
@@ -18,7 +18,7 @@ import objslampp
 import contrib
 
 
-here = pathlib.Path(__file__).resolve().parent
+here = path.Path(__file__).abspath().parent
 
 
 def main():

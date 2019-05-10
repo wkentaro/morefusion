@@ -2,7 +2,6 @@
 
 import argparse
 import json
-import pathlib
 import pprint
 
 import chainer
@@ -10,6 +9,7 @@ from chainer.backends import cuda
 import imgviz
 import matplotlib.pyplot as plt
 import pandas
+import path
 import pybullet  # NOQA
 import trimesh
 import trimesh.transformations as tf
@@ -36,7 +36,7 @@ def main():
     parser.add_argument('--instance-id', type=int, help='instance id')
     args = parser.parse_args()
 
-    args_file = pathlib.Path(args.model).parent / 'args'
+    args_file = path.Path(args.model).parent / 'args'
     with open(args_file) as f:
         args_data = json.load(f)
     pprint.pprint(args_data)
@@ -162,10 +162,8 @@ def main():
         viz = imgviz.tile(vizs, (2, 1), border=(255, 255, 255))
 
         if args.save:
-            out_file = (
-                pathlib.Path(args.model).parent / f'video/{index:08d}.jpg'
-            )
-            out_file.parent.mkdir(parents=True, exist_ok=True)
+            out_file = path.Path(args.model).parent / f'video/{index:08d}.jpg'
+            out_file.parent.makedirs_p()
             imgviz.io.imsave(out_file, viz)
 
         if args.show:
@@ -200,7 +198,7 @@ def main():
 
     plt.tight_layout()
     img = imgviz.io.pyplot_fig2arr(fig)
-    out_file = pathlib.Path(args.model).parent / 'auc.png'
+    out_file = path.Path(args.model).parent / 'auc.png'
     print('==> Saved ADD curve plot:', out_file)
     imgviz.io.imsave(out_file, img)
 

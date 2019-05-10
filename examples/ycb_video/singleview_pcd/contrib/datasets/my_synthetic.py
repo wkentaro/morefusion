@@ -1,4 +1,3 @@
-import pathlib
 import warnings
 
 import chainer
@@ -13,7 +12,7 @@ class MySyntheticDataset(objslampp.datasets.DatasetBase):
 
     def __init__(self, root_dir, class_ids=None):
         super().__init__()
-        self._root_dir = pathlib.Path(root_dir)
+        self._root_dir = root_dir
         self._class_ids = class_ids
         self._ids = self._get_ids()
 
@@ -30,8 +29,8 @@ class MySyntheticDataset(objslampp.datasets.DatasetBase):
 
     def _get_ids(self):
         ids = []
-        for video_dir in sorted(self.root_dir.iterdir()):
-            for npz_file in sorted(video_dir.iterdir()):
+        for video_dir in sorted(self.root_dir.dirs()):
+            for npz_file in sorted(video_dir.files()):
                 frame_id = f'{npz_file.parent.name}/{npz_file.stem}'
                 ids.append(frame_id)
         return ids

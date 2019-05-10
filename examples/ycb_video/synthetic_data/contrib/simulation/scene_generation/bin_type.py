@@ -1,9 +1,7 @@
 import numbers
-import pathlib
-import shutil
-import tempfile
 
 import numpy as np
+import path
 import pybullet
 import trimesh
 
@@ -24,15 +22,12 @@ class BinTypeSceneGeneration(SceneGenerationBase):
         assert isinstance(thickness, numbers.Number)
         self._thickness = thickness
 
-        self._temp_dir = pathlib.Path(tempfile.mkdtemp())
+        self._temp_dir = path.TempDir()
 
         super().__init__(*args, **kwargs)
 
     def __del__(self):
-        try:
-            shutil.rmtree(self._temp_dir)
-        except OSError:
-            pass
+        self._temp_dir.rmtree_p()
 
     def init_space(self):
         cad = objslampp.extra.trimesh.bin_model(

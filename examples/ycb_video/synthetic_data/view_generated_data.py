@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-import pathlib
-
 import numpy as np
 
 import objslampp
@@ -10,11 +8,11 @@ import objslampp
 class Dataset(objslampp.datasets.DatasetBase):
 
     def __init__(self, root_dir):
-        self._root_dir = pathlib.Path(root_dir)
+        self._root_dir = root_dir
 
         self._ids = []
-        for video_dir in sorted(self.root_dir.iterdir()):
-            for npz_file in sorted(video_dir.iterdir()):
+        for video_dir in sorted(self.root_dir.dirs()):
+            for npz_file in sorted(video_dir.files()):
                 frame_id = f'{npz_file.parent.name}/{npz_file.stem}'
                 self._ids.append(frame_id)
 

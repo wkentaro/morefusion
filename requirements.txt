@@ -6,6 +6,7 @@ imgviz[all]
 open3d-python
 opencv-python
 pandas
+path.py
 pybullet
 scikit-image
 scikit-learn
