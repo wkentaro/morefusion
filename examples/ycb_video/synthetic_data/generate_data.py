@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
 import datetime
-import pathlib
 import shutil
 
 import chainer
 import numpy as np
+import path
 import pybullet
 import trimesh
 
@@ -15,8 +15,8 @@ import contrib
 
 
 def generate_a_video(out, random_state):
-    out.mkdir(parents=True, exist_ok=True)
-    (out / 'models').mkdir(exist_ok=True)
+    out.makedirs_p()
+    (out / 'models').mkdir_p()
 
     models = objslampp.datasets.YCBVideoModels()
 
@@ -111,7 +111,7 @@ def main():
     root_dir = chainer.dataset.get_dataset_directory(
         f'wkentaro/objslampp/ycb_video/synthetic_data/{timestamp}'
     )
-    root_dir = pathlib.Path(root_dir)
+    root_dir = path.Path(root_dir)
 
     n_video = 100
     for index in range(1, n_video + 1):

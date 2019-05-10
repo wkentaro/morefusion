@@ -1,10 +1,10 @@
-import pathlib
 import typing
 
 import chainer
 import gdown
 import imgviz
 import numpy as np
+import path
 import scipy.io
 
 from ..base import DatasetBase
@@ -15,7 +15,6 @@ class YCBVideoDataset(DatasetBase):
     _root_dir = chainer.dataset.get_dataset_directory(
         'ycb_video/YCB_Video_Dataset', create_directory=False
     )
-    _root_dir = pathlib.Path(_root_dir)
     _data_dir = 'data'
 
     def __init__(self, split: str, sampling=1):
@@ -47,7 +46,7 @@ class YCBVideoDataset(DatasetBase):
         md5 = None  # 'c9122e177a766a9691cab13c5cda41a9'
         gdown.cached_download(
             url=url,
-            path=str(cls._root_dir) + '.zip',
+            path=cls._root_dir + '.zip',
             md5=md5,
             postprocess=gdown.extractall,
         )
@@ -57,7 +56,7 @@ class YCBVideoDataset(DatasetBase):
         sampling: int = 1,
     ):
         split = self.split
-        imageset_file: pathlib.Path = self.root_dir / f'image_sets/{split}.txt'
+        imageset_file = self.root_dir / f'image_sets/{split}.txt'
         with open(imageset_file) as f:
             ids = []
             for line in f:
@@ -70,30 +69,24 @@ class YCBVideoDataset(DatasetBase):
 
     @classmethod
     def get_frame(cls, image_id: str) -> dict:
-        meta_file: pathlib.Path = (
-            cls._root_dir / cls._data_dir / (image_id + '-meta.mat')
-        )
+        root_dir = path.Path(cls._root_dir)
+
+        meta_file = root_dir / cls._data_dir / (image_id + '-meta.mat')
         meta = scipy.io.loadmat(
             meta_file, squeeze_me=True, struct_as_record=True
         )
 
-        color_file: pathlib.Path = (
-            cls._root_dir / cls._data_dir / (image_id + '-color.png')
-        )
+        color_file = root_dir / cls._data_dir / (image_id + '-color.png')
         color: np.ndarray = imgviz.io.imread(color_file)
         if color.shape[2] == 4:
             color = color[:, :, :3]  # rgba -> rgb
 
-        depth_file: pathlib.Path = (
-            cls._root_dir / cls._data_dir / (image_id + '-depth.png')
-        )
+        depth_file = root_dir / cls._data_dir / (image_id + '-depth.png')
         depth: np.ndarray = imgviz.io.imread(depth_file)
         depth = depth.astype(float) / meta['factor_depth']
         depth[depth == 0] = float('nan')
 
-        label_file: pathlib.Path = (
-            cls._root_dir / cls._data_dir / (image_id + '-label.png')
-        )
+        label_file = root_dir / cls._data_dir / (image_id + '-label.png')
         label: np.ndarray = imgviz.io.imread(label_file)
 
         return dict(

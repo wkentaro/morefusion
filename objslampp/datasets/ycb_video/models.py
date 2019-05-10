@@ -1,26 +1,30 @@
-import pathlib
-import shutil
 import typing
 
 import chainer
 import gdown
 import numpy as np
+import path
 import trimesh
 
+from ..base import DatasetBase
 from .class_names import class_names
 
 
-class YCBVideoModels(object):
+class YCBVideoModels(DatasetBase):
 
     _root_dir = chainer.dataset.get_dataset_directory(
         'ycb_video/YCB_Video_Models', create_directory=False
     )
-    _root_dir = pathlib.Path(_root_dir)
     _class_names = class_names
 
-    @property
-    def root_dir(self):
-        return self._root_dir
+    def __len__(self):
+        raise NotImplementedError
+
+    def split(self):
+        raise NotImplementedError
+
+    def ids(self):
+        raise NotImplementedError
 
     @property
     def class_names(self):
@@ -35,17 +39,14 @@ class YCBVideoModels(object):
         url: str = 'https://drive.google.com/uc?id=1gmcDD-5bkJfcMKLZb3zGgH_HUFbulQWu'  # NOQA
         md5: str = 'd3efe74e77fe7d7ca216dde4b7d217fa'
 
-        def postprocess(path: str):
-            gdown.extractall(path)
-            path_extracted: pathlib.Path = pathlib.Path(path).parent / 'models'
-            shutil.move(
-                str(path_extracted),
-                str(cls._root_dir),
-            )
+        def postprocess(file: str):
+            gdown.extractall(file)
+            file_extracted = path.Path(file).parent / 'models'
+            file_extracted.move(cls._root_dir)
 
         gdown.cached_download(
             url=url,
-            path=str(cls._root_dir) + '.zip',
+            path=cls._root_dir + '.zip',
             md5=md5,
             postprocess=postprocess,
         )
