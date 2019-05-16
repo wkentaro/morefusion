@@ -1,7 +1,7 @@
 import numpy as np
 
 
-class_names = (
+class_names = np.array([
     '__background__',
     '002_master_chef_can',
     '003_cracker_box',
@@ -24,6 +24,5 @@ class_names = (
     '051_large_clamp',
     '052_extra_large_clamp',
     '061_foam_brick',
-)
-class_names = np.array(class_names)
+])
 class_names.setflags(write=0)
