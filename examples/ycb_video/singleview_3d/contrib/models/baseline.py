@@ -10,9 +10,10 @@ import objslampp
 
 class BaselineModel(chainer.Chain):
 
-    def __init__(self, *, freeze_until, voxelization):
+    def __init__(self, *, n_fg_class, freeze_until, voxelization):
         super().__init__()
 
+        self._n_fg_class = n_fg_class
         self._freeze_until = freeze_until
         self._voxelization = voxelization
 
@@ -50,8 +51,8 @@ class BaselineModel(chainer.Chain):
 
             # 16 * 8 * 8 * 8 = 8192
             self.fc8 = L.Linear(8192, 1024, **kwargs)
-            self.fc_quaternion = L.Linear(1024, 4, **kwargs)
-            self.fc_translation = L.Linear(1024, 3, **kwargs)
+            self.fc_quaternion = L.Linear(1024, 4 * n_fg_class, **kwargs)
+            self.fc_translation = L.Linear(1024, 3 * n_fg_class, **kwargs)
 
     def predict(
         self,
@@ -130,13 +131,19 @@ class BaselineModel(chainer.Chain):
         h = F.relu(self.conv7(h))
         h = F.relu(self.fc8(h))
 
-        quaternion_pred = F.normalize(self.fc_quaternion(h))
-        translation_pred = F.cos(self.fc_translation(h))
-        translation_pred = (
-            origins + translation_pred * pitch[:, None] * self._voxel_dim
-        )
+        quaternion = self.fc_quaternion(h)
+        quaternion = quaternion.reshape(B, self._n_fg_class, 4)
+        translation = self.fc_translation(h)
+        translation = translation.reshape(B, self._n_fg_class, 3)
 
-        return quaternion_pred, translation_pred
+        fg_class_id = class_id - 1
+        quaternion = quaternion[xp.arange(B), fg_class_id, :]
+        translation = translation[xp.arange(B), fg_class_id, :]
+
+        quaternion = F.normalize(quaternion, axis=1)
+        translation = origins + translation * pitch[:, None] * self._voxel_dim
+
+        return quaternion, translation
 
     def __call__(
         self,

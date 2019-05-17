@@ -129,13 +129,16 @@ def main():
     data_valid = contrib.datasets.YCBVideoDataset(
         'val', class_ids=args.class_ids
     )
-    # class_names = objslampp.datasets.ycb_video.class_names
+
+    class_names = objslampp.datasets.ycb_video.class_names
+    fg_class_names = class_names[1:]
 
     termcolor.cprint('==> Dataset size', attrs={'bold': True})
     print('train={}, val={}'.format(len(data_train), len(data_valid)))
 
     # model initialization
     model = contrib.models.BaselineModel(
+        n_fg_class=len(fg_class_names),
         freeze_until=args.freeze_until,
         voxelization=args.voxelization,
     )
