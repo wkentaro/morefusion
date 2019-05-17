@@ -3,6 +3,28 @@ import objslampp
 
 class YCBVideoInstanceSegmentationDataset(objslampp.datasets.YCBVideoDataset):
 
+    """YCBVideoInstanceSegmentationDataset(split: str, sampling: int = 1)
+
+    Instance segmentation dataset of YCBVideoDataset.
+
+    Parameters
+    ----------
+    split: str
+        Split of this dataset.
+        (choices: ('train', 'val', 'trainval', 'keyframe'))
+    sampling: int
+        Sampling step of the video frames. (default: 1)
+
+    Properties
+    ----------
+    root_dir: path.Path
+        Root directory of this dataset.
+
+    .. seealso::
+        See :class:`objslampp.datasets.YCBVideoDataset`.
+
+    """
+
     def get_example(self, i):
         example = super().get_example(i)
 
