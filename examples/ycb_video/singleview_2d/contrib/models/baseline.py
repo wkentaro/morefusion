@@ -124,9 +124,11 @@ class BaselineModel(chainer.Chain):
         h = F.relu(self.fc6(h))
         quaternion = self.fc_quaternion(h)
         quaternion = quaternion.reshape(batch_size, self._n_fg_class, 4)
-        quaternion = F.normalize(quaternion, axis=1)
 
-        quaternion = quaternion[xp.arange(batch_size), class_id, :]
+        fg_class_id = class_id - 1
+        quaternion = quaternion[xp.arange(batch_size), fg_class_id, :]
+
+        quaternion = F.normalize(quaternion, axis=1)
 
         return quaternion
 
