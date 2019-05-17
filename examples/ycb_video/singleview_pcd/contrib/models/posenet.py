@@ -149,9 +149,10 @@ class PoseNet(chainer.Chain):
         pcd_masked = pcd_masked + centroids[:, :, None]
         cls_trans = pcd_masked[:, None, :, :] + cls_trans
 
-        rot = cls_rot[xp.arange(B), class_id, :, :]
-        trans = cls_trans[xp.arange(B), class_id, :, :]
-        conf = cls_conf[xp.arange(B), class_id]
+        fg_class_id = class_id - 1
+        rot = cls_rot[xp.arange(B), fg_class_id, :, :]
+        trans = cls_trans[xp.arange(B), fg_class_id, :, :]
+        conf = cls_conf[xp.arange(B), fg_class_id]
 
         rot = F.normalize(rot, axis=1)
         rot = rot.transpose(0, 2, 1)    # B4M -> BM4
