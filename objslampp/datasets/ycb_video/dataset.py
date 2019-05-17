@@ -12,6 +12,22 @@ from ..base import DatasetBase
 
 class YCBVideoDataset(DatasetBase):
 
+    """YCB Video Dataset.
+
+    Parameters
+    ----------
+    split: str
+        Split of this dataset.
+        (choices: ('train', 'val', 'trainval', 'keyframe'))
+    sampling: int
+        Sampling step of the video frames. (default: 1)
+
+    Properties
+    ----------
+    root_dir: path.Path
+        Root directory of this dataset.
+    """
+
     _root_dir = chainer.dataset.get_dataset_directory(
         'ycb_video/YCB_Video_Dataset', create_directory=False
     )
