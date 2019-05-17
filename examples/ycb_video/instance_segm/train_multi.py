@@ -38,6 +38,7 @@ from transforms import ClassIds2FGClassIds
 from transforms import Compose
 from transforms import Dict2Tuple
 from transforms import HWC2CHW
+from transforms import RGBAugmentation
 
 
 # https://docs.chainer.org/en/stable/tips.html#my-training-process-gets-stuck-when-using-multiprocessiterator
@@ -218,6 +219,7 @@ def main():
     if comm.rank == 0:
         train = YCBVideoInstanceSegmentationDataset(split='train', sampling=15)
         transform = Compose(
+            RGBAugmentation(['rgb']),
             ClassIds2FGClassIds(['labels']),
             AsType(['rgb', 'labels', 'bboxes'],
                    [np.float32, np.int32, np.float32]),
