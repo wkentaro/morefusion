@@ -47,6 +47,17 @@ class Dict2Tuple:
         return tuple([in_data[k] for k in self._keys])
 
 
+class ClassIds2FGClassIds:
+
+    def __init__(self, indices):
+        self._indices = indices
+
+    def __call__(self, in_data):
+        for index in self._indices:
+            in_data[index] -= 1
+        return in_data
+
+
 class Compose:
 
     def __init__(self, *transforms):

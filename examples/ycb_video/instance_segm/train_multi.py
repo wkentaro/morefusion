@@ -34,6 +34,7 @@ import objslampp
 
 from dataset import YCBVideoInstanceSegmentationDataset
 from transforms import AsType
+from transforms import ClassIds2FGClassIds
 from transforms import Compose
 from transforms import Dict2Tuple
 from transforms import HWC2CHW
@@ -199,13 +200,14 @@ def main():
     device = comm.intra_rank
 
     class_names = objslampp.datasets.ycb_video.class_names
+    fg_class_names = class_names[1:]
     if args.model == 'mask_rcnn_fpn_resnet50':
         model = MaskRCNNFPNResNet50(
-            n_fg_class=len(class_names),
+            n_fg_class=len(fg_class_names),
             pretrained_model='imagenet')
     elif args.model == 'mask_rcnn_fpn_resnet101':
         model = MaskRCNNFPNResNet101(
-            n_fg_class=len(class_names),
+            n_fg_class=len(fg_class_names),
             pretrained_model='imagenet')
 
     model.use_preset('evaluate')
@@ -216,6 +218,7 @@ def main():
     if comm.rank == 0:
         train = YCBVideoInstanceSegmentationDataset(split='train', sampling=15)
         transform = Compose(
+            ClassIds2FGClassIds(['labels']),
             AsType(['rgb', 'labels', 'bboxes'],
                    [np.float32, np.int32, np.float32]),
             HWC2CHW(['rgb']),
@@ -225,6 +228,7 @@ def main():
         train = TransformDataset(train, transform)
         val = YCBVideoInstanceSegmentationDataset(split='val', sampling=15)
         transform = Compose(
+            ClassIds2FGClassIds(['labels']),
             AsType(['rgb', 'labels', 'bboxes'],
                    [np.float32, np.int32, np.float32]),
             HWC2CHW(['rgb']),
