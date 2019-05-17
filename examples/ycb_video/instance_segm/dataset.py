@@ -1,4 +1,46 @@
+import numpy as np
+
 import objslampp
+
+
+def _ycb_video_to_instance_segmentation(example):
+    rgb = example['color']
+    lbl = example['label']
+    meta = example['meta']
+
+    labels = meta['cls_indexes'].astype(np.int32)
+    masks = lbl[None, :, :] == labels[:, None, None]
+
+    keep = masks.sum(axis=(1, 2)) > 0
+    labels = labels[keep]
+    masks = masks[keep]
+
+    bboxes = objslampp.geometry.masks_to_bboxes(masks)
+
+    return dict(
+        rgb=rgb,
+        bboxes=bboxes,
+        labels=labels,
+        masks=masks,
+    )
+
+
+class YCBVideoSyntheticInstanceSegmentationDataset(
+    objslampp.datasets.YCBVideoSyntheticDataset
+):
+
+    """YCBVideoSyntheticInstanceSegmentationDataset()
+
+    Instance segmentation dataset of YCBVideoSyntheticDataset.
+
+    .. seealso::
+        See :class:`objslampp.datasets.YCBVideoSyntheticDataset`.
+
+    """
+
+    def get_example(self, i):
+        example = super().get_example(i)
+        return _ycb_video_to_instance_segmentation(example)
 
 
 class YCBVideoInstanceSegmentationDataset(objslampp.datasets.YCBVideoDataset):
@@ -27,26 +69,7 @@ class YCBVideoInstanceSegmentationDataset(objslampp.datasets.YCBVideoDataset):
 
     def get_example(self, i):
         example = super().get_example(i)
-
-        rgb = example['color']
-        lbl = example['label']
-        meta = example['meta']
-
-        labels = meta['cls_indexes']
-        masks = lbl[None, :, :] == labels[:, None, None]
-
-        keep = masks.sum(axis=(1, 2)) > 0
-        labels = labels[keep]
-        masks = masks[keep]
-
-        bboxes = objslampp.geometry.masks_to_bboxes(masks)
-
-        return dict(
-            rgb=rgb,
-            bboxes=bboxes,
-            labels=labels,
-            masks=masks,
-        )
+        return _ycb_video_to_instance_segmentation(example)
 
 
 if __name__ == '__main__':
@@ -54,8 +77,9 @@ if __name__ == '__main__':
 
     class Images:
 
-        dataset = YCBVideoInstanceSegmentationDataset(
-            split='train', sampling=15)
+        dataset = YCBVideoSyntheticInstanceSegmentationDataset()
+        # dataset = YCBVideoInstanceSegmentationDataset(
+        #     split='train', sampling=15)
 
         def __len__(self):
             return len(self.dataset)
