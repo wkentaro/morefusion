@@ -168,8 +168,13 @@ def main():
         print(name, link.update_enabled)
 
     # iterator initialization
-    iter_train = chainer.iterators.SerialIterator(
-        data_train, batch_size=16, repeat=True, shuffle=True
+    iter_train = chainer.iterators.MultiprocessIterator(
+        data_train,
+        batch_size=16,
+        repeat=True,
+        shuffle=True,
+        n_processes=16,
+        shared_mem=10 ** 9,
     )
     iter_valid = chainer.iterators.SerialIterator(
         data_valid, batch_size=1, repeat=False, shuffle=False
