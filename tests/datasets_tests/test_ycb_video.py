@@ -1,5 +1,6 @@
 import unittest
 
+import numpy as np
 import pytest
 
 from objslampp.datasets.ycb_video import YCBVideoDataset
@@ -21,5 +22,5 @@ class TestYCBVideoDataset(unittest.TestCase):
 
 
 def test_class_names():
-    assert isinstance(class_names, tuple)
+    assert isinstance(class_names, np.ndarray)
     assert len(class_names) == 22
