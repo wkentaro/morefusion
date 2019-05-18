@@ -12,7 +12,7 @@ def auc_for_errors(
     errors = np.asarray(errors)
 
     assert errors.ndim == 1
-    assert errors.min() >= 0
+    assert errors.min() >= 0, f'min of errors must be >=0: {errors.min()}'
 
     x = np.zeros((nstep,), dtype=float)
     y = np.zeros((nstep,), dtype=float)
