@@ -24,14 +24,15 @@ class DatasetBase(objslampp.datasets.DatasetBase):
 
         class_ids = [e['class_id'] for e in examples]
 
-        if self._class_ids is None:
-            class_id = np.random.choice(class_ids)
-        else:
+        if self._class_ids:
             options = set(self._class_ids) & set(class_ids)
             if options:
                 class_id = np.random.choice(list(options))
             else:
                 return self._get_invalid_data()
+        else:
+            # None or []
+            class_id = np.random.choice(class_ids)
         instance_index = np.random.choice(np.where(class_ids == class_id)[0])
 
         return examples[instance_index]

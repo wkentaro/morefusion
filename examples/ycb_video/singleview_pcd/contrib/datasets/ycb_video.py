@@ -75,7 +75,8 @@ class YCBVideoDataset(objslampp.datasets.base.DatasetBase):
 
         class_ids = frame['meta']['cls_indexes']
 
-        if self._class_ids is None:
+        if not self._class_ids:
+            # None or []
             class_id = np.random.choice(class_ids)
         elif not any(c in class_ids for c in self._class_ids):
             return self._get_invalid_data()
