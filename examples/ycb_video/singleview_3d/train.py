@@ -23,10 +23,13 @@ here = path.Path(__file__).abspath().parent
 
 def main():
     now = datetime.datetime.now(datetime.timezone.utc)
-    default_out = str(here / 'logs' / now.strftime('%Y%m%d_%H%M%S.%f'))
+    default_out = str(here / 'logs' / now.strftime('%Y%m%d_%H%M%S'))
 
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument(
+        '--multi-node', action='store_true', help='multi node'
     )
     parser.add_argument('--out', default=default_out, help='output directory')
     parser.add_argument('--debug', action='store_true', help='debug mode')
@@ -85,56 +88,67 @@ def main():
 
     chainer.global_config.debug = args.debug
 
-    termcolor.cprint('==> Started training', attrs={'bold': True})
-
-    args.timestamp = now.isoformat()
-    args.hostname = socket.gethostname()
-    args.githash = objslampp.utils.githash(__file__)
-
-    writer = tensorboardX.SummaryWriter(log_dir=args.out)
-    writer_with_updater = objslampp.training.SummaryWriterWithUpdater(writer)
-
     # -------------------------------------------------------------------------
 
     # device initialization
-    if args.gpu >= 0:
-        chainer.cuda.get_device_from_id(args.gpu).use()
+    if args.multi_node:
+        import chainermn
+
+        comm = chainermn.create_communicator('pure_nccl')
+        device = comm.intra_rank
+        n_gpu = comm.size
+    else:
+        device = args.gpu
+        n_gpu = 1
+
+    if not args.multi_node or comm.rank == 0:
+        args.timestamp = now.isoformat()
+        args.hostname = socket.gethostname()
+        args.githash = objslampp.utils.githash(__file__)
+
+        termcolor.cprint('==> Started training', attrs={'bold': True})
+
+    if device >= 0:
+        chainer.cuda.get_device_from_id(device).use()
 
     # seed initialization
     random.seed(args.seed)
     np.random.seed(args.seed)
-    if args.gpu >= 0:
+    if device >= 0:
         chainer.cuda.cupy.random.seed(args.seed)
 
     # dataset initialization
-    if args.dataset == 'ycb_video':
-        data_train = contrib.datasets.YCBVideoDataset(
-            'train',
-            class_ids=args.class_ids,
-            augmentation=args.augmentation,
-        )
-    elif args.dataset == 'ycb_video_syn':
-        data_train = contrib.datasets.YCBVideoDataset(
-            'syn',
-            class_ids=args.class_ids,
-            augmentation=args.augmentation,
-        )
-    elif args.dataset == 'cad_only':
-        data_train = contrib.datasets.CADOnlyDataset(
-            class_ids=args.class_ids,
-            augmentation=args.augmentation,
-        )
-    else:
-        raise ValueError(f'unsupported dataset: {args.dataset}')
     data_valid = contrib.datasets.YCBVideoDataset(
         'val', class_ids=args.class_ids
     )
+    data_train = None
+    if not args.multi_node or comm.rank == 0:
+        if args.dataset == 'ycb_video':
+            data_train = contrib.datasets.YCBVideoDataset(
+                'train',
+                class_ids=args.class_ids,
+                augmentation=args.augmentation,
+            )
+        elif args.dataset == 'ycb_video_syn':
+            data_train = contrib.datasets.YCBVideoDataset(
+                'syn',
+                class_ids=args.class_ids,
+                augmentation=args.augmentation,
+            )
+        elif args.dataset == 'cad_only':
+            data_train = contrib.datasets.CADOnlyDataset(
+                class_ids=args.class_ids,
+                augmentation=args.augmentation,
+            )
+        else:
+            raise ValueError(f'unsupported dataset: {args.dataset}')
+        termcolor.cprint('==> Dataset size', attrs={'bold': True})
+        print(f'train={len(data_train)}, val={len(data_valid)}')
+    if args.multi_node:
+        data_train = chainermn.scatter_dataset(data_train, comm, shuffle=True)
 
     class_names = objslampp.datasets.ycb_video.class_names
     fg_class_names = class_names[1:]
-
-    termcolor.cprint('==> Dataset size', attrs={'bold': True})
-    print('train={}, val={}'.format(len(data_train), len(data_valid)))
 
     # model initialization
     model = contrib.models.BaselineModel(
@@ -142,14 +156,15 @@ def main():
         freeze_until=args.freeze_until,
         voxelization=args.voxelization,
     )
-    if args.gpu >= 0:
+    if device >= 0:
         model.to_gpu()
 
     # optimizer initialization
-    optimizer = chainer.optimizers.Adam(alpha=args.lr)
+    optimizer = chainer.optimizers.Adam(alpha=args.lr * n_gpu)
+    if args.multi_node:
+        optimizer = chainermn.create_multi_node_optimizer(optimizer, comm)
     optimizer.setup(model)
 
-    termcolor.cprint('==> Link update rules', attrs={'bold': True})
     if args.freeze_until in ['conv1_2', 'conv2_2', 'conv3_3', 'conv4_3']:
         model.extractor.conv1_1.disable_update()
         model.extractor.conv1_2.disable_update()
@@ -164,8 +179,10 @@ def main():
         model.extractor.conv4_1.disable_update()
         model.extractor.conv4_2.disable_update()
         model.extractor.conv4_3.disable_update()
-    for name, link in model.namedlinks():
-        print(name, link.update_enabled)
+    if not args.multi_node or comm.rank == 0:
+        termcolor.cprint('==> Link update rules', attrs={'bold': True})
+        for name, link in model.namedlinks():
+            print(name, link.update_enabled)
 
     # iterator initialization
     iter_train = chainer.iterators.MultiprocessIterator(
@@ -183,9 +200,14 @@ def main():
     updater = chainer.training.updater.StandardUpdater(
         iterator=iter_train,
         optimizer=optimizer,
-        device=args.gpu,
+        device=device,
     )
-    writer_with_updater.setup(updater)
+    if not args.multi_node or comm.rank == 0:
+        writer = tensorboardX.SummaryWriter(log_dir=args.out)
+        writer_with_updater = objslampp.training.SummaryWriterWithUpdater(
+            writer
+        )
+        writer_with_updater.setup(updater)
 
     # -------------------------------------------------------------------------
 
@@ -194,83 +216,81 @@ def main():
     )
     trainer.extend(chainer.training.extensions.FailOnNonNumber())
 
-    # print arguments
-    msg = pprint.pformat(args.__dict__)
-    msg = textwrap.indent(msg, prefix=' ' * 2)
-    termcolor.cprint('==> Arguments', attrs={'bold': True})
-    print(f'\n{msg}\n')
+    if not args.multi_node or comm.rank == 0:
+        # print arguments
+        msg = pprint.pformat(args.__dict__)
+        msg = textwrap.indent(msg, prefix=' ' * 2)
+        termcolor.cprint('==> Arguments', attrs={'bold': True})
+        print(f'\n{msg}\n')
 
-    trainer.extend(
-        objslampp.training.extensions.ArgsReport(args),
-        call_before_training=True,
-    )
+        trainer.extend(
+            objslampp.training.extensions.ArgsReport(args),
+            call_before_training=True,
+        )
 
-    log_interval = 1, 'iteration'
-    param_log_interval = 100, 'iteration'
-    eval_interval = 0.3, 'epoch'
+        log_interval = 1, 'iteration'
+        param_log_interval = 100, 'iteration'
+        eval_interval = 0.3, 'epoch'
 
-    # evaluate
-    evaluator = objslampp.training.extensions.PoseEstimationEvaluator(
-        iterator=iter_valid,
-        target=model,
-        device=args.gpu,
-        progress_bar=True,
-    )
-    trainer.extend(
-        evaluator,
-        trigger=eval_interval,
-        call_before_training=not args.nocall_evaluation_before_training,
-    )
-
-    # snapshot
-    trainer.extend(
-        chainer.training.extensions.snapshot_object(
-            model, filename='snapshot_model_best_auc_add.npz'
-        ),
-        trigger=chainer.training.triggers.MaxValueTrigger(
-            key='validation/main/auc/add',
+        # evaluate
+        evaluator = objslampp.training.extensions.PoseEstimationEvaluator(
+            iterator=iter_valid,
+            target=model,
+            device=device,
+            progress_bar=True,
+        )
+        trainer.extend(
+            evaluator,
             trigger=eval_interval,
-        ),
-    )
+            call_before_training=not args.nocall_evaluation_before_training,
+        )
 
-    # log
-    trainer.extend(
-        chainer.training.extensions.observe_lr(),
-        trigger=log_interval,
-    )
-    trainer.extend(
-        objslampp.training.extensions.LogTensorboardReport(
-            writer=writer,
+        # snapshot
+        trainer.extend(
+            chainer.training.extensions.snapshot_object(
+                model, filename='snapshot_model_best_auc_add.npz'
+            ),
+            trigger=chainer.training.triggers.MaxValueTrigger(
+                key='validation/main/auc/add',
+                trigger=eval_interval,
+            ),
+        )
+
+        # log
+        trainer.extend(
+            objslampp.training.extensions.LogTensorboardReport(
+                writer=writer,
+                trigger=log_interval,
+            ),
+            call_before_training=True,
+        )
+        trainer.extend(
+            objslampp.training.extensions.ParameterTensorboardReport(
+                writer=writer
+            ),
+            call_before_training=True,
+            trigger=param_log_interval,
+        )
+        trainer.extend(
+            chainer.training.extensions.PrintReport(
+                [
+                    'epoch',
+                    'iteration',
+                    'elapsed_time',
+                    'main/loss',
+                    'main/add',
+                    'main/add_rotation',
+                    'validation/main/auc/add',
+                    'validation/main/auc/add_rotation',
+                ],
+                log_report='LogTensorboardReport',
+            ),
             trigger=log_interval,
-        ),
-        call_before_training=True,
-    )
-    trainer.extend(
-        objslampp.training.extensions.ParameterTensorboardReport(
-            writer=writer
-        ),
-        call_before_training=True,
-        trigger=param_log_interval,
-    )
-    trainer.extend(
-        chainer.training.extensions.PrintReport(
-            [
-                'epoch',
-                'iteration',
-                'elapsed_time',
-                'lr',
-                'main/loss',
-                'main/add',
-                'main/add_rotation',
-                'validation/main/auc/add',
-                'validation/main/auc/add_rotation',
-            ],
-            log_report='LogTensorboardReport',
-        ),
-        trigger=log_interval,
-        call_before_training=True,
-    )
-    trainer.extend(chainer.training.extensions.ProgressBar(update_interval=1))
+            call_before_training=True,
+        )
+        trainer.extend(
+            chainer.training.extensions.ProgressBar(update_interval=1)
+        )
 
     # -------------------------------------------------------------------------
 
