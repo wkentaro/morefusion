@@ -116,12 +116,14 @@ class DatasetBase(objslampp.datasets.DatasetBase):
         r, c = np.where(mask)
         r = np.clip(r + dy, 0, H - 1)
         c = np.clip(c + dx, 0, W - 1)
-        mask_ = np.zeros_like(mask)
-        mask_[r, c] = True
+        mask_aug = np.zeros_like(mask)
+        mask_aug[r, c] = True
 
-        mask = mask & mask_
+        mask_new = mask & mask_aug
+        if (mask_new.sum() / mask.sum()) < 0.5:
+            return mask  # return original
 
-        return mask
+        return mask_new
 
     def _augment_occlusion(self, mask):
         random_state = imgaug.current_random_state()
