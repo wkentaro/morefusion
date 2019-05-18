@@ -16,8 +16,8 @@ class Images:
     class_names = objslampp.datasets.ycb_video.class_names
 
     model = MaskRCNNFPNResNet50(
-        n_fg_class=len(class_names),
-        pretrained_model='result/model_iter_best_30000',
+        n_fg_class=len(class_names[1:]),
+        pretrained_model='logs/2019-05-18_07-17-29/model_iter_best',
     )
     model.to_gpu()
 
