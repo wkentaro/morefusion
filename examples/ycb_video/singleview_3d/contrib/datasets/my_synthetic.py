@@ -76,8 +76,7 @@ class MySyntheticDataset(DatasetBase):
         for instance_id, class_id, T_cad2cam in zip(
             instance_ids, class_ids, Ts_cad2cam
         ):
-            if (self._class_ids is not None and
-                    class_id not in self._class_ids):
+            if self._class_ids and class_id not in self._class_ids:
                 continue
 
             mask = instance_label == instance_id

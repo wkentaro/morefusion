@@ -77,6 +77,9 @@ class YCBVideoDataset(DatasetBase):
 
         examples = []
         for class_id in class_ids:
+            if self._class_ids and class_id not in self._class_ids:
+                continue
+
             rgb = frame['color'].copy()
             depth = frame['depth'].copy()
             mask = frame['label'] == class_id

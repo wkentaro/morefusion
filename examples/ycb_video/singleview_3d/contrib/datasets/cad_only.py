@@ -19,7 +19,7 @@ class CADOnlyDataset(DatasetBase):
     ):
         self._models = objslampp.datasets.YCBVideoModels()
 
-        if class_ids is None:
+        if not class_ids:
             class_ids = np.arange(1, self._models.n_class)
         self._class_ids = class_ids
         self._augmentation = augmentation
