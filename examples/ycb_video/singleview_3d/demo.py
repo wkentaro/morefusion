@@ -38,6 +38,7 @@ def main():
         chainer.cuda.get_device_from_id(args.gpu).use()
 
     model = contrib.models.BaselineModel(
+        n_fg_class=len(args_data['class_names'][1:]),
         freeze_until=args_data['freeze_until'],
         voxelization=args_data.get('voxelization', 'average'),
     )
@@ -54,10 +55,12 @@ def main():
         # bin type
         # 'wkentaro/objslampp/ycb_video/synthetic_data/20190402_174648.841996',
     )
-    args.class_ids = [2]
+    args.class_ids = []
     dataset = contrib.datasets.MySyntheticDataset(
         args.root_dir, class_ids=args.class_ids
     )
+
+    pprint.pprint(args.__dict__)
 
     # -------------------------------------------------------------------------
 
@@ -142,6 +145,8 @@ def main():
                 ratio_cover = mask_intersect.sum() / mask_real.sum()
                 is_poor = ratio_cover < 0.85
                 if is_poor:
+                    if instance_id in instances:
+                        instances[instance_id]['batch_index'] = i
                     continue
 
             # T_cad2world = T_cam2world @ T_cad2cam
@@ -158,6 +163,8 @@ def main():
                     T_cad2world_vote=None,
                     spawn=False,
                 )
+
+        assert len(Ts_pred) == batch_size
 
         # check consistency of pose estimation
         Ts_vote = [None] * len(Ts_pred)
