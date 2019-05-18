@@ -45,6 +45,10 @@ class MySyntheticDataset(DatasetBase):
             class_ids = class_ids[keep]
             Ts_cad2cam = Ts_cad2cam[keep]
 
+        n_instance = len(instance_ids)
+        assert len(class_ids) == n_instance
+        assert len(Ts_cad2cam) == n_instance
+
         return dict(
             instance_ids=instance_ids,
             class_ids=class_ids,
