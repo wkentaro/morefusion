@@ -35,7 +35,7 @@ def main():
     parser.add_argument(
         '--dataset',
         choices=['ycb_video', 'ycb_video_syn', 'cad_only'],
-        default='cad_only',
+        default='ycb_video',
         help='dataset',
     )
     parser.add_argument(
