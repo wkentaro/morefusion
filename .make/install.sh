@@ -30,6 +30,12 @@ source .anaconda3/bin/activate
 # trimesh dependency
 conda_check_installed libspatialindex || conda install libspatialindex -y
 
+if [ "$CI" = "true" ]; then
+  # it fails with following error with pip install:
+  # ImportError: dlopen: cannot load any more object with static TLS
+  conda install -y scikit-learn
+fi
+
 echo_bold "==> Installing latest pip and setuptools"
 pip install -U pip setuptools wheel
 
