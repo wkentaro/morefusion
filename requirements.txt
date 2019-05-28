@@ -13,6 +13,6 @@ scikit-learn
 scipy
 termcolor
 tqdm
-tensorboardX
+tensorboardX<1.7
 tensorflow
 trimesh[easy]
