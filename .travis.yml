@@ -24,4 +24,4 @@ install:
 
 script:
   - make lint
-  - make test_ci
+  - make test

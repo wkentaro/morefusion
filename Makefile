@@ -18,8 +18,5 @@ lint:
 test:
 	@.make/test.sh
 
-test_ci:
-	@.make/test.sh 1
-
 check:
 	@.make/check.sh
