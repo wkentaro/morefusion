@@ -3,6 +3,7 @@
 import argparse
 import json
 import pprint
+import warnings
 
 import chainer
 from chainer import cuda
@@ -25,6 +26,21 @@ def main():
     parser.add_argument('model', help='model file in a log dir')
     parser.add_argument('--gpu', type=int, default=0, help='gpu id')
     parser.add_argument('--save', action='store_true', help='save')
+    parser.add_argument(
+        '--dataset',
+        choices=[
+            'my_synthetic',
+            'ycb_video',
+            'ycb_video/train',
+            'ycb_video/syn',
+        ],
+        default='ycb_video',
+        help='dataset',
+    )
+    parser.add_argument(
+        '--sampling',
+        type=int,
+    )
     args = parser.parse_args()
 
     args_file = path.Path(args.model).parent / 'args'
@@ -43,20 +59,33 @@ def main():
     if args.gpu >= 0:
         model.to_gpu()
 
-    print('==> Loading trained model: {}'.format(args.model))
+    print(f'==> Loading trained model: {args.model}')
     chainer.serializers.load_npz(args.model, model)
     print('==> Done model loading')
 
-    args.root_dir = chainer.dataset.get_dataset_directory(
-        # plane type
-        'wkentaro/objslampp/ycb_video/synthetic_data/20190408_143724.600111',
-        # bin type
-        # 'wkentaro/objslampp/ycb_video/synthetic_data/20190402_174648.841996',
-    )
-    args.class_ids = []
-    dataset = contrib.datasets.MySyntheticDataset(
-        args.root_dir, class_ids=args.class_ids
-    )
+    if args.dataset == 'my_synthetic':
+        if args.sampling is not None:
+            warnings.warn('--sampling is only used with ycb_video dataset')
+        args.root_dir = chainer.dataset.get_dataset_directory(
+            # plane type
+            'wkentaro/objslampp/ycb_video/synthetic_data/20190408_143724.600111',  # NOQA
+            # bin type
+            # 'wkentaro/objslampp/ycb_video/synthetic_data/20190402_174648.841996',  # NOQA
+        )
+        dataset = contrib.datasets.MySyntheticDataset(
+            args.root_dir, class_ids=args_data['class_ids']
+        )
+    elif args.dataset.startswith('ycb_video'):
+        split = 'val'
+        if '/' in args.dataset:
+            _, split = args.dataset.split('/')
+        dataset = contrib.datasets.YCBVideoDataset(
+            split=split,
+            class_ids=args_data['class_ids'],
+            sampling=args.sampling
+        )
+    else:
+        raise ValueError(f'unexpected dataset: {args.dataset}')
 
     pprint.pprint(args.__dict__)
 
