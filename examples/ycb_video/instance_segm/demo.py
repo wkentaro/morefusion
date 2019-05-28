@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import argparse
+
 from chainercv.links.model.fpn import MaskRCNNFPNResNet50
 import imgviz
 import numpy as np
@@ -11,15 +13,16 @@ from dataset import YCBVideoInstanceSegmentationDataset
 
 class Images:
 
-    dataset = YCBVideoInstanceSegmentationDataset(
-        split='keyframe', sampling=10)
-    class_names = objslampp.datasets.ycb_video.class_names
+    def __init__(self, model_file):
+        self.dataset = YCBVideoInstanceSegmentationDataset(
+            split='keyframe', sampling=10)
+        self.class_names = objslampp.datasets.ycb_video.class_names
 
-    model = MaskRCNNFPNResNet50(
-        n_fg_class=len(class_names[1:]),
-        pretrained_model='logs/2019-05-18_07-17-29/model_iter_best',
-    )
-    model.to_gpu()
+        self.model = MaskRCNNFPNResNet50(
+            n_fg_class=len(self.class_names[1:]),
+            pretrained_model=model_file,
+        )
+        self.model.to_gpu()
 
     def __len__(self):
         return len(self.dataset)
@@ -42,16 +45,18 @@ class Images:
         labels = labels[keep]
         confs = confs[keep]
 
+        class_ids = labels + 1
+
         captions = [
-            f'{self.class_names[label]}: {conf:.1%}'
-            for label, conf in zip(labels, confs)
+            f'{self.class_names[cid]}: {conf:.1%}'
+            for cid, conf in zip(class_ids, confs)
         ]
         for caption in captions:
             print(caption)
         viz = imgviz.instances.instances2rgb(
             image=rgb,
             masks=masks,
-            labels=labels,
+            labels=class_ids,
             captions=captions,
             font_size=15,
         )
@@ -62,5 +67,16 @@ class Images:
         return viz
 
 
-imgviz.io.pyglet_imshow(Images(), interval=1 / 10)
-imgviz.io.pyglet_run()
+def main():
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument('model_file', help='model file')
+    args = parser.parse_args()
+
+    imgviz.io.pyglet_imshow(Images(args.model_file), interval=1 / 10)
+    imgviz.io.pyglet_run()
+
+
+if __name__ == '__main__':
+    main()
