@@ -19,8 +19,8 @@ class MaskRCNNInstanceSegmentationNode(LazyTransport):
         self._class_names = objslampp.datasets.ycb_video.class_names
 
         self._model = MaskRCNNFPNResNet50(
-            n_fg_class=len(self._class_names),
-            pretrained_model='/home/wkentaro/objslampp/examples/ycb_video/instance_segm/logs/model_iter_best_30000',  # NOQA
+            n_fg_class=len(self._class_names[1:]),
+            pretrained_model='/home/wkentaro/objslampp/examples/ycb_video/instance_segm/logs/20190518_071729/model_iter_best',  # NOQA
         )
         self._model.to_gpu()
 
@@ -50,14 +50,16 @@ class MaskRCNNInstanceSegmentationNode(LazyTransport):
         labels = labels[keep]
         confs = confs[keep]
 
+        class_ids = labels + 1
+
         captions = [
-            f'{self._class_names[label]}: {conf:.1%}'
-            for label, conf in zip(labels, confs)
+            f'{self._class_names[cid]}: {conf:.1%}'
+            for cid, conf in zip(class_ids, confs)
         ]
         viz = imgviz.instances.instances2rgb(
             image=rgb,
             masks=masks,
-            labels=labels,
+            labels=class_ids,
             captions=captions,
             font_size=15,
         )
