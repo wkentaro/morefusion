@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 echo_bold () {
   echo -e "\033[1m$*\033[0m"
 }
