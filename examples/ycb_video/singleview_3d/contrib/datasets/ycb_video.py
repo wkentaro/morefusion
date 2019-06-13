@@ -17,10 +17,8 @@ class YCBVideoDataset(DatasetBase):
         augmentation={},
         sampling=None,
     ):
-        super().__init__()
+        super().__init__(class_ids=class_ids, augmentation=augmentation)
         self._split = split
-        self._class_ids = class_ids
-        self._augmentation = augmentation
         self._sampling = sampling
         self._ids = self._get_ids()
 

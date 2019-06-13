@@ -17,13 +17,8 @@ class CADOnlyDataset(DatasetBase):
         n_sample_per_class=20000,
         augmentation={'rgb', 'depth', 'segm', 'occl'}
     ):
+        super().__init__(class_ids=class_ids, augmentation=augmentation)
         self._models = objslampp.datasets.YCBVideoModels()
-
-        if not class_ids:
-            class_ids = np.arange(1, self._models.n_class)
-        self._class_ids = class_ids
-        self._augmentation = augmentation
-
         self._n_sample = n_sample_per_class * len(class_ids)
 
     def __len__(self):

@@ -12,9 +12,12 @@ class DatasetBase(objslampp.datasets.DatasetBase):
 
     voxel_dim = 32
     _cache_pitch = {}
-
-    _augmentation = {}
     _occlusions = objslampp.datasets.YCBVideoDataset('train')
+
+    def __init__(self, root_dir=None, class_ids=None, augmentation=None):
+        self._root_dir = root_dir
+        self._class_ids = class_ids
+        self._augmentation = augmentation
 
     def _get_invalid_data(self):
         return dict(

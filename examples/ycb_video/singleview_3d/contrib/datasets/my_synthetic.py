@@ -6,11 +6,8 @@ from .base import DatasetBase
 
 class MySyntheticDataset(DatasetBase):
 
-    def __init__(self, root_dir, class_ids=None, augmentation={}):
-        super().__init__()
-        self._root_dir = root_dir
-        self._class_ids = class_ids
-        self._augmentation = augmentation
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self._ids = self._get_ids()
 
     def _get_ids(self):
