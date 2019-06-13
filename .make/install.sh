@@ -7,7 +7,11 @@ echo_bold () {
 }
 
 echo_warning () {
-  echo -e "\033[33m$*\033[0m"
+  echo -e "\033[1;33m$*\033[0m"
+}
+
+echo_error () {
+  echo -e "\033[1;31m$*\033[0m"
 }
 
 conda_check_installed () {
@@ -41,6 +45,16 @@ pip install -U pip setuptools wheel
 
 echo_bold "==> Installing cython and numpy"
 pip install cython numpy
+
+echo_bold "==> Checking the remaining change in src/"
+for dir in src/*; do
+  diff=$(cd $dir && git diff)
+  if [ "$diff" != "" ]; then
+    echo_error "==> Found a diff in the source: $dir"
+    echo "$diff"
+    exit 1
+  fi
+done
 
 echo_bold "==> Installing with requirements-dev.txt"
 pip install -r requirements-dev.txt
