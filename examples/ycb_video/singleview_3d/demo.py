@@ -30,6 +30,7 @@ def main():
         '--dataset',
         choices=[
             'my_synthetic',
+            'my_real',
             'ycb_video',
             'ycb_video/train',
             'ycb_video/syn',
@@ -73,6 +74,13 @@ def main():
             # 'wkentaro/objslampp/ycb_video/synthetic_data/20190402_174648.841996',  # NOQA
         )
         dataset = contrib.datasets.MySyntheticDataset(
+            args.root_dir, class_ids=args_data['class_ids']
+        )
+    elif args.dataset == 'my_real':
+        args.root_dir = chainer.dataset.get_dataset_directory(
+            'wkentaro/objslampp/ycb_video/real_data/20190613'
+        )
+        dataset = contrib.datasets.MyRealDataset(
             args.root_dir, class_ids=args_data['class_ids']
         )
     elif args.dataset.startswith('ycb_video'):
@@ -160,6 +168,7 @@ def main():
         Ts = dict(true=Ts_true, pred=Ts_pred)
 
         vizs = []
+        depth_viz = depth2rgb(frame['depth'])
         for which in ['true', 'pred']:
             pybullet.connect(pybullet.DIRECT)
             for i, T in enumerate(Ts[which]):
@@ -191,8 +200,15 @@ def main():
                 cuda.to_cpu(inputs['rgb']), border=(255, 255, 255)
             )
             viz = imgviz.tile(
-                [frame['rgb'], rgb_input, segm_rend, rgb_rend, depth_rend],
-                (1, 5),
+                [
+                    frame['rgb'],
+                    depth_viz,
+                    rgb_input,
+                    segm_rend,
+                    rgb_rend,
+                    depth_rend,
+                ],
+                (1, 6),
                 border=(255, 255, 255),
             )
             viz = imgviz.resize(viz, width=1800)
