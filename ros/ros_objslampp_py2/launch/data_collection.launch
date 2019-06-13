@@ -45,6 +45,10 @@
     <rosparam subst_value="true">
       save_dir: ~/.ros
       topics:
+        - name: /camera/color/camera_info
+          msg_class: sensor_msgs/CameraInfo
+          fname: camera_info.yaml
+          savetype: YAML
         - name: /camera/color/image_raw
           msg_class: sensor_msgs/Image
           fname: image.png
