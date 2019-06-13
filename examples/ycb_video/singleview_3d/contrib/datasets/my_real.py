@@ -18,7 +18,7 @@ class MyRealDataset(DatasetBase):
         ids = self.root_dir.dirs()
         return tuple(ids)
 
-    def get_frame(self, index):
+    def get_frame(self, index, bg_class=False):
         frame_dir = self.ids[index]
 
         rgb_file = frame_dir / 'image.png'
@@ -60,11 +60,11 @@ class MyRealDataset(DatasetBase):
             Ts_cad2cam.append(T_cad2cam)
         Ts_cad2cam = np.array(Ts_cad2cam, dtype=float)
 
-        # import trimesh
-        # geom = trimesh.PointCloud(
-        #     vertices=pcd[~np.isnan(depth)], colors=rgb[~np.isnan(depth)]
-        # )
-        # geom.show()
+        if not bg_class:
+            keep = class_ids > 0
+            instance_ids = instance_ids[keep]
+            class_ids = class_ids[keep]
+            Ts_cad2cam = Ts_cad2cam[keep]
 
         return dict(
             instance_ids=instance_ids,

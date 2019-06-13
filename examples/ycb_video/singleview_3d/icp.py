@@ -11,7 +11,7 @@ from align_pointclouds import refinement
 
 
 models = objslampp.datasets.YCBVideoModels()
-inference = Inference(gpu=0)
+inference = Inference(dataset='my_real', gpu=0)
 frame, Ts_cad2cam_true, Ts_cad2cam_pred = inference(index=0)
 
 refinement(

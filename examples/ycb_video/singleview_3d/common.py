@@ -11,21 +11,22 @@ import objslampp
 import contrib
 
 
+home = path.Path('~').expanduser()
+here = path.Path(__file__).abspath().parent
+
+
 class Inference:
 
-    def __init__(self, gpu=0):
-        model_file = './logs.20190417.cad_only/20190412_142459.904281/snapshot_model_best_auc_add.npz'  # NOQA
+    def __init__(self, dataset='my_synthetic', gpu=0):
+        model_file = here / 'logs/20190518_022000/snapshot_model_best_auc_add.npz'  # NOQA
         model_file = path.Path(model_file)
         args_file = model_file.parent / 'args'
-
-        class_ids = [2]
-        root_dir = '~/data/datasets/wkentaro/objslampp/ycb_video/synthetic_data/20190507_121544.807309'  # NOQA
-        root_dir = path.Path(root_dir).expanduser()
 
         with open(args_file) as f:
             args_data = json.load(f)
 
         model = contrib.models.BaselineModel(
+            n_fg_class=len(args_data['class_names'][1:]),
             freeze_until=args_data['freeze_until'],
             voxelization=args_data.get('voxelization', 'average'),
         )
@@ -34,10 +35,20 @@ class Inference:
             model.to_gpu()
         chainer.serializers.load_npz(model_file, model)
 
-        dataset = contrib.datasets.MySyntheticDataset(
-            root_dir=root_dir,
-            class_ids=class_ids,
-        )
+        if dataset == 'my_synthetic':
+            root_dir = home / 'data/datasets/wkentaro/objslampp/ycb_video/synthetic_data/20190507_121544.807309'  # NOQA
+            dataset = contrib.datasets.MySyntheticDataset(
+                root_dir=root_dir,
+                class_ids=args_data['class_ids'],
+            )
+        elif dataset == 'my_real':
+            root_dir = home / 'data/datasets/wkentaro/objslampp/ycb_video/real_data/20190613'  # NOQA
+            dataset = contrib.datasets.MyRealDataset(
+                root_dir=root_dir,
+                class_ids=args_data['class_ids'],
+            )
+        else:
+            raise ValueError(f'unsupported dataset: {dataset}')
 
         self.gpu = gpu
         self.model = model
