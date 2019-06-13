@@ -1,6 +1,9 @@
+import chainer
 import imgaug
 import imgaug.augmenters as iaa
+import imgviz
 import numpy as np
+import trimesh.transformations as tf
 
 import objslampp
 
@@ -35,6 +38,66 @@ class DatasetBase(objslampp.datasets.DatasetBase):
 
         self._cache_pitch[class_id] = pitch
         return pitch
+
+    def get_examples(self, index):
+        frame = self.get_frame(index)
+
+        instance_ids = frame['instance_ids']
+        class_ids = frame['class_ids']
+        rgb = frame['rgb']
+        depth = frame['depth']
+        instance_label = frame['instance_label']
+        K = frame['intrinsic_matrix']
+        Ts_cad2cam = frame['Ts_cad2cam']
+
+        if chainer.is_debug():
+            print(f'[{index:08d}]: class_ids: {class_ids.tolist()}')
+            print(f'[{index:08d}]: instance_ids: {instance_ids.tolist()}')
+
+        examples = []
+        for instance_id, class_id, T_cad2cam in zip(
+            instance_ids, class_ids, Ts_cad2cam
+        ):
+            if self._class_ids and class_id not in self._class_ids:
+                continue
+
+            mask = instance_label == instance_id
+            if mask.sum() == 0:
+                continue
+
+            bbox = objslampp.geometry.masks_to_bboxes(mask)
+            y1, x1, y2, x2 = bbox.round().astype(int)
+            if (y2 - y1) * (x2 - x1) == 0:
+                continue
+
+            # augment
+            if self._augmentation:
+                rgb, depth, mask = self._augment(rgb, depth, mask)
+
+            rgb = frame['rgb'].copy()
+            rgb[~mask] = 0
+            rgb = rgb[y1:y2, x1:x2]
+            rgb = imgviz.centerize(rgb, (256, 256))
+
+            pcd = objslampp.geometry.pointcloud_from_depth(
+                depth, fx=K[0, 0], fy=K[1, 1], cx=K[0, 2], cy=K[1, 2],
+            )
+            pcd[~mask] = np.nan
+            pcd = pcd[y1:y2, x1:x2]
+            pcd = imgviz.centerize(pcd, (256, 256), cval=np.nan)
+
+            quaternion_true = tf.quaternion_from_matrix(T_cad2cam)
+            translation_true = tf.translation_from_matrix(T_cad2cam)
+
+            examples.append(dict(
+                class_id=class_id,
+                pitch=self._get_pitch(class_id=class_id),
+                rgb=rgb,
+                pcd=pcd,
+                quaternion_true=quaternion_true,
+                translation_true=translation_true,
+            ))
+        return examples
 
     def get_example(self, index):
         examples = self.get_examples(index)
