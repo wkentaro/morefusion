@@ -20,7 +20,7 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     root_dir = path.Path(chainer.dataset.get_dataset_directory(
-        'wkentaro/objslampp/ycb_video/lab_data/20190613/1560417263794359922',
+        'wkentaro/objslampp/ycb_video/real_data/20190613/1560417263794359922',
         create_directory=False,
     ))
     default_image = root_dir / 'image.png'
@@ -56,19 +56,19 @@ def main():
     masks = masks_batch[0]
     labels = labels_batch[0]
     scores = scores_batch[0]
+    class_ids = labels + 1
 
     # save detections
     detections_file = args.image.parent / 'detections.npz'
     np.savez_compressed(
         detections_file,
         masks=masks,
-        labels=labels,
+        class_ids=class_ids,
         scores=scores,
     )
     termcolor.cprint(f'==> Saved to {detections_file}', attrs={'bold': True})
 
     # visualize detections
-    class_ids = labels + 1
     captions = [
         f'{c:02d}: {objslampp.datasets.ycb_video.class_names[c]}'
         for c in class_ids
