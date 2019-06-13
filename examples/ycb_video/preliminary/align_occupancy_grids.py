@@ -418,6 +418,7 @@ class OccupancyGridRegistration:
 
         scenes = {}
         # scene_pcd
+        scenes['scene_cad'] = trimesh.Scene()
         scenes['scene_pcd'] = trimesh.Scene()
         nonnan = ~np.isnan(pcd).any(axis=2)
         geom = trimesh.PointCloud(vertices=pcd[nonnan], colors=rgb[nonnan])
@@ -428,12 +429,13 @@ class OccupancyGridRegistration:
             cad = self._cads[instance_id]
             T_cad2cam_pred = self._Ts_cad2cam_pred[instance_id]
             if cad:
-                scenes['scene_pcd'].add_geometry(
-                    cad,
-                    transform=T_cad2cam_pred,
-                    geom_name=f'cad_pred_{instance_id}',
-                    node_name=f'cad_pred_{instance_id}',
-                )
+                for key in ['scene_cad', 'scene_pcd']:
+                    scenes[key].add_geometry(
+                        cad,
+                        transform=T_cad2cam_pred,
+                        geom_name=f'cad_pred_{instance_id}',
+                        node_name=f'cad_pred_{instance_id}',
+                    )
         # scene_occupancy
         colormap = imgviz.label_colormap()
         scenes['scene_occupied'] = trimesh.Scene()
@@ -511,9 +513,9 @@ def refinement(
 
     # -------------------------------------------------------------------------
 
-    nrow, ncol = 2, 3
-    height = int(round(0.8 * 480)) * nrow
-    width = int(round(0.8 * 640)) * ncol
+    nrow, ncol = 2, 4
+    height = int(round(0.7 * 480)) * nrow
+    width = int(round(0.7 * 640)) * ncol
     window = pyglet.window.Window(width=width, height=height)
     window.play = False
     window.result = registration.register_instance(next(instance_ids))
@@ -607,9 +609,18 @@ N: next instance''')
 
     grid = glooey.Grid(num_rows=nrow, num_cols=ncol)
     grid.set_padding(5)
+    vbox = glooey.VBox()
+    vbox.add(glooey.Label('rgb', color=(255, 255, 255)), size=0)
+    vbox.add(
+        glooey.Image(
+            objslampp.extra.pyglet.numpy_to_image(rgb), responsive=True
+        )
+    )
+    grid.add(0, 0, vbox)
     widgets = {}
     scenes = callback(-1)
     for i, (key, scene) in enumerate(scenes.items()):
+        i += 1
         widgets[key] = trimesh.viewer.SceneWidget(scene)
         vbox = glooey.VBox()
         vbox.add(glooey.Label(key, color=(255, 255, 255)), size=0)
