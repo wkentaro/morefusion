@@ -153,6 +153,7 @@ class PointCloudRegistration:
         )
 
         # scene-level
+        scenes['scene_cad'] = trimesh.Scene(camera=camera)
         scenes['scene_pcd'] = trimesh.Scene(camera=camera)
         nonnan = ~np.isnan(pcd).any(axis=2)
         geom = trimesh.PointCloud(pcd[nonnan], colors=rgb[nonnan])
@@ -162,12 +163,13 @@ class PointCloudRegistration:
                 continue
             assert instance_id in self._cads
             T_cad2cam_pred = self._Ts_cad2cam_pred[instance_id]
-            scenes['scene_pcd'].add_geometry(
-                self._cads[instance_id],
-                transform=T_cad2cam_pred,
-                node_name=f'cad_pred_{instance_id}',
-                geom_name=f'cad_pred_{instance_id}',
-            )
+            for key in ['scene_cad', 'scene_pcd']:
+                scenes[key].add_geometry(
+                    self._cads[instance_id],
+                    transform=T_cad2cam_pred,
+                    node_name=f'cad_pred_{instance_id}',
+                    geom_name=f'cad_pred_{instance_id}',
+                )
 
         scenes['scene_label'] = trimesh.Scene(camera=camera)
         geom = trimesh.PointCloud(
@@ -237,7 +239,7 @@ def refinement(
                 widget.scene.graph.load(scenes[key].graph.to_edgelist())
                 widget._draw()
 
-    nrow, ncol = 2, 2
+    nrow, ncol = 2, 3
     width = int(round(640 * 0.8 * ncol))
     height = int(round(480 * 0.8 * nrow))
     window = pyglet.window.Window(width=width, height=height)
@@ -290,8 +292,16 @@ N: next instance''')
     grid = glooey.Grid(nrow, ncol)
     grid.set_padding(5)
 
+    key = 'rgb'
+    vbox = glooey.VBox()
+    vbox.add(glooey.Label(key, color=(255, 255, 255)), size=0)
+    vbox.add(glooey.Image(
+        image=objslampp.extra.pyglet.numpy_to_image(rgb), responsive=True
+    ))
+    grid.add(0, 0, vbox)
     widgets = {}
     for i, (key, scene) in enumerate(scenes.items()):
+        i += 1
         vbox = glooey.VBox()
         vbox.add(glooey.Label(key, color=(255, 255, 255)), size=0)
         widgets[key] = trimesh.viewer.SceneWidget(scene)
