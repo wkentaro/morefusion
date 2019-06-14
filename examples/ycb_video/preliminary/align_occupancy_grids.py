@@ -16,7 +16,7 @@ import objslampp
 
 
 def get_grid_target(
-    octrees, pitch, pcd, mask, extents, instance_id, threshold=2
+    octrees, pitch, pcd, mask, extents, instance_id, threshold=1
 ):
     nonnan = ~np.isnan(pcd).any(axis=2)
     pcd_ins = pcd[mask & nonnan]
@@ -56,8 +56,8 @@ def get_grid_target(
         g = g.reshape(grid_shape)
         grid_empty = np.maximum(grid_empty, g)
 
-    grid_nontarget[grid_target > 0] = 0
-    grid_empty[grid_target > 0] = 0
+    # grid_nontarget[grid_target > 0] = 0
+    # grid_empty[grid_target > 0] = 0
 
     grid = np.stack(
         (grid_target, grid_nontarget, grid_empty)
@@ -382,7 +382,7 @@ class OccupancyGridRegistration:
             mask,
             extents,
             instance_id,
-            threshold=threshold,
+            threshold=1,
         )
         #
         pcd_file = models.get_pcd_model(class_id=class_id)
