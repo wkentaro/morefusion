@@ -24,7 +24,8 @@ parser.add_argument(
 args = parser.parse_args()
 
 models = objslampp.datasets.YCBVideoModels()
-inference = Inference(dataset='my_real', gpu=0)
+dataset = 'my_real'
+inference = Inference(dataset=dataset, gpu=0)
 frame, Ts_cad2cam_true, Ts_cad2cam_pred = inference(index=0, bg_class=True)
 
 points_occupied = {}
@@ -35,23 +36,36 @@ if args.prior:
     matrix = np.ones(dim, dtype=bool)
     origin = - dim[0] * pitch / 2, - dim[1] * pitch / 2, - dim[2] * pitch
     points = trimesh.voxel.matrix_to_points(matrix, pitch, origin)
-    my_synthetic = True
-    if my_synthetic:
+    if dataset == 'my_synthetic':
         points = trimesh.transform_points(
             points, frame['Ts_cad2cam'][frame['instance_ids'] == 0][0]
         )
-    else:
-        points = trimesh.transform_points(
-            points, tf.translation_matrix([0, 0, 0.82])
-        )
-    points_occupied[0] = points
-    # bin
-    if my_synthetic:
+        points_occupied[0] = points
+        # bin
         mesh = trimesh.load(str(frame['cad_files'][1]))
         mesh.apply_transform(
             frame['Ts_cad2cam'][frame['instance_ids'] == 1][0]
         )
         points_occupied[1] = mesh.voxelized(0.01).points
+    else:
+        T = tf.translation_matrix([0, 0, 0.70])
+        R = tf.rotation_matrix(np.deg2rad(-15), [1, 0, 0], [0, 0, 0])
+        R = tf.rotation_matrix(np.deg2rad(2), [0, 0, 1], [0, 0, 0]) @ R
+        points = trimesh.transform_points(points, T @ R)
+        points_occupied[0] = points
+        # mesh = objslampp.extra.trimesh.bin_model(
+        #     (0.38, 0.25, 0.15), thickness=0.03)
+        # T2 = tf.translation_matrix([0.0, 0, 0.45])
+        # R_flip = tf.rotation_matrix(np.deg2rad(180), [0, 1, 0], [0, 0, 0])
+        # mesh.apply_transform(T2 @ R @ R_flip)
+        # points_occupied[0] = np.vstack((points, mesh.voxelized(0.01).points))
+        # isnan = np.isnan(frame['pcd']).any(axis=2)
+        # scene = trimesh.Scene()
+        # scene.add_geometry(mesh)
+        # scene.add_geometry(
+        #     trimesh.PointCloud(
+        #         vertices=frame['pcd'][~isnan], colors=frame['rgb'][~isnan]))
+        # scene.show()
 
 keep = frame['class_ids'] > 0
 class_ids_fg = frame['class_ids'][keep]
