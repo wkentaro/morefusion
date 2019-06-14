@@ -5,6 +5,7 @@ import sys
 
 import numpy as np
 import trimesh
+import trimesh.transformations as tf
 
 import objslampp
 
@@ -34,14 +35,23 @@ if args.prior:
     matrix = np.ones(dim, dtype=bool)
     origin = - dim[0] * pitch / 2, - dim[1] * pitch / 2, - dim[2] * pitch
     points = trimesh.voxel.matrix_to_points(matrix, pitch, origin)
-    points = trimesh.transform_points(
-        points, frame['Ts_cad2cam'][frame['instance_ids'] == 0][0]
-    )
+    my_synthetic = True
+    if my_synthetic:
+        points = trimesh.transform_points(
+            points, frame['Ts_cad2cam'][frame['instance_ids'] == 0][0]
+        )
+    else:
+        points = trimesh.transform_points(
+            points, tf.translation_matrix([0, 0, 0.82])
+        )
     points_occupied[0] = points
     # bin
-    mesh = trimesh.load(str(frame['cad_files'][1]))
-    mesh.apply_transform(frame['Ts_cad2cam'][frame['instance_ids'] == 1][0])
-    points_occupied[1] = mesh.voxelized(0.01).points
+    if my_synthetic:
+        mesh = trimesh.load(str(frame['cad_files'][1]))
+        mesh.apply_transform(
+            frame['Ts_cad2cam'][frame['instance_ids'] == 1][0]
+        )
+        points_occupied[1] = mesh.voxelized(0.01).points
 
 keep = frame['class_ids'] > 0
 class_ids_fg = frame['class_ids'][keep]
