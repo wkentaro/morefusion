@@ -42,7 +42,7 @@ class Inference:
                 class_ids=args_data['class_ids'],
             )
         elif dataset == 'my_real':
-            root_dir = home / 'data/datasets/wkentaro/objslampp/ycb_video/real_data/20190613'  # NOQA
+            root_dir = home / 'data/datasets/wkentaro/objslampp/ycb_video/real_data/20190614_18'  # NOQA
             dataset = contrib.datasets.MyRealDataset(
                 root_dir=root_dir,
                 class_ids=args_data['class_ids'],

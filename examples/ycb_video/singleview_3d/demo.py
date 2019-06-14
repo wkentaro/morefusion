@@ -78,7 +78,7 @@ def main():
         )
     elif args.dataset == 'my_real':
         args.root_dir = chainer.dataset.get_dataset_directory(
-            'wkentaro/objslampp/ycb_video/real_data/20190613'
+            'wkentaro/objslampp/ycb_video/real_data/20190614_18'
         )
         dataset = contrib.datasets.MyRealDataset(
             args.root_dir, class_ids=args_data['class_ids']
