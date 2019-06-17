@@ -4,6 +4,8 @@ from . import trajectory
 
 from .compose_transform import compose_transform
 
+from .estimate_pointcloud_normals import estimate_pointcloud_normals
+
 from .get_aabb_from_points import get_aabb_from_points
 
 from .uniform_points_on_sphere import uniform_points_on_sphere
