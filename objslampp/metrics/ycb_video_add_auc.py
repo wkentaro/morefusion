@@ -40,7 +40,7 @@ def VOCap(rec, prec, max_value=0.1):
     mpre = np.r_[0, prec, prec[-1]]
 
     for i in range(1, len(mpre)):
-        mpre[i] = max(mpre[i], mpre[i - 1]);
+        mpre[i] = max(mpre[i], mpre[i - 1])
 
     # to calculate area under PR curve, look for points
     # where X axis (recall) changes value
