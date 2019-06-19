@@ -12,60 +12,6 @@ import sklearn.neighbors
 import objslampp
 
 
-def visualize_occupied_empty_points(
-    octrees,
-    height,
-    width,
-    K,
-):
-    # visualize occupied/empty points
-    scene_occupied = trimesh.Scene()
-    scene_empty = trimesh.Scene()
-    colormap = imgviz.label_colormap()
-    for instance_id, octree in octrees.items():
-        occupied, empty = octree.extractPointCloud()
-        geom = trimesh.PointCloud(
-            vertices=occupied, colors=colormap[instance_id]
-        )
-        scene_occupied.add_geometry(geom)
-        geom = trimesh.PointCloud(vertices=empty, colors=[0.5, 0.5, 0.5])
-        scene_empty.add_geometry(geom)
-    for scene in [scene_occupied, scene_empty]:
-        scene.camera.resolution = (width, height)
-        scene.camera.focal = (K[0, 0], K[1, 1])
-        scene.camera.transform = objslampp.extra.trimesh.camera_transform(
-            tf.translation_matrix([0, 0, -1.5])
-        )
-    window = pyglet.window.Window(width=640 * 2, height=480)
-
-    @window.event
-    def on_key_press(symbol, modifiers):
-        if modifiers == 0:
-            if symbol == pyglet.window.key.Q:
-                window.on_close()
-
-    def callback(dt):
-        for scene in [scene_occupied, scene_empty]:
-            scene.camera.transform = tf.rotation_matrix(
-                np.deg2rad(1), [0, 1, 0], point=scene_occupied.centroid
-            ) @ scene.camera.transform
-
-    gui = glooey.Gui(window)
-    hbox = glooey.HBox()
-    hbox.set_padding(5)
-    vbox = glooey.VBox()
-    vbox.add(glooey.Label('occupied', color=(255, 255, 255)), size=0)
-    vbox.add(trimesh.viewer.SceneWidget(scene_occupied))
-    hbox.add(vbox)
-    vbox = glooey.VBox()
-    vbox.add(glooey.Label('empty', color=(255, 255, 255)), size=0)
-    vbox.add(trimesh.viewer.SceneWidget(scene_empty))
-    hbox.add(vbox)
-    gui.add(hbox)
-    pyglet.clock.schedule_interval(callback, 1 / 30)
-    pyglet.app.run()
-
-
 def visualize_instance_grids(
     instance_ids,
     instance_label,
@@ -224,13 +170,6 @@ def main():
             np.array([0, 0, 0], dtype=float),
         )
         octrees[instance_id] = octree
-
-    # visualize_occupied_empty_points(
-    #     octrees=octrees,
-    #     height=height,
-    #     width=width,
-    #     K=K,
-    # )
 
     models = objslampp.datasets.YCBVideoModels()
     instance_extents = []
