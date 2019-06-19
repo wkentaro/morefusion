@@ -6,63 +6,13 @@ import chainer.functions as F
 import glooey
 import imgviz
 import numpy as np
-import octomap
 import pyglet
-import sklearn.neighbors
 import trimesh
 import trimesh.transformations as tf
 
 import objslampp
 
-
-def get_grid_target(
-    octrees, pitch, pcd, mask, extents, instance_id, threshold=1
-):
-    nonnan = ~np.isnan(pcd).any(axis=2)
-    pcd_ins = pcd[mask & nonnan]
-    centroid = pcd_ins.mean(axis=0)
-    aabb_min = centroid - extents / 2
-    aabb_max = aabb_min + extents
-    grid_shape = np.ceil(extents / pitch).astype(int)
-
-    grid_target = np.zeros(grid_shape, dtype=np.float32)
-    grid_nontarget = np.zeros(grid_shape, dtype=np.float32)
-    grid_empty = np.zeros(grid_shape, np.float32)
-
-    centers = trimesh.voxel.matrix_to_points(
-        np.ones(grid_shape), pitch=pitch, origin=aabb_min
-    )
-
-    for ins_id, octree in octrees.items():
-        occupied, empty = octree.extractPointCloud()
-
-        kdtree = sklearn.neighbors.KDTree(occupied)
-        dist, indices = kdtree.query(centers, k=1)
-        if ins_id == instance_id:
-            # occupied by target
-            g = np.minimum(1, np.maximum(0, threshold - (dist / pitch)))
-            g = g.reshape(grid_shape)
-            grid_target = np.maximum(grid_target, g)
-        else:
-            # occupied by non-target
-            g = np.minimum(1, np.maximum(0, 1 - (dist / pitch)))
-            g = g.reshape(grid_shape)
-            grid_nontarget = np.maximum(grid_nontarget, g)
-
-        # empty
-        kdtree = sklearn.neighbors.KDTree(empty)
-        dist, indices = kdtree.query(centers, k=1)
-        g = np.minimum(1, np.maximum(0, 1 - (dist / pitch)))
-        g = g.reshape(grid_shape)
-        grid_empty = np.maximum(grid_empty, g)
-
-    # grid_nontarget[grid_target > 0] = 0
-    # grid_empty[grid_target > 0] = 0
-
-    grid = np.stack(
-        (grid_target, grid_nontarget, grid_empty)
-    ).astype(np.float32)
-    return grid, aabb_min, aabb_max
+import contrib
 
 
 class OccupancyGridAlignmentModel(chainer.Link):
@@ -295,10 +245,16 @@ class OccupancyGridRegistration:
         self._rgb = rgb
         self._pcd = pcd
         self._instance_label = instance_label
-        self.build_octrees(0.01)
+        self._mapping = contrib.MultiInstanceOctreeMapping()
 
-        self._occupied_empty = {}
-        self.update_occupied_empty()
+        pitch = 0.01
+        nonnan = ~np.isnan(pcd).any(axis=2)
+        for ins_id in np.unique(instance_label):
+            if ins_id == -1:
+                continue
+            mask = instance_label == ins_id
+            self._mapping.initialize(ins_id, pitch=pitch)
+            self._mapping.integrate(ins_id, mask, pcd)
 
         self._cads = {}
         for instance_id in self._instance_ids:
@@ -320,28 +276,6 @@ class OccupancyGridRegistration:
             assert len(instance_ids) == len(Ts_cad2cam_pred)
             self._Ts_cad2cam_pred = dict(zip(instance_ids, Ts_cad2cam_pred))
 
-    def build_octrees(self, pitch):
-        pcd = self._pcd
-        instance_label = self._instance_label
-
-        nonnan = ~np.isnan(pcd).any(axis=2)
-        self._octrees = {}
-        for ins_id in np.unique(instance_label):
-            if ins_id == -1:
-                continue
-            mask = instance_label == ins_id
-            octree = octomap.OcTree(pitch)
-            octree.insertPointCloud(
-                pcd[mask & nonnan],
-                np.array([0, 0, 0], dtype=float),
-            )
-            self._octrees[ins_id] = octree
-
-    def update_occupied_empty(self):
-        for instance_id, octree in self._octrees.items():
-            occupied, empty = octree.extractPointCloud()
-            self._occupied_empty[instance_id] = (occupied, empty)
-
     def update_octree(self, instance_id):
         T_cad2cam_pred = self._Ts_cad2cam_pred[instance_id]
 
@@ -350,10 +284,7 @@ class OccupancyGridRegistration:
         points = np.loadtxt(pcd_file)
         points = tf.transform_points(points, T_cad2cam_pred)
 
-        octree = self._octrees[instance_id]
-        octree.updateNodes(points, True, lazy_eval=True)
-        octree.updateInnerOccupancy()
-        self.update_occupied_empty()
+        self._mapping.update(instance_id, points)
 
     def register_instance(self, instance_id):
         models = self._models
@@ -366,7 +297,6 @@ class OccupancyGridRegistration:
         class_ids = self._class_ids
         pcd = self._pcd
         instance_label = self._instance_label
-        octrees = self._octrees
 
         # instance-level data
         class_id = class_ids[instance_id]
@@ -374,16 +304,16 @@ class OccupancyGridRegistration:
         diagonal = models.get_bbox_diagonal(cad_file)
         pitch = diagonal * 1.1 / dim
         mask = instance_label == instance_id
-        extents = np.array((pitch * dim,) * 3)
-        grid_target, aabb_min, _ = get_grid_target(
-            octrees,
-            pitch,
-            pcd,
-            mask,
-            extents,
-            instance_id,
-            threshold=1,
-        )
+        centroid = np.nanmean(pcd[mask], axis=0)
+        origin = centroid - ((dim / 2 - 0.5) * pitch)
+        grid_target, grid_nontarget, grid_empty = \
+            self._mapping.get_target_grids(
+                target_id=instance_id,
+                dimensions=(dim, dim, dim),
+                pitch=pitch,
+                origin=origin,
+            )
+
         #
         pcd_file = models.get_pcd_model(class_id=class_id)
         points_source = np.loadtxt(pcd_file, dtype=np.float32)
@@ -394,11 +324,13 @@ class OccupancyGridRegistration:
 
         self._instance_id = instance_id
 
+        grids = np.stack((grid_target, grid_nontarget, grid_empty))
+        grids = grids.astype(np.float32)
         registration_ins = InstanceOccupancyGridRegistration(
             points_source,
-            grid_target,
+            grids,
             pitch=pitch,
-            origin=aabb_min,
+            origin=origin,
             threshold=threshold,
             transform_init=self._Ts_cad2cam_pred[instance_id],
         )
@@ -440,7 +372,8 @@ class OccupancyGridRegistration:
         colormap = imgviz.label_colormap()
         scenes['scene_occupied'] = trimesh.Scene()
         scenes['scene_empty'] = trimesh.Scene()
-        for instance_id, (occupied, empty) in self._occupied_empty.items():
+        for instance_id in self._mapping.instance_ids:
+            occupied, empty = self._mapping.get_target_pcds(instance_id)
             color = trimesh.visual.to_rgba(colormap[instance_id])
             color[3] = 127
             geom = trimesh.voxel.multibox(
@@ -500,10 +433,7 @@ def refinement(
 
     if points_occupied:
         for ins_id, points in points_occupied.items():
-            octree = registration._octrees[ins_id]
-            octree.updateNodes(points, True, lazy_eval=True)
-            octree.updateInnerOccupancy()
-            registration.update_occupied_empty()
+            registration._mapping.update(ins_id, points)
 
     coms = np.array([
         np.nanmedian(pcd[instance_label == i], axis=0) for i in instance_ids
