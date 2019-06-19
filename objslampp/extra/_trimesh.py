@@ -2,6 +2,7 @@ import copy
 import io
 import math
 import typing
+import warnings
 
 import numpy as np
 import PIL.Image
@@ -100,10 +101,24 @@ def show_with_rotation(scene, step=None, init_angles=None, **kwargs):
 
 
 def camera_transform(transform=None):
+    warnings.warn("camera_transform is deprecated, use to_opengl_transform",
+                  DeprecationWarning)
+    return to_opengl_transform(transform=transform)
+
+
+def to_opengl_transform(transform=None):
     if transform is None:
         transform = np.eye(4)
     return transform @ trimesh.transformations.rotation_matrix(
         np.deg2rad(-180), [1, 0, 0]
+    )
+
+
+def from_opengl_transform(transform=None):
+    if transform is None:
+        transform = np.eye(4)
+    return transform @ trimesh.transformations.rotation_matrix(
+        np.deg2rad(180), [1, 0, 0]
     )
 
 
