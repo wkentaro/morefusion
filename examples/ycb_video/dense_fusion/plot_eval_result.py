@@ -11,7 +11,7 @@ import trimesh.transformations as tf
 
 import objslampp
 
-from view_eval_result import get_eval_result
+import contrib
 
 
 def get_adds(result_file):
@@ -53,7 +53,7 @@ def get_adds(result_file):
 
 
 def main():
-    result_dir = get_eval_result(refine=True)
+    result_dir = contrib.get_eval_result(refine=True)
 
     adds_list = []
     with concurrent.futures.ProcessPoolExecutor() as executor:
