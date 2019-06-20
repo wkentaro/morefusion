@@ -7,7 +7,7 @@ import trimesh.transformations as tf
 
 import objslampp
 
-import contrib
+import preliminary
 
 
 class MultiInstanceOccupancyRegistration:
@@ -38,7 +38,7 @@ class MultiInstanceOccupancyRegistration:
         self._rgb = rgb
         self._pcd = pcd
         self._instance_label = instance_label
-        self._mapping = contrib.MultiInstanceOctreeMapping()
+        self._mapping = preliminary.MultiInstanceOctreeMapping()
 
         pitch = 0.01
         nonnan = ~np.isnan(pcd).any(axis=2)
@@ -119,7 +119,7 @@ class MultiInstanceOccupancyRegistration:
 
         grids = np.stack((grid_target, grid_nontarget, grid_empty))
         grids = grids.astype(np.float32)
-        registration = contrib.OccupancyRegistration(
+        registration = preliminary.OccupancyRegistration(
             points_source,
             grids,
             pitch=pitch,
@@ -299,7 +299,7 @@ def refinement(
                 for _ in registration.register_instance(ins_id)
             )
 
-    contrib.display_scenes(
+    preliminary.display_scenes(
         scenes_ggroup(),
         height=int(480 * 0.6),
         width=int(640 * 0.6),
