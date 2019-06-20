@@ -39,10 +39,6 @@ def display_scenes(data, height=480, width=640, tile=None, caption=None):
     else:
         nrow, ncol = tile
 
-    cameras = {}
-    for name, scene in scenes.items():
-        cameras[name] = scene.camera.copy()
-
     window = pyglet.window.Window(
         height=height * nrow,
         width=width * ncol,
@@ -112,10 +108,15 @@ def display_scenes(data, height=480, width=640, tile=None, caption=None):
     grid.set_padding(5)
 
     widgets = {}
+    trackball = None
     for i, (name, scene) in enumerate(scenes.items()):
         vbox = glooey.VBox()
         vbox.add(glooey.Label(text=name, color=(255,) * 3), size=0)
         widgets[name] = trimesh.viewer.SceneWidget(scene)
+        if trackball is None:
+            trackball = widgets[name].view['ball']
+        else:
+            widgets[name].view['ball'] = trackball
         vbox.add(widgets[name])
         grid[i // ncol, i % ncol] = vbox
 
