@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 
-import glooey
+import chainer
 import imgviz
 import numpy as np
-import pyglet
 import trimesh
 import trimesh.transformations as tf
 
@@ -71,9 +70,12 @@ class PointCloudRegistration:
         registration = contrib.ICPRegistration(
             pcd_depth, pcd_cad, self._Ts_cad2cam_pred[instance_id]
         )
-        for transform in registration.register(iteration=300, voxel_size=0.01):
-            self._Ts_cad2cam_pred[instance_id] = transform
-            yield
+        with chainer.using_config('debug', True):
+            for transform in registration.register(
+                iteration=100, voxel_size=0.01
+            ):
+                self._Ts_cad2cam_pred[instance_id] = transform
+                yield
 
     def visualize(self):
         rgb = self._rgb
@@ -92,6 +94,11 @@ class PointCloudRegistration:
         )
 
         scenes = {}
+
+        scenes['pcd'] = trimesh.Scene(camera=camera)
+        nonnan = ~np.isnan(pcd).any(axis=2)
+        geom = trimesh.PointCloud(pcd[nonnan], colors=rgb[nonnan])
+        scenes['pcd'].add_geometry(geom)
 
         scenes['instance_points'] = trimesh.Scene(camera=camera)
         # points_source: points_from_depth
@@ -184,110 +191,14 @@ def refinement(
 
     # -------------------------------------------------------------------------
 
-    def callback(dt, widget=None):
-        if window.rotate:
-            centers = [
-                tf.translation_from_matrix(T) for T in
-                registration._Ts_cad2cam_true.values()
-            ]
-            point = np.mean(centers, axis=0)
-            for widget in widgets.values():
-                camera = widget.scene.camera
-                axis = tf.transform_points(
-                    [[0, 1, 0]], camera.transform, translate=False
-                )[0]
-                camera.transform = tf.rotation_matrix(
-                    np.deg2rad(window.rotate), axis, point=point,
-                ) @ camera.transform
-            return
+    def scenes_ggroup():
+        for instance_id in instance_ids:
+            yield (
+                registration.visualize()
+                for _ in registration.register_instance(instance_id)
+            )
 
-        if window.play:
-            try:
-                next(window.result)
-            except StopIteration:
-                pyglet.clock.unschedule(callback)
-                return
-
-        scenes = registration.visualize()
-        if widgets is not None:
-            for key, widget in widgets.items():
-                widget.scene.geometry.update(scenes[key].geometry)
-                widget.scene.graph.load(scenes[key].graph.to_edgelist())
-                widget._draw()
-
-    nrow, ncol = 2, 3
-    width = int(round(640 * 0.8 * ncol))
-    height = int(round(480 * 0.8 * nrow))
-    window = pyglet.window.Window(width=width, height=height)
-    window.play = False
-    window.rotate = 0
-
-    window.result = registration.register_instance(next(instance_ids))
-    next(window.result)
-    scenes = registration.visualize()
-
-    print('''\
-==> Usage
-q: close window
-n: next iteration
-s: play iterations
-r: rotate camera
-z: reset view
-N: next instance''')
-
-    @window.event
-    def on_key_press(symbol, modifiers):
-        if modifiers == 0:
-            if symbol == pyglet.window.key.Q:
-                window.on_close()
-            elif symbol == pyglet.window.key.N:
-                next(window.result)
-            elif symbol == pyglet.window.key.S:
-                window.play = not window.play
-            elif symbol == pyglet.window.key.Z:
-                for widget in widgets.values():
-                    camera = widget.scene.camera
-                    camera.transform = \
-                        objslampp.extra.trimesh.camera_transform()
-        if symbol == pyglet.window.key.R:
-            window.rotate = not window.rotate
-            if modifiers == pyglet.window.key.MOD_SHIFT:
-                window.rotate *= -1
-        if modifiers == pyglet.window.key.MOD_SHIFT:
-            if symbol == pyglet.window.key.N:
-                try:
-                    instance_id = next(instance_ids)
-                except StopIteration:
-                    return
-                print(f'==> initializing next instance: {instance_id}')
-                window.result = registration.register_instance(instance_id)
-                next(window.result)
-                print(f'==> initialized: {instance_id}')
-
-    gui = glooey.Gui(window)
-    grid = glooey.Grid(nrow, ncol)
-    grid.set_padding(5)
-
-    key = 'rgb'
-    vbox = glooey.VBox()
-    vbox.add(glooey.Label(key, color=(255, 255, 255)), size=0)
-    vbox.add(glooey.Image(
-        image=objslampp.extra.pyglet.numpy_to_image(rgb), responsive=True
-    ))
-    grid.add(0, 0, vbox)
-    widgets = {}
-    for i, (key, scene) in enumerate(scenes.items()):
-        i += 1
-        vbox = glooey.VBox()
-        vbox.add(glooey.Label(key, color=(255, 255, 255)), size=0)
-        widgets[key] = trimesh.viewer.SceneWidget(scene)
-        vbox.add(widgets[key])
-        grid.add(i // ncol, i % ncol, vbox)
-    gui.add(grid)
-
-    pyglet.clock.schedule_interval(callback, 1 / 30, widgets)
-    pyglet.app.run()
-    pyglet.clock.unschedule(callback)
+    contrib.display_scenes(scenes_ggroup(), height=360, width=480, tile=(2, 3))
 
     return registration
 
@@ -309,7 +220,11 @@ def main():
     Ts_cad2cam_true = np.tile(np.eye(4), (len(instance_ids), 1, 1))
     Ts_cad2cam_true[:, :3, :4] = frame['meta']['poses'].transpose(2, 0, 1)
 
-    Ts_cad2cam_pred = Ts_cad2cam_true @ tf.random_rotation_matrix()
+    Ts_cad2cam_pred = np.zeros_like(Ts_cad2cam_true)
+    for i, ins_id in enumerate(instance_ids):
+        mask = instance_label == ins_id
+        centroid = np.nanmean(pcd[mask], axis=0)
+        Ts_cad2cam_pred[i] = tf.translation_matrix(centroid)
 
     return refinement(
         instance_ids,
