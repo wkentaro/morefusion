@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 
-import chainer
-from chainer.backends import cuda
-import chainer.functions as F
 import glooey
 import imgviz
 import numpy as np
@@ -15,206 +12,64 @@ import objslampp
 import contrib
 
 
-class OccupancyGridAlignmentModel(chainer.Link):
+def visualize(grid_target, pitch, origin, cad, T_cad2cam_true, T_cad2cam_pred):
+    scenes = {}
 
-    def __init__(self, quaternion_init=None, translation_init=None):
-        super().__init__()
-        with self.init_scope():
-            if quaternion_init is None:
-                quaternion_init = np.array([1, 0, 0, 0], dtype=np.float32)
-            self.quaternion = chainer.Parameter(
-                initializer=quaternion_init
-            )
-            if translation_init is None:
-                translation_init = np.zeros((3,), dtype=np.float32)
-            self.translation = chainer.Parameter(
-                initializer=translation_init
-            )
+    scene = trimesh.Scene()
+    # occupied target/untarget
+    voxel = trimesh.voxel.Voxel(
+        matrix=grid_target[0], pitch=pitch, origin=origin
+    )
+    geom = voxel.as_boxes((1., 0, 0, 0.5))
+    scene.add_geometry(geom, geom_name='occupied_target')
+    voxel = trimesh.voxel.Voxel(
+        matrix=grid_target[1],
+        pitch=pitch,
+        origin=origin,
+    )
+    geom = voxel.as_boxes((0, 1., 0, 0.5))
+    scene.add_geometry(geom, geom_name='occupied_untarget')
+    scenes['instance_occupied'] = scene
 
-    def forward(
-        self,
-        points_source,
-        grid_target,
-        *,
-        pitch,
-        origin,
-        threshold,
-    ):
-        transform = objslampp.functions.quaternion_matrix(
-            self.quaternion[None]
-        )
-        transform = objslampp.functions.compose_transform(
-            transform[:, :3, :3], self.translation[None]
-        )
+    # empty
+    scene = trimesh.Scene()
+    voxel = trimesh.voxel.Voxel(
+        matrix=grid_target[2], pitch=pitch, origin=origin
+    )
+    geom = voxel.as_boxes((0.5, 0.5, 0.5, 0.5))
+    scene.add_geometry(geom, geom_name='empty')
+    scenes['instance_empty'] = scene
 
-        points_source = objslampp.functions.transform_points(
-            points_source, transform
-        )[0]
-        grid_source = objslampp.functions.occupancy_grid_3d(
-            points_source,
-            pitch=pitch,
-            origin=origin,
-            dimension=grid_target.shape[1:],
-            threshold=threshold,
-        )
+    scene = trimesh.Scene()
+    # cad_true
+    cad_trans = cad.copy()
+    cad_trans.visual.vertex_colors[:, 3] = 127
+    scene.add_geometry(
+        cad_trans,
+        transform=T_cad2cam_true,
+        geom_name='cad_true',
+        node_name='cad_true',
+    )
+    scenes['instance_cad'] = scene
 
-        assert grid_target.dtype == np.float32
-        occupied_target = grid_target[0]
-        intersection = F.sum(occupied_target * grid_source)
-        denominator = F.sum(occupied_target)
-        reward = intersection / denominator
-
-        assert grid_target.dtype == np.float32
-        unoccupied_target = np.maximum(grid_target[1], grid_target[2])
-        unoccupied_target = unoccupied_target.astype(np.float32)
-        intersection = F.sum(unoccupied_target * grid_source)
-        denominator = F.sum(grid_source)
-        penalty = intersection / denominator
-
-        loss = - reward + penalty
-        return loss
-
-
-class InstanceOccupancyGridRegistration:
-
-    def __init__(
-        self,
-        points_source,
-        grid_target,
-        *,
-        pitch,
-        origin,
-        threshold,
-        transform_init,
-        gpu=0,
-    ):
-        quaternion_init = tf.quaternion_from_matrix(transform_init)
-        quaternion_init = quaternion_init.astype(np.float32)
-        translation_init = tf.translation_from_matrix(transform_init)
-        translation_init = translation_init.astype(np.float32)
-
-        model = OccupancyGridAlignmentModel(quaternion_init, translation_init)
-
-        self._grid_target_cpu = grid_target
-
-        if gpu >= 0:
-            model.to_gpu(gpu)
-            points_source = model.xp.asarray(points_source)
-            grid_target = model.xp.asarray(grid_target)
-
-        self._points_source = points_source
-        self._grid_target = grid_target
-        self._pitch = pitch
-        self._origin = origin
-        self._threshold = threshold
-
-        self._optimizer = chainer.optimizers.Adam(alpha=0.1)
-        self._optimizer.setup(model)
-        model.translation.update_rule.hyperparam.alpha *= 0.1
-
-        self._iteration = -1
-
-    def step(self):
-        self._iteration += 1
-
-        model = self._optimizer.target
-
-        loss = model(
-            points_source=self._points_source,
-            grid_target=self._grid_target,
-            pitch=self._pitch,
-            origin=self._origin,
-            threshold=self._threshold,
-        )
-        loss.backward()
-        self._optimizer.update()
-        model.cleargrads()
-
-        loss = float(loss.array)
-
-        # print(f'[{self._iteration:08d}] {loss}')
-        # print(f'quaternion:', model.quaternion.array.tolist())
-        # print(f'translation:', model.translation.array.tolist())
-
-    @property
-    def transform(self):
-        model = self._optimizer.target
-        quaternion = cuda.to_cpu(model.quaternion.array)
-        translation = cuda.to_cpu(model.translation.array)
-        transform = tf.quaternion_matrix(quaternion)
-        transform = objslampp.geometry.compose_transform(
-            transform[:3, :3], translation
-        )
-        return transform
-
-    def nstep(self, iteration):
-        yield self.transform
-        for _ in range(iteration):
-            self.step()
-            yield self.transform
-
-    def visualize(self, cad, T_cad2cam_true, T_cad2cam_pred):
-        scenes = {}
-
-        grid_target = self._grid_target_cpu
-        pitch = self._pitch
-        origin = self._origin
-
-        scene = trimesh.Scene()
-        # occupied target/untarget
-        voxel = trimesh.voxel.Voxel(
-            matrix=grid_target[0], pitch=pitch, origin=origin
-        )
-        geom = voxel.as_boxes((1., 0, 0, 0.5))
-        scene.add_geometry(geom, geom_name='occupied_target')
-        voxel = trimesh.voxel.Voxel(
-            matrix=grid_target[1],
-            pitch=pitch,
-            origin=origin,
-        )
-        geom = voxel.as_boxes((0, 1., 0, 0.5))
-        scene.add_geometry(geom, geom_name='occupied_untarget')
-        scenes['instance_occupied'] = scene
-
-        # empty
-        scene = trimesh.Scene()
-        voxel = trimesh.voxel.Voxel(
-            matrix=grid_target[2], pitch=pitch, origin=origin
-        )
-        geom = voxel.as_boxes((0.5, 0.5, 0.5, 0.5))
-        scene.add_geometry(geom, geom_name='empty')
-        scenes['instance_empty'] = scene
-
-        scene = trimesh.Scene()
-        # cad_true
-        cad_trans = cad.copy()
-        cad_trans.visual.vertex_colors[:, 3] = 127
+    # cad_pred
+    for scene in scenes.values():
         scene.add_geometry(
-            cad_trans,
-            transform=T_cad2cam_true,
-            geom_name='cad_true',
-            node_name='cad_true',
+            cad,
+            transform=T_cad2cam_pred,
+            geom_name='cad_pred',
+            node_name='cad_pred',
         )
-        scenes['instance_cad'] = scene
 
-        # cad_pred
-        for scene in scenes.values():
-            scene.add_geometry(
-                cad,
-                transform=T_cad2cam_pred,
-                geom_name='cad_pred',
-                node_name='cad_pred',
-            )
+    # bbox
+    aabb_min = origin - pitch / 2
+    aabb_max = aabb_min + pitch * np.array(grid_target.shape[1:])
+    geom = trimesh.path.creation.box_outline(aabb_max - aabb_min)
+    geom.apply_translation((aabb_min + aabb_max) / 2)
+    for scene in scenes.values():
+        scene.add_geometry(geom, geom_name='bbox')
 
-        # bbox
-        aabb_min = origin - pitch / 2
-        aabb_max = aabb_min + pitch * np.array(grid_target.shape[1:])
-        geom = trimesh.path.creation.box_outline(aabb_max - aabb_min)
-        geom.apply_translation((aabb_min + aabb_max) / 2)
-        for scene in scenes.values():
-            scene.add_geometry(geom, geom_name='bbox')
-
-        return scenes
+    return scenes
 
 
 class OccupancyGridRegistration:
@@ -326,7 +181,7 @@ class OccupancyGridRegistration:
 
         grids = np.stack((grid_target, grid_nontarget, grid_empty))
         grids = grids.astype(np.float32)
-        registration_ins = InstanceOccupancyGridRegistration(
+        registration = contrib.OccupancyRegistration(
             points_source,
             grids,
             pitch=pitch,
@@ -334,13 +189,12 @@ class OccupancyGridRegistration:
             threshold=threshold,
             transform_init=self._Ts_cad2cam_pred[instance_id],
         )
-        self._registration_ins = registration_ins
+        self._grids = grids
+        self._pitch = pitch
+        self._origin = origin
 
-        Ts_cad2cam_pred = registration_ins.nstep(100)
-        self._Ts_cad2cam_pred[instance_id] = next(Ts_cad2cam_pred)
-        yield
-        for T_cad2cam_pred in Ts_cad2cam_pred:
-            self._Ts_cad2cam_pred[instance_id] = T_cad2cam_pred
+        for T_cad2cam in registration.register_iterative(100):
+            self._Ts_cad2cam_pred[instance_id] = T_cad2cam
             yield
 
     def visualize(self):  # NOQA
@@ -389,11 +243,13 @@ class OccupancyGridRegistration:
 
         # instance-level
         instance_id = self._instance_id
-        registration_ins = self._registration_ins
         cad = self._cads[instance_id]
         T_cad2cam_true = self._Ts_cad2cam_true[instance_id]
         T_cad2cam_pred = self._Ts_cad2cam_pred[instance_id]
-        all_scenes = registration_ins.visualize(
+        all_scenes = visualize(
+            self._grids,
+            self._pitch,
+            self._origin,
             cad=cad,
             T_cad2cam_true=T_cad2cam_true,
             T_cad2cam_pred=T_cad2cam_pred,
