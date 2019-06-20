@@ -71,7 +71,7 @@ class PointCloudRegistration:
             pcd_depth, pcd_cad, self._Ts_cad2cam_pred[instance_id]
         )
         with chainer.using_config('debug', True):
-            for transform in registration.register(
+            for transform in registration.register_iterative(
                 iteration=100, voxel_size=0.01
             ):
                 self._Ts_cad2cam_pred[instance_id] = transform
