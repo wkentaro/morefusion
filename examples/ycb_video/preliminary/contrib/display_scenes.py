@@ -1,4 +1,5 @@
 import math
+import types
 
 import glooey
 import numpy as np
@@ -17,7 +18,22 @@ def _get_tile_shape(num, hw_ratio=1):
     return r_num, c_num
 
 
-def display_scenes(scenes, height=480, width=640, tile=None, caption=None):
+def display_scenes(data, height=480, width=640, tile=None, caption=None):
+    scenes = None
+    scenes_group = None
+    scenes_ggroup = None
+    if isinstance(data, types.GeneratorType):
+        next_data = next(data)
+        if isinstance(next_data, types.GeneratorType):
+            scenes = next(next_data)
+            scenes_group = next_data
+            scenes_ggroup = data
+        else:
+            scenes = next_data
+            scenes_group = data
+    else:
+        scenes = data
+
     if tile is None:
         nrow, ncol = _get_tile_shape(len(scenes), hw_ratio=height / width)
     else:
@@ -34,14 +50,32 @@ def display_scenes(scenes, height=480, width=640, tile=None, caption=None):
     )
     window.rotate = 0
 
+    if scenes_group:
+        window.play = False
+        window.next = False
+    window.scenes_group = scenes_group
+    window.scenes_ggroup = scenes_ggroup
+
     @window.event
     def on_key_press(symbol, modifiers):
         if modifiers == 0:
             if symbol == pyglet.window.key.Q:
                 window.on_close()
+            elif window.scenes_group and symbol == pyglet.window.key.S:
+                window.play = not window.play
             elif symbol == pyglet.window.key.Z:
                 for name in scenes:
                     widgets[name].reset_view()
+        if symbol == pyglet.window.key.N:
+            if modifiers == 0:
+                window.next = True
+            elif window.scenes_ggroup and \
+                    modifiers == pyglet.window.key.MOD_SHIFT:
+                try:
+                    window.scenes_group = next(window.scenes_ggroup)
+                    window.next = True
+                except StopIteration:
+                    return
         if symbol == pyglet.window.key.R:
             # rotate camera
             window.rotate = not window.rotate  # 0/1
@@ -61,6 +95,17 @@ def display_scenes(scenes, height=480, width=640, tile=None, caption=None):
                 ) @ camera.transform
                 widget.view['ball']._n_pose = camera.transform
             return
+
+        if window.scenes_group and (window.next or window.play):
+            try:
+                scenes = next(window.scenes_group)
+                for key, widget in widgets.items():
+                    widget.scene.geometry.update(scenes[key].geometry)
+                    widget.scene.graph.load(scenes[key].graph.to_edgelist())
+                    widget._draw()
+            except StopIteration:
+                window.play = False
+            window.next = False
 
     gui = glooey.Gui(window)
     grid = glooey.Grid()
