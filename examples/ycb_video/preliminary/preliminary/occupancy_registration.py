@@ -79,6 +79,7 @@ class OccupancyRegistration:
         threshold,
         transform_init,
         gpu=0,
+        alpha=0.1,
     ):
         quaternion_init = tf.quaternion_from_matrix(transform_init)
         quaternion_init = quaternion_init.astype(np.float32)
@@ -100,7 +101,7 @@ class OccupancyRegistration:
         self._origin = origin
         self._threshold = threshold
 
-        self._optimizer = chainer.optimizers.Adam(alpha=0.1)
+        self._optimizer = chainer.optimizers.Adam(alpha=alpha)
         self._optimizer.setup(model)
         model.translation.update_rule.hyperparam.alpha *= 0.1
 
@@ -143,4 +144,4 @@ class OccupancyRegistration:
     def register(self, iteration=None):
         for _ in self.register_iterative(iteration=iteration):
             pass
-        return self.transform
+        return self._transform
