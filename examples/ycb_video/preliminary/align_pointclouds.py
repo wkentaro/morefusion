@@ -3,12 +3,13 @@
 import glooey
 import imgviz
 import numpy as np
-import open3d
 import pyglet
 import trimesh
 import trimesh.transformations as tf
 
 import objslampp
+
+import contrib
 
 
 class PointCloudRegistration:
@@ -56,44 +57,22 @@ class PointCloudRegistration:
     def register_instance(self, instance_id):
         pcd = self._pcd
         nonnan = ~np.isnan(pcd).any(axis=2)
+        mask = self._instance_label == instance_id
+        pcd_depth = pcd[nonnan & mask]
 
         class_id = self._class_ids[instance_id]
-        mask = self._instance_label == instance_id
-
         pcd_file = self._models.get_pcd_model(class_id=class_id)
-        points_cad = np.loadtxt(pcd_file, dtype=np.float32)
+        pcd_cad = np.loadtxt(pcd_file, dtype=np.float32)
 
-        target = open3d.PointCloud()
-        target.points = open3d.Vector3dVector(points_cad)
-
-        pcd_ins = pcd[nonnan & mask]
-
-        source = open3d.PointCloud()
-        source.points = open3d.Vector3dVector(pcd_ins)
-
-        source = open3d.voxel_down_sample(source, voxel_size=0.01)
-        target = open3d.voxel_down_sample(target, voxel_size=0.01)
-
-        self._source = source
-        self._target = target
         self._instance_id = instance_id
+        self._pcd_cad = pcd_cad
+        self._pcd_depth = pcd_depth
 
-        yield
-        for i in range(300):
-            result = open3d.registration_icp(
-                source,  # points_from_depth
-                target,  # points_from_cad
-                0.02,
-                tf.inverse_matrix(self._Ts_cad2cam_pred[instance_id]),
-                open3d.TransformationEstimationPointToPoint(False),
-                open3d.ICPConvergenceCriteria(max_iteration=1),
-            )
-            print(f'[{i:08d}] instance_id={instance_id} class_id={class_id} '
-                  f'fitness={result.fitness:.2g} '
-                  f'inlier_rmse={result.inlier_rmse:.2g}')
-            self._Ts_cad2cam_pred[instance_id] = tf.inverse_matrix(
-                result.transformation
-            )
+        registration = contrib.ICPRegistration(
+            pcd_depth, pcd_cad, self._Ts_cad2cam_pred[instance_id]
+        )
+        for transform in registration.register(iteration=300, voxel_size=0.01):
+            self._Ts_cad2cam_pred[instance_id] = transform
             yield
 
     def visualize(self):
@@ -106,9 +85,6 @@ class PointCloudRegistration:
         cad = self._cads[instance_id]
         T_cad2cam_pred = self._Ts_cad2cam_pred[instance_id]
 
-        source = self._source
-        target = self._target
-
         camera = trimesh.scene.Camera(
             resolution=(640, 480),
             fov=(60 * 0.7, 45 * 0.7),
@@ -120,12 +96,12 @@ class PointCloudRegistration:
         scenes['instance_points'] = trimesh.Scene(camera=camera)
         # points_source: points_from_depth
         geom = trimesh.PointCloud(
-            vertices=np.asarray(source.points), colors=(0, 1., 0)
+            vertices=self._pcd_depth, colors=(0, 1., 0)
         )
         scenes['instance_points'].add_geometry(geom, geom_name='points_source')
         # points_target: points_from_cad
         geom = trimesh.PointCloud(
-            vertices=np.asarray(target.points), colors=(1., 0, 0)
+            vertices=self._pcd_cad, colors=(1., 0, 0)
         )
         scenes['instance_points'].add_geometry(
             geom,
