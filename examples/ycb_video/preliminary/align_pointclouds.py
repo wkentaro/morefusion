@@ -11,7 +11,7 @@ import objslampp
 import contrib
 
 
-class PointCloudRegistration:
+class MultiInstanceICPRegistration:
 
     _models = objslampp.datasets.YCBVideoModels()
 
@@ -173,7 +173,7 @@ def refinement(
     Ts_cad2cam_true,
     Ts_cad2cam_pred=None,
 ):
-    registration = PointCloudRegistration(
+    registration = MultiInstanceICPRegistration(
         rgb=rgb,
         pcd=pcd,
         instance_label=instance_label,
