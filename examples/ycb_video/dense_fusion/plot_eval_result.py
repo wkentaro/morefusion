@@ -7,6 +7,7 @@ import concurrent.futures
 import imgviz
 import numpy as np
 import matplotlib.pyplot as plt
+import path
 import scipy.io
 import trimesh.transformations as tf
 
@@ -53,6 +54,9 @@ def get_adds(result_file):
     return adds
 
 
+here = path.Path(__file__).abspath().parent
+
+
 def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -78,6 +82,8 @@ def main():
         for cls_id in adds:
             adds_all[cls_id] += adds[cls_id]
 
+    logs_dir = here / 'logs' / args.name
+    logs_dir.mkdir_p()
     for cls_id, adds in sorted(adds_all.items()):
         class_name = objslampp.datasets.ycb_video.class_names[cls_id]
 
@@ -97,7 +103,7 @@ def main():
         plt.tight_layout()
         img = imgviz.io.pyplot_fig2arr(fig)
         plt.close()
-        out_file = f'plots/{class_name}.png'
+        out_file = logs_dir / f'{class_name}.png'
         print('==> Saved ADD curve plot:', out_file)
         imgviz.io.imsave(out_file, img)
 
