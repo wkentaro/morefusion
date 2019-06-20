@@ -7,6 +7,7 @@ EVAL_RESULTS = (
     'Densefusion_wo_refine_result',
     'Densefusion_iterative_result',
     'Densefusion_icp_result',
+    'Densefusion_occupancy_result',
 )
 
 
@@ -30,8 +31,8 @@ def get_eval_result(name):
             postprocess=gdown.extractall,
             md5='fbe2524635c44e64af94ab7cf7a19e9d',
         )
-    elif name == 'Densefusion_icp_result':
-        zip_file = root_dir / 'Densefusion_icp_result.zip'
+    elif name in EVAL_RESULTS:
+        zip_file = root_dir / f'{name}.zip'
     else:
         raise ValueError
     result_dir = path.Path(zip_file[:- len('.zip')])
