@@ -1,5 +1,3 @@
-import chainer
-
 import numpy as np
 import open3d
 import trimesh.transformations as tf
