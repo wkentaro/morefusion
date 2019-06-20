@@ -2,11 +2,8 @@
 
 import argparse
 
-import chainer
-import gdown
 import imgviz
 import numpy as np
-import path
 import pybullet
 import scipy.io
 import trimesh
@@ -20,16 +17,21 @@ def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument('--refine', action='store_true')
+    parser.add_argument(
+        '--name',
+        choices=['Densefusion_iterative_result', 'Densefusion_icp_result'],
+        default='Densefusion_iterative_result',
+    )
     args = parser.parse_args()
 
-    result_dir = contrib.get_eval_result(args.refine)
+    result_dir = contrib.get_eval_result(name=args.name)
 
     class Images:
 
         offset = 0
-        step = 15
-        indices = np.arange(offset, 2948, step)
+        step = 1
+        result_files = result_dir.glob('*.mat')
+        indices = np.arange(offset, len(result_files), step)
 
         def __len__(self):
             return len(self.indices)

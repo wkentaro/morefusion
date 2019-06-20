@@ -53,7 +53,17 @@ def get_adds(result_file):
 
 
 def main():
-    result_dir = contrib.get_eval_result(refine=True)
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument(
+        '--name',
+        choices=['Densefusion_iterative_result', 'Densefusion_icp_result'],
+        default='Densefusion_iterative_result',
+    )
+    args = parser.parse_args()
+
+    result_dir = contrib.get_eval_result(name=args.name)
 
     adds_list = []
     with concurrent.futures.ProcessPoolExecutor() as executor:
