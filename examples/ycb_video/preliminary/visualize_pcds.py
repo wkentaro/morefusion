@@ -6,7 +6,7 @@ import trimesh
 
 import objslampp
 
-import contrib
+import preliminary
 
 
 def visualize_pcds(
@@ -62,7 +62,7 @@ def main():
 
     # build octrees
     pitch = 0.005
-    mapping = contrib.MultiInstanceOctreeMapping()
+    mapping = preliminary.MultiInstanceOctreeMapping()
     for ins_id in instance_ids_all:
         mask = instance_label == ins_id
         mapping.initialize(ins_id, pitch=pitch)
@@ -87,7 +87,7 @@ def main():
         pcds_occupied,
         pcds_empty,
     )
-    contrib.display_scenes(scenes, tile=(1, 2))
+    preliminary.display_scenes(scenes, tile=(1, 2))
 
 
 if __name__ == '__main__':

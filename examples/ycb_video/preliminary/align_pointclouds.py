@@ -8,7 +8,7 @@ import trimesh.transformations as tf
 
 import objslampp
 
-import contrib
+import preliminary
 
 
 class MultiInstanceICPRegistration:
@@ -67,7 +67,7 @@ class MultiInstanceICPRegistration:
         self._pcd_cad = pcd_cad
         self._pcd_depth = pcd_depth
 
-        registration = contrib.ICPRegistration(
+        registration = preliminary.ICPRegistration(
             pcd_depth, pcd_cad, self._Ts_cad2cam_pred[instance_id]
         )
         with chainer.using_config('debug', True):
@@ -198,7 +198,7 @@ def refinement(
                 for _ in registration.register_instance(instance_id)
             )
 
-    contrib.display_scenes(scenes_ggroup(), height=360, width=480, tile=(2, 3))
+    preliminary.display_scenes(scenes_ggroup(), height=360, width=480, tile=(2, 3))
 
     return registration
 

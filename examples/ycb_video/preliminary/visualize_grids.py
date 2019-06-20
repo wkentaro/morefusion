@@ -6,7 +6,7 @@ import trimesh.transformations as tf
 
 import objslampp
 
-import contrib
+import preliminary
 
 
 def visualize_grids(
@@ -95,7 +95,7 @@ def main():
     )
     instance_label = frame['label']
 
-    mapping = contrib.MultiInstanceOctreeMapping()
+    mapping = preliminary.MultiInstanceOctreeMapping()
 
     # background
     ins_id = 0
@@ -151,7 +151,7 @@ def main():
             scenes[new_name] = scenes.pop(name)
         all_scenes.update(scenes)
 
-    contrib.display_scenes(
+    preliminary.display_scenes(
         all_scenes,
         height=int(480 * 0.5),
         width=int(640 * 0.5),
