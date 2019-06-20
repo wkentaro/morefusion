@@ -6,6 +6,7 @@ import concurrent.futures
 
 import imgviz
 import matplotlib.pyplot as plt
+import pandas
 import path
 
 import objslampp
@@ -22,7 +23,7 @@ def main():
     )
     parser.add_argument(
         '--name',
-        choices=['Densefusion_iterative_result', 'Densefusion_icp_result'],
+        choices=contrib.EVAL_RESULTS,
         default='Densefusion_iterative_result',
     )
     args = parser.parse_args()
@@ -43,6 +44,8 @@ def main():
 
     logs_dir = here / 'logs' / args.name
     logs_dir.mkdir_p()
+
+    data = []
     for cls_id, adds in sorted(adds_all.items()):
         class_name = objslampp.datasets.ycb_video.class_names[cls_id]
 
@@ -65,6 +68,16 @@ def main():
         out_file = logs_dir / f'{class_name}.png'
         print('==> Saved ADD curve plot:', out_file)
         imgviz.io.imsave(out_file, img)
+
+        data.append(dict(
+            class_id=cls_id,
+            class_name=class_name,
+            add_auc=auc,
+        ))
+
+    df = pandas.DataFrame(data)
+    print(df)
+    df.to_csv(logs_dir / 'data.csv')
 
 
 if __name__ == '__main__':

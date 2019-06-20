@@ -19,7 +19,7 @@ def main():
     )
     parser.add_argument(
         '--name',
-        choices=['Densefusion_iterative_result', 'Densefusion_icp_result'],
+        choices=contrib.EVAL_RESULTS,
         default='Densefusion_iterative_result',
     )
     args = parser.parse_args()

@@ -3,7 +3,16 @@ import gdown
 import path
 
 
+EVAL_RESULTS = (
+    'Densefusion_wo_refine_result',
+    'Densefusion_iterative_result',
+    'Densefusion_icp_result',
+)
+
+
 def get_eval_result(name):
+    assert name in EVAL_RESULTS
+
     root_dir = chainer.dataset.get_dataset_directory('wkentaro/objslampp/ycb_video/dense_fusion/eval_result/ycb')  # NOQA
     root_dir = path.Path(root_dir)
 
