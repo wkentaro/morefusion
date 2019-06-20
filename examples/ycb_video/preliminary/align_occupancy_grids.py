@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 
-import glooey
 import imgviz
 import numpy as np
-import pyglet
 import trimesh
 import trimesh.transformations as tf
 
@@ -12,67 +10,7 @@ import objslampp
 import contrib
 
 
-def visualize(grid_target, pitch, origin, cad, T_cad2cam_true, T_cad2cam_pred):
-    scenes = {}
-
-    scene = trimesh.Scene()
-    # occupied target/untarget
-    voxel = trimesh.voxel.Voxel(
-        matrix=grid_target[0], pitch=pitch, origin=origin
-    )
-    geom = voxel.as_boxes((1., 0, 0, 0.5))
-    scene.add_geometry(geom, geom_name='occupied_target')
-    voxel = trimesh.voxel.Voxel(
-        matrix=grid_target[1],
-        pitch=pitch,
-        origin=origin,
-    )
-    geom = voxel.as_boxes((0, 1., 0, 0.5))
-    scene.add_geometry(geom, geom_name='occupied_untarget')
-    scenes['instance_occupied'] = scene
-
-    # empty
-    scene = trimesh.Scene()
-    voxel = trimesh.voxel.Voxel(
-        matrix=grid_target[2], pitch=pitch, origin=origin
-    )
-    geom = voxel.as_boxes((0.5, 0.5, 0.5, 0.5))
-    scene.add_geometry(geom, geom_name='empty')
-    scenes['instance_empty'] = scene
-
-    scene = trimesh.Scene()
-    # cad_true
-    cad_trans = cad.copy()
-    cad_trans.visual.vertex_colors[:, 3] = 127
-    scene.add_geometry(
-        cad_trans,
-        transform=T_cad2cam_true,
-        geom_name='cad_true',
-        node_name='cad_true',
-    )
-    scenes['instance_cad'] = scene
-
-    # cad_pred
-    for scene in scenes.values():
-        scene.add_geometry(
-            cad,
-            transform=T_cad2cam_pred,
-            geom_name='cad_pred',
-            node_name='cad_pred',
-        )
-
-    # bbox
-    aabb_min = origin - pitch / 2
-    aabb_max = aabb_min + pitch * np.array(grid_target.shape[1:])
-    geom = trimesh.path.creation.box_outline(aabb_max - aabb_min)
-    geom.apply_translation((aabb_min + aabb_max) / 2)
-    for scene in scenes.values():
-        scene.add_geometry(geom, geom_name='bbox')
-
-    return scenes
-
-
-class OccupancyGridRegistration:
+class MultiInstanceOccupancyRegistration:
 
     _models = objslampp.datasets.YCBVideoModels()
 
@@ -203,11 +141,81 @@ class OccupancyGridRegistration:
         pcd = self._pcd
 
         scenes = {}
+
+        # ---------------------------------------------------------------------
+
+        # instance-level
+        instance_id = self._instance_id
+        cad = self._cads[instance_id]
+        T_cad2cam_true = self._Ts_cad2cam_true[instance_id]
+        T_cad2cam_pred = self._Ts_cad2cam_pred[instance_id]
+        grid_target = self._grids
+        pitch = self._pitch
+        origin = self._origin
+
+        scene = trimesh.Scene()
+        # occupied target/untarget
+        voxel = trimesh.voxel.Voxel(
+            matrix=grid_target[0], pitch=pitch, origin=origin
+        )
+        geom = voxel.as_boxes((1., 0, 0, 0.5))
+        scene.add_geometry(geom, geom_name='occupied_target')
+        voxel = trimesh.voxel.Voxel(
+            matrix=grid_target[1],
+            pitch=pitch,
+            origin=origin,
+        )
+        geom = voxel.as_boxes((0, 1., 0, 0.5))
+        scene.add_geometry(geom, geom_name='occupied_untarget')
+        scenes['instance_occupied'] = scene
+
+        # empty
+        scene = trimesh.Scene()
+        voxel = trimesh.voxel.Voxel(
+            matrix=grid_target[2], pitch=pitch, origin=origin
+        )
+        geom = voxel.as_boxes((0.5, 0.5, 0.5, 0.5))
+        scene.add_geometry(geom, geom_name='empty')
+        scenes['instance_empty'] = scene
+
+        scene = trimesh.Scene()
+        # cad_true
+        cad_trans = cad.copy()
+        cad_trans.visual.vertex_colors[:, 3] = 127
+        scene.add_geometry(
+            cad_trans,
+            transform=T_cad2cam_true,
+            geom_name='cad_true',
+            node_name='cad_true',
+        )
+        scenes['instance_cad'] = scene
+
+        # cad_pred
+        for scene in scenes.values():
+            scene.add_geometry(
+                cad,
+                transform=T_cad2cam_pred,
+                geom_name='cad_pred',
+                node_name='cad_pred',
+            )
+
+        # bbox
+        aabb_min = origin - pitch / 2
+        aabb_max = aabb_min + pitch * np.array(grid_target.shape[1:])
+        geom = trimesh.path.creation.box_outline(aabb_max - aabb_min)
+        geom.apply_translation((aabb_min + aabb_max) / 2)
+        for scene in scenes.values():
+            scene.add_geometry(geom, geom_name='bbox')
+
+        # ---------------------------------------------------------------------
+
         # scene_pcd
+        scenes['scene_pcd_only'] = trimesh.Scene()
         scenes['scene_cad'] = trimesh.Scene()
         scenes['scene_pcd'] = trimesh.Scene()
         nonnan = ~np.isnan(pcd).any(axis=2)
         geom = trimesh.PointCloud(vertices=pcd[nonnan], colors=rgb[nonnan])
+        scenes['scene_pcd_only'].add_geometry(geom, geom_name='pcd')
         scenes['scene_pcd'].add_geometry(geom, geom_name='pcd')
         for instance_id in self._instance_ids:
             if instance_id not in self._cads:
@@ -241,30 +249,15 @@ class OccupancyGridRegistration:
                 geom, geom_name=f'empty_{instance_id}'
             )
 
-        # instance-level
-        instance_id = self._instance_id
-        cad = self._cads[instance_id]
-        T_cad2cam_true = self._Ts_cad2cam_true[instance_id]
-        T_cad2cam_pred = self._Ts_cad2cam_pred[instance_id]
-        all_scenes = visualize(
-            self._grids,
-            self._pitch,
-            self._origin,
-            cad=cad,
-            T_cad2cam_true=T_cad2cam_true,
-            T_cad2cam_pred=T_cad2cam_pred,
-        )
-        all_scenes.update(scenes)
-
         # set camera
         camera = trimesh.scene.Camera(
             resolution=(640, 480),
             fov=(60 * 0.7, 45 * 0.7),
             transform=objslampp.extra.trimesh.camera_transform(),
         )
-        for scene in all_scenes.values():
+        for scene in scenes.values():
             scene.camera = camera
-        return all_scenes
+        return scenes
 
 
 def refinement(
@@ -277,7 +270,7 @@ def refinement(
     Ts_cad2cam_pred=None,
     points_occupied=None,
 ):
-    registration = OccupancyGridRegistration(
+    registration = MultiInstanceOccupancyRegistration(
         rgb=rgb,
         pcd=pcd,
         instance_label=instance_label,
@@ -299,124 +292,19 @@ def refinement(
 
     # -------------------------------------------------------------------------
 
-    nrow, ncol = 2, 4
-    height = int(round(0.7 * 480)) * nrow
-    width = int(round(0.7 * 640)) * ncol
-    window = pyglet.window.Window(width=width, height=height)
-    window.play = False
-    window.result = registration.register_instance(next(instance_ids))
-    next(window.result)
-    window.rotate = 0
+    def scenes_ggroup():
+        for ins_id in instance_ids:
+            yield (
+                registration.visualize()
+                for _ in registration.register_instance(ins_id)
+            )
 
-    print('''\
-==> Usage
-q: close window
-n: next iteration
-s: play iterations
-z: reset camera
-r/R: rotate camera
-N: next instance''')
-
-    @window.event
-    def on_key_press(symbol, modifiers):
-        if modifiers == 0:
-            if symbol == pyglet.window.key.Q:
-                window.on_close()
-            elif symbol == pyglet.window.key.S:
-                window.play = not window.play
-                print(f'==> window.play: {window.play}')
-            elif symbol == pyglet.window.key.N:
-                try:
-                    next(window.result)
-                except StopIteration:
-                    on_key_press(
-                        symbol=pyglet.window.key.N,
-                        modifiers=pyglet.window.key.MOD_SHIFT,
-                    )
-                    return
-            elif symbol == pyglet.window.key.Z:
-                for widget in widgets.values():
-                    camera = widget.scene.camera
-                    camera.transform = \
-                        objslampp.extra.trimesh.camera_transform()
-        if symbol == pyglet.window.key.R:
-            # rotate camera
-            window.rotate = not window.rotate  # 0/1
-            if modifiers == pyglet.window.key.MOD_SHIFT:
-                window.rotate *= -1
-        if modifiers == pyglet.window.key.MOD_SHIFT:
-            if symbol == pyglet.window.key.N:
-                try:
-                    print('==> updating octrees')
-                    registration.update_octree(registration._instance_id)
-                    print('==> updated octrees')
-
-                    instance_id = next(instance_ids)
-                    print(f'==> initializing next instance: {instance_id}')
-                    window.result = registration.register_instance(instance_id)
-                    next(window.result)
-                    print(f'==> initialized instance: {instance_id}')
-                except StopIteration:
-                    return
-
-    def callback(dt, widgets=None):
-        if window.rotate:
-            point = np.mean([
-                tf.translation_from_matrix(T)
-                for T in registration._Ts_cad2cam_true.values()
-            ], axis=0)
-            for widget in widgets.values():
-                camera = widget.scene.camera
-                axis = tf.transform_points(
-                    [[0, 1, 0]], camera.transform, translate=False
-                )[0]
-                camera.transform = tf.rotation_matrix(
-                    np.deg2rad(window.rotate), axis, point=point
-                ) @ camera.transform
-            return
-        if window.play:
-            try:
-                next(window.result)
-            except StopIteration:
-                on_key_press(
-                    symbol=pyglet.window.key.N,
-                    modifiers=pyglet.window.key.MOD_SHIFT,
-                )
-                return
-        scenes = registration.visualize()
-        if widgets:
-            for key, widget in widgets.items():
-                widget.scene.geometry.update(scenes[key].geometry)
-                widget.scene.graph.load(scenes[key].graph.to_edgelist())
-                widget._draw()
-        return scenes
-
-    gui = glooey.Gui(window)
-
-    grid = glooey.Grid(num_rows=nrow, num_cols=ncol)
-    grid.set_padding(5)
-    vbox = glooey.VBox()
-    vbox.add(glooey.Label('rgb', color=(255, 255, 255)), size=0)
-    vbox.add(
-        glooey.Image(
-            objslampp.extra.pyglet.numpy_to_image(rgb), responsive=True
-        )
+    contrib.display_scenes(
+        scenes_ggroup(),
+        height=int(480 * 0.6),
+        width=int(640 * 0.6),
+        tile=(2, 4),
     )
-    grid.add(0, 0, vbox)
-    widgets = {}
-    scenes = callback(-1)
-    for i, (key, scene) in enumerate(scenes.items()):
-        i += 1
-        widgets[key] = trimesh.viewer.SceneWidget(scene)
-        vbox = glooey.VBox()
-        vbox.add(glooey.Label(key, color=(255, 255, 255)), size=0)
-        vbox.add(widgets[key])
-        grid[i // ncol, i % ncol] = vbox
-    gui.add(grid)
-
-    pyglet.clock.schedule_interval(callback, 1 / 30, widgets)
-    pyglet.app.run()
-    pyglet.clock.unschedule(callback)
 
     return registration
 
