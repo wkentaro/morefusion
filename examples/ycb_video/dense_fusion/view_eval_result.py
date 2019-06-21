@@ -22,6 +22,11 @@ def main():
         choices=contrib.EVAL_RESULTS,
         default='Densefusion_iterative_result',
     )
+    parser.add_argument(
+        '--step',
+        type=int,
+        default=1,
+    )
     args = parser.parse_args()
 
     result_dir = contrib.get_eval_result(name=args.name)
@@ -29,7 +34,7 @@ def main():
     class Images:
 
         offset = 0
-        step = 1
+        step = args.step
         result_files = result_dir.glob('*.mat')
         indices = np.arange(offset, len(result_files), step)
 
