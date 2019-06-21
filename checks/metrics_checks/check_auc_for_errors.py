@@ -32,7 +32,7 @@ def main():
 
     adds = objslampp.metrics.average_distance(
         [points] * n_test, transforms_true, transforms_pred
-    )
+    )[0]
     max_distance = 0.1
     auc, x, y = objslampp.metrics.auc_for_errors(
         adds, max_threshold=max_distance, return_xy=True

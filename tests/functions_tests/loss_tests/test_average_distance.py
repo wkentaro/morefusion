@@ -29,7 +29,7 @@ class TestAverageDistance(unittest.TestCase):
             [cuda.to_cpu(points)] * len(T1),
             cuda.to_cpu(T1),
             cuda.to_cpu(T2),
-        )
+        )[0]
         testing.assert_allclose(d1, d2)
 
         average_distance_l2(points, T1, T2)

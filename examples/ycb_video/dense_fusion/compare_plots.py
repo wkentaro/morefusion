@@ -22,10 +22,20 @@ for name in contrib.EVAL_RESULTS:
     if not csv_file.exists():
         continue
     df = pandas.read_csv(csv_file, index_col=0)
-    df = df[~df['class_name'].isin(symmetric_objects)]
-    df = df[['class_id', 'class_name', 'add_auc']]
+    # df = df[~df['class_name'].isin(symmetric_objects)]
+    df = df[['class_id', 'class_name', 'add_s_auc']]
     df = df.set_index(['class_id', 'class_name'])
-    df = df.rename(columns={'add_auc': f'{name} (ADD)'})
+    df = df.rename(columns={'add_s_auc': f'{name} (ADD-S)'})
     dfs.append(df)
 df = pandas.concat(dfs, axis=1, sort=False)
+df = df.sort_index()
+# print(df)
+
+baseline_name = 'Densefusion_wo_refine_result (ADD-S)'
+baseline = df[baseline_name]
+for col in df.columns:
+    if col != baseline_name:
+        df[col] -= baseline
 print(df)
+
+print(df.mean())

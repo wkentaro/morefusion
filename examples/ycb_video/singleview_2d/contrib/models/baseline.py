@@ -57,7 +57,7 @@ class BaselineModel(chainer.Chain):
             cad_pcd = self._get_cad_pcd(class_id=class_id_i)
             add_rotation = objslampp.metrics.average_distance(
                 [cad_pcd], [T_cad2cam_true[i]], [T_cad2cam_pred[i]]
-            )[0]
+            )[0][0]
             if chainer.config.train:
                 summary.add({'add_rotation': add_rotation})
             else:
@@ -78,7 +78,7 @@ class BaselineModel(chainer.Chain):
             cad_pcd = self._get_cad_pcd(class_id=class_id_i)
             add_rotation = objslampp.metrics.average_distance(
                 [cad_pcd], [T_cad2cam_true[i]], [T_cad2cam_pred[i]]
-            )[0]
+            )[0][0]
             if chainer.config.train:
                 summary.add({'add': add_rotation})
             else:

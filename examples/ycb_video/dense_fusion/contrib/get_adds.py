@@ -33,13 +33,16 @@ def get_adds(result_file):
             ]
             pcd_file = models.get_pcd_model(class_id=cls_id)
             pcd = np.loadtxt(pcd_file)
-            add = objslampp.metrics.average_distance(
+            add, add_s = objslampp.metrics.average_distance(
                 [pcd],
                 transform1=[T_true],
                 transform2=[T_pred],
-            )[0]
+            )
+            add = add[0]
+            add_s = add_s[0]
         except IndexError:
             add = np.inf
-        print(f'{result_file}, {cls_id:04d}, {add:.3f}')
-        adds[cls_id].append(add)
+            add_s = np.inf
+        print(f'{result_file}, {cls_id:04d}, {add:.3f}, {add_s:.3f}')
+        adds[cls_id].append((add, add_s))
     return adds

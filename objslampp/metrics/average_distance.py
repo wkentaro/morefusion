@@ -1,5 +1,6 @@
 import numpy as np
 import trimesh.transformations as tf
+import sklearn.neighbors
 
 
 def _average_distance(points, transform1, transform2):
@@ -8,7 +9,14 @@ def _average_distance(points, transform1, transform2):
     assert transform2.shape == (4, 4)
     points1 = tf.transform_points(points, transform1)
     points2 = tf.transform_points(points, transform2)
-    return np.linalg.norm(points1 - points2, axis=1).mean()
+
+    add = np.linalg.norm(points1 - points2, axis=1).mean()
+
+    kdtree = sklearn.neighbors.KDTree(points2)
+    indices = kdtree.query(points1, return_distance=False)[:, 0]
+    add_s = np.linalg.norm(points1 - points2[indices], axis=1).mean()
+
+    return add, add_s
 
 
 def average_distance(points, transform1, transform2):
@@ -19,6 +27,9 @@ def average_distance(points, transform1, transform2):
     assert len(transform2) == batch_size
 
     adds = np.zeros((batch_size,), dtype=float)
+    add_ss = np.zeros((batch_size,), dtype=float)
     for i in range(batch_size):
-        adds[i] = _average_distance(points[i], transform1[i], transform2[i])
-    return adds
+        adds[i], add_ss[i] = _average_distance(
+            points[i], transform1[i], transform2[i]
+        )
+    return adds, add_ss
