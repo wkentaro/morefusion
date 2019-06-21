@@ -46,26 +46,28 @@ class MultiInstanceOctreeMapping:
         for ins_id, octree in self._octrees.items():
             occupied, empty = octree.extractPointCloud()
 
-            kdtree = sklearn.neighbors.KDTree(occupied)
-            dist, indices = kdtree.query(centers, k=1)
+            if occupied.size:
+                kdtree = sklearn.neighbors.KDTree(occupied)
+                dist, indices = kdtree.query(centers, k=1)
 
-            if ins_id == target_id:
-                # occupied by target
+                if ins_id == target_id:
+                    # occupied by target
+                    g = np.minimum(1, np.maximum(0, 1 - (dist / pitch)))
+                    g = g.reshape(dimensions)
+                    grid_target = np.maximum(grid_target, g)
+                else:
+                    # occupied by non-target
+                    g = np.minimum(1, np.maximum(0, 1 - (dist / pitch)))
+                    g = g.reshape(dimensions)
+                    grid_nontarget = np.maximum(grid_nontarget, g)
+
+            if empty.size:
+                # empty
+                kdtree = sklearn.neighbors.KDTree(empty)
+                dist, indices = kdtree.query(centers, k=1)
                 g = np.minimum(1, np.maximum(0, 1 - (dist / pitch)))
                 g = g.reshape(dimensions)
-                grid_target = np.maximum(grid_target, g)
-            else:
-                # occupied by non-target
-                g = np.minimum(1, np.maximum(0, 1 - (dist / pitch)))
-                g = g.reshape(dimensions)
-                grid_nontarget = np.maximum(grid_nontarget, g)
-
-            # empty
-            kdtree = sklearn.neighbors.KDTree(empty)
-            dist, indices = kdtree.query(centers, k=1)
-            g = np.minimum(1, np.maximum(0, 1 - (dist / pitch)))
-            g = g.reshape(dimensions)
-            grid_empty = np.maximum(grid_empty, g)
+                grid_empty = np.maximum(grid_empty, g)
 
         return grid_target, grid_nontarget, grid_empty
 
