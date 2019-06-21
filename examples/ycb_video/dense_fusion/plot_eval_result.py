@@ -46,17 +46,27 @@ def main():
     logs_dir.mkdir_p()
 
     data = []
-    for cls_id, adds in sorted(adds_all.items()):
+    for cls_id, adds in adds_all.items():
         class_name = objslampp.datasets.ycb_video.class_names[cls_id]
 
         auc, x, y = objslampp.metrics.ycb_video_add_auc(
-            adds, max_value=0.1, return_xy=True)
+            adds[0], max_value=0.1, return_xy=True)
+        auc_s, x_s, y_s = objslampp.metrics.ycb_video_add_auc(
+            adds[1], max_value=0.1, return_xy=True)
 
-        fig = plt.figure(figsize=(10, 5))
+        fig = plt.figure(figsize=(20, 5))
 
         print('auc (add):', auc)
+        plt.subplot(121)
         plt.title(f'{class_name}: ADD (AUC={auc * 100:.2f})')
         plt.plot(x, y, color='b')
+        plt.xlim(0, 0.1)
+        plt.ylim(0, 1)
+        plt.xlabel('average distance threshold [m]')
+        plt.ylabel('accuracy')
+        plt.subplot(122)
+        plt.title(f'{class_name}: ADD-S (AUC={auc * 100:.2f})')
+        plt.plot(x_s, y_s, color='b')
         plt.xlim(0, 0.1)
         plt.ylim(0, 1)
         plt.xlabel('average distance threshold [m]')
@@ -73,6 +83,7 @@ def main():
             class_id=cls_id,
             class_name=class_name,
             add_auc=auc,
+            add_s_auc=auc_s,
         ))
 
     df = pandas.DataFrame(data)

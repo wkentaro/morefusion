@@ -229,7 +229,7 @@ def main():
                     [pcd] * len(Ts_prev),
                     [Ts_cad2world[-1]] * len(Ts_prev),
                     Ts_prev,
-                )
+                )[0]
                 # there are at least N hypothesis around Xcm
                 if (adds < 0.02).sum() >= 3:
                     data['spawn'] = True

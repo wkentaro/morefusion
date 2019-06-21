@@ -28,7 +28,7 @@ def main():
 
         add = objslampp.metrics.average_distance(
             [points], [transform_true], [transform_pred]
-        )[0]
+        )[0][0]
 
         # ---------------------------------------------------------------------
 
