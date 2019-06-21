@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import argparse
+
 import numpy as np
 import trimesh.transformations as tf
 import scipy.io
@@ -10,10 +12,21 @@ import contrib
 import preliminary
 
 
+parser = argparse.ArgumentParser(
+    formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+)
+parser.add_argument('--icp', action='store_true')
+args = parser.parse_args()
+
+
 dataset = objslampp.datasets.YCBVideoDataset
 models = objslampp.datasets.YCBVideoModels()
 
-occupancy_dir = contrib.get_eval_result(name='Densefusion_occupancy_result')
+if args.icp:
+    name = 'Densefusion_occupancy_icp_result'
+else:
+    name = 'Densefusion_occupancy_result'
+occupancy_dir = contrib.get_eval_result(name)
 occupancy_dir.mkdir_p()
 
 norefine_dir = contrib.get_eval_result(name='Densefusion_wo_refine_result')
@@ -113,6 +126,11 @@ for result_file in sorted(norefine_dir.glob('*.mat')):
 
             if np.isnan(transform).sum():
                 transform = transform_init
+            elif args.icp:
+                registration = preliminary.ICPRegistration(
+                    pcd_depth, pcd_cad, transform_init
+                )
+                transform = registration.register()
 
             pose_refined = np.r_[
                 tf.quaternion_from_matrix(transform),
