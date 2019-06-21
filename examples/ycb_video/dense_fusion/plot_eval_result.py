@@ -6,6 +6,7 @@ import concurrent.futures
 
 import imgviz
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas
 import path
 
@@ -45,16 +46,17 @@ def main():
             adds_all[cls_id] += adds[cls_id]
 
     logs_dir = here / 'logs' / args.name
-    logs_dir.mkdir_p()
+    logs_dir.makedirs_p()
 
     data = []
     for cls_id, adds in adds_all.items():
         class_name = objslampp.datasets.ycb_video.class_names[cls_id]
 
+        adds = np.array(adds)
         auc, x, y = objslampp.metrics.ycb_video_add_auc(
-            adds[0], max_value=0.1, return_xy=True)
+            adds[:, 0], max_value=0.1, return_xy=True)
         auc_s, x_s, y_s = objslampp.metrics.ycb_video_add_auc(
-            adds[1], max_value=0.1, return_xy=True)
+            adds[:, 1], max_value=0.1, return_xy=True)
 
         fig = plt.figure(figsize=(20, 5))
 
