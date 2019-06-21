@@ -32,7 +32,9 @@ def main():
 
     adds_list = []
     with concurrent.futures.ProcessPoolExecutor() as executor:
-        for result_file in result_dir.glob('*.mat'):
+        result_files = sorted(result_dir.glob('*.mat'))
+        assert len(result_files) == 2949, len(result_files)
+        for result_file in result_files:
             adds = executor.submit(contrib.get_adds, result_file)
             adds_list.append(adds)
 
