@@ -71,9 +71,11 @@ class MultiInstanceOctreeMapping:
 
         return grid_target, grid_nontarget, grid_empty
 
-    def get_target_pcds(self, target_id):
+    def get_target_pcds(self, target_id, aabb_min=None, aabb_max=None):
         octree = self._octrees[target_id]
         if target_id not in self._pcds:
-            occupied, empty = octree.extractPointCloud()
+            occupied, empty = octree.extractPointCloud(
+                bbx_min=aabb_min, bbx_max=aabb_max
+            )
             self._pcds[target_id] = (occupied, empty)
         return self._pcds[target_id]
