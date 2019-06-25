@@ -120,9 +120,9 @@ def main():
         cad_file = objslampp.datasets.YCBVideoModels()\
             .get_model(class_id=class_id)['textured_simple']
 
-        index = confidence_pred.array.argmax(axis=1)
-        quaternion_pred = quaternion_pred[np.arange(1), index, :]
-        translation_pred = translation_pred[np.arange(1), index, :]
+        keep = confidence_pred.array.argmax(axis=1)
+        quaternion_pred = quaternion_pred[np.arange(1), keep, :]
+        translation_pred = translation_pred[np.arange(1), keep, :]
 
         quaternion_pred = cuda.to_cpu(quaternion_pred.array)[0]
         translation_pred = cuda.to_cpu(translation_pred.array)[0]
