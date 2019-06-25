@@ -177,11 +177,11 @@ def main():
                     .get_model(class_id=class_id)['points_xyz']
                 pcd = np.loadtxt(pcd_file)
                 Ts_prev = Ts_cad2world[:-1]
-                adds, _ = objslampp.metrics.average_distance(
+                adds = objslampp.metrics.average_distance(
                     [pcd] * len(Ts_prev),
                     [Ts_cad2world[-1]] * len(Ts_prev),
                     Ts_prev,
-                )[0]
+                )[0][0]
 
                 # there are at least N hypothesis around Xcm
                 if (adds < 0.02).sum() >= 3:

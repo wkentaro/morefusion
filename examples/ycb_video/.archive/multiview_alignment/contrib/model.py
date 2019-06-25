@@ -448,7 +448,7 @@ class Model(chainer.Chain):
         # evaluate only rotation prediction
         add_rotation = objslampp.metrics.average_distance(
             [cad_points], [transform_true], [transform_pred]
-        )[0]
+        )[0][0]
 
         # use translation prediction
         transform_pred[:3, 3] = self.translation_voxel2world(
@@ -459,7 +459,7 @@ class Model(chainer.Chain):
         )
         add = objslampp.metrics.average_distance(
             [cad_points], [transform_true], [transform_pred]
-        )[0]
+        )[0][0]
 
         values = {
             f'add_rotation': add_rotation,
