@@ -219,7 +219,7 @@ class BaselineModel(chainer.Chain):
         for i in range(batch_size):
             class_id_i = int(class_id[i])
             cad_pcd = self._get_cad_pcd(class_id=class_id_i)
-            add_rotation = objslampp.metrics.average_distance(
+            add_rotation, _ = objslampp.metrics.average_distance(
                 [cad_pcd], [T_cad2cam_true[i]], [T_cad2cam_pred[i]]
             )[0]
             if chainer.config.train:
@@ -240,13 +240,13 @@ class BaselineModel(chainer.Chain):
         for i in range(batch_size):
             class_id_i = int(class_id[i])
             cad_pcd = self._get_cad_pcd(class_id=class_id_i)
-            add_rotation = objslampp.metrics.average_distance(
+            add, _ = objslampp.metrics.average_distance(
                 [cad_pcd], [T_cad2cam_true[i]], [T_cad2cam_pred[i]]
             )[0]
             if chainer.config.train:
-                summary.add({'add': add_rotation})
+                summary.add({'add': add})
             else:
-                summary.add({f'add/{class_id_i:04d}': add_rotation})
+                summary.add({f'add/{class_id_i:04d}': add})
         chainer.report(summary.compute_mean(), self)
 
     def loss(

@@ -177,7 +177,7 @@ def main():
                     .get_model(class_id=class_id)['points_xyz']
                 pcd = np.loadtxt(pcd_file)
                 Ts_prev = Ts_cad2world[:-1]
-                adds = objslampp.metrics.average_distance(
+                adds, _ = objslampp.metrics.average_distance(
                     [pcd] * len(Ts_prev),
                     [Ts_cad2world[-1]] * len(Ts_prev),
                     Ts_prev,
