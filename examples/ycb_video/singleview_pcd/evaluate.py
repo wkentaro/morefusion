@@ -141,7 +141,9 @@ def main():
                 objslampp.extra.pybullet.render_cad(
                     cad_file, Ts[which], fovy=fovy, height=height, width=width
                 )
-            mask_rend = imgviz.label2rgb(mask_rend, img=rgb, alpha=0.7)
+            mask_rend = imgviz.label2rgb(
+                mask_rend.astype(np.int32), img=rgb, alpha=0.7
+            )
             depth_rend = depth2rgb(depth_rend)
             viz = imgviz.tile(
                 [rgb, examples[0]['rgb'], mask_rend, rgb_rend, depth_rend],
