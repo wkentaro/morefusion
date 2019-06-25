@@ -147,7 +147,7 @@ def main():
     if args.multi_node:
         data_train = chainermn.scatter_dataset(data_train, comm, shuffle=True)
 
-    args.class_names = objslampp.datasets.ycb_video.class_names
+    args.class_names = objslampp.datasets.ycb_video.class_names.tolist()
 
     # model initialization
     model = contrib.models.BaselineModel(
