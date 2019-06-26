@@ -89,6 +89,10 @@ class DatasetBase(objslampp.datasets.DatasetBase):
             pcd = pcd[y1:y2, x1:x2]
             pcd = imgviz.centerize(pcd, (256, 256), cval=np.nan)
 
+            nonnan = ~np.isnan(pcd).any(axis=2)
+            if nonnan.sum() == 0:
+                continue
+
             quaternion_true = tf.quaternion_from_matrix(T_cad2cam)
             translation_true = tf.translation_from_matrix(T_cad2cam)
 
