@@ -7,7 +7,7 @@ import trimesh.transformations as tf
 import objslampp
 
 
-class OccupancyGridAlignmentModel(chainer.Link):
+class OccupancyRegistrationLink(chainer.Link):
 
     def __init__(self, quaternion_init=None, translation_init=None):
         super().__init__()
@@ -86,14 +86,14 @@ class OccupancyRegistration:
         translation_init = tf.translation_from_matrix(transform_init)
         translation_init = translation_init.astype(np.float32)
 
-        model = OccupancyGridAlignmentModel(quaternion_init, translation_init)
+        link = OccupancyRegistrationLink(quaternion_init, translation_init)
 
         self._grid_target_cpu = grid_target
 
         if gpu >= 0:
-            model.to_gpu(gpu)
-            points_source = model.xp.asarray(points_source)
-            grid_target = model.xp.asarray(grid_target)
+            link.to_gpu(gpu)
+            points_source = link.xp.asarray(points_source)
+            grid_target = link.xp.asarray(grid_target)
 
         self._points_source = points_source
         self._grid_target = grid_target
@@ -102,14 +102,14 @@ class OccupancyRegistration:
         self._threshold = threshold
 
         self._optimizer = chainer.optimizers.Adam(alpha=alpha)
-        self._optimizer.setup(model)
-        model.translation.update_rule.hyperparam.alpha *= 0.1
+        self._optimizer.setup(link)
+        link.translation.update_rule.hyperparam.alpha *= 0.1
 
     @property
     def _transform(self):
-        model = self._optimizer.target
-        quaternion = cuda.to_cpu(model.quaternion.array)
-        translation = cuda.to_cpu(model.translation.array)
+        link = self._optimizer.target
+        quaternion = cuda.to_cpu(link.quaternion.array)
+        translation = cuda.to_cpu(link.translation.array)
         transform = tf.quaternion_matrix(quaternion)
         transform = objslampp.geometry.compose_transform(
             transform[:3, :3], translation
@@ -122,9 +122,9 @@ class OccupancyRegistration:
         yield self._transform
 
         for _ in range(iteration):
-            model = self._optimizer.target
+            link = self._optimizer.target
 
-            loss = model(
+            loss = link(
                 points_source=self._points_source,
                 grid_target=self._grid_target,
                 pitch=self._pitch,
@@ -133,11 +133,11 @@ class OccupancyRegistration:
             )
             loss.backward()
             self._optimizer.update()
-            model.cleargrads()
+            link.cleargrads()
 
             # print(f'[{self._iteration:08d}] {loss}')
-            # print(f'quaternion:', model.quaternion.array.tolist())
-            # print(f'translation:', model.translation.array.tolist())
+            # print(f'quaternion:', link.quaternion.array.tolist())
+            # print(f'translation:', link.translation.array.tolist())
 
             yield self._transform
 
