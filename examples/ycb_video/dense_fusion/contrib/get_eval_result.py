@@ -9,6 +9,7 @@ EVAL_RESULTS = (
     'Densefusion_icp_result',
     'Densefusion_occupancy_result',
     'Densefusion_occupancy_icp_result',
+    'Densefusion_occupancy_points_result',
 )
 
 
