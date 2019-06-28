@@ -40,7 +40,7 @@ def algorithm():
         mapping.initialize(ins_id, pitch=pitch)
         mapping.integrate(ins_id, mask, pcd)
 
-    target_id = 8
+    target_id = class_id
     mask = instance_label == target_id
 
     centroid = np.nanmean(pcd[mask], axis=0)

@@ -40,7 +40,7 @@ class OccupancyPointsRegistrationLink(chainer.Link):
         pcd_depth_target,
         pcd_depth_nontarget,
         pcd_cad,
-        threshold_nontarget=0.02,
+        threshold_nontarget=0.002,
     ):
         # source is transformed
         # source is the starting point for nearest neighbor
@@ -79,7 +79,7 @@ class OccupancyPointsRegistrationLink(chainer.Link):
                 target_match = target[correspondence]
 
                 dists_match = F.sum((source_match - target_match) ** 2, axis=1)
-                loss_i = F.mean(0.2 - dists_match) / 0.2
+                loss_i = F.mean(threshold_nontarget - dists_match) / 0.02
                 loss += 0.1 * loss_i
         return loss
 
@@ -139,7 +139,7 @@ class OccupancyPointsRegistration:
                 pcd_depth_target=self._pcd_depth_target,
                 pcd_depth_nontarget=self._pcd_depth_nontarget,
                 pcd_cad=self._pcd_cad,
-                threshold_nontarget=0.02 * (iteration - i) / iteration,
+                threshold_nontarget=0.002 * (iteration - i) / iteration,
             )
             loss.backward()
             self._optimizer.update()
