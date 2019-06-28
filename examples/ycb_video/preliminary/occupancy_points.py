@@ -1,86 +1,16 @@
 #!/usr/bin/env python
 
-import chainer
-import chainer.functions as F
 import numpy as np
 import trimesh
+import trimesh.transformations as tf
 
 import objslampp
 
 import preliminary
 
 
-class OccupancyPointsRegistrationLink(chainer.Link):
-
-    def __init__(self, quaternion_init=None, translation_init=None):
-        super().__init__()
-
-        if quaternion_init is None:
-            quaternion_init = np.array([1, 0, 0, 0], dtype=np.float32)
-        if translation_init is None:
-            translation_init = np.array([0, 0, 0], dtype=np.float32)
-
-        with self.init_scope():
-            self.quaternion = chainer.Parameter(initializer=quaternion_init)
-            self.translation = chainer.Parameter(initializer=translation_init)
-
-    @property
-    def T(self):
-        # source -> target
-        R = objslampp.functions.quaternion_matrix(self.quaternion[None])[0]
-        T = objslampp.functions.translation_matrix(self.translation[None])[0]
-        return R @ T
-
-    def forward(
-        self,
-        pcd_depth_target,
-        pcd_depth_nontarget,
-        pcd_cad,
-        threshold_nontarget=0.1,
-    ):
-        # source is transformed
-        # source is the starting point for nearest neighbor
-
-        loss = 0
-        for i in [0, 1]:
-            if i == 0:
-                source = pcd_depth_target
-                target = pcd_cad
-            else:
-                source = pcd_depth_nontarget
-                target = pcd_cad
-
-            source = objslampp.functions.transform_points(
-                source, self.T[None])[0]
-
-            dists = F.sum(
-                (source[None, :, :] - target[:, None, :]) ** 2, axis=2
-            ).array
-            correspondence = F.argmin(dists, axis=0).array
-            dists = dists[correspondence, np.arange(dists.shape[1])]
-
-            if i == 0:
-                keep = dists < 0.02
-                source_match = source[keep]
-                correspondence = correspondence[keep]
-                target_match = target[correspondence]
-
-                dists_match = F.sum((source_match - target_match) ** 2, axis=1)
-                loss_i = F.mean(dists_match, axis=0) / 0.02
-                loss += loss_i
-            elif threshold_nontarget > 0:
-                keep = dists < threshold_nontarget
-                source_match = source[keep]
-                correspondence = correspondence[keep]
-                target_match = target[correspondence]
-
-                dists_match = F.sum((source_match - target_match) ** 2, axis=1)
-                loss_i = F.mean(0.1 - dists_match) / 0.1
-                loss += loss_i
-        return loss
-
-
 def algorithm():
+    models = objslampp.datasets.YCBVideoModels()
     dataset = objslampp.datasets.YCBVideoDataset('train')
     frame = dataset[0]
 
@@ -140,23 +70,6 @@ def algorithm():
     print(occupied_u.shape)
     print(empty.shape)
 
-    # camera = trimesh.scene.Camera(
-    #     resolution=(640, 480),
-    #     focal=(K[0, 0], K[1, 1]),
-    #     transform=objslampp.extra.trimesh.to_opengl_transform(),
-    # )
-    # scene = trimesh.Scene(camera=camera)
-    # geom = trimesh.PointCloud(vertices=occupied_t, colors=(1., 0, 0))
-    # scene.add_geometry(geom)
-    # geom = trimesh.PointCloud(vertices=occupied_u, colors=(0, 1., 0))
-    # scene.add_geometry(geom)
-    # geom = trimesh.PointCloud(vertices=empty, colors=(0.5, 0.5, 0.5, 0.5))
-    # scene.add_geometry(geom)
-    # geom = trimesh.path.creation.box_outline((aabb_max - aabb_min))
-    # geom.apply_translation(centroid)
-    # scene.add_geometry(geom)
-    # preliminary.display_scenes({__file__: scene})
-
     # -------------------------------------------------------------------------
 
     pcd_cad = objslampp.extra.open3d.voxel_down_sample(
@@ -169,54 +82,44 @@ def algorithm():
         np.vstack((occupied_u, empty)), voxel_size=0.01
     )
 
-    quaternion_init = np.array([1, 0, 0, 0], dtype=np.float32)
-    translation_init = - pcd_depth_target.mean(axis=0)
-    # from icp import NearestNeighborICP
-    # link = NearestNeighborICP(
-    #     quaternion_init=quaternion_init,
-    #     translation_init=translation_init,
-    # )
-    link = OccupancyPointsRegistrationLink(
-        quaternion_init=quaternion_init,
-        translation_init=translation_init,
+    # T_cad2cam
+    transform_init = tf.translation_matrix(pcd_depth_target.mean(axis=0))
+
+    registration = preliminary.OccupancyPointsRegistration(
+        pcd_depth_target=pcd_depth_target,
+        pcd_depth_nontarget=pcd_depth_nontarget,
+        pcd_cad=pcd_cad,
+        transform_init=transform_init,
     )
 
-    optimizer = chainer.optimizers.Adam(alpha=0.1)
-    optimizer.setup(link)
-    link.translation.update_rule.hyperparam.alpha *= 0.1
+    for T_cad2cam in registration.register_iterative():
+        camera = trimesh.scene.Camera(
+            resolution=(640, 480),
+            fov=(60, 45),
+            transform=objslampp.extra.trimesh.to_opengl_transform(),
+        )
 
-    for i in range(300):
-        # T_cam2cad = cuda.to_cpu(link.T.array)
-        T_cam2cad = link.T.array
-        T_cad2cam = np.linalg.inv(T_cam2cad)
+        scenes = {}
 
-        scene = trimesh.Scene()
+        scenes['pcd'] = trimesh.Scene(camera=camera)
         geom = trimesh.PointCloud(pcd_depth_target, colors=[1., 0, 0])
-        scene.add_geometry(geom, geom_name='a', node_name='a')
+        scenes['pcd'].add_geometry(geom, geom_name='a', node_name='a')
         geom = trimesh.PointCloud(pcd_cad, colors=[0, 1., 0])
-        scene.add_geometry(
+        scenes['pcd'].add_geometry(
             geom, geom_name='b', node_name='b', transform=T_cad2cam
         )
-        scene.camera.transform = objslampp.extra.trimesh.camera_transform()
-        yield scene
 
-        optimizer.target.cleargrads()
-        loss = optimizer.target(
-            pcd_depth_target=pcd_depth_target,
-            pcd_depth_nontarget=pcd_depth_nontarget,
-            pcd_cad=pcd_cad,
-            threshold_nontarget=0.1 / (i + 1),
+        scenes['cad'] = trimesh.Scene(camera=camera)
+        geom = trimesh.PointCloud(pcd_depth_target, colors=[1., 0, 0])
+        scenes['cad'].add_geometry(geom, geom_name='a', node_name='a')
+        cad_file = models.get_cad_model(class_id=target_id)
+        geom = trimesh.load(str(cad_file), process=False)
+        scenes['cad'].add_geometry(
+            geom, geom_name='b', node_name='b', transform=T_cad2cam
         )
-        loss.backward()
-        optimizer.update()
 
-
-def main():
-    import preliminary
-
-    scenes = ({'icp': scene} for scene in algorithm())
-    preliminary.display_scenes(scenes)
+        yield scenes
 
 
 if __name__ == '__main__':
-    main()
+    preliminary.display_scenes(algorithm())
