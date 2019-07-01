@@ -26,3 +26,28 @@ class_names = np.array([
     '061_foam_brick',
 ])
 class_names.setflags(write=0)
+
+class_names_symmetric = np.array([
+    '024_bowl',
+    '036_wood_block',
+    '051_large_clamp',
+    '052_extra_large_clamp',
+    '061_foam_brick',
+])
+class_names_symmetric.setflags(write=0)
+class_ids_symmetric = np.array([
+    np.where(class_names == name)[0][0]
+    for name in class_names_symmetric
+], dtype=np.int32)
+class_ids_symmetric.setflags(write=0)
+
+class_names_asymmetric = class_names[
+    ~np.isin(class_names, class_names_symmetric) &
+    ~(class_names == '__background__')
+]
+class_names_asymmetric.setflags(write=0)
+class_ids_asymmetric = np.array([
+    np.where(class_names == name)[0][0]
+    for name in class_names_asymmetric
+], dtype=np.int32)
+class_ids_asymmetric.setflags(write=0)
