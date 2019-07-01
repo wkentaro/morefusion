@@ -1,8 +1,6 @@
 import numpy as np
 import trimesh
 
-from .. import extra
-
 
 class VoxelMapping(object):
 
@@ -61,9 +59,11 @@ class VoxelMapping(object):
         geometries = []
 
         if edge:
-            bbox_edge = extra.trimesh.wired_box(
-                self.voxel_bbox_extents,
-                translation=self.origin + self.voxel_bbox_extents / 2,
+            bbox_edge = trimesh.path.creation.box_outline(
+                extents=self.voxel_bbox_extents
+            )
+            bbox_edge.apply_translation(
+                self.origin + self.voxel_bbox_extents / 2
             )
             geometries.append(bbox_edge)
 

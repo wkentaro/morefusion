@@ -35,7 +35,7 @@ eyes = objslampp.geometry.trajectory.interpolate(eyes, n_points=128)
 
 scene = trimesh.Scene()
 
-box = objslampp.extra.trimesh.wired_box((2, 2, 2))
+box = trimesh.path.creation.box_outline((2, 2, 2))
 scene.add_geometry(box)
 
 axis = trimesh.creation.axis(0.01)

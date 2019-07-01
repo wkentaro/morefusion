@@ -4,7 +4,6 @@ import numpy as np
 import trimesh
 
 from .. import geometry
-from ._trimesh import wired_box
 
 
 unique_ids: list = []
@@ -149,7 +148,7 @@ def get_trimesh_scene(axis: bool = False, bbox: bool = False) -> trimesh.Scene:
 
         if bbox:
             scene.add_geometry(
-                wired_box(mesh.bounding_box),
+                trimesh.path.creation.box_outline(mesh.bounding_box),
                 transform=transform,
             )
 
