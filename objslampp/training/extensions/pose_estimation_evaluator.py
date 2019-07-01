@@ -52,7 +52,8 @@ class PoseEstimationEvaluator(chainer.training.extensions.Evaluator):
             observation_processed = {}
             parent_keys = [
                 'validation/main/add',
-                'validation/main/add_rotation',
+                'validation/main/add_s',
+                'validation/main/add_rotation',  # deprecated
             ]
             for key, value in observation.items():
                 if osp.dirname(key) in parent_keys:
@@ -82,9 +83,11 @@ class PoseEstimationEvaluator(chainer.training.extensions.Evaluator):
             'validation/main/loss_quaternion',
             'validation/main/loss_translation',
             'validation/main/add',
-            'validation/main/add_rotation',
+            'validation/main/add_s',
+            'validation/main/add_rotation',  # deprecated
             'validation/main/auc/add',
-            'validation/main/auc/add_rotation',
+            'validation/main/auc/add_s',
+            'validation/main/auc/add_rotation',  # deprecated
         ]
         summary = reporter_module.DictSummary()
         for parent_key in parent_keys:
