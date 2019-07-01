@@ -174,7 +174,7 @@ def main():
                     continue
 
                 pcd_file = objslampp.datasets.YCBVideoModels()\
-                    .get_model(class_id=class_id)['points_xyz']
+                    .get_model_files(class_id=class_id)['points_xyz']
                 pcd = np.loadtxt(pcd_file)
                 Ts_prev = Ts_cad2world[:-1]
                 adds = objslampp.metrics.average_distance(
@@ -199,7 +199,7 @@ def main():
                             not instances[instance_id]['spawn'])):
                     continue
                 cad_file = objslampp.datasets.YCBVideoModels()\
-                    .get_model(class_id=class_ids[i])['textured_simple']
+                    .get_model_files(class_id=class_ids[i])['textured_simple']
                 objslampp.extra.pybullet.add_model(
                     cad_file,
                     position=tf.translation_from_matrix(T),

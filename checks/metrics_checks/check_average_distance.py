@@ -10,8 +10,8 @@ import objslampp
 
 def main():
     models = objslampp.datasets.YCBVideoModels()
-    model = models.get_model(class_id=2)
-    points = np.loadtxt(model['points_xyz'])
+    files = models.get_model_files(class_id=2)
+    points = np.loadtxt(files['points_xyz'])
 
     quaternion_true = tf.random_quaternion()
     quaternion_pred = quaternion_true + [0.1, 0, 0, 0]

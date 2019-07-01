@@ -55,7 +55,7 @@ class YCBVideoModels(DatasetBase):
         if not self.root_dir.exists():
             self.download()
 
-    def get_model(
+    def get_model_files(
         self,
         class_id: typing.Optional[int] = None,
         class_name: typing.Optional[str] = None,
@@ -76,10 +76,10 @@ class YCBVideoModels(DatasetBase):
         }
 
     def get_cad_model(self, *args, **kwargs):
-        return self.get_model(*args, **kwargs)['textured_simple']
+        return self.get_model_files(*args, **kwargs)['textured_simple']
 
     def get_pcd_model(self, *args, **kwargs):
-        return self.get_model(*args, **kwargs)['points_xyz']
+        return self.get_model_files(*args, **kwargs)['points_xyz']
 
     @staticmethod
     def get_bbox_diagonal(mesh_file=None, mesh=None):

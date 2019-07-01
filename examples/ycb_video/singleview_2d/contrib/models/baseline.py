@@ -28,7 +28,7 @@ class BaselineModel(chainer.Chain):
 
     def _get_cad_pcd(self, *, class_id):
         models = objslampp.datasets.YCBVideoModels()
-        pcd_file = models.get_model(class_id=class_id)['points_xyz']
+        pcd_file = models.get_model_files(class_id=class_id)['points_xyz']
         return np.loadtxt(pcd_file)
 
     def evaluate(

@@ -67,9 +67,8 @@ def main():
     values = rgb[mask].astype(np.float32) / 255
 
     # pitch
-    cad_file = objslampp.datasets.YCBVideoModels().get_model(
-        class_id=class_id
-    )['textured_simple']
+    cad_file = objslampp.datasets.YCBVideoModels()\
+        .get_cad_model(class_id=class_id)
     bbox_diagonal = objslampp.datasets.YCBVideoModels.get_bbox_diagonal(
         mesh_file=cad_file
     )

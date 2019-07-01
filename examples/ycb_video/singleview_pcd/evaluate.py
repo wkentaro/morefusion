@@ -118,7 +118,7 @@ def main():
             resolution=(width, height), focal=(K[0, 0], K[1, 1])
         ).fov[1]
         cad_file = objslampp.datasets.YCBVideoModels()\
-            .get_model(class_id=class_id)['textured_simple']
+            .get_model_files(class_id=class_id)['textured_simple']
 
         keep = confidence_pred.array.argmax(axis=1)
         quaternion_pred = quaternion_pred[np.arange(1), keep, :]

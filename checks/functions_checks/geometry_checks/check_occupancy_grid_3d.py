@@ -11,8 +11,7 @@ import objslampp
 scene = trimesh.Scene()
 scene.add_geometry(trimesh.creation.axis(0.005))
 
-pcd_file = objslampp.datasets.YCBVideoModels()\
-    .get_model(class_id=2)['points_xyz']
+pcd_file = objslampp.datasets.YCBVideoModels().get_pcd_file(class_id=2)
 points = np.loadtxt(pcd_file, dtype=np.float32)
 points -= points.min(axis=0)
 

@@ -180,7 +180,7 @@ def main():
                             not instances[instance_id]['spawn'])):
                     continue
                 cad_file = objslampp.datasets.YCBVideoModels()\
-                    .get_model(class_id=class_ids[i])['textured_simple']
+                    .get_model_files(class_id=class_ids[i])['textured_simple']
                 objslampp.extra.pybullet.add_model(
                     cad_file,
                     position=tf.translation_from_matrix(T),

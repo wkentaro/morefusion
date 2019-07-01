@@ -116,7 +116,7 @@ def main():
             resolution=(width, height), focal=(K[0, 0], K[1, 1])
         ).fov[1]
         cad_file = objslampp.datasets.YCBVideoModels()\
-            .get_model(class_id=class_id)['textured_simple']
+            .get_model_files(class_id=class_id)['textured_simple']
 
         quaternion_pred = cuda.to_cpu(quaternion_pred.array)[0]
         translation_pred = cuda.to_cpu(translation_pred.array)[0]

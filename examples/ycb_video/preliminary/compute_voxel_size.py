@@ -15,7 +15,7 @@ def get_data():
     models = objslampp.datasets.YCBVideoModels()
 
     cad_files = [
-        models.get_model(class_name=name)['textured_simple']
+        models.get_model_files(class_name=name)['textured_simple']
         for name in class_names[1:]
     ]
 

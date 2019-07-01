@@ -7,7 +7,7 @@ from objslampp.extra import _pybullet as pybullet_module
 
 def test_render_cad():
     dataset = YCBVideoModels()
-    visual_file = dataset.get_model(class_id=2)['textured_simple']
+    visual_file = dataset.get_model_files(class_id=2)['textured_simple']
 
     H, W = 256, 256
 
