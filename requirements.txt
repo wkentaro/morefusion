@@ -1,6 +1,7 @@
 chainer
 chainercv
 gdown>=3.7.0
+glooey
 imgaug
 imgviz[all]
 open3d-python
@@ -8,6 +9,7 @@ opencv-python
 pandas
 path.py
 pybullet
+pyyaml
 scikit-image
 scikit-learn
 scipy
