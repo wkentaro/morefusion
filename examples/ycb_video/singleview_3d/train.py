@@ -81,7 +81,7 @@ def main():
         '--class-ids',
         type=int,
         nargs='*',
-        default=[2],
+        default=objslampp.datasets.ycb_video.class_ids_asymmetric.tolist(),
         help='class id',
     )
     args = parser.parse_args()
