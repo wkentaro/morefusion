@@ -440,7 +440,7 @@ class OccupancyGridRegistration:
         camera = trimesh.scene.Camera(
             resolution=(640, 480),
             fov=(60 * 0.7, 45 * 0.7),
-            transform=objslampp.extra.trimesh.camera_transform(),
+            transform=objslampp.extra.trimesh.to_opengl_transform(),
         )
         for scene in all_scenes.values():
             scene.camera = camera
@@ -521,7 +521,7 @@ N: next instance''')
                 for widget in widgets.values():
                     camera = widget.scene.camera
                     camera.transform = \
-                        objslampp.extra.trimesh.camera_transform()
+                        objslampp.extra.trimesh.to_opengl_transform()
         if symbol == pyglet.window.key.R:
             # rotate camera
             window.rotate = not window.rotate  # 0/1

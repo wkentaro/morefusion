@@ -178,7 +178,7 @@ class SceneGenerationBase:
                 geometry.visual = geometry.visual.to_color()
         scene.camera.resolution = (width, height)
         scene.camera.fov = (fovx, fovy)
-        scene.camera.transform = objslampp.extra.trimesh.camera_transform(
+        scene.camera.transform = objslampp.extra.trimesh.to_opengl_transform(
             T_camera2world
         )
 

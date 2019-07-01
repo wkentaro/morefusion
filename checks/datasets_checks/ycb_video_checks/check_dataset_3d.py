@@ -42,7 +42,7 @@ def callback(scene):
     # A kind of current camera view, but a bit far away to see whole scene.
     scene.camera.resolution = (rgb.shape[1], rgb.shape[0])
     scene.camera.focal = (K[0, 0], K[1, 1])
-    scene.camera.transform = objslampp.extra.trimesh.camera_transform(
+    scene.camera.transform = objslampp.extra.trimesh.to_opengl_transform(
         T_cam2world @ tf.translation_matrix([0, 0, -0.5])
     )
     # scene.set_camera()

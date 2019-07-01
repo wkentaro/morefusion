@@ -1,5 +1,4 @@
 import io
-import warnings
 
 import numpy as np
 import PIL.Image
@@ -27,12 +26,6 @@ def show_with_rotation(scene, step=None, init_angles=None, **kwargs):
         scene.set_camera(angles=scene.angles)
 
     return trimesh.viewer.SceneViewer(scene=scene, callback=callback, **kwargs)
-
-
-def camera_transform(transform=None):
-    warnings.warn("camera_transform is deprecated, use to_opengl_transform",
-                  DeprecationWarning)
-    return to_opengl_transform(transform=transform)
 
 
 def to_opengl_transform(transform=None):

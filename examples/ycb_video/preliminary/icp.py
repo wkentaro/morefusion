@@ -117,7 +117,7 @@ def algorithm():
         scene.add_geometry(
             geom, geom_name='b', node_name='b', transform=T_cad2cam
         )
-        scene.camera.transform = objslampp.extra.trimesh.camera_transform()
+        scene.camera.transform = objslampp.extra.trimesh.to_opengl_transform()
         yield scene
 
         optimizer.target.cleargrads()
@@ -127,8 +127,6 @@ def algorithm():
 
 
 def main():
-    import preliminary
-
     scenes = ({'icp': scene} for scene in algorithm())
     objslampp.extra.trimesh.display_scenes(scenes)
 

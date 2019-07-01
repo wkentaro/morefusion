@@ -61,7 +61,7 @@ def visualize_instance_grids(
     for scene in [scene_pcd, scene_occupied, scene_empty]:
         scene.camera.resolution = (640, 480)
         scene.camera.focal = (K[0, 0], K[1, 1])
-        scene.camera.transform = objslampp.extra.trimesh.camera_transform(
+        scene.camera.transform = objslampp.extra.trimesh.to_opengl_transform(
             tf.translation_matrix([0, 0, -0.5])
         )
 

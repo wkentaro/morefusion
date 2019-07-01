@@ -253,7 +253,7 @@ class MultiInstanceOccupancyRegistration:
         camera = trimesh.scene.Camera(
             resolution=(640, 480),
             fov=(60 * 0.7, 45 * 0.7),
-            transform=objslampp.extra.trimesh.camera_transform(),
+            transform=objslampp.extra.trimesh.to_opengl_transform(),
         )
         for scene in scenes.values():
             scene.camera = camera

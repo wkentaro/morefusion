@@ -152,7 +152,9 @@ for i in range(T_cad2world_pred.shape[0]):
 
 scene.camera.resolution = (width, height)
 scene.camera.focal = (K[0, 0], K[1, 1])
-scene.camera.transform = objslampp.extra.trimesh.camera_transform(T_cam2world)
+scene.camera.transform = objslampp.extra.trimesh.to_opengl_transform(
+    T_cam2world
+)
 
 widget = trimesh.viewer.SceneWidget(scene)
 vbox = glooey.VBox()
