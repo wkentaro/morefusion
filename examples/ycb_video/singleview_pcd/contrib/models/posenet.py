@@ -259,7 +259,7 @@ class PoseNet(chainer.Chain):
             if chainer.config.train:
                 summary.add({'add': add})
             else:
-                x= {f'add/{class_id_i:04d}': add}
+                x = {f'add/{class_id_i:04d}': add}
                 summary.add(x)
         chainer.report(summary.compute_mean(), self)
 
