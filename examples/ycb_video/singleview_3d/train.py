@@ -44,9 +44,9 @@ def main():
     parser.add_argument(
         '--augmentation',
         nargs='*',
-        default=['rgb', 'depth', 'segm', 'occl'],
+        default=None,
         choices=['rgb', 'depth', 'segm', 'occl'],
-        help='augmentation (used only for cad_only dataset)',
+        help='augmentation',
     )
     parser.add_argument(
         '--freeze-until',
