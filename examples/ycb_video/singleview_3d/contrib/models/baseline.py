@@ -37,15 +37,15 @@ class BaselineModel(chainer.Chain):
             self.conv6 = L.Convolution3D(
                 in_channels=16,
                 out_channels=16,
-                ksize=8,
+                ksize=4,
                 stride=2,
-                pad=3,
+                pad=1,
                 **kwargs,
             )  # 32x32x32 -> 16x16x16
             self.conv7 = L.Convolution3D(
                 in_channels=16,
                 out_channels=16,
-                ksize=3,
+                ksize=4,
                 stride=2,
                 pad=1,
                 **kwargs,
