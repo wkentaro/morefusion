@@ -10,6 +10,8 @@ import objslampp
 
 class BaselineModel(chainer.Chain):
 
+    _models = objslampp.datasets.YCBVideoModels()
+
     def __init__(self, n_fg_class, freeze_until):
         super().__init__()
 
@@ -25,11 +27,6 @@ class BaselineModel(chainer.Chain):
 
         self._n_fg_class = n_fg_class
         self._freeze_until = freeze_until
-
-    def _get_cad_pcd(self, *, class_id):
-        models = objslampp.datasets.YCBVideoModels()
-        pcd_file = models.get_model_files(class_id=class_id)['points_xyz']
-        return np.loadtxt(pcd_file)
 
     def evaluate(
         self,
@@ -54,7 +51,7 @@ class BaselineModel(chainer.Chain):
         summary = chainer.DictSummary()
         for i in range(batch_size):
             class_id_i = int(class_id[i])
-            cad_pcd = self._get_cad_pcd(class_id=class_id_i)
+            cad_pcd = self._models.get_pcd(class_id=class_id_i)
             add_rotation = objslampp.metrics.average_distance(
                 [cad_pcd], [T_cad2cam_true[i]], [T_cad2cam_pred[i]]
             )[0][0]
@@ -75,7 +72,7 @@ class BaselineModel(chainer.Chain):
         summary = chainer.DictSummary()
         for i in range(batch_size):
             class_id_i = int(class_id[i])
-            cad_pcd = self._get_cad_pcd(class_id=class_id_i)
+            cad_pcd = self._models.get_pcd(class_id=class_id_i)
             add_rotation = objslampp.metrics.average_distance(
                 [cad_pcd], [T_cad2cam_true[i]], [T_cad2cam_pred[i]]
             )[0][0]
@@ -183,7 +180,7 @@ class BaselineModel(chainer.Chain):
 
         loss = 0
         for i in range(batch_size):
-            cad_pcd = self._get_cad_pcd(class_id=int(class_id[i]))
+            cad_pcd = self._models.get_pcd(class_id=int(class_id[i]))
             cad_pcd = self.xp.asarray(cad_pcd)
             loss_i = objslampp.functions.average_distance_l1(
                 cad_pcd, T_cad2cam_true[i:i + 1], T_cad2cam_pred[i:i + 1]

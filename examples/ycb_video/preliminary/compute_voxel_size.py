@@ -14,10 +14,7 @@ def get_data():
     class_names = objslampp.datasets.ycb_video.class_names
     models = objslampp.datasets.YCBVideoModels()
 
-    cad_files = [
-        models.get_model_files(class_name=name)['textured_simple']
-        for name in class_names[1:]
-    ]
+    cad_files = [models.get_cad(class_name=name) for name in class_names[1:]]
 
     with concurrent.futures.ProcessPoolExecutor() as p:
         top_images = []
@@ -27,9 +24,9 @@ def get_data():
             )
 
         bbox_diagonals = []
-        for cad_file in cad_files:
+        for name in class_names[1:]:
             bbox_diagonals.append(
-                p.submit(models.get_bbox_diagonal, mesh_file=cad_file)
+                p.submit(models.get_bbox_diagonal, class_name=name)
             )
     top_images = [future.result() for future in top_images]
     bbox_diagonals = [future.result() for future in bbox_diagonals]

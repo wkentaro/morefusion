@@ -17,6 +17,9 @@ class YCBVideoModels(DatasetBase):
     )
     _class_names = class_names
 
+    _cad_cache: typing.Dict[str, trimesh.Trimesh] = {}
+    _pcd_cache: typing.Dict[str, np.ndarray] = {}
+
     def __len__(self):
         raise NotImplementedError
 
@@ -55,11 +58,7 @@ class YCBVideoModels(DatasetBase):
         if not self.root_dir.exists():
             self.download()
 
-    def get_model_files(
-        self,
-        class_id: typing.Optional[int] = None,
-        class_name: typing.Optional[str] = None,
-    ):
+    def _get_class_name(self, class_id=None, class_name=None):
         if class_name is None:
             if class_id is None:
                 raise ValueError(
@@ -67,7 +66,12 @@ class YCBVideoModels(DatasetBase):
                 )
             else:
                 class_name = class_names[class_id]
+        return class_name
 
+    def get_model_files(self, class_id=None, class_name=None):
+        class_name = self._get_class_name(
+            class_id=class_id, class_name=class_name
+        )
         return {
             'textured_simple':
                 self.root_dir / class_name / 'textured_simple.obj',
@@ -81,11 +85,28 @@ class YCBVideoModels(DatasetBase):
     def get_pcd_file(self, *args, **kwargs):
         return self.get_model_files(*args, **kwargs)['points_xyz']
 
-    @staticmethod
-    def get_bbox_diagonal(mesh_file=None, mesh=None):
-        if mesh is None:
-            mesh = trimesh.load(str(mesh_file), process=False)
+    def get_cad(self, *args, **kwargs):
+        class_name = self._get_class_name(*args, **kwargs)
+        if class_name not in self._cad_cache:
+            cad_file = self.get_cad_file(*args, **kwargs)
+            cad = trimesh.load(str(cad_file), process=False)
+            self._cad_cache[class_name] = cad
+        return self._cad_cache[class_name]
 
-        extents = mesh.bounding_box.extents
+    def get_pcd(self, *args, **kwargs):
+        class_name = self._get_class_name(*args, **kwargs)
+        if class_name not in self._pcd_cache:
+            pcd_file = self.get_pcd_file(*args, **kwargs)
+            pcd = np.loadtxt(pcd_file)
+            self._pcd_cache[class_name] = pcd
+        return self._pcd_cache[class_name]
+
+    def get_bbox_diagonal(self, *args, **kwargs):
+        cad = self.get_cad(*args, **kwargs)
+        extents = cad.bounding_box.extents
         bbox_diagonal = np.sqrt((extents ** 2).sum())
         return bbox_diagonal
+
+    def get_voxel_pitch(self, dimension, *args, **kwargs):
+        bbox_diagonal = self.get_bbox_diagonal(*args, **kwargs)
+        return 1. * bbox_diagonal / dimension

@@ -174,8 +174,7 @@ def main():
     models = objslampp.datasets.YCBVideoModels()
     instance_extents = []
     for instance_id, class_id in zip(instance_ids, class_ids):
-        cad_file = models.get_cad_file(class_id=class_id)
-        diagonal = models.get_bbox_diagonal(cad_file)
+        diagonal = models.get_bbox_diagonal(class_id=class_id)
         extents = (diagonal,) * 3
         instance_extents.append(extents)
     instance_extents = np.array(instance_extents)

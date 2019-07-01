@@ -9,8 +9,7 @@ import objslampp
 
 def main():
     models = objslampp.datasets.YCBVideoModels()
-    files = models.get_model_files(class_id=2)
-    points = np.loadtxt(files['points_xyz'])
+    points = models.get_pcd(class_id=2)
 
     n_test = 1000
     transforms_true = []

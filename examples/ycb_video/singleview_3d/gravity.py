@@ -144,8 +144,7 @@ scene.add_geometry(geom, transform=T_cam2world)
 
 for i in range(T_cad2world_pred.shape[0]):
     class_id = class_ids_fg[i]
-    cad_file = models.get_cad_file(class_id=class_id)
-    cad = trimesh.load(str(cad_file))
+    cad = models.get_cad(class_id=class_id)
     cad.visual = cad.visual.to_color()
     # scene.add_geometry(cad, transform=T_cad2world_true[i])
     scene.add_geometry(cad, transform=T_cad2world_pred[i])

@@ -54,13 +54,13 @@ for result_file in sorted(norefine_dir.glob('*.mat')):
                 R=tf.quaternion_matrix(pose[:4])[:3, :3],
                 t=pose[4:],
             )
-            pcd_cad = np.loadtxt(models.get_pcd_file(class_id=cls_id))
+            pcd_cad = models.get_pcd(class_id=cls_id)
 
             mask = mask.astype(bool) & nonnan
             pcd_depth = pcd_scene[mask]
 
             centroid = np.mean(pcd_depth, axis=0)
-            diagonal = models.get_bbox_diagonal(models.get_cad_file(cls_id))
+            diagonal = models.get_bbox_diagonal(class_id=cls_id)
             aabb_min = centroid - diagonal / 2
             aabb_max = aabb_min + diagonal
 

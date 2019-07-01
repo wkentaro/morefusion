@@ -23,7 +23,9 @@ class TestYCBVideoModelsDataset(unittest.TestCase):
         assert files == self.dataset.get_model_files(class_name=class_name)
 
     def test_get_bbox_diagonal(self):
-        files = self.dataset.get_model_files(class_id=2)
-        mesh_file = files['textured_simple']
-        bbox_diagonal = self.dataset.get_bbox_diagonal(mesh_file=mesh_file)
+        bbox_diagonal = self.dataset.get_bbox_diagonal(class_id=2)
         assert isinstance(bbox_diagonal, float)
+
+    def test_get_voxel_pitch(self):
+        pitch = self.dataset.get_voxel_pitch(dimension=32, class_id=2)
+        assert isinstance(pitch, float)

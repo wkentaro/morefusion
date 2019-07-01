@@ -74,13 +74,12 @@ for result_file in sorted(norefine_dir.glob('*.mat')):
                 R=tf.quaternion_matrix(pose[:4])[:3, :3],
                 t=pose[4:],
             )
-            pcd_cad = np.loadtxt(models.get_pcd_file(class_id=cls_id))
+            pcd_cad = models.get_pcd(class_id=cls_id)
 
             mask = mask.astype(bool) & nonnan
             pcd_depth = pcd_scene[mask]
 
             dimensions = np.array([16, 16, 16])
-            cad_file = models.get_cad_file(cls_id)
             bbox_diagonal = np.linalg.norm(
                 np.nanmax(pcd_cad, axis=0) - np.nanmin(pcd_cad, axis=0)
             )

@@ -31,8 +31,7 @@ def get_adds(result_file):
                 frame['meta']['poses'][:, :, gt_index],
                 [[0, 0, 0, 1]],
             ]
-            pcd_file = models.get_pcd_file(class_id=cls_id)
-            pcd = np.loadtxt(pcd_file)
+            pcd = models.get_pcd(class_id=cls_id)
             add, add_s = objslampp.metrics.average_distance(
                 [pcd],
                 transform1=[T_true],

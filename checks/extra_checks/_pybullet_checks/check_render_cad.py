@@ -8,7 +8,7 @@ import trimesh
 
 
 models = objslampp.datasets.YCBVideoModels()
-visual_file = models.get_model_files(class_id=8)['textured_simple']
+visual_file = models.get_cad_file(class_id=8)
 camera = trimesh.scene.Camera(resolution=(640, 480), fov=(60, 45))
 
 T_cam2cad = objslampp.geometry.look_at(

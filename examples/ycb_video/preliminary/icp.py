@@ -59,8 +59,7 @@ def algorithm():
         cuda.get_device_from_id(gpu).use()
 
     models = objslampp.datasets.YCBVideoModels()
-    pcd_file = models.get_pcd_file(class_id=2)
-    pcd_cad = np.loadtxt(pcd_file)
+    pcd_cad = models.get_pcd(class_id=2)
 
     dataset = objslampp.datasets.YCBVideoDataset('train')
     example = dataset.get_example(1000)

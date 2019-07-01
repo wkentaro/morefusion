@@ -11,8 +11,8 @@ import objslampp
 scene = trimesh.Scene()
 scene.add_geometry(trimesh.creation.axis(0.005))
 
-pcd_file = objslampp.datasets.YCBVideoModels().get_pcd_file(class_id=2)
-points = np.loadtxt(pcd_file, dtype=np.float32)
+models = objslampp.datasets.YCBVideoModels()
+points = models.get_pcd(class_id=2).astype(np.float32)
 points -= points.min(axis=0)
 
 geom = trimesh.PointCloud(vertices=points)

@@ -34,8 +34,7 @@ class DatasetBase(objslampp.datasets.DatasetBase):
             return self._cache_pitch[class_id]
 
         models = objslampp.datasets.YCBVideoModels()
-        cad_file = models.get_model_files(class_id=class_id)['textured_simple']
-        bbox_diagonal = models.get_bbox_diagonal(mesh_file=cad_file)
+        bbox_diagonal = models.get_bbox_diagonal(class_id=class_id)
         pitch = 1. * bbox_diagonal / self.voxel_dim
         pitch = pitch.astype(np.float32)
 

@@ -12,6 +12,8 @@ import objslampp
 
 class PoseNet(chainer.Chain):
 
+    _models = objslampp.datasets.YCBVideoModels()
+
     def __init__(
         self,
         *,
@@ -231,7 +233,7 @@ class PoseNet(chainer.Chain):
         summary = chainer.DictSummary()
         for i in range(B):
             class_id_i = int(class_id[i])
-            cad_pcd = self._get_cad_pcd(class_id=class_id_i)
+            cad_pcd = self._models.get_pcd(class_id=class_id_i)
             add_rotation = objslampp.metrics.average_distance(
                 [cad_pcd], [T_cad2cam_true[i]], [T_cad2cam_pred[i]]
             )[0][0]
@@ -252,7 +254,7 @@ class PoseNet(chainer.Chain):
         summary = chainer.DictSummary()
         for i in range(B):
             class_id_i = int(class_id[i])
-            cad_pcd = self._get_cad_pcd(class_id=class_id_i)
+            cad_pcd = self._models.get_pcd(class_id=class_id_i)
             add = objslampp.metrics.average_distance(
                 [cad_pcd], [T_cad2cam_true[i]], [T_cad2cam_pred[i]]
             )[0][0]
@@ -299,7 +301,7 @@ class PoseNet(chainer.Chain):
             T_cad2cam_true = F.repeat(T_cad2cam_true, n_point, axis=0)
 
             class_id_i = int(class_id[i])
-            cad_pcd = self._get_cad_pcd(class_id=class_id_i)
+            cad_pcd = self._models.get_pcd(class_id=class_id_i)
             cad_pcd = xp.asarray(cad_pcd, dtype=np.float32)
             add = objslampp.functions.average_distance_l1(
                 cad_pcd, T_cad2cam_true, T_cad2cam_pred
@@ -317,11 +319,6 @@ class PoseNet(chainer.Chain):
         chainer.report(values, observer=self)
 
         return loss
-
-    def _get_cad_pcd(self, *, class_id):
-        models = objslampp.datasets.YCBVideoModels()
-        pcd_file = models.get_model_files(class_id=class_id)['points_xyz']
-        return np.loadtxt(pcd_file)
 
 
 # https://github.com/knorth55/chainer-dense-fusion/blob/master/chainer_dense_fusion/links/model/posenet.py  # NOQA
