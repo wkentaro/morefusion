@@ -151,7 +151,7 @@ def main():
             scenes[new_name] = scenes.pop(name)
         all_scenes.update(scenes)
 
-    preliminary.display_scenes(
+    objslampp.extra.trimesh.display_scenes(
         all_scenes,
         height=int(480 * 0.5),
         width=int(640 * 0.5),

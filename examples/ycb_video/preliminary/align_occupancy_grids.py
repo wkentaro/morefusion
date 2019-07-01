@@ -299,7 +299,7 @@ def refinement(
                 for _ in registration.register_instance(ins_id)
             )
 
-    preliminary.display_scenes(
+    objslampp.extra.trimesh.display_scenes(
         scenes_ggroup(),
         height=int(480 * 0.6),
         width=int(640 * 0.6),

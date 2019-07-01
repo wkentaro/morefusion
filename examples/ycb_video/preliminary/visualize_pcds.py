@@ -87,7 +87,7 @@ def main():
         pcds_occupied,
         pcds_empty,
     )
-    preliminary.display_scenes(scenes, tile=(1, 2))
+    objslampp.extra.trimesh.display_scenes(scenes, tile=(1, 2))
 
 
 if __name__ == '__main__':

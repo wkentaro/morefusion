@@ -198,7 +198,7 @@ def refinement(
                 for _ in registration.register_instance(instance_id)
             )
 
-    preliminary.display_scenes(
+    objslampp.extra.trimesh.display_scenes(
         scenes_ggroup(), height=360, width=480, tile=(2, 3))
 
     return registration

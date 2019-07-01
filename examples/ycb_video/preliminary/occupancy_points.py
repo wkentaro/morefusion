@@ -122,4 +122,4 @@ def algorithm():
 
 
 if __name__ == '__main__':
-    preliminary.display_scenes(algorithm())
+    objslampp.extra.trimesh.display_scenes(algorithm())

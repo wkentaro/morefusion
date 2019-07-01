@@ -130,7 +130,7 @@ def main():
     import preliminary
 
     scenes = ({'icp': scene} for scene in algorithm())
-    preliminary.display_scenes(scenes)
+    objslampp.extra.trimesh.display_scenes(scenes)
 
 
 if __name__ == '__main__':

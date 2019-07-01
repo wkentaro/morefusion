@@ -9,6 +9,8 @@ import PIL.Image
 import trimesh
 import trimesh.viewer
 
+from .display_scenes import display_scenes  # NOQA
+
 
 def _get_tile_shape(num: int) -> typing.Tuple[int, int]:
     x_num = int(math.sqrt(num))  # floor
