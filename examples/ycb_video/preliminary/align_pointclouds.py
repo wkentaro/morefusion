@@ -36,7 +36,7 @@ class MultiInstanceICPRegistration:
         self._cads = {}
         for instance_id in self._instance_ids:
             class_id = self._class_ids[instance_id]
-            cad_file = self._models.get_cad_model(class_id=class_id)
+            cad_file = self._models.get_cad_file(class_id=class_id)
             cad = trimesh.load(str(cad_file))
             cad.visual = cad.visual.to_color()
             self._cads[instance_id] = cad
@@ -60,7 +60,7 @@ class MultiInstanceICPRegistration:
         pcd_depth = pcd[nonnan & mask]
 
         class_id = self._class_ids[instance_id]
-        pcd_file = self._models.get_pcd_model(class_id=class_id)
+        pcd_file = self._models.get_pcd_file(class_id=class_id)
         pcd_cad = np.loadtxt(pcd_file, dtype=np.float32)
 
         self._instance_id = instance_id

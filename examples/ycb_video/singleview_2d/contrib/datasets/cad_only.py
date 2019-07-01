@@ -45,7 +45,7 @@ class CADOnlyDataset(DatasetBase):
 
         # prepare class_id and cad_file
         class_id = random_state.choice(self._class_ids)
-        cad_file = self._models.get_cad_model(class_id=class_id)
+        cad_file = self._models.get_cad_file(class_id=class_id)
 
         # get frame
         eye = objslampp.geometry.points_from_angles(

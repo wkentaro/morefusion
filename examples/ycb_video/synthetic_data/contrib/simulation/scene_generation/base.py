@@ -80,7 +80,7 @@ class SceneGenerationBase:
             attrs={'bold': True},
         )
 
-        cad_file = self._models.get_cad_model(class_id=class_id)
+        cad_file = self._models.get_cad_file(class_id=class_id)
         unique_id = objslampp.extra.pybullet.add_model(
             visual_file=cad_file,
             collision_file=objslampp.utils.get_collision_file(cad_file),

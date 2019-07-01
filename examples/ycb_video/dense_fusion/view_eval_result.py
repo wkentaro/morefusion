@@ -80,7 +80,7 @@ def main():
 
             pybullet.connect(pybullet.DIRECT)
             for class_id, pose in zip(labels, result['poses']):
-                cad_file = objslampp.datasets.YCBVideoModels().get_cad_model(
+                cad_file = objslampp.datasets.YCBVideoModels().get_cad_file(
                     class_id=class_id
                 )
                 objslampp.extra.pybullet.add_model(

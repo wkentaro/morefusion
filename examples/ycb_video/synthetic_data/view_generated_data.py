@@ -53,7 +53,7 @@ if __name__ == '__main__':
             T_cad2cam = example['Ts_cad2cam'][instance_index]
             class_id = example['class_ids'][instance_index]
 
-            cad_file = objslampp.datasets.YCBVideoModels().get_cad_model(
+            cad_file = objslampp.datasets.YCBVideoModels().get_cad_file(
                 class_id
             )
             rgb_rend, _, mask_rend = objslampp.extra.pybullet.render_cad(

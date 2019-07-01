@@ -7,7 +7,7 @@ import objslampp
 
 
 models = objslampp.datasets.YCBVideoModels()
-cad_file = models.get_cad_model(class_id=2)
+cad_file = models.get_cad_file(class_id=2)
 
 objslampp.extra.pybullet.init_world()
 

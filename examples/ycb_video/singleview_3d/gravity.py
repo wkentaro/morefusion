@@ -144,7 +144,7 @@ scene.add_geometry(geom, transform=T_cam2world)
 
 for i in range(T_cad2world_pred.shape[0]):
     class_id = class_ids_fg[i]
-    cad_file = models.get_cad_model(class_id=class_id)
+    cad_file = models.get_cad_file(class_id=class_id)
     cad = trimesh.load(str(cad_file))
     cad.visual = cad.visual.to_color()
     # scene.add_geometry(cad, transform=T_cad2world_true[i])
@@ -185,7 +185,7 @@ for ins_id, cad_file in frame['cad_files'].items():
 
 for i in range(T_cad2world_pred.shape[0]):
     class_id = class_ids_fg[i]
-    visual_file = models.get_cad_model(class_id=class_id)
+    visual_file = models.get_cad_file(class_id=class_id)
     collision_file = objslampp.utils.get_collision_file(visual_file)
     T = T_cad2world_pred[i]
     # T = T_cad2world_true[i]

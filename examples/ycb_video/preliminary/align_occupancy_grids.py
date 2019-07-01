@@ -52,7 +52,7 @@ class MultiInstanceOccupancyRegistration:
         self._cads = {}
         for instance_id in self._instance_ids:
             class_id = self._class_ids[instance_id]
-            cad_file = self._models.get_cad_model(class_id=class_id)
+            cad_file = self._models.get_cad_file(class_id=class_id)
             cad = trimesh.load(str(cad_file))
             cad.visual = cad.visual.to_color()
             self._cads[instance_id] = cad
@@ -73,7 +73,7 @@ class MultiInstanceOccupancyRegistration:
         T_cad2cam_pred = self._Ts_cad2cam_pred[instance_id]
 
         class_id = self._class_ids[instance_id]
-        pcd_file = self._models.get_pcd_model(class_id=class_id)
+        pcd_file = self._models.get_pcd_file(class_id=class_id)
         points = np.loadtxt(pcd_file)
         points = tf.transform_points(points, T_cad2cam_pred)
 
@@ -93,7 +93,7 @@ class MultiInstanceOccupancyRegistration:
 
         # instance-level data
         class_id = class_ids[instance_id]
-        cad_file = models.get_cad_model(class_id=class_id)
+        cad_file = models.get_cad_file(class_id=class_id)
         diagonal = models.get_bbox_diagonal(cad_file)
         pitch = diagonal * 1.1 / dim
         mask = instance_label == instance_id
@@ -108,7 +108,7 @@ class MultiInstanceOccupancyRegistration:
             )
 
         #
-        pcd_file = models.get_pcd_model(class_id=class_id)
+        pcd_file = models.get_pcd_file(class_id=class_id)
         points_source = np.loadtxt(pcd_file, dtype=np.float32)
         points_source = objslampp.extra.open3d.voxel_down_sample(
             points_source, voxel_size=pitch

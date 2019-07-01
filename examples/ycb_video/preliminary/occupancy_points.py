@@ -27,7 +27,7 @@ def algorithm():
 
     models = objslampp.datasets.YCBVideoModels()
     class_id = class_ids[0]
-    pcd_file = models.get_pcd_model(class_id=class_id)
+    pcd_file = models.get_pcd_file(class_id=class_id)
     pcd_cad = np.loadtxt(pcd_file)
 
     instance_ids_all = np.r_[0, instance_ids]
@@ -45,7 +45,7 @@ def algorithm():
 
     centroid = np.nanmean(pcd[mask], axis=0)
     models = objslampp.datasets.YCBVideoModels()
-    diagonal = models.get_bbox_diagonal(models.get_cad_model(target_id))
+    diagonal = models.get_bbox_diagonal(models.get_cad_file(target_id))
     aabb_min = centroid - diagonal / 2
     aabb_max = aabb_min + diagonal
     print(aabb_min, aabb_max)
@@ -112,7 +112,7 @@ def algorithm():
         scenes['cad'] = trimesh.Scene(camera=camera)
         geom = trimesh.PointCloud(pcd_depth_target, colors=[1., 0, 0])
         scenes['cad'].add_geometry(geom, geom_name='a', node_name='a')
-        cad_file = models.get_cad_model(class_id=target_id)
+        cad_file = models.get_cad_file(class_id=target_id)
         geom = trimesh.load(str(cad_file), process=False)
         scenes['cad'].add_geometry(
             geom, geom_name='b', node_name='b', transform=T_cad2cam

@@ -133,7 +133,7 @@ def main():
 
             # check if poor prediction
             cad_file = objslampp.datasets.YCBVideoModels()\
-                .get_cad_model(class_id=class_ids[i])
+                .get_cad_file(class_id=class_ids[i])
             _, _, mask_rend = \
                 objslampp.extra.pybullet.render_cad(
                     cad_file, Ts_pred[i], fovy, height, width

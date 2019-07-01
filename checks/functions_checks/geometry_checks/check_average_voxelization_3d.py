@@ -70,7 +70,7 @@ def main():
 
     # pitch
     cad_file = objslampp.datasets.YCBVideoModels()\
-        .get_cad_model(class_id=class_id)
+        .get_cad_file(class_id=class_id)
     bbox_diagonal = objslampp.datasets.YCBVideoModels.get_bbox_diagonal(
         mesh_file=cad_file
     )

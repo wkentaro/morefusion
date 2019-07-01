@@ -75,10 +75,10 @@ class YCBVideoModels(DatasetBase):
                 self.root_dir / class_name / 'points.xyz',
         }
 
-    def get_cad_model(self, *args, **kwargs):
+    def get_cad_file(self, *args, **kwargs):
         return self.get_model_files(*args, **kwargs)['textured_simple']
 
-    def get_pcd_model(self, *args, **kwargs):
+    def get_pcd_file(self, *args, **kwargs):
         return self.get_model_files(*args, **kwargs)['points_xyz']
 
     @staticmethod

@@ -7,7 +7,7 @@ import objslampp
 
 
 def get_uniform_scale_cad(models, class_name):
-    cad_file = models.get_cad_model(class_name=class_name)
+    cad_file = models.get_cad_file(class_name=class_name)
 
     cad = trimesh.load(str(cad_file), file_type='obj', process=False)
     cad.visual = cad.visual.to_color()  # texture visualization is slow
