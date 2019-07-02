@@ -7,17 +7,27 @@ import trimesh.transformations as tf
 
 import objslampp
 
+from .multi_instance_octree_mapping import MultiInstanceOctreeMapping
+
 
 class DatasetBase(objslampp.datasets.DatasetBase):
 
     _models = objslampp.datasets.YCBVideoModels()
     voxel_dim = 32
-    _cache_pitch = {}
 
-    def __init__(self, root_dir=None, class_ids=None, augmentation=None):
+    def __init__(
+        self,
+        root_dir=None,
+        class_ids=None,
+        augmentation=None,
+        return_occupancy_grids=False,
+    ):
         self._root_dir = root_dir
+        if class_ids is not None:
+            class_ids = tuple(class_ids)
         self._class_ids = class_ids
         self._augmentation = augmentation
+        self._return_occupancy_grids = return_occupancy_grids
 
     def _get_invalid_data(self):
         return dict(
@@ -44,10 +54,24 @@ class DatasetBase(objslampp.datasets.DatasetBase):
         instance_label = frame['instance_label']
         K = frame['intrinsic_matrix']
         Ts_cad2cam = frame['Ts_cad2cam']
+        pcd = objslampp.geometry.pointcloud_from_depth(
+            depth, fx=K[0, 0], fy=K[1, 1], cx=K[0, 2], cy=K[1, 2],
+        )
 
         if chainer.is_debug():
             print(f'[{index:08d}]: class_ids: {class_ids.tolist()}')
             print(f'[{index:08d}]: instance_ids: {instance_ids.tolist()}')
+
+        if self._return_occupancy_grids:
+            mapping = MultiInstanceOctreeMapping()
+            mapping.initialize(0, pitch=0.01)
+            mapping.integrate(0, instance_label == 0, pcd)
+            for instance_id, class_id in zip(instance_ids, class_ids):
+                pitch = self._get_pitch(class_id)
+                mapping.initialize(instance_id, pitch=pitch)
+                mapping.integrate(
+                    instance_id, instance_label == instance_id, pcd
+                )
 
         examples = []
         for instance_id, class_id, T_cad2cam in zip(
@@ -74,28 +98,45 @@ class DatasetBase(objslampp.datasets.DatasetBase):
             rgb = rgb[y1:y2, x1:x2]
             rgb = imgviz.centerize(rgb, (256, 256))
 
-            pcd = objslampp.geometry.pointcloud_from_depth(
-                depth, fx=K[0, 0], fy=K[1, 1], cx=K[0, 2], cy=K[1, 2],
-            )
-            pcd[~mask] = np.nan
-            pcd = pcd[y1:y2, x1:x2]
-            pcd = imgviz.centerize(pcd, (256, 256), cval=np.nan)
+            pcd_ins = pcd.copy()
+            pcd_ins[~mask] = np.nan
+            pcd_ins = pcd_ins[y1:y2, x1:x2]
+            pcd_ins = imgviz.centerize(pcd_ins, (256, 256), cval=np.nan)
 
-            nonnan = ~np.isnan(pcd).any(axis=2)
+            nonnan = ~np.isnan(pcd_ins).any(axis=2)
             if nonnan.sum() == 0:
                 continue
+
+            pitch = self._get_pitch(class_id=class_id)
+            centroid = np.nanmean(pcd_ins, axis=(0, 1))
+            origin = centroid - pitch * (self.voxel_dim / 2. - 0.5)
 
             quaternion_true = tf.quaternion_from_matrix(T_cad2cam)
             translation_true = tf.translation_from_matrix(T_cad2cam)
 
-            examples.append(dict(
+            example = dict(
                 class_id=class_id,
-                pitch=self._get_pitch(class_id=class_id),
+                pitch=pitch,
+                origin=origin,
                 rgb=rgb,
-                pcd=pcd,
+                pcd=pcd_ins,
                 quaternion_true=quaternion_true,
                 translation_true=translation_true,
-            ))
+            )
+
+            if self._return_occupancy_grids:
+                grid_target, grid_nontarget, grid_empty = \
+                    mapping.get_target_grids(
+                        instance_id,
+                        dimensions=(self.voxel_dim,) * 3,
+                        pitch=pitch,
+                        origin=origin,
+                    )
+                example['grid_target'] = grid_target
+                example['grid_nontarget'] = grid_nontarget
+                example['grid_empty'] = grid_empty
+
+            examples.append(example)
         return examples
 
     def get_example(self, index):

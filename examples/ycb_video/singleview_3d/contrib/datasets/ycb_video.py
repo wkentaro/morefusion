@@ -1,5 +1,5 @@
-import imgviz
 import numpy as np
+import trimesh
 
 import objslampp
 
@@ -14,10 +14,15 @@ class YCBVideoDataset(DatasetBase):
         self,
         split,
         class_ids=None,
-        augmentation={},
+        augmentation=None,
+        return_occupancy_grids=False,
         sampling=None,
     ):
-        super().__init__(class_ids=class_ids, augmentation=augmentation)
+        super().__init__(
+            class_ids=class_ids,
+            augmentation=augmentation,
+            return_occupancy_grids=return_occupancy_grids,
+        )
         self._split = split
         self._sampling = sampling
         self._ids = self._get_ids()
@@ -81,13 +86,18 @@ class YCBVideoDataset(DatasetBase):
         )
 
 
-if __name__ == '__main__':
+def main():
     dataset = YCBVideoDataset(
         'train',
-        class_ids=[2],
-        augmentation={'rgb', 'depth', 'segm', 'occl'},
+        class_ids=None,
+        augmentation={'rgb', 'depth'},
+        return_occupancy_grids=True,
     )
     print(f'dataset_size: {len(dataset)}')
+
+    # -------------------------------------------------------------------------
+
+    import imgviz
 
     def images():
         for i in range(0, len(dataset)):
@@ -107,3 +117,49 @@ if __name__ == '__main__':
 
     imgviz.io.pyglet_imshow(images())
     imgviz.io.pyglet_run()
+
+    # -------------------------------------------------------------------------
+
+    example = dataset[0]
+
+    pitch = example['pitch']
+    origin = example['origin']
+
+    grid_target = example['grid_target']
+    grid_nontarget = example['grid_nontarget']
+    grid_empty = example['grid_empty']
+
+    center = origin + pitch * (np.array(grid_target.shape) / 2 - 0.5)
+
+    camera = trimesh.scene.Camera(
+        resolution=(640, 480),
+        fov=(60, 45),
+        transform=objslampp.extra.trimesh.to_opengl_transform(),
+    )
+
+    scenes = {}
+
+    scenes['occupied'] = trimesh.Scene(camera=camera)
+    voxel = trimesh.voxel.Voxel(grid_target, pitch=pitch, origin=origin)
+    geom = voxel.as_boxes(colors=(255, 0, 0))
+    scenes['occupied'].add_geometry(geom)
+    voxel = trimesh.voxel.Voxel(grid_nontarget, pitch=pitch, origin=origin)
+    geom = voxel.as_boxes(colors=(0, 255, 0))
+    scenes['occupied'].add_geometry(geom)
+    geom = trimesh.path.creation.box_outline((32 * pitch,) * 3)
+    geom.apply_translation(center)
+    scenes['occupied'].add_geometry(geom)
+
+    scenes['empty'] = trimesh.Scene(camera=camera)
+    voxel = trimesh.voxel.Voxel(grid_empty, pitch=pitch, origin=origin)
+    geom = voxel.as_boxes(colors=(127, 127, 127))
+    scenes['empty'].add_geometry(geom)
+    geom = trimesh.path.creation.box_outline((32 * pitch,) * 3)
+    geom.apply_translation(center)
+    scenes['empty'].add_geometry(geom)
+
+    objslampp.extra.trimesh.display_scenes(scenes)
+
+
+if __name__ == '__main__':
+    main()

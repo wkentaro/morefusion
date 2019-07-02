@@ -61,6 +61,7 @@ class BaselineModel(chainer.Chain):
         *,
         class_id,
         pitch,
+        origin,
         rgb,
         pcd,
     ):
@@ -96,7 +97,6 @@ class BaselineModel(chainer.Chain):
         h = F.resize_images(h, (H, W))
 
         h_vox = []
-        origins = []
         for i in range(B):
             h_i = h[i]
             pcd_i = pcd[i]
@@ -107,9 +107,6 @@ class BaselineModel(chainer.Chain):
 
             values = h_i[mask_i, :]    # MC
             points = pcd_i[mask_i, :]  # M3
-            centroid = points.mean(axis=0)  # 3
-            origin = centroid - pitch[i] * self._voxel_dim / 2.
-            origins.append(origin[None])
 
             if self._voxelization == 'average':
                 func = objslampp.functions.average_voxelization_3d
@@ -119,13 +116,12 @@ class BaselineModel(chainer.Chain):
             h_i = func(
                 values=values,
                 points=points,
-                origin=origin,
+                origin=origin[i],
                 pitch=pitch[i],
                 dimensions=(self._voxel_dim,) * 3,
                 channels=h_i.shape[2],
             )  # CXYZ
             h_vox.append(h_i[None])
-        origins = F.concat(origins, axis=0)  # B3
         h = F.concat(h_vox, axis=0)          # BCXYZ
         del h_vox
 
@@ -143,7 +139,7 @@ class BaselineModel(chainer.Chain):
         translation = translation[xp.arange(B), fg_class_id, :]
 
         quaternion = F.normalize(quaternion, axis=1)
-        translation = origins + translation * pitch[:, None] * self._voxel_dim
+        translation = origin + translation * pitch[:, None] * self._voxel_dim
 
         return quaternion, translation
 
@@ -152,6 +148,7 @@ class BaselineModel(chainer.Chain):
         *,
         class_id,
         pitch,
+        origin,
         rgb,
         pcd,
         quaternion_true,
@@ -171,6 +168,7 @@ class BaselineModel(chainer.Chain):
         quaternion_pred, translation_pred = self.predict(
             class_id=class_id,
             pitch=pitch,
+            origin=origin,
             rgb=rgb,
             pcd=pcd,
         )
