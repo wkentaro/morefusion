@@ -217,10 +217,10 @@ def main():
                 text = []
                 for class_id in np.unique(class_ids):
                     add = observation[f'main/add/{class_id:04d}']
-                    add_rot = observation[f'main/add_rotation/{class_id:04d}']
+                    add_s = observation[f'main/add_s/{class_id:04d}']
                     text.append(
                         f'[{which}] [{class_id:04d}]: add={add * 100:.1f}cm, '
-                        f'add_rot={add_rot * 100:.1f}cm'
+                        f'add_s={add_s * 100:.1f}cm'
                     )
                 text = '\n'.join(text)
             else:
