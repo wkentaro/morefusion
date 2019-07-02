@@ -33,6 +33,7 @@ class DatasetBase(objslampp.datasets.DatasetBase):
         return dict(
             class_id=-1,
             pitch=0.,
+            origin=np.zeros((3,), dtype=np.float64),
             rgb=np.zeros((256, 256, 3), dtype=np.uint8),
             pcd=np.zeros((256, 256, 3), dtype=np.float64),
             quaternion_true=np.zeros((4,), dtype=np.float64),
