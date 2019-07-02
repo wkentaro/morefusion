@@ -1,4 +1,8 @@
+import pickle
+
+import chainer
 import numpy as np
+import path
 
 import objslampp
 
@@ -8,6 +12,10 @@ from .base import DatasetBase
 class YCBVideoDataset(DatasetBase):
 
     _root_dir = objslampp.datasets.YCBVideoDataset._root_dir
+    _cache_dir = chainer.dataset.get_dataset_directory(
+        'wkentaro/objslampp/ycb_video/singleview_3d/ycb_video/cache_examples'
+    )
+    _cache_dir = path.Path(_cache_dir)
 
     def __init__(
         self,
@@ -25,6 +33,31 @@ class YCBVideoDataset(DatasetBase):
         self._split = split
         self._sampling = sampling
         self._ids = self._get_ids()
+
+    def get_examples(self, index):
+        is_real, image_id = self._ids[index]
+        if is_real:
+            cache_file = self._cache_dir / 'real' / f'{image_id}.pkl'
+        else:
+            cache_file = self._cache_dir / 'syn' / f'{image_id}.pkl'
+        cache_file.parent.makedirs_p()
+
+        examples = None
+
+        if cache_file.exists():
+            try:
+                with open(cache_file, 'rb') as f:
+                    examples = pickle.load(f)
+            except Exception:
+                pass
+
+        if examples is None:
+            examples = super().get_examples(index)
+            with open(cache_file, 'wb') as f:
+                pickle.dump(examples, f)
+
+        assert examples is not None
+        return examples
 
     def _get_ids(self):
         assert self.split in ['train', 'syn', 'val']
