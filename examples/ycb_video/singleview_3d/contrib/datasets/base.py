@@ -69,12 +69,22 @@ class DatasetBase(objslampp.datasets.DatasetBase):
             print(f'[{index:08d}]: class_ids: {class_ids.tolist()}')
             print(f'[{index:08d}]: instance_ids: {instance_ids.tolist()}')
 
+        H = pcd.shape[0]
+        pcd_2s = imgviz.resize(pcd, height=H // 2, interpolation='nearest')
+        instance_label_2s = imgviz.resize(
+            instance_label, height=H // 2, interpolation='nearest'
+        )
+        pcd_4s = imgviz.resize(pcd, height=H // 4, interpolation='nearest')
+        instance_label_4s = imgviz.resize(
+            instance_label, height=H // 4, interpolation='nearest'
+        )
+
         if self._return_occupancy_grids:
             mapping = MultiInstanceOctreeMapping()
 
-            nonnan = ~np.isnan(depth)
+            nonnan = ~np.isnan(pcd_2s).any(axis=2)
             masks = np.array([
-                (instance_label == i) & nonnan for i in instance_ids
+                (instance_label_2s == i) & nonnan for i in instance_ids
             ])
 
             keep = masks.sum(axis=(1, 2)) > 0
@@ -87,7 +97,7 @@ class DatasetBase(objslampp.datasets.DatasetBase):
                 self._models.get_voxel_pitch(self._voxel_dim, class_id=i)
                 for i in class_ids
             ])
-            centroids = np.array([np.mean(pcd[m], axis=0) for m in masks])
+            centroids = np.array([np.mean(pcd_2s[m], axis=0) for m in masks])
             aabb_min = centroids - (self._voxel_dim / 2 - 0.5) * pitch[:, None]
             aabb_max = aabb_min + self._voxel_dim * pitch[:, None]
 
@@ -95,12 +105,12 @@ class DatasetBase(objslampp.datasets.DatasetBase):
                 mapping.initialize(ins_id, pitch=pitch[i])
                 mapping._octrees[ins_id].setBBXMin(aabb_min[i])
                 mapping._octrees[ins_id].setBBXMax(aabb_max[i])
-                mapping.integrate(ins_id, instance_label == ins_id, pcd)
+                mapping.integrate(ins_id, masks[i], pcd_2s)
 
             mapping.initialize(0, pitch=0.01)
             mapping._octrees[0].setBBXMin(aabb_min.min(axis=0))
             mapping._octrees[0].setBBXMax(aabb_max.max(axis=0))
-            mapping.integrate(0, instance_label == 0, pcd)
+            mapping.integrate(0, instance_label_4s == 0, pcd_4s)
 
         examples = []
         for instance_id, class_id, T_cad2cam in zip(
