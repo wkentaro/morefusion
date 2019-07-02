@@ -160,6 +160,7 @@ class BaselineModel(chainer.Chain):
 
         class_id = class_id[keep]
         pitch = pitch[keep]
+        origin = origin[keep]
         rgb = rgb[keep]
         pcd = pcd[keep]
         quaternion_true = quaternion_true[keep]
