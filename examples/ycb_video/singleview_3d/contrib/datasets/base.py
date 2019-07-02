@@ -13,7 +13,7 @@ from .multi_instance_octree_mapping import MultiInstanceOctreeMapping
 class DatasetBase(objslampp.datasets.DatasetBase):
 
     _models = objslampp.datasets.YCBVideoModels()
-    voxel_dim = 32
+    _voxel_dim = 32
 
     def __init__(
         self,
@@ -40,7 +40,7 @@ class DatasetBase(objslampp.datasets.DatasetBase):
             translation_true=np.zeros((3,), dtype=np.float64),
         )
         if self._return_occupancy_grids:
-            dimensions = (self.voxel_dim,) * 3
+            dimensions = (self._voxel_dim,) * 3
             example['grid_target'] = np.zeros(dimensions, dtype=np.float64)
             example['grid_nontarget'] = np.zeros(dimensions, dtype=np.float64)
             example['grid_empty'] = np.zeros(dimensions, dtype=np.float64)
@@ -48,7 +48,7 @@ class DatasetBase(objslampp.datasets.DatasetBase):
 
     def _get_pitch(self, class_id):
         return self._models.get_voxel_pitch(
-            dimension=self.voxel_dim, class_id=class_id
+            dimension=self._voxel_dim, class_id=class_id
         )
 
     def get_examples(self, index):
@@ -71,14 +71,34 @@ class DatasetBase(objslampp.datasets.DatasetBase):
 
         if self._return_occupancy_grids:
             mapping = MultiInstanceOctreeMapping()
+
+            masks = np.array([instance_label == i for i in instance_ids])
+            centroids = np.array([np.nanmean(pcd[m], axis=0) for m in masks])
+            keep = ~np.isnan(centroids).any(axis=1)
+
+            instance_ids = instance_ids[keep]
+            class_ids = class_ids[keep]
+            Ts_cad2cam = Ts_cad2cam[keep]
+            masks = masks[keep]
+            centroids = centroids[keep]
+
+            pitch = np.array([
+                self._models.get_voxel_pitch(self._voxel_dim, class_id=i)
+                for i in class_ids
+            ])
+            aabb_min = centroids - (self._voxel_dim / 2 - 0.5) * pitch[:, None]
+            aabb_max = aabb_min + self._voxel_dim * pitch[:, None]
+
+            for i, ins_id in enumerate(instance_ids):
+                mapping.initialize(ins_id, pitch=pitch[i])
+                mapping._octrees[ins_id].setBBXMin(aabb_min[i])
+                mapping._octrees[ins_id].setBBXMax(aabb_max[i])
+                mapping.integrate(ins_id, instance_label == ins_id, pcd)
+
             mapping.initialize(0, pitch=0.01)
+            mapping._octrees[0].setBBXMin(aabb_min.min(axis=0))
+            mapping._octrees[0].setBBXMax(aabb_max.max(axis=0))
             mapping.integrate(0, instance_label == 0, pcd)
-            for instance_id, class_id in zip(instance_ids, class_ids):
-                pitch = self._get_pitch(class_id)
-                mapping.initialize(instance_id, pitch=pitch)
-                mapping.integrate(
-                    instance_id, instance_label == instance_id, pcd
-                )
 
         examples = []
         for instance_id, class_id, T_cad2cam in zip(
@@ -116,7 +136,7 @@ class DatasetBase(objslampp.datasets.DatasetBase):
 
             pitch = self._get_pitch(class_id=class_id)
             centroid = np.nanmean(pcd_ins, axis=(0, 1))
-            origin = centroid - pitch * (self.voxel_dim / 2. - 0.5)
+            origin = centroid - pitch * (self._voxel_dim / 2. - 0.5)
 
             quaternion_true = tf.quaternion_from_matrix(T_cad2cam)
             translation_true = tf.translation_from_matrix(T_cad2cam)
@@ -135,7 +155,7 @@ class DatasetBase(objslampp.datasets.DatasetBase):
                 grid_target, grid_nontarget, grid_empty = \
                     mapping.get_target_grids(
                         instance_id,
-                        dimensions=(self.voxel_dim,) * 3,
+                        dimensions=(self._voxel_dim,) * 3,
                         pitch=pitch,
                         origin=origin,
                     )
