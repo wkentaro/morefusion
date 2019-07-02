@@ -12,12 +12,20 @@ class BaselineModel(chainer.Chain):
 
     _models = objslampp.datasets.YCBVideoModels()
 
-    def __init__(self, *, n_fg_class, freeze_until, voxelization):
+    def __init__(
+        self,
+        *,
+        n_fg_class,
+        freeze_until,
+        voxelization,
+        use_occupancy=False,
+    ):
         super().__init__()
 
         self._n_fg_class = n_fg_class
         self._freeze_until = freeze_until
         self._voxelization = voxelization
+        self._use_occupancy = use_occupancy
 
         kwargs = {'initialW': chainer.initializers.Normal(0.01)}
         with self.init_scope():
@@ -34,8 +42,16 @@ class BaselineModel(chainer.Chain):
             # voxelization_3d -> (16, 32, 32, 32)
             self._voxel_dim = 32
 
+            if self._use_occupancy:
+                # target occupied (16)
+                # nontarget occupied (1)
+                # empty (1)
+                in_channels = 16 + 2
+            else:
+                in_channels = 16
+
             self.conv6 = L.Convolution3D(
-                in_channels=16,
+                in_channels=in_channels,
                 out_channels=16,
                 ksize=4,
                 stride=2,
@@ -64,17 +80,28 @@ class BaselineModel(chainer.Chain):
         origin,
         rgb,
         pcd,
+        grid_nontarget=None,
+        grid_empty=None,
     ):
         xp = self.xp
 
         B, H, W, C = rgb.shape
         assert H == W == 256
         assert C == 3
+        dimensions = (self._voxel_dim,) * 3
 
         # prepare
         pitch = pitch.astype(np.float32)
         rgb = rgb.transpose(0, 3, 1, 2).astype(np.float32)  # BHWC -> BCHW
         pcd = pcd.transpose(0, 3, 1, 2).astype(np.float32)  # BHW3 -> B3HW
+        if self._use_occupancy:
+            # BXYZ -> B1XYZ
+            assert grid_empty.shape[1:] == dimensions
+            assert grid_nontarget.shape[1:] == dimensions
+            grid_nontarget = grid_nontarget[:, None, :, :, :].astype(
+                np.float32
+            )
+            grid_empty = grid_empty[:, None, :, :, :].astype(np.float32)
 
         # feature extraction
         mean = xp.asarray(self.extractor.mean)
@@ -118,12 +145,16 @@ class BaselineModel(chainer.Chain):
                 points=points,
                 origin=origin[i],
                 pitch=pitch[i],
-                dimensions=(self._voxel_dim,) * 3,
+                dimensions=dimensions,
                 channels=h_i.shape[2],
             )  # CXYZ
             h_vox.append(h_i[None])
         h = F.concat(h_vox, axis=0)          # BCXYZ
         del h_vox
+
+        if self._use_occupancy:
+            # BCXYZ + B1XYZ + B1XYZ -> B(C+2)XYZ
+            h = F.concat([h, grid_nontarget, grid_empty], axis=1)
 
         h = F.relu(self.conv6(h))
         h = F.relu(self.conv7(h))
@@ -153,7 +184,12 @@ class BaselineModel(chainer.Chain):
         pcd,
         quaternion_true,
         translation_true,
+        grid_target=None,
+        grid_nontarget=None,
+        grid_empty=None,
     ):
+        del grid_target  # unused
+
         keep = class_id != -1
         if keep.sum() == 0:
             return chainer.Variable(self.xp.zeros((), dtype=np.float32))
@@ -165,6 +201,11 @@ class BaselineModel(chainer.Chain):
         pcd = pcd[keep]
         quaternion_true = quaternion_true[keep]
         translation_true = translation_true[keep]
+        if self._use_occupancy:
+            assert grid_nontarget is not None
+            assert grid_empty is not None
+            grid_nontarget = grid_nontarget[keep]
+            grid_empty = grid_empty[keep]
 
         quaternion_pred, translation_pred = self.predict(
             class_id=class_id,
@@ -172,6 +213,8 @@ class BaselineModel(chainer.Chain):
             origin=origin,
             rgb=rgb,
             pcd=pcd,
+            grid_nontarget=grid_nontarget,
+            grid_empty=grid_empty,
         )
 
         self.evaluate(

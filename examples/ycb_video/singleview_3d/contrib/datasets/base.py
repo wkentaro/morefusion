@@ -30,7 +30,7 @@ class DatasetBase(objslampp.datasets.DatasetBase):
         self._return_occupancy_grids = return_occupancy_grids
 
     def _get_invalid_data(self):
-        return dict(
+        example = dict(
             class_id=-1,
             pitch=0.,
             origin=np.zeros((3,), dtype=np.float64),
@@ -39,6 +39,12 @@ class DatasetBase(objslampp.datasets.DatasetBase):
             quaternion_true=np.zeros((4,), dtype=np.float64),
             translation_true=np.zeros((3,), dtype=np.float64),
         )
+        if self._return_occupancy_grids:
+            dimensions = (self.voxel_dim,) * 3
+            example['grid_target'] = np.zeros(dimensions, dtype=np.float64)
+            example['grid_nontarget'] = np.zeros(dimensions, dtype=np.float64)
+            example['grid_empty'] = np.zeros(dimensions, dtype=np.float64)
+        return example
 
     def _get_pitch(self, class_id):
         return self._models.get_voxel_pitch(

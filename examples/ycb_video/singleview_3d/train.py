@@ -84,6 +84,11 @@ def main():
         default=objslampp.datasets.ycb_video.class_ids_asymmetric.tolist(),
         help='class id',
     )
+    parser.add_argument(
+        '--use-occupancy',
+        action='store_true',
+        help='use occupancy',
+    )
     args = parser.parse_args()
 
     chainer.global_config.debug = args.debug
@@ -119,7 +124,9 @@ def main():
 
     # dataset initialization
     data_valid = contrib.datasets.YCBVideoDataset(
-        'val', class_ids=args.class_ids
+        'val',
+        class_ids=args.class_ids,
+        return_occupancy_grids=args.use_occupancy,
     )
     data_train = None
     if not args.multi_node or comm.rank == 0:
@@ -128,14 +135,17 @@ def main():
                 'train',
                 class_ids=args.class_ids,
                 augmentation=args.augmentation,
+                return_occupancy_grids=args.use_occupancy,
             )
         elif args.dataset == 'ycb_video_syn':
+            assert args.use_occupnacy is False
             data_train = contrib.datasets.YCBVideoDataset(
                 'syn',
                 class_ids=args.class_ids,
                 augmentation=args.augmentation,
             )
         elif args.dataset == 'cad_only':
+            assert args.use_occupnacy is False
             data_train = contrib.datasets.CADOnlyDataset(
                 class_ids=args.class_ids,
                 augmentation=args.augmentation,
@@ -154,6 +164,7 @@ def main():
         n_fg_class=len(args.class_names[1:]),
         freeze_until=args.freeze_until,
         voxelization=args.voxelization,
+        use_occupancy=args.use_occupancy,
     )
     if device >= 0:
         model.to_gpu()
