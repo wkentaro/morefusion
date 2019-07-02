@@ -63,23 +63,29 @@ class MultiInstanceOctreeMapping:
         centers = trimesh.voxel.matrix_to_points(
             np.ones(dimensions), pitch=pitch, origin=origin
         )
+        indices = trimesh.voxel.points_to_indices(
+            centers, pitch=pitch, origin=origin
+        )
+        I, J, K = indices[:, 0], indices[:, 1], indices[:, 2]
+
+        def get_occupancy(octree, point):
+            node = octree.search(point)
+            try:
+                return node.getOccupancy()
+            except octomap.NullPointerException:
+                return -1
 
         for ins_id, octree in self._octrees.items():
-            for center in centers:
-                node = octree.search(center)
-                try:
-                    occupancy = node.getValue()
-                except octomap.NullPointerException:
-                    continue
-                i, j, k = trimesh.voxel.points_to_indices(
-                    [center], pitch=pitch, origin=origin)[0]
-                if occupancy > 0.5:
-                    if ins_id == target_id:
-                        grid_target[i, j, k] = occupancy
-                    else:
-                        grid_nontarget[i, j, k] = occupancy
-                else:
-                    grid_empty[i, j, k] = 1 - occupancy
+            occupancies = np.array([
+                get_occupancy(octree, center) for center in centers
+            ])
+            q = occupancies >= 0.5
+            if ins_id == target_id:
+                grid_target[I[q], J[q], K[q]] = occupancies[q]
+            else:
+                grid_nontarget[I[q], J[q], K[q]] = occupancies[q]
+            q = (0 <= occupancies) & (occupancies < 0.5)
+            grid_empty[I[q], J[q], K[q]] = 1 - occupancies[q]
 
         return grid_target, grid_nontarget, grid_empty
 
