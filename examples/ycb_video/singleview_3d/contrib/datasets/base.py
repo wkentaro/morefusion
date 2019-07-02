@@ -10,9 +10,9 @@ import objslampp
 
 class DatasetBase(objslampp.datasets.DatasetBase):
 
+    _models = objslampp.datasets.YCBVideoModels()
     voxel_dim = 32
     _cache_pitch = {}
-    _occlusions = objslampp.datasets.YCBVideoDataset('train')
 
     def __init__(self, root_dir=None, class_ids=None, augmentation=None):
         self._root_dir = root_dir
@@ -30,16 +30,9 @@ class DatasetBase(objslampp.datasets.DatasetBase):
         )
 
     def _get_pitch(self, class_id):
-        if class_id in self._cache_pitch:
-            return self._cache_pitch[class_id]
-
-        models = objslampp.datasets.YCBVideoModels()
-        bbox_diagonal = models.get_bbox_diagonal(class_id=class_id)
-        pitch = 1. * bbox_diagonal / self.voxel_dim
-        pitch = pitch.astype(np.float32)
-
-        self._cache_pitch[class_id] = pitch
-        return pitch
+        return self._models.get_voxel_pitch(
+            dimension=self.voxel_dim, class_id=class_id
+        )
 
     def get_examples(self, index):
         frame = self.get_frame(index)
@@ -124,7 +117,7 @@ class DatasetBase(objslampp.datasets.DatasetBase):
         return examples[instance_index]
 
     def _augment(self, rgb, depth, mask):
-        augmentation_all = {'rgb', 'depth', 'segm', 'occl'}
+        augmentation_all = {'rgb', 'depth'}
         assert augmentation_all.issuperset(set(self._augmentation))
 
         if 'rgb' in self._augmentation:
@@ -132,12 +125,6 @@ class DatasetBase(objslampp.datasets.DatasetBase):
 
         if 'depth' in self._augmentation:
             depth = self._augment_depth(depth)
-
-        if 'segm' in self._augmentation:
-            mask = self._augment_segmentation(mask)
-
-        if 'occl' in self._augmentation:
-            mask = self._augment_occlusion(mask)
 
         return rgb, depth, mask
 
@@ -170,77 +157,3 @@ class DatasetBase(objslampp.datasets.DatasetBase):
         random_state = imgaug.current_random_state()
         depth += random_state.normal(scale=0.01, size=depth.shape)
         return depth
-
-    def _augment_segmentation(self, mask):
-        H, W = mask.shape
-
-        bbox = objslampp.geometry.masks_to_bboxes(mask)
-        y1, x1, y2, x2 = bbox.round().astype(int)
-
-        # randomly shift mask into inside
-        random_state = imgaug.current_random_state()
-        dydx = random_state.normal(loc=0, scale=10, size=(2,))
-        dy, dx = dydx.round().astype(int)
-
-        r, c = np.where(mask)
-        r = np.clip(r + dy, 0, H - 1)
-        c = np.clip(c + dx, 0, W - 1)
-        mask_aug = np.zeros_like(mask)
-        mask_aug[r, c] = True
-
-        mask_new = mask & mask_aug
-        if (mask_new.sum() / mask.sum()) < 0.5:
-            return mask  # return original
-
-        return mask_new
-
-    def _augment_occlusion(self, mask):
-        random_state = imgaug.current_random_state()
-        n_sample = random_state.randint(0, 3)
-        min_ratio_occl = 0.3
-        mask_old = mask
-        for _ in range(n_sample):
-            mask_new = self._augment_occlusion_one(mask)
-            ratio_occl_current = mask_new.sum() / mask_old.sum()
-            if ratio_occl_current < min_ratio_occl:
-                continue
-            mask = mask_new
-        return mask
-
-    def _augment_occlusion_one(self, mask):
-        mask = mask.copy()
-
-        random_state = imgaug.current_random_state()
-
-        index = random_state.randint(0, len(self._occlusions))
-        occlusion = self._occlusions[index]
-        labels = np.unique(occlusion['label'])
-        labels = labels[labels > 0]
-        mask_occl = occlusion['label'] == random_state.choice(labels)
-
-        bbox = objslampp.geometry.masks_to_bboxes(mask_occl)
-        by1, bx1, by2, bx2 = bbox.round().astype(int)
-        bh, bw = by2 - by1, bx2 - bx1
-
-        mask_occl = mask_occl[by1:by2, bx1:bx2]
-
-        H, W = mask.shape[:2]
-        cy1, cx1, cy2, cx2 = objslampp.geometry.masks_to_bboxes(mask)
-        cy, cx = random_state.uniform(
-            (cy1, cx1), (cy2, cx2),
-        ).round().astype(int)
-
-        y1 = np.clip(int(round(cy - bh / 2)), 0, H - 1)
-        x1 = np.clip(int(round(cx - bw / 2)), 0, W - 1)
-        y2 = np.clip(y1 + bh, 0, H - 1)
-        x2 = np.clip(x1 + bw, 0, W - 1)
-
-        by1 = 0
-        bx1 = 0
-        by2 = by1 + (y2 - y1)
-        bx2 = bx1 + (x2 - x1)
-
-        mask_occl = mask_occl[by1:by2, bx1:bx2]
-        mask[y1:y2, x1:x2][mask_occl] = 0
-
-        return mask
