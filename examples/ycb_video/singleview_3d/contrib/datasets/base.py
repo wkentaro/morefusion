@@ -72,20 +72,22 @@ class DatasetBase(objslampp.datasets.DatasetBase):
         if self._return_occupancy_grids:
             mapping = MultiInstanceOctreeMapping()
 
-            masks = np.array([instance_label == i for i in instance_ids])
-            centroids = np.array([np.nanmean(pcd[m], axis=0) for m in masks])
-            keep = ~np.isnan(centroids).any(axis=1)
+            nonnan = ~np.isnan(depth)
+            masks = np.array([
+                (instance_label == i) & nonnan for i in instance_ids
+            ])
 
+            keep = masks.sum(axis=(1, 2)) > 0
             instance_ids = instance_ids[keep]
             class_ids = class_ids[keep]
             Ts_cad2cam = Ts_cad2cam[keep]
             masks = masks[keep]
-            centroids = centroids[keep]
 
             pitch = np.array([
                 self._models.get_voxel_pitch(self._voxel_dim, class_id=i)
                 for i in class_ids
             ])
+            centroids = np.array([np.mean(pcd[m], axis=0) for m in masks])
             aabb_min = centroids - (self._voxel_dim / 2 - 0.5) * pitch[:, None]
             aabb_max = aabb_min + self._voxel_dim * pitch[:, None]
 
