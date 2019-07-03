@@ -1,5 +1,7 @@
 # flake8: noqa
 
+from .get_binvox_file import get_binvox_file
+
 from .get_collision_file import get_collision_file
 
 from .githash import githash
