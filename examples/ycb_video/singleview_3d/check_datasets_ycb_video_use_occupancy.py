@@ -25,6 +25,10 @@ def get_scenes():
     grid_target = example['grid_target']
     grid_nontarget = example['grid_nontarget']
     grid_empty = example['grid_empty']
+    grid_unknown = np.ones_like(example['grid_target'])
+    grid_unknown[grid_target > 0] = 0
+    grid_unknown[grid_nontarget > 0] = 0
+    grid_unknown[grid_empty > 0] = 0
 
     center = origin + pitch * (np.array(grid_target.shape) / 2 - 0.5)
 
@@ -55,11 +59,24 @@ def get_scenes():
     geom.apply_translation(center)
     scenes['empty'].add_geometry(geom)
 
+    scenes['unknown'] = trimesh.Scene(camera=camera)
+    voxel = trimesh.voxel.Voxel(grid_unknown, pitch=pitch, origin=origin)
+    geom = voxel.as_boxes(colors=(0, 0, 255))
+    scenes['unknown'].add_geometry(geom)
+    geom = trimesh.path.creation.box_outline((32 * pitch,) * 3)
+    geom.apply_translation(center)
+    scenes['unknown'].add_geometry(geom)
+
     return scenes
 
 
 def main():
-    objslampp.extra.trimesh.display_scenes(get_scenes())
+    objslampp.extra.trimesh.display_scenes(
+        get_scenes(),
+        height=int(round(480 * 0.75)),
+        width=int(round(640 * 0.75)),
+        tile=(1, 3),
+    )
 
 
 if __name__ == '__main__':
