@@ -9,7 +9,10 @@ install_anaconda3:
 install_v-hacd:
 	@.make/install_v-hacd.sh
 
-install: install_anaconda3 install_v-hacd
+install_binvox:
+	@.make/install_binvox.sh
+
+install: install_anaconda3 install_v-hacd install_binvox
 	@.make/install.sh
 
 lint:
