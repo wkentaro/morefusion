@@ -35,6 +35,9 @@ class YCBVideoDataset(DatasetBase):
         self._ids = self._get_ids()
 
     def get_examples(self, index):
+        if not self._return_occupancy_grids:
+            return super().get_examples(index)
+
         is_real, image_id = self._ids[index]
         if is_real:
             cache_file = self._cache_dir / 'real' / f'{image_id}.pkl'
