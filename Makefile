@@ -6,10 +6,10 @@ all:
 install_anaconda3:
 	@.make/install_anaconda3.sh
 
-install_v-hacd:
+install_v-hacd: install_anaconda3
 	@.make/install_v-hacd.sh
 
-install_binvox:
+install_binvox: install_anaconda3
 	@.make/install_binvox.sh
 
 install: install_anaconda3 install_v-hacd install_binvox

@@ -24,3 +24,9 @@ if [ ! -f $bin_file ]; then
   fi
   chmod u+x $bin_file
 fi
+
+source $ROOT/.anaconda3/bin/activate
+out_file=$(python -c 'import site, sys; sys.stdout.write(site.getsitepackages()[0])')/binvox_rw.py
+if [ ! -f $out_file ]; then
+  wget https://raw.githubusercontent.com/dimatura/binvox-rw-py/public/binvox_rw.py -O $out_file
+fi
