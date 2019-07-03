@@ -154,6 +154,20 @@ def main():
             raise ValueError(f'unsupported dataset: {args.dataset}')
         termcolor.cprint('==> Dataset size', attrs={'bold': True})
         print(f'train={len(data_train)}, val={len(data_valid)}')
+
+    def transform(in_data):
+        if 'grid_target' in in_data:
+            in_data.pop('grid_target')
+        if 'grid_nontarget' in in_data and 'grid_empty' in in_data:
+            in_data['grid_nontarget_empty'] = np.maximum(
+                in_data['grid_nontarget'], in_data['grid_empty']
+            )
+            in_data.pop('grid_nontarget')
+            in_data.pop('grid_empty')
+        return in_data
+
+    data_valid = chainer.datasets.TransformDataset(data_valid, transform)
+    data_train = chainer.datasets.TransformDataset(data_train, transform)
     if args.multi_node:
         data_train = chainermn.scatter_dataset(data_train, comm, shuffle=True)
 

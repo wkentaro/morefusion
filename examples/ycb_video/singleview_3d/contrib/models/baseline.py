@@ -44,9 +44,8 @@ class BaselineModel(chainer.Chain):
 
             if self._use_occupancy:
                 # target occupied (16)
-                # nontarget occupied (1)
-                # empty (1)
-                in_channels = 16 + 2
+                # nontarget occupied or empty (1)
+                in_channels = 16 + 1
             else:
                 in_channels = 16
 
@@ -80,8 +79,7 @@ class BaselineModel(chainer.Chain):
         origin,
         rgb,
         pcd,
-        grid_nontarget=None,
-        grid_empty=None,
+        grid_nontarget_empty=None,
     ):
         xp = self.xp
 
@@ -96,12 +94,9 @@ class BaselineModel(chainer.Chain):
         pcd = pcd.transpose(0, 3, 1, 2).astype(np.float32)  # BHW3 -> B3HW
         if self._use_occupancy:
             # BXYZ -> B1XYZ
-            assert grid_empty.shape[1:] == dimensions
-            assert grid_nontarget.shape[1:] == dimensions
-            grid_nontarget = grid_nontarget[:, None, :, :, :].astype(
-                np.float32
-            )
-            grid_empty = grid_empty[:, None, :, :, :].astype(np.float32)
+            assert grid_nontarget_empty.shape[1:] == dimensions
+            grid_nontarget_empty = \
+                grid_nontarget_empty[:, None, :, :, :].astype(np.float32)
 
         # feature extraction
         mean = xp.asarray(self.extractor.mean)
@@ -153,8 +148,8 @@ class BaselineModel(chainer.Chain):
         del h_vox
 
         if self._use_occupancy:
-            # BCXYZ + B1XYZ + B1XYZ -> B(C+2)XYZ
-            h = F.concat([h, grid_nontarget, grid_empty], axis=1)
+            # BCXYZ + B1XYZ -> B(C+1)XYZ
+            h = F.concat([h, grid_nontarget_empty], axis=1)
 
         h = F.relu(self.conv6(h))
         h = F.relu(self.conv7(h))
@@ -184,12 +179,8 @@ class BaselineModel(chainer.Chain):
         pcd,
         quaternion_true,
         translation_true,
-        grid_target=None,
-        grid_nontarget=None,
-        grid_empty=None,
+        grid_nontarget_empty=None,
     ):
-        del grid_target  # unused
-
         keep = class_id != -1
         if keep.sum() == 0:
             return chainer.Variable(self.xp.zeros((), dtype=np.float32))
@@ -202,10 +193,8 @@ class BaselineModel(chainer.Chain):
         quaternion_true = quaternion_true[keep]
         translation_true = translation_true[keep]
         if self._use_occupancy:
-            assert grid_nontarget is not None
-            assert grid_empty is not None
-            grid_nontarget = grid_nontarget[keep]
-            grid_empty = grid_empty[keep]
+            assert grid_nontarget_empty is not None
+            grid_nontarget_empty = grid_nontarget_empty[keep]
 
         quaternion_pred, translation_pred = self.predict(
             class_id=class_id,
@@ -213,8 +202,7 @@ class BaselineModel(chainer.Chain):
             origin=origin,
             rgb=rgb,
             pcd=pcd,
-            grid_nontarget=grid_nontarget,
-            grid_empty=grid_empty,
+            grid_nontarget_empty=grid_nontarget_empty,
         )
 
         self.evaluate(
