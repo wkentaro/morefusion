@@ -1,11 +1,13 @@
 import typing
 
 import chainer
+import binvox_rw
 import gdown
 import numpy as np
 import path
 import trimesh
 
+from ...utils import get_binvox_file
 from ..base import DatasetBase
 from .class_names import class_names
 
@@ -72,18 +74,31 @@ class YCBVideoModels(DatasetBase):
         class_name = self._get_class_name(
             class_id=class_id, class_name=class_name
         )
-        return {
-            'textured_simple':
-                self.root_dir / class_name / 'textured_simple.obj',
-            'points_xyz':
-                self.root_dir / class_name / 'points.xyz',
-        }
+        files = {}
+        files['textured_simple'] = self.root_dir / class_name / 'textured_simple.obj'  # NOQA
+        files['points_xyz'] = self.root_dir / class_name / 'points.xyz'
+        files['solid_binvox'] = get_binvox_file(files['textured_simple'])
+        return files
 
     def get_cad_file(self, *args, **kwargs):
         return self.get_model_files(*args, **kwargs)['textured_simple']
 
     def get_pcd_file(self, *args, **kwargs):
         return self.get_model_files(*args, **kwargs)['points_xyz']
+
+    def get_solid_voxel(self, *args, **kwargs):
+        vox_file = self.get_model_files(*args, **kwargs)['solid_binvox']
+        with open(vox_file, 'rb') as f:
+            vox = binvox_rw.read_as_3d_array(f)
+
+        assert vox.dims[0] == vox.dims[1] == vox.dims[2]
+        pitch = vox.scale / vox.dims[0]
+        voxel = trimesh.voxel.Voxel(
+            vox.data,
+            pitch=pitch,
+            origin=(0.5 * pitch,) * 3 + np.array(vox.translate),
+        )
+        return voxel
 
     def get_cad(self, *args, **kwargs):
         class_name = self._get_class_name(*args, **kwargs)
