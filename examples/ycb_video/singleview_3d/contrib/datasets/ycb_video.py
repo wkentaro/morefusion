@@ -35,9 +35,6 @@ class YCBVideoDataset(DatasetBase):
         self._ids = self._get_ids()
 
     def get_examples(self, index):
-        if not self._return_occupancy_grids:
-            return super().get_examples(index)
-
         is_real, image_id = self._ids[index]
         if is_real:
             cache_file = self._cache_dir / 'real' / f'{image_id}.pkl'
@@ -51,13 +48,18 @@ class YCBVideoDataset(DatasetBase):
             try:
                 with open(cache_file, 'rb') as f:
                     examples = pickle.load(f)
+                if not self._return_occupancy_grids:
+                    examples.pop('grid_target')
+                    examples.pop('grid_nontarget')
+                    examples.pop('grid_empty')
             except Exception:
                 pass
 
         if examples is None:
             examples = super().get_examples(index)
-            with open(cache_file, 'wb') as f:
-                pickle.dump(examples, f)
+            if self._return_occupancy_grids:
+                with open(cache_file, 'wb') as f:
+                    pickle.dump(examples, f)
 
         assert examples is not None
         return examples
