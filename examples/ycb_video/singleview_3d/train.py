@@ -45,7 +45,7 @@ def main():
         '--augmentation',
         nargs='*',
         default=None,
-        choices=['rgb', 'depth', 'segm', 'occl'],
+        choices=['rgb', 'depth'],
         help='augmentation',
     )
     parser.add_argument(

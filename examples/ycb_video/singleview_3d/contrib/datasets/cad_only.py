@@ -15,7 +15,7 @@ class CADOnlyDataset(DatasetBase):
         self,
         class_ids=None,
         n_sample_per_class=20000,
-        augmentation={'rgb', 'depth', 'segm', 'occl'}
+        augmentation={'rgb', 'depth'}
     ):
         super().__init__(class_ids=class_ids, augmentation=augmentation)
         self._models = objslampp.datasets.YCBVideoModels()
