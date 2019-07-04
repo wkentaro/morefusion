@@ -157,11 +157,15 @@ def main():
 
     def transform(in_data):
         if 'grid_target' in in_data:
-            in_data.pop('grid_target')
-        if 'grid_nontarget' in in_data and 'grid_empty' in in_data:
-            in_data['grid_nontarget_empty'] = np.maximum(
+            assert 'grid_nontarget' in in_data
+            assert 'grid_empty' in in_data
+
+            grid_nontarget_empty = np.maximum(
                 in_data['grid_nontarget'], in_data['grid_empty']
             )
+            grid_nontarget_empty = np.float64(grid_nontarget_empty > 0.5)
+            grid_nontarget_empty[in_data['grid_target'] > 0.5] = 0
+            in_data.pop('grid_target')
             in_data.pop('grid_nontarget')
             in_data.pop('grid_empty')
         return in_data

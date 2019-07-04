@@ -44,8 +44,17 @@ class BaselineModel(chainer.Chain):
 
             if self._use_occupancy:
                 # target occupied (16)
-                # nontarget occupied or empty (1)
-                in_channels = 16 + 1
+                # nontarget occupied or empty (16)
+                in_channels = 16 + 16
+
+                self.conv_occupancy = L.Convolution3D(
+                    in_channels=1,
+                    out_channels=16,
+                    ksize=3,
+                    stride=1,
+                    pad=1,
+                    **kwargs,
+                )
             else:
                 in_channels = 16
 
@@ -148,8 +157,9 @@ class BaselineModel(chainer.Chain):
         del h_vox
 
         if self._use_occupancy:
+            h_occupancy = self.conv_occupancy(grid_nontarget_empty)
             # BCXYZ + B1XYZ -> B(C+1)XYZ
-            h = F.concat([h, grid_nontarget_empty], axis=1)
+            h = F.concat([h, h_occupancy], axis=1)
 
         h = F.relu(self.conv6(h))
         h = F.relu(self.conv7(h))
