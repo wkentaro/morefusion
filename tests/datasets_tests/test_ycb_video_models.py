@@ -19,7 +19,11 @@ class TestYCBVideoModelsDataset(unittest.TestCase):
         class_name = class_names[class_id]
         files = self.dataset.get_model_files(class_id=class_id)
         assert isinstance(files, dict)
-        assert set(files.keys()) == {'textured_simple', 'points_xyz'}
+        assert set(files.keys()) == {
+            'textured_simple',
+            'points_xyz',
+            'solid_binvox',
+        }
         assert files == self.dataset.get_model_files(class_name=class_name)
 
     def test_get_bbox_diagonal(self):
