@@ -72,7 +72,8 @@ class MultiInstanceOccupancyRegistration:
         T_cad2cam_pred = self._Ts_cad2cam_pred[instance_id]
 
         class_id = self._class_ids[instance_id]
-        points = self._models.get_pcd(class_id=class_id)
+        # points = self._models.get_pcd(class_id=class_id)
+        points = self._models.get_solid_voxel(class_id=class_id).points
         points = tf.transform_points(points, T_cad2cam_pred)
 
         self._mapping.update(instance_id, points)
@@ -105,7 +106,8 @@ class MultiInstanceOccupancyRegistration:
             )
 
         #
-        points_source = models.get_pcd(class_id=class_id).astype(np.float32)
+        # points_source = models.get_pcd(class_id=class_id).astype(np.float32)
+        points_source = models.get_solid_voxel(class_id=class_id).points.astype(np.float32)
         points_source = objslampp.extra.open3d.voxel_down_sample(
             points_source, voxel_size=pitch
         )
