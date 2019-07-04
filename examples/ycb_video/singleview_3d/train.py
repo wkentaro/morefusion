@@ -165,6 +165,7 @@ def main():
             )
             grid_nontarget_empty = np.float64(grid_nontarget_empty > 0.5)
             grid_nontarget_empty[in_data['grid_target'] > 0.5] = 0
+            in_data['grid_nontarget_empty'] = grid_nontarget_empty
             in_data.pop('grid_target')
             in_data.pop('grid_nontarget')
             in_data.pop('grid_empty')
