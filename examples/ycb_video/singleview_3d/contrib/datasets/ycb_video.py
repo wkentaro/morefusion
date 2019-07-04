@@ -62,6 +62,10 @@ class YCBVideoDataset(DatasetBase):
         if examples is None:
             examples = super().get_examples(index)
             if self._return_occupancy_grids:
+                for example in examples:
+                    assert 'grid_target' in example
+                    assert 'grid_nontarget' in example
+                    assert 'grid_empty' in example
                 with open(cache_file, 'wb') as f:
                     pickle.dump(examples, f)
 
