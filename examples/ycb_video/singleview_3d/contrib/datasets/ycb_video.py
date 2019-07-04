@@ -52,10 +52,11 @@ class YCBVideoDataset(DatasetBase):
                 with open(cache_file, 'rb') as f:
                     examples = pickle.load(f)
                 if not self._return_occupancy_grids:
-                    examples.pop('grid_target')
-                    examples.pop('grid_nontarget')
-                    examples.pop('grid_empty')
-            except Exception:
+                    for example in examples:
+                        example.pop('grid_target')
+                        example.pop('grid_nontarget')
+                        example.pop('grid_empty')
+            except IOError:
                 pass
 
         if examples is None:

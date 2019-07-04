@@ -156,7 +156,8 @@ def main():
         print(f'train={len(data_train)}, val={len(data_valid)}')
 
     def transform(in_data):
-        if 'grid_target' in in_data:
+        if args.use_occupancy:
+            assert 'grid_target' in in_data
             assert 'grid_nontarget' in in_data
             assert 'grid_empty' in in_data
 
