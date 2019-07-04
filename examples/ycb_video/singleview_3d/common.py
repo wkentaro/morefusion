@@ -18,7 +18,8 @@ here = path.Path(__file__).abspath().parent
 class Inference:
 
     def __init__(self, dataset='my_synthetic', gpu=0):
-        model_file = here / 'logs/20190518_022000/snapshot_model_best_auc_add.npz'  # NOQA
+        # model_file = here / 'logs/20190518_022000/snapshot_model_best_auc_add.npz'  # NOQA
+        model_file = here / 'logs/20190704_100641/snapshot_model_best_auc_add.npz'  # NOQA
         model_file = path.Path(model_file)
         args_file = model_file.parent / 'args'
 
@@ -65,6 +66,7 @@ class Inference:
             quaternion_pred, translation_pred = self.model.predict(
                 class_id=inputs['class_id'],
                 pitch=inputs['pitch'],
+                origin=inputs['origin'],
                 rgb=inputs['rgb'],
                 pcd=inputs['pcd'],
             )

@@ -67,18 +67,18 @@ if args.prior:
         #         vertices=frame['pcd'][~isnan], colors=frame['rgb'][~isnan]))
         # scene.show()
 
-keep = frame['class_ids'] > 0
-class_ids_fg = frame['class_ids'][keep]
-instance_ids_fg = frame['instance_ids'][keep]
-Ts_cad2cam_true_fg = frame['Ts_cad2cam'][keep]
+keep = np.isin(frame['class_ids'], inference.dataset._class_ids)
+frame['class_ids'] = frame['class_ids'][keep]
+frame['instance_ids'] = frame['instance_ids'][keep]
+frame['Ts_cad2cam'] = frame['Ts_cad2cam'][keep]
 
 refinement(
-    instance_ids=instance_ids_fg,
-    class_ids=class_ids_fg,
+    instance_ids=frame['instance_ids'],
+    class_ids=frame['class_ids'],
     rgb=frame['rgb'],
     pcd=frame['pcd'],
     instance_label=frame['instance_label'],
-    Ts_cad2cam_true=Ts_cad2cam_true,
+    Ts_cad2cam_true=frame['Ts_cad2cam'],
     Ts_cad2cam_pred=Ts_cad2cam_pred,
     points_occupied=points_occupied,
 )
