@@ -19,6 +19,7 @@ class YCBVideoModels(DatasetBase):
     )
     _class_names = class_names
 
+    _bbox_diagonal_cache: typing.Dict[str, float] = {}
     _cad_cache: typing.Dict[str, trimesh.Trimesh] = {}
     _pcd_cache: typing.Dict[str, np.ndarray] = {}
 
@@ -109,10 +110,13 @@ class YCBVideoModels(DatasetBase):
         return self._pcd_cache[class_name]
 
     def get_bbox_diagonal(self, *args, **kwargs):
-        cad = self.get_cad(*args, **kwargs)
-        extents = cad.bounding_box.extents
-        bbox_diagonal = np.sqrt((extents ** 2).sum())
-        return bbox_diagonal
+        class_name = self._get_class_name(*args, **kwargs)
+        if class_name not in self._bbox_diagonal_cache:
+            cad = self.get_cad(*args, **kwargs)
+            extents = cad.bounding_box.extents
+            bbox_diagonal = np.sqrt((extents ** 2).sum())
+            self._bbox_diagonal_cache[class_name] = bbox_diagonal
+        return self._bbox_diagonal_cache[class_name]
 
     def get_voxel_pitch(self, dimension, *args, **kwargs):
         bbox_diagonal = self.get_bbox_diagonal(*args, **kwargs)
