@@ -1,7 +1,6 @@
 import math
 import types
 
-import glooey
 import numpy as np
 import pyglet
 import trimesh
@@ -19,6 +18,8 @@ def _get_tile_shape(num, hw_ratio=1):
 
 
 def display_scenes(data, height=480, width=640, tile=None, caption=None):
+    import glooey
+
     scenes = None
     scenes_group = None
     scenes_ggroup = None
