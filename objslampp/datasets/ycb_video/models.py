@@ -71,9 +71,11 @@ class YCBVideoModels(DatasetBase):
         return class_name
 
     def get_cad_file(self, *args, **kwargs):
+        class_name = self._get_class_name(*args, **kwargs)
         return self.root_dir / class_name / 'textured_simple.obj'
 
     def get_pcd_file(self, *args, **kwargs):
+        class_name = self._get_class_name(*args, **kwargs)
         return self.root_dir / class_name / 'points.xyz'
 
     def get_solid_voxel(self, *args, **kwargs):

@@ -1,6 +1,5 @@
 import unittest
 
-from objslampp.datasets.ycb_video import class_names
 from objslampp.datasets.ycb_video import YCBVideoModels
 
 

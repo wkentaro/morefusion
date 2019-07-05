@@ -107,7 +107,8 @@ class MultiInstanceOccupancyRegistration:
 
         #
         # points_source = models.get_pcd(class_id=class_id).astype(np.float32)
-        points_source = models.get_solid_voxel(class_id=class_id).points.astype(np.float32)
+        points_source = models.get_solid_voxel(
+            class_id=class_id).points.astype(np.float32)
         points_source = objslampp.extra.open3d.voxel_down_sample(
             points_source, voxel_size=pitch
         )
