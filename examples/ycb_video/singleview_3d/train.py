@@ -21,6 +21,23 @@ import contrib
 here = path.Path(__file__).abspath().parent
 
 
+def transform(in_data):
+    if 'grid_target' in in_data:
+        assert 'grid_nontarget' in in_data
+        assert 'grid_empty' in in_data
+
+        grid_nontarget_empty = np.maximum(
+            in_data['grid_nontarget'], in_data['grid_empty']
+        )
+        grid_nontarget_empty = np.float64(grid_nontarget_empty > 0.5)
+        grid_nontarget_empty[in_data['grid_target'] > 0.5] = 0
+        in_data['grid_nontarget_empty'] = grid_nontarget_empty
+        in_data.pop('grid_target')
+        in_data.pop('grid_nontarget')
+        in_data.pop('grid_empty')
+    return in_data
+
+
 def main():
     now = datetime.datetime.now(datetime.timezone.utc)
     default_out = str(here / 'logs' / now.strftime('%Y%m%d_%H%M%S'))
@@ -155,25 +172,8 @@ def main():
         termcolor.cprint('==> Dataset size', attrs={'bold': True})
         print(f'train={len(data_train)}, val={len(data_valid)}')
 
-    def transform(in_data):
-        if args.use_occupancy:
-            assert 'grid_target' in in_data
-            assert 'grid_nontarget' in in_data
-            assert 'grid_empty' in in_data
-
-            grid_nontarget_empty = np.maximum(
-                in_data['grid_nontarget'], in_data['grid_empty']
-            )
-            grid_nontarget_empty = np.float64(grid_nontarget_empty > 0.5)
-            grid_nontarget_empty[in_data['grid_target'] > 0.5] = 0
-            in_data['grid_nontarget_empty'] = grid_nontarget_empty
-            in_data.pop('grid_target')
-            in_data.pop('grid_nontarget')
-            in_data.pop('grid_empty')
-        return in_data
-
-    data_valid = chainer.datasets.TransformDataset(data_valid, transform)
-    data_train = chainer.datasets.TransformDataset(data_train, transform)
+        data_valid = chainer.datasets.TransformDataset(data_valid, transform)
+        data_train = chainer.datasets.TransformDataset(data_train, transform)
     if args.multi_node:
         data_train = chainermn.scatter_dataset(data_train, comm, shuffle=True)
 
