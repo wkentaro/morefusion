@@ -36,7 +36,7 @@ class YCBVideoDataset(DatasetBase):
 
     def get_examples(self, index):
         if self._augmentation:
-            return super().get_examples(index)
+            return super().get_examples(index, filter_class_ids=True)
 
         is_real, image_id = self._ids[index]
         if is_real:
@@ -60,14 +60,16 @@ class YCBVideoDataset(DatasetBase):
                 pass
 
         if examples is None:
-            examples = super().get_examples(index)
             if self._return_occupancy_grids:
+                examples = super().get_examples(index)
                 for example in examples:
                     assert 'grid_target' in example
                     assert 'grid_nontarget' in example
                     assert 'grid_empty' in example
                 with open(cache_file, 'wb') as f:
                     pickle.dump(examples, f)
+            else:
+                examples = super().get_examples(index, filter_class_ids=True)
 
         assert examples is not None
         return examples
