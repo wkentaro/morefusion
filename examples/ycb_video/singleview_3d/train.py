@@ -18,6 +18,14 @@ import objslampp
 import contrib
 
 
+# https://docs.chainer.org/en/stable/tips.html#my-training-process-gets-stuck-when-using-multiprocessiterator
+try:
+    import cv2
+    cv2.setNumThreads(0)
+except ImportError:
+    pass
+
+
 here = path.Path(__file__).abspath().parent
 
 
@@ -215,11 +223,13 @@ def main():
             print(name, link.update_enabled)
 
     # iterator initialization
-    iter_train = chainer.iterators.SerialIterator(
+    iter_train = chainer.iterators.MultiprocessIterator(
         data_train,
         batch_size=16,
         repeat=True,
         shuffle=True,
+        n_processes=4,
+        shared_mem=10 ** 9,
     )
     iter_valid = chainer.iterators.SerialIterator(
         data_valid, batch_size=1, repeat=False, shuffle=False
