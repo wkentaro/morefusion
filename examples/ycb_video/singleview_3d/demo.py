@@ -56,6 +56,7 @@ def main():
         n_fg_class=len(args_data['class_names'][1:]),
         freeze_until=args_data['freeze_until'],
         voxelization=args_data.get('voxelization', 'average'),
+        use_occupancy=args_data.get('use_occupancy', False),
     )
     if args.gpu >= 0:
         model.to_gpu()
@@ -90,10 +91,28 @@ def main():
         dataset = contrib.datasets.YCBVideoDataset(
             split=split,
             class_ids=args_data['class_ids'],
-            sampling=args.sampling
+            sampling=args.sampling,
+            return_occupancy_grids=args_data.get('use_occupancy', False),
         )
     else:
         raise ValueError(f'unexpected dataset: {args.dataset}')
+
+    def transform(in_data):
+        if args_data.get('use_occupancy', False):
+            assert 'grid_target' in in_data
+            assert 'grid_nontarget' in in_data
+            assert 'grid_empty' in in_data
+
+            grid_nontarget_empty = np.maximum(
+                in_data['grid_nontarget'], in_data['grid_empty']
+            )
+            grid_nontarget_empty = np.float64(grid_nontarget_empty > 0.5)
+            grid_nontarget_empty[in_data['grid_target'] > 0.5] = 0
+            in_data['grid_nontarget_empty'] = grid_nontarget_empty
+            in_data.pop('grid_target')
+            in_data.pop('grid_nontarget')
+            in_data.pop('grid_empty')
+        return in_data
 
     pprint.pprint(args.__dict__)
 
@@ -105,6 +124,12 @@ def main():
     for index in range(len(dataset)):
         with chainer.using_config('debug', True):
             examples = dataset.get_examples(index)
+            examples = [
+                transform(e) for e in examples
+                if e['class_id'] in dataset._class_ids
+            ]
+        if not examples:
+            continue
         inputs = chainer.dataset.concat_examples(examples, device=args.gpu)
 
         with chainer.no_backprop_mode() and \
@@ -112,8 +137,10 @@ def main():
             quaternion_pred, translation_pred = model.predict(
                 class_id=inputs['class_id'],
                 pitch=inputs['pitch'],
+                origin=inputs['origin'],
                 rgb=inputs['rgb'],
                 pcd=inputs['pcd'],
+                grid_nontarget_empty=inputs.get('grid_nontarget_empty'),
             )
 
             reporter = chainer.Reporter()
