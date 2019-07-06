@@ -48,7 +48,8 @@ class YCBVideoDataset(DatasetBase):
             try:
                 examples = []
                 for file in sorted(cache_dir.glob('*.npz')):
-                    example = dict(np.load(file))
+                    with open(file, 'rb') as f:
+                        example = dict(np.load(f))
                     for k in example.keys():
                         if example[k].shape == ():
                             example[k] = example[k].item()
@@ -57,9 +58,10 @@ class YCBVideoDataset(DatasetBase):
                         example.pop('grid_nontarget')
                         example.pop('grid_empty')
                     examples.append(example)
-                assert examples
+                if not examples:
+                    raise IOError
             except IOError:
-                pass
+                cache_dir.rmtree_p()
 
         if examples is None:
             if self._return_occupancy_grids:
