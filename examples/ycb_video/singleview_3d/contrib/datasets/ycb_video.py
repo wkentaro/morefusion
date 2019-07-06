@@ -63,7 +63,10 @@ class YCBVideoDataset(DatasetBase):
                 if len(examples) != len(frame['instance_ids']):
                     raise IOError
             except (IOError, zipfile.BadZipfile):
-                cache_dir.rmtree_p()
+                try:
+                    cache_dir.rmtree()
+                except OSError:
+                    pass
 
         if examples is None:
             if self._return_occupancy_grids:
