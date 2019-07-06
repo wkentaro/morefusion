@@ -229,7 +229,7 @@ def main():
         repeat=True,
         shuffle=True,
         n_processes=4,
-        shared_mem=10 ** 9,
+        shared_mem=10 ** 8,
     )
     iter_valid = chainer.iterators.SerialIterator(
         data_valid, batch_size=1, repeat=False, shuffle=False
