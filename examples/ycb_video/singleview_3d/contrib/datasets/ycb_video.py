@@ -57,6 +57,7 @@ class YCBVideoDataset(DatasetBase):
                         example.pop('grid_nontarget')
                         example.pop('grid_empty')
                     examples.append(example)
+                assert examples
             except IOError:
                 pass
 
