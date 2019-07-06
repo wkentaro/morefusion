@@ -1,3 +1,5 @@
+import zipfile
+
 import chainer
 import numpy as np
 import path
@@ -48,8 +50,7 @@ class YCBVideoDataset(DatasetBase):
             try:
                 examples = []
                 for file in sorted(cache_dir.glob('*.npz')):
-                    with open(file, 'rb') as f:
-                        example = dict(np.load(f))
+                    example = dict(np.load(file))
                     for k in example.keys():
                         if example[k].shape == ():
                             example[k] = example[k].item()
@@ -61,7 +62,7 @@ class YCBVideoDataset(DatasetBase):
                 frame = self.get_frame(index)
                 if len(examples) != len(frame['instance_ids']):
                     raise IOError
-            except IOError:
+            except (IOError, zipfile.BadZipfile):
                 cache_dir.rmtree_p()
 
         if examples is None:
