@@ -51,7 +51,7 @@ class DatasetBase(objslampp.datasets.DatasetBase):
             dimension=self._voxel_dim, class_id=class_id
         )
 
-    def get_examples(self, index, filter_class_ids=False):
+    def get_examples(self, index):
         frame = self.get_frame(index)
 
         instance_ids = frame['instance_ids']
@@ -116,8 +116,7 @@ class DatasetBase(objslampp.datasets.DatasetBase):
         for instance_id, class_id, T_cad2cam in zip(
             instance_ids, class_ids, Ts_cad2cam
         ):
-            if filter_class_ids and self._class_ids and \
-                    class_id not in self._class_ids:
+            if self._class_ids and class_id not in self._class_ids:
                 continue
 
             mask = instance_label == instance_id

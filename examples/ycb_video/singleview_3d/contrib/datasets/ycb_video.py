@@ -36,7 +36,7 @@ class YCBVideoDataset(DatasetBase):
 
     def get_examples(self, index):
         if self._augmentation:
-            return super().get_examples(index, filter_class_ids=True)
+            return super().get_examples(index)
 
         is_real, image_id = self._ids[index]
         if is_real:
@@ -69,7 +69,7 @@ class YCBVideoDataset(DatasetBase):
                 with open(cache_file, 'wb') as f:
                     pickle.dump(examples, f)
             else:
-                examples = super().get_examples(index, filter_class_ids=True)
+                examples = super().get_examples(index)
 
         assert examples is not None
         return examples
