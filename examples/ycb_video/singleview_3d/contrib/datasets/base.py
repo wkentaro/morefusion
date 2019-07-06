@@ -69,17 +69,17 @@ class DatasetBase(objslampp.datasets.DatasetBase):
             print(f'[{index:08d}]: class_ids: {class_ids.tolist()}')
             print(f'[{index:08d}]: instance_ids: {instance_ids.tolist()}')
 
-        H = pcd.shape[0]
-        pcd_2s = imgviz.resize(pcd, height=H // 2, interpolation='nearest')
-        instance_label_2s = imgviz.resize(
-            instance_label, height=H // 2, interpolation='nearest'
-        )
-        pcd_4s = imgviz.resize(pcd, height=H // 4, interpolation='nearest')
-        instance_label_4s = imgviz.resize(
-            instance_label, height=H // 4, interpolation='nearest'
-        )
-
         if self._return_occupancy_grids:
+            H = pcd.shape[0]
+            pcd_2s = imgviz.resize(pcd, height=H // 2, interpolation='nearest')
+            instance_label_2s = imgviz.resize(
+                instance_label, height=H // 2, interpolation='nearest'
+            )
+            pcd_4s = imgviz.resize(pcd, height=H // 4, interpolation='nearest')
+            instance_label_4s = imgviz.resize(
+                instance_label, height=H // 4, interpolation='nearest'
+            )
+
             mapping = MultiInstanceOctreeMapping()
 
             nonnan = ~np.isnan(pcd_2s).any(axis=2)
