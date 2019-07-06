@@ -181,7 +181,7 @@ class DatasetBase(objslampp.datasets.DatasetBase):
     def get_example(self, index):
         examples = self.get_examples(index)
 
-        class_ids = [e['class_id'] for e in examples]
+        class_ids = [float(e['class_id']) for e in examples]
 
         if self._class_ids:
             options = set(self._class_ids) & set(class_ids)

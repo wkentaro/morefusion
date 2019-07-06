@@ -1,5 +1,3 @@
-import pickle
-
 import chainer
 import numpy as np
 import path
@@ -40,17 +38,18 @@ class YCBVideoDataset(DatasetBase):
 
         is_real, image_id = self._ids[index]
         if is_real:
-            cache_file = self._cache_dir / 'real' / f'{image_id}.pkl'
+            cache_dir = self._cache_dir / 'real' / f'{image_id}'
         else:
-            cache_file = self._cache_dir / 'syn' / f'{image_id}.pkl'
-        cache_file.parent.makedirs_p()
+            cache_dir = self._cache_dir / 'syn' / f'{image_id}'
 
         examples = None
 
-        if cache_file.exists():
+        if cache_dir.exists():
             try:
-                with open(cache_file, 'rb') as f:
-                    examples = pickle.load(f)
+                examples = []
+                for file in sorted(cache_dir.glob('*.npz')):
+                    example = dict(np.load(file))
+                    examples.append(example)
                 if not self._return_occupancy_grids:
                     for example in examples:
                         example.pop('grid_target')
@@ -62,12 +61,13 @@ class YCBVideoDataset(DatasetBase):
         if examples is None:
             if self._return_occupancy_grids:
                 examples = super().get_examples(index)
-                for example in examples:
+                cache_dir.makedirs_p()
+                for i, example in enumerate(examples):
                     assert 'grid_target' in example
                     assert 'grid_nontarget' in example
                     assert 'grid_empty' in example
-                with open(cache_file, 'wb') as f:
-                    pickle.dump(examples, f)
+                    file = cache_dir / f'{i:04d}.npz'
+                    np.savez_compressed(file, **example)
             else:
                 examples = super().get_examples(index)
 
