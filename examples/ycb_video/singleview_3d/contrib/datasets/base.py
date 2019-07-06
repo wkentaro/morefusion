@@ -51,7 +51,7 @@ class DatasetBase(objslampp.datasets.DatasetBase):
             dimension=self._voxel_dim, class_id=class_id
         )
 
-    def get_examples(self, index):
+    def get_examples(self, index, filter_class_id=False):
         frame = self.get_frame(index)
 
         instance_ids = frame['instance_ids']
@@ -116,16 +116,19 @@ class DatasetBase(objslampp.datasets.DatasetBase):
         for instance_id, class_id, T_cad2cam in zip(
             instance_ids, class_ids, Ts_cad2cam
         ):
-            if self._class_ids and class_id not in self._class_ids:
+            if filter_class_id and self._class_ids and \
+                    class_id not in self._class_ids:
                 continue
 
             mask = instance_label == instance_id
             if mask.sum() == 0:
+                examples.append(self._get_invalid_data())
                 continue
 
             bbox = objslampp.geometry.masks_to_bboxes(mask)
             y1, x1, y2, x2 = bbox.round().astype(int)
             if (y2 - y1) * (x2 - x1) == 0:
+                examples.append(self._get_invalid_data())
                 continue
 
             # augment
@@ -144,6 +147,7 @@ class DatasetBase(objslampp.datasets.DatasetBase):
 
             nonnan = ~np.isnan(pcd_ins).any(axis=2)
             if nonnan.sum() == 0:
+                examples.append(self._get_invalid_data())
                 continue
 
             pitch = self._get_pitch(class_id=class_id)
@@ -181,7 +185,7 @@ class DatasetBase(objslampp.datasets.DatasetBase):
     def get_example(self, index):
         examples = self.get_examples(index)
 
-        class_ids = [float(e['class_id']) for e in examples]
+        class_ids = np.array([e['class_id'] for e in examples], dtype=int)
 
         if self._class_ids:
             options = set(self._class_ids) & set(class_ids)
@@ -191,7 +195,7 @@ class DatasetBase(objslampp.datasets.DatasetBase):
                 return self._get_invalid_data()
         else:
             # None or []
-            class_id = np.random.choice(class_ids)
+            class_id = np.random.choice(class_ids[class_ids != -1])
         instance_index = np.random.choice(np.where(class_ids == class_id)[0])
 
         return examples[instance_index]

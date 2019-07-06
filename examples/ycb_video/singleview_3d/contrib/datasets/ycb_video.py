@@ -34,7 +34,7 @@ class YCBVideoDataset(DatasetBase):
 
     def get_examples(self, index):
         if self._augmentation:
-            return super().get_examples(index)
+            return super().get_examples(index, filter_class_ids=True)
 
         is_real, image_id = self._ids[index]
         if is_real:
@@ -58,7 +58,8 @@ class YCBVideoDataset(DatasetBase):
                         example.pop('grid_nontarget')
                         example.pop('grid_empty')
                     examples.append(example)
-                if not examples:
+                frame = self.get_frame(index)
+                if len(examples) != len(frame['instance_ids']):
                     raise IOError
             except IOError:
                 cache_dir.rmtree_p()
@@ -74,7 +75,7 @@ class YCBVideoDataset(DatasetBase):
                     file = cache_dir / f'{i:04d}.npz'
                     np.savez_compressed(file, **example)
             else:
-                examples = super().get_examples(index)
+                examples = super().get_examples(index, filter_class_ids=True)
 
         assert examples is not None
         return examples
