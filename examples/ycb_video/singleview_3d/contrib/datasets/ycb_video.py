@@ -70,6 +70,7 @@ class YCBVideoDataset(DatasetBase):
                     raise IOError
 
             except (IOError, zipfile.BadZipfile):
+                examples = None
                 try:
                     cache_dir.rmtree()
                 except OSError:
