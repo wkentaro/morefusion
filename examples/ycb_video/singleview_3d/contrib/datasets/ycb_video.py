@@ -48,8 +48,14 @@ class YCBVideoDataset(DatasetBase):
 
         if cache_dir.exists():
             try:
+                frame = self.get_frame(index)
+
                 examples = []
-                for file in sorted(cache_dir.glob('*.npz')):
+                for i, class_id in enumerate(frame['class_ids']):
+                    if self._class_ids and class_id not in self._class_ids:
+                        continue
+
+                    file = cache_dir / f'{i:04d}.npz'
                     example = dict(np.load(file))
                     for k in example.keys():
                         if example[k].shape == ():
@@ -59,9 +65,10 @@ class YCBVideoDataset(DatasetBase):
                         example.pop('grid_nontarget')
                         example.pop('grid_empty')
                     examples.append(example)
-                frame = self.get_frame(index)
+
                 if len(examples) != len(frame['instance_ids']):
                     raise IOError
+
             except (IOError, zipfile.BadZipfile):
                 try:
                     cache_dir.rmtree()
