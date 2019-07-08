@@ -21,21 +21,22 @@ import contrib
 here = path.Path(__file__).abspath().parent
 
 
-def transform(in_data):
-    if 'grid_target' in in_data:
-        assert 'grid_nontarget' in in_data
-        assert 'grid_empty' in in_data
+def transform(examples):
+    for example in examples:
+        if 'grid_target' in example:
+            assert 'grid_nontarget' in example
+            assert 'grid_empty' in example
 
-        grid_nontarget_empty = np.maximum(
-            in_data['grid_nontarget'], in_data['grid_empty']
-        )
-        grid_nontarget_empty = np.float64(grid_nontarget_empty > 0.5)
-        grid_nontarget_empty[in_data['grid_target'] > 0.5] = 0
-        in_data['grid_nontarget_empty'] = grid_nontarget_empty
-        in_data.pop('grid_target')
-        in_data.pop('grid_nontarget')
-        in_data.pop('grid_empty')
-    return in_data
+            grid_nontarget_empty = np.maximum(
+                example['grid_nontarget'], example['grid_empty']
+            )
+            grid_nontarget_empty = np.float64(grid_nontarget_empty > 0.5)
+            grid_nontarget_empty[example['grid_target'] > 0.5] = 0
+            example['grid_nontarget_empty'] = grid_nontarget_empty
+            example.pop('grid_target')
+            example.pop('grid_nontarget')
+            example.pop('grid_empty')
+    return examples
 
 
 def concat_list_of_examples(list_of_examples, device=None, padding=None):
