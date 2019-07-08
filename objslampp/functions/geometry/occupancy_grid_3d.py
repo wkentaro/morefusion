@@ -40,15 +40,18 @@ class OccupancyGrid3D(chainer.Function):
         origin = xp.asarray(self.origin, dtype=dtype)
         pitch = xp.asarray(self.pitch, dtype=dtype)
 
+        # a coordinate -> voxel coordinate
+        points = (points - origin) / pitch
+
         J, I, K, P = xp.meshgrid(
             xp.arange(dimension[1]),
             xp.arange(dimension[0]),
             xp.arange(dimension[2]),
             xp.arange(points.shape[0]),
         )
-        d_IP = I.astype(dtype) - ((points[P, 0] - origin[0]) / pitch)
-        d_JP = J.astype(dtype) - ((points[P, 1] - origin[1]) / pitch)
-        d_KP = K.astype(dtype) - ((points[P, 2] - origin[2]) / pitch)
+        d_IP = I.astype(dtype) - points[P, 0]
+        d_JP = J.astype(dtype) - points[P, 1]
+        d_KP = K.astype(dtype) - points[P, 2]
         return d_IP, d_JP, d_KP
 
     def backward(self, inputs, grad_outputs):
@@ -74,10 +77,10 @@ def occupancy_grid_3d(points, *, pitch, origin, dimension, threshold=1):
         pitch=pitch, origin=origin, dimension=dimension
     )(points)
     d_IJKP = F.sqrt(d_IP ** 2 + d_JP ** 2 + d_KP ** 2)
-    m_IJKP = F.relu(threshold - d_IJKP)
-    m_IJKP = F.minimum(m_IJKP, m_IJKP.array * 0 + 1)
-    m = F.max(m_IJKP, axis=3)
-    return m
+    d_IJK = F.min(d_IJKP, axis=3)
+    m_IJK = F.relu(threshold - d_IJK)
+    m_IJK = F.minimum(m_IJK, m_IJK.array * 0 + 1)
+    return m_IJK
 
 
 if __name__ == '__main__':
