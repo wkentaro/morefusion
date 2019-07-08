@@ -295,13 +295,24 @@ class BaselineModel(chainer.Chain):
 
         loss = 0
         for i in range(batch_size):
-            cad_pcd = self._models.get_pcd(class_id=int(class_id[i]))
+            class_id_i = int(class_id[i])
+            cad_pcd = self._models.get_pcd(class_id=class_id_i)
             cad_pcd = self.xp.asarray(cad_pcd)
+
+            kwargs = dict(
+                points=cad_pcd,
+                transform1=T_cad2cam_true[i:i + 1],
+                transform2=T_cad2cam_pred[i:i + 1],
+            )
             loss_i = objslampp.functions.average_distance_l1(
-                cad_pcd,
-                T_cad2cam_true[i:i + 1],
-                T_cad2cam_pred[i:i + 1],
+                **kwargs, symmetric=True
             )[0]
+            if class_id_i in objslampp.datasets.ycb_video.class_ids_asymmetric:
+                loss_i += objslampp.functions.average_distance_l1(
+                    **kwargs, symmetric=False
+                )[0]
+            else:
+                loss_i *= 2
             loss += loss_i
         loss /= batch_size
 
