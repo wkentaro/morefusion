@@ -42,32 +42,33 @@ class BaselineModel(chainer.Chain):
             # voxelization_3d -> (16, 32, 32, 32)
             self._voxel_dim = 32
 
-            if self._use_occupancy:
-                # target occupied (16)
-                # nontarget occupied or empty (16)
-                in_channels = 16 + 16
-
-                self.conv_occupancy = L.Convolution3D(
-                    in_channels=1,
-                    out_channels=16,
-                    ksize=3,
-                    stride=1,
-                    pad=1,
-                    **kwargs,
-                )
-            else:
-                in_channels = 16
-
             self.conv6 = L.Convolution3D(
-                in_channels=in_channels,
+                in_channels=16,
                 out_channels=16,
                 ksize=4,
                 stride=2,
                 pad=1,
                 **kwargs,
             )  # 32x32x32 -> 16x16x16
+
+            if self._use_occupancy:
+                # target occupied (16)
+                # nontarget occupied or empty (8)
+                in_channels = 16 + 8
+
+                self.conv6_occ = L.Convolution3D(
+                    in_channels=1,
+                    out_channels=8,
+                    ksize=4,
+                    stride=2,
+                    pad=1,
+                    **kwargs,
+                )  # 32x32x32 -> 16x16x16
+            else:
+                in_channels = 16
+
             self.conv7 = L.Convolution3D(
-                in_channels=16,
+                in_channels=in_channels,
                 out_channels=16,
                 ksize=4,
                 stride=2,
@@ -156,12 +157,12 @@ class BaselineModel(chainer.Chain):
         h = F.concat(h_vox, axis=0)          # BCXYZ
         del h_vox
 
-        if self._use_occupancy:
-            h_occupancy = self.conv_occupancy(grid_nontarget_empty)
-            # BCXYZ + B1XYZ -> B(C+1)XYZ
-            h = F.concat([h, h_occupancy], axis=1)
-
         h = F.relu(self.conv6(h))
+
+        if self._use_occupancy:
+            h_occ = self.conv6_occ(grid_nontarget_empty)
+            h = F.concat([h, h_occ], axis=1)
+
         h = F.relu(self.conv7(h))
         h = F.relu(self.fc8(h))
 
