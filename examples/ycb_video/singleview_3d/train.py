@@ -274,6 +274,7 @@ def main():
         # evaluate
         evaluator = objslampp.training.extensions.PoseEstimationEvaluator(
             iterator=iter_valid,
+            converter=concat_list_of_examples,
             target=model,
             device=device,
             progress_bar=True,
