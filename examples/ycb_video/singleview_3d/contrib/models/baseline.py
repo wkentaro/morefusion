@@ -27,7 +27,7 @@ class BaselineModel(chainer.Chain):
         self._voxelization = voxelization
         self._use_occupancy = use_occupancy
 
-        kwargs = {'initialW': chainer.initializers.Normal(0.01)}
+        kwargs = dict(initialW=chainer.initializers.Normal(0.01))
         with self.init_scope():
             self.extractor = VGG16(pretrained_model='imagenet')
             self.extractor.pick = ['conv4_3', 'conv3_3', 'conv2_2', 'conv1_2']
