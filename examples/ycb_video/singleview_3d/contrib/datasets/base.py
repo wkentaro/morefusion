@@ -194,7 +194,7 @@ class DatasetBase(objslampp.datasets.DatasetBase):
             keep = class_ids != -1
 
         if keep.sum():
-            return [examples[k] for k in keep if k]
+            return [example for kp, example in zip(keep, examples) if kp]
         else:
             return [self._get_invalid_data()]
 
