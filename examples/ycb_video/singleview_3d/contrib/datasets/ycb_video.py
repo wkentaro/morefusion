@@ -48,14 +48,8 @@ class YCBVideoDataset(DatasetBase):
 
         if cache_dir.exists():
             try:
-                frame = self.get_frame(index)
-
                 examples = []
-                for i, class_id in enumerate(frame['class_ids']):
-                    if self._class_ids and class_id not in self._class_ids:
-                        continue
-
-                    file = cache_dir / f'{i:04d}.npz'
+                for file in sorted(cache_dir.glob('*.npz')):
                     example = dict(np.load(file))
                     for k in example.keys():
                         if example[k].shape == ():
@@ -65,10 +59,6 @@ class YCBVideoDataset(DatasetBase):
                         example.pop('grid_nontarget')
                         example.pop('grid_empty')
                     examples.append(example)
-
-                if len(examples) != len(frame['instance_ids']):
-                    raise IOError
-
             except (IOError, zipfile.BadZipfile):
                 examples = None
                 try:
@@ -78,14 +68,20 @@ class YCBVideoDataset(DatasetBase):
 
         if examples is None:
             if self._return_occupancy_grids:
-                examples = super().get_examples(index)
-                cache_dir.makedirs_p()
-                for i, example in enumerate(examples):
-                    assert 'grid_target' in example
-                    assert 'grid_nontarget' in example
-                    assert 'grid_empty' in example
-                    file = cache_dir / f'{i:04d}.npz'
-                    np.savez_compressed(file, **example)
+                try:
+                    examples = super().get_examples(index)
+                    cache_dir.makedirs_p()
+                    for i, example in enumerate(examples):
+                        assert 'grid_target' in example
+                        assert 'grid_nontarget' in example
+                        assert 'grid_empty' in example
+                        file = cache_dir / f'{i:04d}.npz'
+                        np.savez_compressed(file, **example)
+                except Exception:
+                    try:
+                        cache_dir.rmtree()
+                    except OSError:
+                        pass
             else:
                 examples = super().get_examples(index, filter_class_ids=True)
 
