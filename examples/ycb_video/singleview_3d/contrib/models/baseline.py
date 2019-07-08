@@ -19,6 +19,7 @@ class BaselineModel(chainer.Chain):
         freeze_until,
         voxelization,
         use_occupancy=False,
+        loss=None,
     ):
         super().__init__()
 
@@ -26,6 +27,8 @@ class BaselineModel(chainer.Chain):
         self._freeze_until = freeze_until
         self._voxelization = voxelization
         self._use_occupancy = use_occupancy
+        self._loss = 'add/add_s' if loss is None else loss
+        assert self._loss in ['add/add_s', 'add+add_s']
 
         kwargs = dict(initialW=chainer.initializers.Normal(0.01))
         with self.init_scope():
@@ -296,6 +299,8 @@ class BaselineModel(chainer.Chain):
         loss = 0
         for i in range(batch_size):
             class_id_i = int(class_id[i])
+            is_symmetric = \
+                class_id_i in objslampp.datasets.ycb_video.class_ids_symmetric
             cad_pcd = self._models.get_pcd(class_id=class_id_i)
             cad_pcd = self.xp.asarray(cad_pcd)
 
@@ -304,15 +309,21 @@ class BaselineModel(chainer.Chain):
                 transform1=T_cad2cam_true[i:i + 1],
                 transform2=T_cad2cam_pred[i:i + 1],
             )
-            loss_i = objslampp.functions.average_distance_l1(
-                **kwargs, symmetric=True
-            )[0]
-            if class_id_i in objslampp.datasets.ycb_video.class_ids_asymmetric:
-                loss_i += objslampp.functions.average_distance_l1(
-                    **kwargs, symmetric=False
+            if self._loss == 'add/add_s':
+                loss_i = objslampp.functions.average_distance_l1(
+                    **kwargs, symmetric=is_symmetric
                 )[0]
+            elif self._loss == 'add+add_s':
+                loss_i = objslampp.functions.average_distance_l1(
+                    **kwargs, symmetric=True
+                )[0]
+                if not is_symmetric:
+                    loss_i += objslampp.functions.average_distance_l1(
+                        **kwargs, symmetric=False
+                    )[0]
+                    loss_i /= 2
             else:
-                loss_i *= 2
+                raise ValueError(f'unsupported loss: {self._loss}')
             loss += loss_i
         loss /= batch_size
 

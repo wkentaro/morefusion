@@ -116,6 +116,12 @@ def main():
         action='store_true',
         help='use occupancy',
     )
+    parser.add_argument(
+        '--loss',
+        choices=['add/add_s', 'add+add_s'],
+        default='add/add_s',
+        help='loss',
+    )
     args = parser.parse_args()
 
     chainer.global_config.debug = args.debug
@@ -198,6 +204,7 @@ def main():
         freeze_until=args.freeze_until,
         voxelization=args.voxelization,
         use_occupancy=args.use_occupancy,
+        loss=args.loss,
     )
     if device >= 0:
         model.to_gpu()
