@@ -188,17 +188,15 @@ class DatasetBase(objslampp.datasets.DatasetBase):
         class_ids = np.array([e['class_id'] for e in examples], dtype=int)
 
         if self._class_ids:
-            options = set(self._class_ids) & set(class_ids)
-            if options:
-                class_id = np.random.choice(list(options))
-            else:
-                return self._get_invalid_data()
+            keep = np.isin(class_ids, self._class_ids)
         else:
             # None or []
-            class_id = np.random.choice(class_ids[class_ids != -1])
-        instance_index = np.random.choice(np.where(class_ids == class_id)[0])
+            keep = class_ids != -1
 
-        return examples[instance_index]
+        if keep.sum():
+            return [examples[k] for k in keep if k]
+        else:
+            return [self._get_invalid_data()]
 
     def _augment(self, rgb, depth, mask):
         augmentation_all = {'rgb', 'depth'}

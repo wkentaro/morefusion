@@ -18,14 +18,6 @@ import objslampp
 import contrib
 
 
-# https://docs.chainer.org/en/stable/tips.html#my-training-process-gets-stuck-when-using-multiprocessiterator
-try:
-    import cv2
-    cv2.setNumThreads(0)
-except ImportError:
-    pass
-
-
 here = path.Path(__file__).abspath().parent
 
 
@@ -44,6 +36,15 @@ def transform(in_data):
         in_data.pop('grid_nontarget')
         in_data.pop('grid_empty')
     return in_data
+
+
+def concat_list_of_examples(list_of_examples, device=None, padding=None):
+    batch = []
+    for examples in list_of_examples:
+        batch.extend(examples)
+    return chainer.dataset.concat_examples(
+        batch, device=device, padding=padding
+    )
 
 
 def main():
@@ -227,7 +228,7 @@ def main():
 
     # iterator initialization
     iter_train = chainer.iterators.SerialIterator(
-        data_train, batch_size=16, repeat=True, shuffle=True
+        data_train, batch_size=4, repeat=True, shuffle=True
     )
     iter_valid = chainer.iterators.SerialIterator(
         data_valid, batch_size=1, repeat=False, shuffle=False
@@ -236,6 +237,7 @@ def main():
     updater = chainer.training.updater.StandardUpdater(
         iterator=iter_train,
         optimizer=optimizer,
+        converter=concat_list_of_examples,
         device=device,
     )
     if not args.multi_node or comm.rank == 0:
