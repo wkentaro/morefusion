@@ -2,7 +2,6 @@
 
 # FIXME: There might be a bug around OccupancyPointsRegistration
 
-import imgviz
 import numpy as np
 import trimesh
 import trimesh.transformations as tf
