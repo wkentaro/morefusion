@@ -15,3 +15,6 @@ from .quaternion_matrix import quaternion_matrix
 from .transform_points import transform_points
 
 from .translation_matrix import translation_matrix
+
+from .truncated_distance_function import truncated_distance_function
+from .truncated_distance_function import pseudo_occupancy_voxelization
