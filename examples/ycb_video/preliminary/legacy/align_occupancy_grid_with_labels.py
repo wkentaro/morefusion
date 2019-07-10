@@ -61,7 +61,7 @@ class OccupancyGridAlignmentModel(chainer.Link):
             points_source,
             pitch=pitch,
             origin=origin,
-            dimension=grid_target.shape,
+            dims=grid_target.shape,
             threshold=threshold,
         )
 

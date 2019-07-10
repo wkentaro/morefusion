@@ -14,13 +14,13 @@ class TestOccupancyGrid3D(unittest.TestCase):
     def setUp(self):
         self.pitch = 1
         self.origin = (0, 0, 0)
-        self.dimension = (5, 5, 5)
+        self.dims = (5, 5, 5)
         self.points = np.array(
             [[0, 0.05, 0.1], [3.9, 3.95, 4]],
             dtype=np.float32
         )
         self.grad_matrix = np.random.uniform(
-            -1, 1, self.dimension
+            -1, 1, self.dims
         ).astype(np.float32)
 
     def check_forward(self, points_data):
@@ -28,7 +28,7 @@ class TestOccupancyGrid3D(unittest.TestCase):
             points_data,
             pitch=self.pitch,
             origin=self.origin,
-            dimension=self.dimension,
+            dims=self.dims,
         )
         nonzero = [
             [0, 0, 0],
@@ -56,14 +56,14 @@ class TestOccupancyGrid3D(unittest.TestCase):
             self.points,
             pitch=self.pitch,
             origin=self.origin,
-            dimension=self.dimension,
+            dims=self.dims,
         )
 
         y_gpu = occupancy_grid_3d(
             cuda.to_gpu(self.points),
             pitch=self.pitch,
             origin=self.origin,
-            dimension=self.dimension,
+            dims=self.dims,
         )
 
         testing.assert_allclose(y_cpu.array, cuda.to_cpu(y_gpu.array))
@@ -74,7 +74,7 @@ class TestOccupancyGrid3D(unittest.TestCase):
                 x,
                 pitch=self.pitch,
                 origin=self.origin,
-                dimension=self.dimension,
+                dims=self.dims,
             ),
             points_data,
             grad_matrix,
