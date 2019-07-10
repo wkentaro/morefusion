@@ -17,7 +17,7 @@ def get_scenes():
     )
     print(f'dataset_size: {len(dataset)}')
 
-    example = dataset.get_example(0)
+    example = dataset.get_example(0)[0]
 
     pitch = example['pitch']
     origin = example['origin']
