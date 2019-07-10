@@ -46,7 +46,7 @@ class OccupancyRegistrationLink(chainer.Link):
             points_source,
             pitch=pitch,
             origin=origin,
-            dimension=grid_target.shape[1:],
+            dims=grid_target.shape[1:],
             threshold=threshold,
         )
 

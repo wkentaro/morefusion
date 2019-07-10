@@ -44,7 +44,7 @@ class TruncatedDistanceFunction(chainer.Function):
         matrix = cupy.full(self.dims, self.truncation, dtype=dtype)
         indices = cupy.full(self.dims, -1, dtype=np.int32)
 
-        ksize = int((truncation / pitch).round()) + 1
+        ksize = int(cupy.ceil(truncation / pitch))
         if ksize % 2 == 0:
             ksize += 1
         kernel = cupy.meshgrid(*(cupy.arange(ksize),) * 3)

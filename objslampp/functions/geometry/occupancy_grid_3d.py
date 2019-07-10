@@ -6,18 +6,18 @@ import numpy as np
 
 class OccupancyGrid3D(chainer.Function):
 
-    def __init__(self, *, pitch, origin, dimension):
+    def __init__(self, *, pitch, origin, dims):
         pitch = np.asarray(pitch, dtype=np.float32)
         origin = np.asarray(origin, dtype=np.float32)
-        dimension = np.asarray(dimension, dtype=np.float32)
+        dims = np.asarray(dims, dtype=np.float32)
 
         assert pitch.ndim == 0
         assert origin.shape == (3,)
-        assert dimension.shape == (3,)
+        assert dims.shape == (3,)
 
         self.pitch = pitch
         self.origin = origin
-        self.dimension = dimension
+        self.dims = dims
 
     def check_type_forward(self, in_types):
         chainer.utils.type_check.expect(in_types.size() == 1)
@@ -36,7 +36,7 @@ class OccupancyGrid3D(chainer.Function):
         self._points_shape = points.shape
         dtype = points.dtype
 
-        dimension = self.dimension
+        dims = self.dims
         origin = xp.asarray(self.origin, dtype=dtype)
         pitch = xp.asarray(self.pitch, dtype=dtype)
 
@@ -44,9 +44,9 @@ class OccupancyGrid3D(chainer.Function):
         points = (points - origin) / pitch
 
         J, I, K, P = xp.meshgrid(
-            xp.arange(dimension[1]),
-            xp.arange(dimension[0]),
-            xp.arange(dimension[2]),
+            xp.arange(dims[1]),
+            xp.arange(dims[0]),
+            xp.arange(dims[2]),
             xp.arange(points.shape[0]),
         )
         d_IP = I.astype(dtype) - points[P, 0]
@@ -72,9 +72,9 @@ class OccupancyGrid3D(chainer.Function):
         return grad_points,
 
 
-def occupancy_grid_3d(points, *, pitch, origin, dimension, threshold=1):
+def occupancy_grid_3d(points, *, pitch, origin, dims, threshold=1):
     d_IP, d_JP, d_KP = OccupancyGrid3D(
-        pitch=pitch, origin=origin, dimension=dimension
+        pitch=pitch, origin=origin, dims=dims
     )(points)
     d_IJKP = F.sqrt(d_IP ** 2 + d_JP ** 2 + d_KP ** 2)
     d_IJK = F.min(d_IJKP, axis=3)
@@ -88,7 +88,7 @@ if __name__ == '__main__':
 
     pitch = 1
     origin = (0, 0, 0)
-    dimension = (5, 5, 5)
+    dims = (5, 5, 5)
     points = np.array(
         [[0, 0.05, 0.1], [3.9, 3.95, 4]],
         dtype=np.float32
@@ -99,7 +99,7 @@ if __name__ == '__main__':
         points,
         pitch=pitch,
         origin=origin,
-        dimension=dimension,
+        dims=dims,
     )
     m_true = np.zeros_like(m_pred.array)
     m_true[0, 0, 0] = 1
@@ -118,11 +118,11 @@ if __name__ == '__main__':
                 x,
                 pitch=pitch,
                 origin=origin,
-                dimension=dimension,
+                dims=dims,
             ),
             points_data,
             grad_m,
         )
 
-    grad_m = np.random.uniform(-1, 1, dimension).astype(points.dtype)
+    grad_m = np.random.uniform(-1, 1, dims).astype(points.dtype)
     check_backward(points.array, grad_m)
