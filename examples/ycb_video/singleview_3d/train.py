@@ -137,10 +137,8 @@ def main():
         else:
             comm = chainermn.create_communicator('pure_nccl')
         device = comm.intra_rank
-        args.n_gpu = comm.size
     else:
         device = args.gpu
-        args.n_gpu = 1
 
     if not args.multi_node or comm.rank == 0:
         args.timestamp = now.isoformat()
@@ -210,7 +208,7 @@ def main():
         model.to_gpu()
 
     # optimizer initialization
-    optimizer = chainer.optimizers.Adam(alpha=args.lr * args.n_gpu)
+    optimizer = chainer.optimizers.Adam(alpha=args.lr)
     if args.multi_node:
         optimizer = chainermn.create_multi_node_optimizer(optimizer, comm)
     optimizer.setup(model)
@@ -236,7 +234,7 @@ def main():
 
     # iterator initialization
     iter_train = chainer.iterators.SerialIterator(
-        data_train, batch_size=4 * args.n_gpu, repeat=True, shuffle=True
+        data_train, batch_size=4, repeat=True, shuffle=True
     )
     iter_valid = chainer.iterators.SerialIterator(
         data_valid, batch_size=1, repeat=False, shuffle=False
