@@ -297,6 +297,7 @@ def refinement(
                 registration.visualize()
                 for _ in registration.register_instance(ins_id)
             )
+            registration.update_octree(ins_id)
 
     objslampp.extra.trimesh.display_scenes(
         scenes_ggroup(),
