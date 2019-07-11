@@ -24,13 +24,6 @@ def main():
     )
     parser.add_argument('model', help='model file in a log dir')
     parser.add_argument('--gpu', type=int, default=0, help='gpu id')
-    parser.add_argument(
-        '--dataset',
-        default='ycb_video',
-        choices=['ycb_video', 'bin_type'],
-        help='dataset',
-    )
-    parser.add_argument('--instance-id', type=int, help='instance id')
     args = parser.parse_args()
 
     args_file = path.Path(args.model).parent / 'args'
@@ -54,19 +47,11 @@ def main():
     chainer.serializers.load_npz(args.model, model)
     print('==> Done model loading')
 
-    if args.dataset == 'ycb_video':
-        dataset = contrib.datasets.YCBVideoDataset(
-            'val',
-            class_ids=args_data['class_ids'],
-            return_occupancy_grids=args_data['use_occupancy'],
-        )
-    else:
-        assert args.dataset == 'bin_type'
-        dataset = contrib.datasets.MySyntheticDataset(
-            '/home/wkentaro/data/datasets/wkentaro/objslampp/ycb_video/synthetic_data/20190402_174648.841996',  # NOQA
-            class_ids=[2],
-        )
-        dataset.instance_id = args.instance_id
+    dataset = contrib.datasets.YCBVideoDataset(
+        'val',
+        class_ids=args_data['class_ids'],
+        return_occupancy_grids=args_data['use_occupancy'],
+    )
 
     def transform(in_data):
         if args_data.get('use_occupancy', False):
@@ -89,11 +74,7 @@ def main():
 
     observations = []
     for index in range(len(dataset)):
-        examples = dataset[index:index + 1]
-        examples = [
-            transform(e) for e in examples
-            if e['class_id'] in dataset._class_ids
-        ]
+        examples = dataset.get_example(index)
         if not examples:
             continue
         inputs = chainer.dataset.concat_examples(examples, device=args.gpu)
@@ -151,8 +132,9 @@ def main():
         auc, x, y = objslampp.metrics.ycb_video_add_auc(add, return_xy=True)
         print('AUC(ADD):', auc)
 
-        add = df[f'main/add_s/{class_id:04d}'].dropna().values
-        auc_s, x, y = objslampp.metrics.ycb_video_add_auc(add, return_xy=True)
+        add_s = df[f'main/add_s/{class_id:04d}'].dropna().values
+        auc_s, x_s, y_s = objslampp.metrics.ycb_video_add_auc(
+            add_s, return_xy=True)
         print('AUC (ADD-S):', auc_s)
 
         aucs[class_id] = {'add': auc, 'add_s': auc_s}
@@ -169,7 +151,7 @@ def main():
 
         plt.subplot(122)
         plt.title('ADD (AUC={:.1f})'.format(auc_s * 100))
-        plt.plot(x, y, color='b')
+        plt.plot(x_s, y_s, color='b')
         plt.xlim(0, 0.1)
         plt.ylim(0, 1)
         plt.xlabel('average distance threshold [m]')
