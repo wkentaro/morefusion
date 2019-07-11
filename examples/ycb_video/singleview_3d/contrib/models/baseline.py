@@ -300,11 +300,9 @@ class BaselineModel(chainer.Chain):
     ):
         quaternion_true = quaternion_true.astype(np.float32)
         translation_true = translation_true.astype(np.float32)
-        if pitch is not None:
-            assert origin is not None
-            assert grid_nontarget_empty is not None
-            pitch = pitch.astype(np.float32)
-            origin = origin.astype(np.float32)
+        pitch = None if pitch is None else pitch.astype(np.float32)
+        origin = None if origin is None else origin.astype(np.float32)
+        if grid_nontarget_empty is not None:
             grid_nontarget_empty = grid_nontarget_empty.astype(np.float32)
 
         T_cad2cam_true = objslampp.functions.quaternion_matrix(quaternion_true)
