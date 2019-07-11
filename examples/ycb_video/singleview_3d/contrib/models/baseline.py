@@ -11,6 +11,7 @@ import objslampp
 class BaselineModel(chainer.Chain):
 
     _models = objslampp.datasets.YCBVideoModels()
+    _voxel_dim = 32
 
     def __init__(
         self,
@@ -43,7 +44,6 @@ class BaselineModel(chainer.Chain):
             )
 
             # voxelization_3d -> (16, 32, 32, 32)
-            self._voxel_dim = 32
 
             if self._use_occupancy:
                 # target occupied (16)
@@ -103,6 +103,7 @@ class BaselineModel(chainer.Chain):
 
         # prepare
         pitch = pitch.astype(np.float32)
+        origin = origin.astype(np.float32)
         rgb = rgb.transpose(0, 3, 1, 2).astype(np.float32)  # BHWC -> BCHW
         pcd = pcd.transpose(0, 3, 1, 2).astype(np.float32)  # BHW3 -> B3HW
         if self._use_occupancy:
@@ -245,6 +246,9 @@ class BaselineModel(chainer.Chain):
         quaternion_pred,
         translation_pred,
     ):
+        quaternion_true = quaternion_true.astype(np.float32)
+        translation_true = translation_true.astype(np.float32)
+
         batch_size = class_id.shape[0]
 
         T_cad2cam_true = objslampp.functions.quaternion_matrix(quaternion_true)
@@ -284,6 +288,8 @@ class BaselineModel(chainer.Chain):
         quaternion_pred,
         translation_pred,
     ):
+        quaternion_true = quaternion_true.astype(np.float32)
+        translation_true = translation_true.astype(np.float32)
         T_cad2cam_true = objslampp.functions.quaternion_matrix(quaternion_true)
         T_cad2cam_pred = objslampp.functions.quaternion_matrix(quaternion_pred)
 
@@ -302,7 +308,7 @@ class BaselineModel(chainer.Chain):
             is_symmetric = \
                 class_id_i in objslampp.datasets.ycb_video.class_ids_symmetric
             cad_pcd = self._models.get_pcd(class_id=class_id_i)
-            cad_pcd = self.xp.asarray(cad_pcd)
+            cad_pcd = self.xp.asarray(cad_pcd, dtype=np.float32)
 
             kwargs = dict(
                 points=cad_pcd,
