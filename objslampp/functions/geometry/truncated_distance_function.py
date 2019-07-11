@@ -7,14 +7,6 @@ import numpy as np
 class TruncatedDistanceFunction(chainer.Function):
 
     def __init__(self, *, pitch, origin, dims, truncation):
-        pitch = np.asarray(pitch, dtype=np.float32)
-        origin = np.asarray(origin, dtype=np.float32)
-        dims = np.asarray(dims, dtype=np.int32)
-
-        assert pitch.ndim == 0
-        assert origin.shape == (3,)
-        assert dims.shape == (3,)
-
         self.pitch = pitch
         self.origin = origin
         self.dims = dims
