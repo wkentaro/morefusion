@@ -28,8 +28,12 @@ class BaselineModel(chainer.Chain):
         self._freeze_until = freeze_until
         self._voxelization = voxelization
         self._use_occupancy = use_occupancy
+
         self._loss = 'add/add_s' if loss is None else loss
-        assert self._loss in ['add/add_s', 'add+add_s']
+        assert self._loss in ['add/add_s', 'add+add_s', 'add/add_s+occupancy']
+        if self._loss == 'add/add_s+occupancy':
+            assert use_occupancy, \
+                f'use_occupancy must be True for this loss: {self._loss}'
 
         kwargs = dict(initialW=chainer.initializers.Normal(0.01))
         with self.init_scope():
@@ -234,6 +238,9 @@ class BaselineModel(chainer.Chain):
             translation_true=translation_true,
             quaternion_pred=quaternion_pred,
             translation_pred=translation_pred,
+            pitch=pitch,
+            origin=origin,
+            grid_nontarget_empty=grid_nontarget_empty,
         )
         return loss
 
@@ -287,9 +294,19 @@ class BaselineModel(chainer.Chain):
         translation_true,
         quaternion_pred,
         translation_pred,
+        pitch=None,
+        origin=None,
+        grid_nontarget_empty=None,
     ):
         quaternion_true = quaternion_true.astype(np.float32)
         translation_true = translation_true.astype(np.float32)
+        if pitch is not None:
+            assert origin is not None
+            assert grid_nontarget_empty is not None
+            pitch = pitch.astype(np.float32)
+            origin = origin.astype(np.float32)
+            grid_nontarget_empty = grid_nontarget_empty.astype(np.float32)
+
         T_cad2cam_true = objslampp.functions.quaternion_matrix(quaternion_true)
         T_cad2cam_pred = objslampp.functions.quaternion_matrix(quaternion_pred)
 
@@ -328,6 +345,26 @@ class BaselineModel(chainer.Chain):
                         **kwargs, symmetric=False
                     )[0]
                     loss_i /= 2
+            elif self._loss == 'add/add_s+occupancy':
+                loss_i = objslampp.functions.average_distance_l1(
+                    **kwargs, symmetric=is_symmetric
+                )[0]
+                solid_pcd = self._models.get_solid_voxel(class_id=class_id_i)
+                solid_pcd = self.xp.asarray(solid_pcd.points, dtype=np.float32)
+                solid_pcd = objslampp.functions.transform_points(
+                    solid_pcd, T_cad2cam_pred[i:i + 1]
+                )[0]
+                grid_target = \
+                    objslampp.functions.pseudo_occupancy_voxelization(
+                        points=solid_pcd,
+                        pitch=float(pitch[i]),
+                        origin=cuda.to_cpu(origin[i]),
+                        dims=(self._voxel_dim,) * 3,
+                        threshold=2,
+                    )
+                intersection = F.sum(grid_target * grid_nontarget_empty)
+                denominator = F.sum(grid_target)
+                loss_i += intersection / denominator
             else:
                 raise ValueError(f'unsupported loss: {self._loss}')
             loss += loss_i
