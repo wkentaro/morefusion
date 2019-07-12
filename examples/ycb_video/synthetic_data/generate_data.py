@@ -22,7 +22,8 @@ def generate_a_video(out, random_state):
 
     class_weight = np.zeros((models.n_class - 1,), dtype=float)
     # class_weight[[0, 1, 2, 3]] = 1  # only class_id 1,2,3,4 are used
-    class_weight[[1]] = 1  # only class_id 2 are used
+    # class_weight[[1]] = 1  # only class_id 2 are used
+    class_weight[...] = 1
     class_weight /= class_weight.sum()
 
     # generator = contrib.simulation.PlaneTypeSceneGeneration(
@@ -30,10 +31,11 @@ def generate_a_video(out, random_state):
     generator = contrib.simulation.BinTypeSceneGeneration(
         extents=random_state.uniform((0.3, 0.3, 0.2), (0.5, 0.5, 0.4)),
         models=models,
-        n_object=random_state.randint(6, 7),
-        # n_object=random_state.randint(10, 15),
+        # n_object=random_state.randint(6, 7),
+        n_object=random_state.randint(10, 15),
         random_state=random_state,
         class_weight=class_weight,
+        multi_instance=False,
     )
     pybullet.resetDebugVisualizerCamera(
         cameraDistance=0.8,
