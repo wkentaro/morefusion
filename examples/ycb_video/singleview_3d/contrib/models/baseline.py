@@ -360,7 +360,7 @@ class BaselineModel(chainer.Chain):
                         dims=(self._voxel_dim,) * 3,
                         threshold=2,
                     )
-                intersection = F.sum(grid_target * grid_nontarget_empty)
+                intersection = F.sum(grid_target * grid_nontarget_empty[i])
                 denominator = F.sum(grid_target)
                 if float(denominator.array) > 0:
                     loss_i += intersection / denominator
