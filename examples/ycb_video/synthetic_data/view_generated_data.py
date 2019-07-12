@@ -49,7 +49,7 @@ if __name__ == '__main__':
             example = dataset[i]
             rgb = example['rgb']
 
-            instance_index = np.where(example['class_ids'] == 2)[0][0]
+            instance_index = np.where(example['class_ids'] != 0)[0][0]
             T_cad2cam = example['Ts_cad2cam'][instance_index]
             class_id = example['class_ids'][instance_index]
 
