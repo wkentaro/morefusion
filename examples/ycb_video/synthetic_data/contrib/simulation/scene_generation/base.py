@@ -1,7 +1,10 @@
+import frozendict
 import imgviz
 import numpy as np
 import pybullet
+import pyrender
 import termcolor
+import trimesh
 
 import objslampp
 
@@ -25,6 +28,7 @@ class SceneGenerationBase:
 
         self._objects = {}
         self._aabb = (None, None)
+        self._scene = None
 
         # launch simulator
         objslampp.extra.pybullet.init_world()
@@ -155,25 +159,75 @@ class SceneGenerationBase:
             dtype=float,
         )
 
-    def render(self, T_camera2world, fovy, height, width, anti_aliasing=True):
-        if anti_aliasing:
-            height *= 2
-            width *= 2
+    @property
+    def scene(self):
+        if self._scene is not None:
+            return self._scene
+
+        scene = pyrender.Scene(bg_color=(0, 0, 0))
+        for ins_id, data in self._objects.items():
+            if 'cad_file' in data:
+                cad_file = data['cad_file']
+            else:
+                assert data['class_id'] != 0
+                cad_file = self._models.get_cad_file(class_id=data['class_id'])
+            cad = trimesh.load_mesh(cad_file, process=False)
+            try:
+                obj = pyrender.Mesh.from_trimesh(cad, smooth=True)
+            except ValueError:
+                obj = pyrender.Mesh.from_trimesh(cad, smooth=False)
+            pose = self.unique_id_to_pose(ins_id)
+            scene.add(obj, pose=pose)
+
+        self._scene = scene
+        self._objects = frozendict.frozendict(self._objects)
+        return self._scene
+
+    def _render_pyrender(self, T_camera2world, fovy, height, width):
+        scene = self.scene
+        node_camera = scene.add(
+            obj=pyrender.PerspectiveCamera(
+                yfov=np.deg2rad(fovy), aspectRatio=width / height
+            ),
+            pose=objslampp.extra.trimesh.to_opengl_transform(T_camera2world),
+        )
+        direction = self._random_state.uniform(-1, 1, (3,))
+        direction /= np.linalg.norm(direction)
+        scene.add(
+            obj=pyrender.DirectionalLight(
+                intensity=self._random_state.uniform(1, 10),
+            ),
+            pose=trimesh.transformations.rotation_matrix(
+                angle=np.deg2rad(30),
+                direction=direction,
+            ),
+            parent_node=node_camera,
+        )
+
+        renderer = pyrender.OffscreenRenderer(
+            viewport_width=width, viewport_height=height
+        )
+        rgb, depth = renderer.render(scene)
+
+        scene.remove_node(node_camera)
+        return rgb, depth
+
+    def _render_pybullet(self, T_camera2world, fovy, height, width):
         rgb, depth, ins = objslampp.extra.pybullet.render_camera(
             T_camera2world, fovy, height=height, width=width
         )
-        if anti_aliasing:
-            height //= 2
-            width //= 2
-            rgb = imgviz.resize(rgb, height=height, width=width)
-            depth = imgviz.resize(depth, height=height, width=width)
-            ins = imgviz.resize(
-                ins, height=height, width=width, interpolation='nearest'
-            )
         cls = np.zeros_like(ins)
         for uid in self._objects:
             cls[ins == uid] = self.unique_id_to_class_id(unique_id=uid)
         return rgb, depth, ins, cls
+
+    def render(self, *args, **kwargs):
+        rgb_pyrender, depth_pyrender = self._render_pyrender(*args, **kwargs)
+        depth_pyrender[depth_pyrender == 0] = np.nan
+        rgb_pybullet, depth_pybullet, ins, cls = \
+            self._render_pybullet(*args, **kwargs)
+
+        return rgb_pyrender, depth_pyrender, ins, cls
 
     def debug_render(self, T_camera2world):
         class_names = self._models.class_names
