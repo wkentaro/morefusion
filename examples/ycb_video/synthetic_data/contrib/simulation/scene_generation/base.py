@@ -18,6 +18,7 @@ class SceneGenerationBase:
         *,
         random_state=None,
         class_weight=None,
+        multi_instance=True,
     ):
         self._models = models
         self._n_object = n_object
@@ -25,6 +26,7 @@ class SceneGenerationBase:
             random_state = np.random.RandomState()
         self._random_state = random_state
         self._class_weight = class_weight
+        self._multi_instance = multi_instance
 
         self._objects = {}
         self._aabb = (None, None)
@@ -119,7 +121,7 @@ class SceneGenerationBase:
         class_ids = self._random_state.choice(
             np.arange(1, self._models.n_class),
             self._n_object,
-            replace=True,  # allow duplicates
+            replace=self._multi_instance,  # allow duplicates or not
             p=self._class_weight,
         )
         termcolor.cprint(
