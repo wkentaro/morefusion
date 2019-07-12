@@ -290,7 +290,7 @@ class SceneGenerationBase:
 
         # eyes
         distance = np.full((n_keypoints,), 1, dtype=float)
-        elevation = self._random_state.uniform(30, 90, (n_keypoints,))
+        elevation = self._random_state.uniform(45, 90, (n_keypoints,))
         azimuth = self._random_state.uniform(0, 360, (n_keypoints,))
         eyes = objslampp.geometry.points_from_angles(
             distance, elevation, azimuth
