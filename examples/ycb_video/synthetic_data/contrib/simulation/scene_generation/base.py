@@ -155,10 +155,21 @@ class SceneGenerationBase:
             dtype=float,
         )
 
-    def render(self, T_camera2world, fovy, height, width):
+    def render(self, T_camera2world, fovy, height, width, anti_aliasing=True):
+        if anti_aliasing:
+            height *= 2
+            width *= 2
         rgb, depth, ins = objslampp.extra.pybullet.render_camera(
             T_camera2world, fovy, height=height, width=width
         )
+        if anti_aliasing:
+            height //= 2
+            width //= 2
+            rgb = imgviz.resize(rgb, height=height, width=width)
+            depth = imgviz.resize(depth, height=height, width=width)
+            ins = imgviz.resize(
+                ins, height=height, width=width, interpolation='nearest'
+            )
         cls = np.zeros_like(ins)
         for uid in self._objects:
             cls[ins == uid] = self.unique_id_to_class_id(unique_id=uid)
