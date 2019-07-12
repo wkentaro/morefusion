@@ -193,18 +193,19 @@ class SceneGenerationBase:
             ),
             pose=objslampp.extra.trimesh.to_opengl_transform(T_camera2world),
         )
-        direction = self._random_state.uniform(-1, 1, (3,))
-        direction /= np.linalg.norm(direction)
-        scene.add(
-            obj=pyrender.DirectionalLight(
-                intensity=self._random_state.uniform(1, 10),
-            ),
-            pose=trimesh.transformations.rotation_matrix(
-                angle=np.deg2rad(30),
-                direction=direction,
-            ),
-            parent_node=node_camera,
-        )
+        for _ in range(4):
+            direction = self._random_state.uniform(-1, 1, (3,))
+            direction /= np.linalg.norm(direction)
+            scene.add(
+                obj=pyrender.DirectionalLight(
+                    intensity=self._random_state.uniform(0.5, 5),
+                ),
+                pose=trimesh.transformations.rotation_matrix(
+                    angle=np.deg2rad(self._random_state.uniform(0, 45)),
+                    direction=direction,
+                ),
+                parent_node=node_camera,
+            )
 
         renderer = pyrender.OffscreenRenderer(
             viewport_width=width, viewport_height=height
