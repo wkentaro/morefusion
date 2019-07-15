@@ -51,7 +51,9 @@ def generate_a_video(out, random_state):
             print(f'Saved: {dst_file}')
             shutil.copy(data['cad_file'], dst_file)
 
-    Ts_cam2world = generator.random_camera_trajectory()
+    Ts_cam2world = generator.random_camera_trajectory(
+        n_keypoints=5, n_points=15,
+    )
     camera = trimesh.scene.Camera(resolution=(640, 480), fov=(60, 45))
 
     for index, T_cam2world in enumerate(Ts_cam2world):
@@ -115,9 +117,9 @@ def main():
     )
     root_dir = path.Path(root_dir)
 
-    n_video = 100
+    n_video = 1200
     for index in range(1, n_video + 1):
-        video_dir = root_dir / f'{index:04d}'
+        video_dir = root_dir / f'{index:08d}'
         random_state = np.random.RandomState(index)
         generate_a_video(video_dir, random_state)
 
