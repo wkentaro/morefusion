@@ -32,7 +32,7 @@ class YCBVideoDataset(DatasetBase):
             return_occupancy_grids=return_occupancy_grids,
         )
 
-        assert isinstance(split, 'str')
+        assert isinstance(split, str)
         self._split = split
         assert isinstance(sampling, int)
         self._sampling = sampling
