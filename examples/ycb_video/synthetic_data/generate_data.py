@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import argparse
 import datetime
 import shutil
 
@@ -14,7 +15,7 @@ import objslampp
 import contrib
 
 
-def generate_a_video(out, random_state):
+def generate_a_video(out, random_state, connection_method=None):
     out.makedirs_p()
     (out / 'models').mkdir_p()
 
@@ -36,6 +37,7 @@ def generate_a_video(out, random_state):
         random_state=random_state,
         class_weight=class_weight,
         multi_instance=False,
+        connection_method=connection_method,
     )
     pybullet.resetDebugVisualizerCamera(
         cameraDistance=0.8,
@@ -110,6 +112,17 @@ def generate_a_video(out, random_state):
 
 
 def main():
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument('--nogui', action='store_true', help='no gui')
+    args = parser.parse_args()
+
+    if args.nogui:
+        connection_method = pybullet.DIRECT
+    else:
+        connection_method = pybullet.GUI
+
     now = datetime.datetime.utcnow()
     timestamp = now.strftime('%Y%m%d_%H%M%S.%f')
     root_dir = chainer.dataset.get_dataset_directory(
@@ -121,7 +134,7 @@ def main():
     for index in range(1, n_video + 1):
         video_dir = root_dir / f'{index:08d}'
         random_state = np.random.RandomState(index)
-        generate_a_video(video_dir, random_state)
+        generate_a_video(video_dir, random_state, connection_method)
 
 
 if __name__ == '__main__':

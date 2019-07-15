@@ -19,6 +19,7 @@ class SceneGenerationBase:
         random_state=None,
         class_weight=None,
         multi_instance=True,
+        connection_method=None,
     ):
         self._models = models
         self._n_object = n_object
@@ -33,7 +34,9 @@ class SceneGenerationBase:
         self._scene = None
 
         # launch simulator
-        objslampp.extra.pybullet.init_world()
+        objslampp.extra.pybullet.init_world(
+            connection_method=connection_method
+        )
 
     @staticmethod
     def _shrink_aabb(aabb_min, aabb_max, ratio):
