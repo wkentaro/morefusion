@@ -8,6 +8,7 @@ import socket
 import textwrap
 
 import chainer
+from chainer.training import extensions as E
 import numpy as np
 import path
 import termcolor
@@ -237,7 +238,7 @@ def main():
         data_valid, batch_size=1, repeat=False, shuffle=False
     )
 
-    updater = chainer.training.updater.StandardUpdater(
+    updater = chainer.training.StandardUpdater(
         iterator=iter_train,
         optimizer=optimizer,
         converter=concat_list_of_examples,
@@ -255,7 +256,7 @@ def main():
     trainer = chainer.training.Trainer(
         updater, (args.max_epoch, 'epoch'), out=args.out
     )
-    trainer.extend(chainer.training.extensions.FailOnNonNumber())
+    trainer.extend(E.FailOnNonNumber())
 
     if not args.multi_node or comm.rank == 0:
         # print arguments
@@ -288,14 +289,37 @@ def main():
         )
 
         # snapshot
+        trigger_best_add = chainer.training.triggers.MaxValueTrigger(
+            key='validation/main/auc/add',
+            trigger=eval_interval,
+        )
+        trigger_best_add_s = chainer.training.triggers.MaxValueTrigger(
+            key='validation/main/auc/add_s',
+            trigger=eval_interval,
+        )
         trainer.extend(
-            chainer.training.extensions.snapshot_object(
+            E.snapshot(filename='snapshot_trainer_latest.npz'),
+            trigger=(1, 'epoch'),
+        )
+        trainer.extend(
+            E.snapshot(filename='snapshot_trainer_best_auc_add.npz'),
+            trigger=trigger_best_add,
+        )
+        trainer.extend(
+            E.snapshot_object(
                 model, filename='snapshot_model_best_auc_add.npz'
             ),
-            trigger=chainer.training.triggers.MaxValueTrigger(
-                key='validation/main/auc/add',
-                trigger=eval_interval,
+            trigger=trigger_best_add,
+        )
+        trainer.extend(
+            E.snapshot(filename='snapshot_trainer_best_auc_add_s.npz'),
+            trigger=trigger_best_add_s,
+        )
+        trainer.extend(
+            E.snapshot_object(
+                model, filename='snapshot_model_best_auc_add_s.npz'
             ),
+            trigger=trigger_best_add_s,
         )
 
         # log
@@ -314,7 +338,7 @@ def main():
             trigger=param_log_interval,
         )
         trainer.extend(
-            chainer.training.extensions.PrintReport(
+            E.PrintReport(
                 [
                     'epoch',
                     'iteration',
@@ -331,7 +355,7 @@ def main():
             call_before_training=True,
         )
         trainer.extend(
-            chainer.training.extensions.ProgressBar(update_interval=1)
+            E.ProgressBar(update_interval=1)
         )
 
     # -------------------------------------------------------------------------
