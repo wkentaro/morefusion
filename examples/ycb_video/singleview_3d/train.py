@@ -121,6 +121,12 @@ def main():
         default='add/add_s',
         help='loss',
     )
+    parser.add_argument(
+        '--num-syn',
+        type=float,
+        default=0.25,
+        help='number of synthetic examples used',
+    )
     args = parser.parse_args()
 
     chainer.global_config.debug = args.debug
@@ -175,6 +181,7 @@ def main():
                 class_ids=args.class_ids,
                 augmentation=args.augmentation,
                 return_occupancy_grids=args.use_occupancy,
+                num_syn=args.num_syn,
             )
         elif args.dataset == 'ycb_video_syn':
             assert args.use_occupnacy is False

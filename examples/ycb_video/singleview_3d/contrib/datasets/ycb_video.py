@@ -24,6 +24,7 @@ class YCBVideoDataset(DatasetBase):
         augmentation=None,
         return_occupancy_grids=False,
         sampling=None,
+        num_syn=1.0,
     ):
         super().__init__(
             class_ids=class_ids,
@@ -33,6 +34,8 @@ class YCBVideoDataset(DatasetBase):
         self._split = split
         self._sampling = sampling
         self._ids = self._get_ids()
+        assert 0 < num_syn <= 1, 'num_syn must range in (0, 1]'
+        self._num_syn = num_syn
 
     def get_examples(self, index):
         if self._augmentation:
@@ -109,7 +112,8 @@ class YCBVideoDataset(DatasetBase):
         if self.split in ['train', 'syn']:
             ids_syn = objslampp.datasets.YCBVideoSyntheticDataset().get_ids()
             ids_syn = [(False, x) for x in ids_syn]
-            ids += ids_syn
+            num_syn = int(round(self._num_syn * len(ids_syn)))
+            ids += ids_syn[:num_syn]
 
         return tuple(ids)
 
