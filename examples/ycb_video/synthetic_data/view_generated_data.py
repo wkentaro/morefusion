@@ -31,35 +31,46 @@ if __name__ == '__main__':
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument('root_dir', help='root dir')
+    parser.add_argument('--sampling', type=int, default=1, help='sampling')
     args = parser.parse_args()
 
     dataset = Dataset(root_dir=args.root_dir)
 
     class Images:
 
-        def __init__(self, dataset):
+        def __init__(self, dataset, sampling=1):
             self._dataset = dataset
             self._depth2rgb = imgviz.Depth2RGB()
+            self._indices = np.arange(0, len(self._dataset), sampling)
 
         def __len__(self):
-            return len(self._dataset)
+            return len(self._indices)
 
         def __getitem__(self, i):
-            print(f'[{i:08d}] [{dataset.ids[i]}]')
-            example = dataset[i]
+            index = self._indices[i]
+
+            print(f'[{index:08d}] [{dataset.ids[index]}]')
+            example = dataset[index]
             rgb = example['rgb']
 
-            instance_index = np.where(example['class_ids'] != 0)[0][0]
-            T_cad2cam = example['Ts_cad2cam'][instance_index]
-            class_id = example['class_ids'][instance_index]
+            try:
+                instance_index = np.where(example['class_ids'] != 0)[0][0]
+            except IndexError:
+                instance_index = None
 
-            cad_file = objslampp.datasets.YCBVideoModels().get_cad_file(
-                class_id
-            )
-            rgb_rend, _, mask_rend = objslampp.extra.pybullet.render_cad(
-                cad_file, T_cad2cam, fovy=45, height=480, width=640
-            )
-            mask_rend = imgviz.label2rgb(mask_rend.astype(int), rgb)
+            if instance_index is not None:
+                T_cad2cam = example['Ts_cad2cam'][instance_index]
+                class_id = example['class_ids'][instance_index]
+
+                cad_file = objslampp.datasets.YCBVideoModels().get_cad_file(
+                    class_id
+                )
+                rgb_rend, _, mask_rend = objslampp.extra.pybullet.render_cad(
+                    cad_file, T_cad2cam, fovy=45, height=480, width=640
+                )
+                mask_rend = imgviz.label2rgb(mask_rend.astype(int), rgb)
+            else:
+                rgb_rend = mask_rend = np.zeros_like(rgb)
 
             img = imgviz.tile([
                 rgb,
@@ -72,5 +83,5 @@ if __name__ == '__main__':
             img = imgviz.resize(img, width=1500)
             return img
 
-    imgviz.io.pyglet_imshow(Images(dataset))
+    imgviz.io.pyglet_imshow(Images(dataset, sampling=args.sampling))
     imgviz.io.pyglet_run()
