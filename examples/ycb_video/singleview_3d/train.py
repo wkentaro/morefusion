@@ -51,7 +51,7 @@ def concat_list_of_examples(list_of_examples, device=None, padding=None):
 
 def main():
     now = datetime.datetime.now(datetime.timezone.utc)
-    default_out = str(here / 'logs' / now.strftime('%Y%m%d_%H%M%S'))
+    default_out = str(here / 'logs' / now.strftime('%Y%m%d_%H%M%S.%f'))
 
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
