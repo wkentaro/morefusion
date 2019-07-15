@@ -142,21 +142,21 @@ def main():
     else:
         device = args.gpu
 
-    if args.out is None:
-        if not args.multi_node or comm.rank == 0:
-            now = datetime.datetime.now(datetime.timezone.utc)
-            args.out = osp.join(here, 'logs', now.strftime('%Y%m%d_%H%M%S.%f'))
-        else:
-            args.out = None
-        if args.multi_node:
-            args.out = comm.bcast_obj(args.out)
-
     if not args.multi_node or comm.rank == 0:
+        now = datetime.datetime.now(datetime.timezone.utc)
         args.timestamp = now.isoformat()
         args.hostname = socket.gethostname()
         args.githash = objslampp.utils.githash(__file__)
 
         termcolor.cprint('==> Started training', attrs={'bold': True})
+
+    if args.out is None:
+        if not args.multi_node or comm.rank == 0:
+            args.out = osp.join(here, 'logs', now.strftime('%Y%m%d_%H%M%S.%f'))
+        else:
+            args.out = None
+        if args.multi_node:
+            args.out = comm.bcast_obj(args.out)
 
     if device >= 0:
         chainer.cuda.get_device_from_id(device).use()
