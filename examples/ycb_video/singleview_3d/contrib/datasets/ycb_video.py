@@ -34,7 +34,6 @@ class YCBVideoDataset(DatasetBase):
 
         assert isinstance(split, str)
         self._split = split
-        assert isinstance(sampling, int)
         self._sampling = sampling
         assert 0 < num_syn <= 1
         self._num_syn = num_syn
