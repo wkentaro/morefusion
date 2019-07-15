@@ -86,8 +86,8 @@ class DatasetBase(objslampp.datasets.DatasetBase):
 
         if examples is None:
             if self._return_occupancy_grids:
+                examples = self._get_examples(index)
                 try:
-                    examples = self._get_examples(index)
                     cache_dir.makedirs_p()
                     for i, example in enumerate(examples):
                         assert 'grid_target' in example
@@ -119,6 +119,9 @@ class DatasetBase(objslampp.datasets.DatasetBase):
         pcd = objslampp.geometry.pointcloud_from_depth(
             depth, fx=K[0, 0], fy=K[1, 1], cx=K[0, 2], cy=K[1, 2],
         )
+
+        if instance_ids.size == 0:
+            return [self._get_invalid_data()]
 
         if chainer.is_debug():
             print(f'[{index:08d}]: class_ids: {class_ids.tolist()}')

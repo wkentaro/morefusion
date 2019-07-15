@@ -20,6 +20,7 @@ import objslampp
 import contrib
 
 
+home = path.Path('~').expanduser()
 here = path.Path(__file__).abspath().parent
 
 
@@ -62,7 +63,7 @@ def main():
     parser.add_argument('--seed', type=int, default=0, help='random seed')
     parser.add_argument(
         '--dataset',
-        choices=['ycb_video', 'ycb_video_syn', 'cad_only'],
+        choices=['ycb_video', 'my_synthetic'],
         default='ycb_video',
         help='dataset',
     )
@@ -182,18 +183,18 @@ def main():
                 return_occupancy_grids=args.use_occupancy,
                 num_syn=args.num_syn,
             )
-        elif args.dataset == 'ycb_video_syn':
-            assert args.use_occupnacy is False
-            data_train = contrib.datasets.YCBVideoDataset(
-                'syn',
+        elif args.dataset == 'my_synthetic':
+            root_dir = home / 'data/datasets/wkentaro/objslampp/ycb_video/synthetic_data/20190715_113906.827534'  # NOQA
+            data = contrib.datasets.MySyntheticDataset(
+                root_dir=root_dir,
                 class_ids=args.class_ids,
                 augmentation=args.augmentation,
+                return_occupancy_grids=args.use_occupancy,
             )
-        elif args.dataset == 'cad_only':
-            assert args.use_occupnacy is False
-            data_train = contrib.datasets.CADOnlyDataset(
-                class_ids=args.class_ids,
-                augmentation=args.augmentation,
+            assert len(data.root_dir.dirs()) == 750
+            assert len(data) == 750 * 15
+            data_train, data_valid = chainer.datasets.split_dataset(
+                data, split_at=600 * 15
             )
         else:
             raise ValueError(f'unsupported dataset: {args.dataset}')
