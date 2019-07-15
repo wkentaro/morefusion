@@ -31,11 +31,15 @@ class YCBVideoDataset(DatasetBase):
             augmentation=augmentation,
             return_occupancy_grids=return_occupancy_grids,
         )
+
+        assert isinstance(split, 'str')
         self._split = split
+        assert isinstance(sampling, int)
         self._sampling = sampling
-        self._ids = self._get_ids()
-        assert 0 < num_syn <= 1, 'num_syn must range in (0, 1]'
+        assert 0 < num_syn <= 1
         self._num_syn = num_syn
+
+        self._ids = self._get_ids()
 
     def get_examples(self, index):
         if self._augmentation:
