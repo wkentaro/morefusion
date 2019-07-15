@@ -1,3 +1,5 @@
+import zipfile
+
 import chainer
 import imgaug
 import imgaug.augmenters as iaa
@@ -29,6 +31,9 @@ class DatasetBase(objslampp.datasets.DatasetBase):
         self._augmentation = augmentation
         self._return_occupancy_grids = return_occupancy_grids
 
+    def _get_cache_dir(self, index):
+        raise NotImplementedError
+
     def _get_invalid_data(self):
         example = dict(
             class_id=-1,
@@ -51,7 +56,57 @@ class DatasetBase(objslampp.datasets.DatasetBase):
             dimension=self._voxel_dim, class_id=class_id
         )
 
-    def get_examples(self, index, filter_class_ids=False):
+    def get_examples(self, index):
+        if self._augmentation:
+            return self._get_examples(index, filter_class_ids=True)
+
+        cache_dir = self._get_cache_dir(index)
+
+        examples = None
+
+        if cache_dir.exists():
+            try:
+                examples = []
+                for file in sorted(cache_dir.glob('*.npz')):
+                    example = dict(np.load(file))
+                    for k in example.keys():
+                        if example[k].shape == ():
+                            example[k] = example[k].item()
+                    if not self._return_occupancy_grids:
+                        example.pop('grid_target')
+                        example.pop('grid_nontarget')
+                        example.pop('grid_empty')
+                    examples.append(example)
+            except (IOError, zipfile.BadZipfile):
+                examples = None
+                try:
+                    cache_dir.rmtree()
+                except OSError:
+                    pass
+
+        if examples is None:
+            if self._return_occupancy_grids:
+                try:
+                    examples = self._get_examples(index)
+                    cache_dir.makedirs_p()
+                    for i, example in enumerate(examples):
+                        assert 'grid_target' in example
+                        assert 'grid_nontarget' in example
+                        assert 'grid_empty' in example
+                        file = cache_dir / f'{i:04d}.npz'
+                        np.savez_compressed(file, **example)
+                except Exception:
+                    try:
+                        cache_dir.rmtree()
+                    except OSError:
+                        pass
+            else:
+                examples = self._get_examples(index, filter_class_ids=True)
+
+        assert examples is not None
+        return examples
+
+    def _get_examples(self, index, filter_class_ids=False):
         frame = self.get_frame(index)
 
         instance_ids = frame['instance_ids']

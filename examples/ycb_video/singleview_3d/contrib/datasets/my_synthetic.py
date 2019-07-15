@@ -1,10 +1,17 @@
+import chainer
 import imgviz
 import numpy as np
+import path
 
 from .base import DatasetBase
 
 
 class MySyntheticDataset(DatasetBase):
+
+    _cache_dir = chainer.dataset.get_dataset_directory(
+        'wkentaro/objslampp/ycb_video/singleview_3d/ycb_video/my_synthetic/cache'  # NOQA
+    )
+    _cache_dir = path.Path(_cache_dir)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -17,6 +24,10 @@ class MySyntheticDataset(DatasetBase):
                 frame_id = f'{npz_file.parent.name}/{npz_file.stem}'
                 ids.append(frame_id)
         return ids
+
+    def _get_cache_dir(self, index):
+        root_dir = self.root_dir.relpath(path.Path('~').expanduser())
+        return self._cache_dir / root_dir / f'{index:08d}'
 
     def get_frame(self, index, bg_class=False):
         frame_id = self.ids[index]

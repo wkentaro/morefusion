@@ -1,5 +1,3 @@
-import zipfile
-
 import chainer
 import numpy as np
 import path
@@ -40,59 +38,13 @@ class YCBVideoDataset(DatasetBase):
 
         self._ids = self._get_ids()
 
-    def get_examples(self, index):
-        if self._augmentation:
-            return super().get_examples(index, filter_class_ids=True)
-
+    def _get_cache_dir(self, index):
         is_real, image_id = self._ids[index]
         if is_real:
             cache_dir = self._cache_dir / 'real' / f'{image_id}'
         else:
             cache_dir = self._cache_dir / 'syn' / f'{image_id}'
-
-        examples = None
-
-        if cache_dir.exists():
-            try:
-                examples = []
-                for file in sorted(cache_dir.glob('*.npz')):
-                    example = dict(np.load(file))
-                    for k in example.keys():
-                        if example[k].shape == ():
-                            example[k] = example[k].item()
-                    if not self._return_occupancy_grids:
-                        example.pop('grid_target')
-                        example.pop('grid_nontarget')
-                        example.pop('grid_empty')
-                    examples.append(example)
-            except (IOError, zipfile.BadZipfile):
-                examples = None
-                try:
-                    cache_dir.rmtree()
-                except OSError:
-                    pass
-
-        if examples is None:
-            if self._return_occupancy_grids:
-                try:
-                    examples = super().get_examples(index)
-                    cache_dir.makedirs_p()
-                    for i, example in enumerate(examples):
-                        assert 'grid_target' in example
-                        assert 'grid_nontarget' in example
-                        assert 'grid_empty' in example
-                        file = cache_dir / f'{i:04d}.npz'
-                        np.savez_compressed(file, **example)
-                except Exception:
-                    try:
-                        cache_dir.rmtree()
-                    except OSError:
-                        pass
-            else:
-                examples = super().get_examples(index, filter_class_ids=True)
-
-        assert examples is not None
-        return examples
+        return cache_dir
 
     def _get_ids(self):
         assert self.split in ['train', 'syn', 'val']
