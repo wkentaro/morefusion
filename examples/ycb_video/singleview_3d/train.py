@@ -132,10 +132,7 @@ def main():
     if args.multi_node:
         import chainermn
 
-        if args.class_ids and len(args.class_ids) == 1:
-            comm = chainermn.create_communicator('hierarchical')
-        else:
-            comm = chainermn.create_communicator('pure_nccl')
+        comm = chainermn.create_communicator('hierarchical')
         device = comm.intra_rank
     else:
         device = args.gpu
