@@ -2,6 +2,7 @@
 
 import argparse
 import datetime
+import os.path as osp
 import pprint
 import random
 import socket
@@ -56,7 +57,7 @@ def main():
     parser.add_argument(
         '--multi-node', action='store_true', help='multi node'
     )
-    parser.add_argument('--out', default=default_out, help='output directory')
+    parser.add_argument('--out', help='output directory')
     parser.add_argument('--debug', action='store_true', help='debug mode')
     parser.add_argument('--gpu', type=int, default=0, help='gpu id')
     parser.add_argument('--seed', type=int, default=0, help='random seed')
@@ -137,6 +138,7 @@ def main():
 
     if args.out is None:
         if not args.multi_node or comm.rank == 0:
+            now = datetime.datetime.now(datetime.timezone.utc)
             args.out = osp.join(here, 'logs', now.strftime('%Y%m%d_%H%M%S.%f'))
         else:
             args.out = None
