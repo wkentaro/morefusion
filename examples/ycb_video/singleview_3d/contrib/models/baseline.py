@@ -368,12 +368,12 @@ class BaselineModel(chainer.Chain):
                         threshold=0.5,
                     )
                 intersection = F.sum(grid_target_pred * grid_target[i])
-                denominator = F.sum(grid_target[i])
+                denominator = F.sum(grid_target[i]) + 1e-16
                 loss_i += - intersection / denominator
                 intersection = F.sum(
                     grid_target_pred * grid_nontarget_empty[i]
                 )
-                denominator = F.sum(grid_target_pred)
+                denominator = F.sum(grid_target_pred) + 1e-16
                 loss_i += intersection / denominator
             else:
                 raise ValueError(f'unsupported loss: {self._loss}')
