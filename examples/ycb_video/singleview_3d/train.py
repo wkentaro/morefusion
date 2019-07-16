@@ -311,23 +311,16 @@ def main():
             key='validation/main/auc/add_s',
             trigger=eval_interval,
         )
-        trainer.extend(
-            E.snapshot(filename='snapshot_trainer_latest.npz'),
-            trigger=(1, 'epoch'),
-        )
-        trainer.extend(
-            E.snapshot(filename='snapshot_trainer_best_auc_add.npz'),
-            trigger=trigger_best_add,
-        )
+        # FIXME: snapshots of trainer and model cannot be run together
+        # trainer.extend(
+        #     E.snapshot(filename='snapshot_trainer_latest.npz'),
+        #     trigger=(1, 'epoch'),
+        # )
         trainer.extend(
             E.snapshot_object(
                 model, filename='snapshot_model_best_auc_add.npz'
             ),
             trigger=trigger_best_add,
-        )
-        trainer.extend(
-            E.snapshot(filename='snapshot_trainer_best_auc_add_s.npz'),
-            trigger=trigger_best_add_s,
         )
         trainer.extend(
             E.snapshot_object(
