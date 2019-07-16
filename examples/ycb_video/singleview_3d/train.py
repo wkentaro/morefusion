@@ -36,7 +36,6 @@ def transform(examples):
             grid_nontarget_empty = np.float64(grid_nontarget_empty > 0.5)
             grid_nontarget_empty[example['grid_target'] > 0.5] = 0
             example['grid_nontarget_empty'] = grid_nontarget_empty
-            example.pop('grid_target')
             example.pop('grid_nontarget')
             example.pop('grid_empty')
     return examples
@@ -176,10 +175,12 @@ def main():
         chainer.cuda.cupy.random.seed(args.seed)
 
     # dataset initialization
+    return_occupancy_grids = \
+        args.use_occupancy or args.loss == 'add/add_s+complete'
     data_valid = contrib.datasets.YCBVideoDataset(
         'val',
         class_ids=args.class_ids,
-        return_occupancy_grids=args.use_occupancy,
+        return_occupancy_grids=return_occupancy_grids,
     )
     data_train = None
     if not args.multi_node or comm.rank == 0:
@@ -188,7 +189,7 @@ def main():
                 'train',
                 class_ids=args.class_ids,
                 augmentation=args.augmentation,
-                return_occupancy_grids=args.use_occupancy,
+                return_occupancy_grids=return_occupancy_grids,
                 num_syn=args.num_syn,
             )
         elif args.dataset == 'my_synthetic':
@@ -197,7 +198,7 @@ def main():
                 root_dir=root_dir,
                 class_ids=args.class_ids,
                 augmentation=args.augmentation,
-                return_occupancy_grids=args.use_occupancy,
+                return_occupancy_grids=return_occupancy_grids,
             )
             assert len(data.root_dir.dirs()) == 750
             assert len(data) == 750 * 15
