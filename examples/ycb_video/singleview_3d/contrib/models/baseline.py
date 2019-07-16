@@ -436,7 +436,9 @@ class BaselineModel(chainer.Chain):
         if self._loss == 'add/add_s+complete':
             assert grid_target is not None
             assert grid_target_pred is not None
-            loss += F.sigmoid_cross_entropy(grid_target_pred, grid_target)
+            loss += F.sigmoid_cross_entropy(
+                grid_target_pred[:, 0, :, :], grid_target
+            )
 
         values = {'loss': loss}
         chainer.report(values, observer=self)
