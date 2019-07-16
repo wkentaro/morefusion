@@ -351,7 +351,7 @@ class BaselineModel(chainer.Chain):
         pitch = None if pitch is None else pitch.astype(np.float32)
         origin = None if origin is None else origin.astype(np.float32)
         if grid_target is not None:
-            grid_target = grid_target.astype(np.float32)
+            grid_target = grid_target.astype(np.int32)
         if grid_nontarget_empty is not None:
             grid_nontarget_empty = grid_nontarget_empty.astype(np.float32)
 
