@@ -66,7 +66,7 @@ class BaselineModel(chainer.Chain):
                     stride=1,
                     pad=1,
                     **kwargs,
-                )  # 32x32x32 -> 16x16x16
+                )  # 32x32x32 -> 32x32x32
             else:
                 in_channels = 16
 
@@ -105,6 +105,14 @@ class BaselineModel(chainer.Chain):
                     pad=1,
                     **kwargs
                 )  # 16x16x16 -> 32x32x32
+                self.deconv_complete = L.Deconvolution3D(
+                    in_channels=in_channels,
+                    out_channels=1,
+                    ksize=3,
+                    stride=1,
+                    pad=1,
+                    **kwargs
+                )  # 32x32x32 -> 32x32x32
 
             # 16 * 8 * 8 * 8 = 8192
             self.fc8 = L.Linear(8192, 1024, **kwargs)
@@ -200,7 +208,8 @@ class BaselineModel(chainer.Chain):
         if self._loss == 'add/add_s+complete':
             h2 = h
             h2 = F.relu(self.deconv7(h2))
-            h2 = self.deconv6(h2)
+            h2 = F.relu(self.deconv6(h2))
+            h2 = self.deconv_complete(h2)
             grid_target_pred = h2
             del h2
 
