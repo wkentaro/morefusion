@@ -200,7 +200,6 @@ class BaselineModel(chainer.Chain):
         pcd,
         quaternion_true,
         translation_true,
-        grid_target=None,
         grid_nontarget_empty=None,
     ):
         keep = class_id != -1
@@ -215,9 +214,7 @@ class BaselineModel(chainer.Chain):
         quaternion_true = quaternion_true[keep]
         translation_true = translation_true[keep]
         if self._use_occupancy:
-            assert grid_target is not None
             assert grid_nontarget_empty is not None
-            grid_target = grid_target[keep]
             grid_nontarget_empty = grid_nontarget_empty[keep]
 
         quaternion_pred, translation_pred = self.predict(
@@ -245,7 +242,6 @@ class BaselineModel(chainer.Chain):
             translation_pred=translation_pred,
             pitch=pitch,
             origin=origin,
-            grid_target=grid_target,
             grid_nontarget_empty=grid_nontarget_empty,
         )
         return loss
@@ -302,27 +298,25 @@ class BaselineModel(chainer.Chain):
         translation_pred,
         pitch=None,
         origin=None,
-        grid_target=None,
         grid_nontarget_empty=None,
     ):
         quaternion_true = quaternion_true.astype(np.float32)
         translation_true = translation_true.astype(np.float32)
         pitch = None if pitch is None else pitch.astype(np.float32)
         origin = None if origin is None else origin.astype(np.float32)
-        if grid_target is not None:
-            grid_target = grid_target.astype(np.float32)
         if grid_nontarget_empty is not None:
             grid_nontarget_empty = grid_nontarget_empty.astype(np.float32)
 
-        T_cad2cam_true = objslampp.functions.quaternion_matrix(quaternion_true)
-        T_cad2cam_pred = objslampp.functions.quaternion_matrix(quaternion_pred)
+        R_cad2cam_true = objslampp.functions.quaternion_matrix(quaternion_true)
+        R_cad2cam_pred = objslampp.functions.quaternion_matrix(quaternion_pred)
 
         T_cad2cam_true = objslampp.functions.compose_transform(
-            T_cad2cam_true[:, :3, :3], translation_true,
+            R_cad2cam_true[:, :3, :3], translation_true,
         )
         T_cad2cam_pred = objslampp.functions.compose_transform(
-            T_cad2cam_pred[:, :3, :3], translation_pred,
+            R_cad2cam_pred[:, :3, :3], translation_pred,
         )
+        del R_cad2cam_true
 
         batch_size = class_id.shape[0]
 
@@ -359,7 +353,7 @@ class BaselineModel(chainer.Chain):
                 solid_pcd = self._models.get_solid_voxel(class_id=class_id_i)
                 solid_pcd = self.xp.asarray(solid_pcd.points, dtype=np.float32)
                 solid_pcd = objslampp.functions.transform_points(
-                    solid_pcd, T_cad2cam_pred[i:i + 1]
+                    solid_pcd, R_cad2cam_pred[i:i + 1]
                 )[0]
                 grid_target_pred = \
                     objslampp.functions.pseudo_occupancy_voxelization(
@@ -369,9 +363,6 @@ class BaselineModel(chainer.Chain):
                         dims=(self._voxel_dim,) * 3,
                         threshold=0.5,
                     )
-                intersection = F.sum(grid_target_pred * grid_target[i])
-                denominator = F.sum(grid_target[i]) + 1e-16
-                loss_i += - intersection / denominator
                 intersection = F.sum(
                     grid_target_pred * grid_nontarget_empty[i]
                 )

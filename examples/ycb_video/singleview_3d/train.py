@@ -36,6 +36,7 @@ def transform(examples):
             grid_nontarget_empty = np.float64(grid_nontarget_empty > 0.5)
             grid_nontarget_empty[example['grid_target'] > 0.5] = 0
             example['grid_nontarget_empty'] = grid_nontarget_empty
+            example.pop('grid_target')
             example.pop('grid_nontarget')
             example.pop('grid_empty')
     return examples
