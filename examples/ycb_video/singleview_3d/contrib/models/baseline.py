@@ -166,6 +166,8 @@ class BaselineModel(chainer.Chain):
         del h_vox
 
         if self._use_occupancy:
+            if chainer.config.train and self.xp.random.randint(0, 2):
+                grid_nontarget_empty = self.xp.zeros_like(grid_nontarget_empty)
             h_occ = self.conv5_occ(grid_nontarget_empty)
             h = F.concat([h, h_occ], axis=1)
 
