@@ -139,8 +139,10 @@ def main():
 
         comm = chainermn.create_communicator('hierarchical')
         device = comm.intra_rank
+        n_gpu = comm.size
     else:
         device = args.gpu
+        n_gpu = 1
 
     if not args.multi_node or comm.rank == 0:
         now = datetime.datetime.now(datetime.timezone.utc)
@@ -220,7 +222,7 @@ def main():
         model.to_gpu()
 
     # optimizer initialization
-    optimizer = chainer.optimizers.Adam(alpha=args.lr)
+    optimizer = chainer.optimizers.Adam(alpha=args.lr * n_gpu)
     if args.multi_node:
         optimizer = chainermn.create_multi_node_optimizer(optimizer, comm)
     optimizer.setup(model)
