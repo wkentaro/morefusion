@@ -118,7 +118,12 @@ def main():
     )
     parser.add_argument(
         '--loss',
-        choices=['add/add_s', 'add+add_s', 'add/add_s+occupancy'],
+        choices=[
+            'add/add_s',
+            'add+add_s',
+            'add/add_s+occupancy',
+            'add/add_s+complete',
+        ],
         default='add/add_s',
         help='loss',
     )
