@@ -339,36 +339,31 @@ class BaselineModel(chainer.Chain):
                     objslampp.datasets.ycb_video.class_ids_symmetric
                 cad_pcd = self._models.get_pcd(class_id=class_id_i)
                 cad_pcd = self.xp.asarray(cad_pcd, dtype=np.float32)
-                kwargs = dict(
-                    points=cad_pcd,
-                    transform1=T_cad2cam_true[i:i + 1],
-                    transform2=T_cad2cam_pred[i:i + 1],
-                )
 
             if self._loss in [
                 'add/add_s+occupancy', 'overlap', 'overlap+occupancy'
             ]:
                 solid_pcd = self._models.get_solid_voxel(class_id=class_id_i)
                 solid_pcd = self.xp.asarray(solid_pcd.points, dtype=np.float32)
+                kwargs = dict(
+                    pitch=float(pitch[i]),
+                    origin=cuda.to_cpu(origin[i]),
+                    dims=(self._voxel_dim,) * 3,
+                    threshold=0.5,
+                )
                 grid_target_pred_R = \
                     objslampp.functions.pseudo_occupancy_voxelization(
                         points=objslampp.functions.transform_points(
                             solid_pcd, R_cad2cam_pred[i][None]
                         )[0],
-                        pitch=float(pitch[i]),
-                        origin=cuda.to_cpu(origin[i]),
-                        dims=(self._voxel_dim,) * 3,
-                        threshold=0.5,
+                        **kwargs,
                     )
                 grid_target_pred_Rt = \
                     objslampp.functions.pseudo_occupancy_voxelization(
                         points=objslampp.functions.transform_points(
                             solid_pcd, T_cad2cam_pred[i][None]
                         )[0],
-                        pitch=float(pitch[i]),
-                        origin=cuda.to_cpu(origin[i]),
-                        dims=(self._voxel_dim,) * 3,
-                        threshold=0.5,
+                        **kwargs,
                     )
                 if self._loss in ['overlap', 'overlap+occupancy']:
                     grid_target_true = \
@@ -376,16 +371,16 @@ class BaselineModel(chainer.Chain):
                             points=objslampp.functions.transform_points(
                                 solid_pcd, T_cad2cam_true[i][None]
                             )[0],
-                            pitch=float(pitch[i]),
-                            origin=cuda.to_cpu(origin[i]),
-                            dims=(self._voxel_dim,) * 3,
-                            threshold=0.5,
+                            **kwargs,
                         ).array
                 del solid_pcd
 
             if self._loss in ['add/add_s', 'add/add_s+occupancy']:
                 loss_i = objslampp.functions.average_distance_l1(
-                    **kwargs, symmetric=is_symmetric
+                    points=cad_pcd,
+                    transform1=T_cad2cam_true[i:i + 1],
+                    transform2=T_cad2cam_pred[i:i + 1],
+                    symmetric=is_symmetric,
                 )[0]
             elif self._loss in ['overlap', 'overlap+occupancy']:
                 intersection = F.sum(grid_target_pred_Rt * grid_target_true)
