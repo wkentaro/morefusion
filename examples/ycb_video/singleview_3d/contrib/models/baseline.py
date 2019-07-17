@@ -349,7 +349,7 @@ class BaselineModel(chainer.Chain):
                     pitch=float(pitch[i]),
                     origin=cuda.to_cpu(origin[i]),
                     dims=(self._voxel_dim,) * 3,
-                    threshold=0.5,
+                    threshold=2.0,
                 )
                 grid_target_pred_R = \
                     objslampp.functions.pseudo_occupancy_voxelization(
