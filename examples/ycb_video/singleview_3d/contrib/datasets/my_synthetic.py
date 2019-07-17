@@ -26,7 +26,8 @@ class MySyntheticDataset(DatasetBase):
         return ids
 
     def _get_cache_dir(self, index):
-        return self._cache_dir / self.root_dir.basename() / f'{index:08d}'
+        frame_id = self._ids[index]
+        return self._cache_dir / self.root_dir.basename() / f'{frame_id}'
 
     def get_frame(self, index, bg_class=False):
         frame_id = self.ids[index]
