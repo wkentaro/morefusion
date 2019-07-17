@@ -324,9 +324,14 @@ class BaselineModel(chainer.Chain):
         T_cad2cam_true = objslampp.functions.compose_transform(
             R_cad2cam_true[:, :3, :3], translation_true,
         )
-        T_cad2cam_pred = objslampp.functions.compose_transform(
+        T_cad2cam_pred1 = objslampp.functions.compose_transform(
+            R_cad2cam_pred[:, :3, :3], translation_true,
+        )
+        T_cad2cam_pred2 = objslampp.functions.compose_transform(
             R_cad2cam_pred[:, :3, :3], translation_pred,
         )
+        del R_cad2cam_true
+        del R_cad2cam_pred
 
         batch_size = class_id.shape[0]
 
@@ -351,17 +356,17 @@ class BaselineModel(chainer.Chain):
                     dims=(self._voxel_dim,) * 3,
                     threshold=2.0,
                 )
-                grid_target_pred_R = \
+                grid_target_pred1 = \
                     objslampp.functions.pseudo_occupancy_voxelization(
                         points=objslampp.functions.transform_points(
-                            solid_pcd, R_cad2cam_pred[i][None]
+                            solid_pcd, T_cad2cam_pred1[i][None]
                         )[0],
                         **kwargs,
                     )
-                grid_target_pred_Rt = \
+                grid_target_pred2 = \
                     objslampp.functions.pseudo_occupancy_voxelization(
                         points=objslampp.functions.transform_points(
-                            solid_pcd, T_cad2cam_pred[i][None]
+                            solid_pcd, T_cad2cam_pred2[i][None]
                         )[0],
                         **kwargs,
                     )
@@ -378,12 +383,12 @@ class BaselineModel(chainer.Chain):
             if self._loss in ['add/add_s', 'add/add_s+occupancy']:
                 loss_i = objslampp.functions.average_distance_l1(
                     points=cad_pcd,
-                    transform1=T_cad2cam_true[i:i + 1],
-                    transform2=T_cad2cam_pred[i:i + 1],
+                    transform1=T_cad2cam_true[i][None],
+                    transform2=T_cad2cam_pred2[i][None],
                     symmetric=is_symmetric,
                 )[0]
             elif self._loss in ['overlap', 'overlap+occupancy']:
-                intersection = F.sum(grid_target_pred_Rt * grid_target_true)
+                intersection = F.sum(grid_target_pred2 * grid_target_true)
                 denominator = F.sum(grid_target_true) + 1e-16
                 loss_i = - intersection / denominator
             else:
@@ -391,9 +396,9 @@ class BaselineModel(chainer.Chain):
 
             if self._loss in ['add/add_s+occupancy', 'overlap+occupancy']:
                 intersection = F.sum(
-                    grid_target_pred_R * grid_nontarget_empty[i]
+                    grid_target_pred1 * grid_nontarget_empty[i]
                 )
-                denominator = F.sum(grid_target_pred_R) + 1e-16
+                denominator = F.sum(grid_target_pred1) + 1e-16
                 loss_i += (
                     self._loss_scale['occupancy'] * intersection / denominator
                 )
