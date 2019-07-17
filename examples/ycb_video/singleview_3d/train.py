@@ -120,9 +120,9 @@ def main():
         '--loss',
         choices=[
             'add/add_s',
-            'add+add_s',
             'add/add_s+occupancy',
-            'add/add_s+complete',
+            'overlap',
+            'overlap+occupancy',
         ],
         default='add/add_s',
         help='loss',
