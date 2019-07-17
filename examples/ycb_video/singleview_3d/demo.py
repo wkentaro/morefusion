@@ -65,6 +65,8 @@ def main():
     chainer.serializers.load_npz(args.model, model)
     print('==> Done model loading')
 
+    return_occupancy_grids = args_data.get('use_occupancy', False) or \
+        args_data.get('loss', 'add/add_s') == 'add/add_s+complete'
     if args.dataset == 'my_synthetic':
         if args.sampling is not None:
             warnings.warn('--sampling is only used with ycb_video dataset')
@@ -72,7 +74,9 @@ def main():
             'wkentaro/objslampp/ycb_video/synthetic_data/20190715_113906.827534',  # NOQA
         )
         dataset = contrib.datasets.MySyntheticDataset(
-            args.root_dir, class_ids=args_data['class_ids']
+            args.root_dir,
+            class_ids=args_data['class_ids'],
+            return_occupancy_grids=return_occupancy_grids,
         )
         dataset._ids = dataset._ids[600 * 15:]
     elif args.dataset == 'my_real':
@@ -80,7 +84,9 @@ def main():
             'wkentaro/objslampp/ycb_video/real_data/20190614_18'
         )
         dataset = contrib.datasets.MyRealDataset(
-            args.root_dir, class_ids=args_data['class_ids']
+            args.root_dir,
+            class_ids=args_data['class_ids'],
+            return_occupancy_grids=return_occupancy_grids,
         )
     elif args.dataset.startswith('ycb_video'):
         split = 'val'
@@ -90,7 +96,7 @@ def main():
             split=split,
             class_ids=args_data['class_ids'],
             sampling=args.sampling,
-            return_occupancy_grids=args_data.get('use_occupancy', False),
+            return_occupancy_grids=return_occupancy_grids,
         )
     else:
         raise ValueError(f'unexpected dataset: {args.dataset}')
