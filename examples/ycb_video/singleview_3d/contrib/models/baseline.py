@@ -390,7 +390,7 @@ class BaselineModel(chainer.Chain):
             elif self._loss in ['overlap', 'overlap+occupancy']:
                 intersection = F.sum(grid_target_pred_Rt * grid_target_true)
                 denominator = F.sum(grid_target_true) + 1e-16
-                loss_i = intersection / denominator
+                loss_i = - intersection / denominator
             else:
                 raise ValueError(f'unsupported loss: {self._loss}')
 
