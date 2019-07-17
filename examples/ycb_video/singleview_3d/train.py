@@ -14,6 +14,7 @@ import numpy as np
 import path
 import termcolor
 import tensorboardX
+import yaml
 
 import objslampp
 
@@ -127,6 +128,11 @@ def main():
         help='loss',
     )
     parser.add_argument(
+        '--loss-scale',
+        type=yaml.safe_load,
+        help='loss scale e.g., {occupancy: 1.0}',
+    )
+    parser.add_argument(
         '--num-syn',
         type=float,
         default=0.25,
@@ -224,6 +230,7 @@ def main():
         voxelization=args.voxelization,
         use_occupancy=args.use_occupancy,
         loss=args.loss,
+        loss_scale=args.loss_scale,
     )
     if device >= 0:
         model.to_gpu()

@@ -21,6 +21,7 @@ class BaselineModel(chainer.Chain):
         voxelization,
         use_occupancy=False,
         loss=None,
+        loss_scale=None,
     ):
         super().__init__()
 
@@ -39,6 +40,12 @@ class BaselineModel(chainer.Chain):
         if self._loss == 'add/add_s+occupancy':
             assert use_occupancy, \
                 f'use_occupancy must be True for this loss: {self._loss}'
+
+        if loss_scale is None:
+            loss_scale = dict(
+                occupancy=1.0,
+            )
+        self._loss_scale = loss_scale
 
         kwargs = dict(initialW=chainer.initializers.Normal(0.01))
         with self.init_scope():
@@ -418,7 +425,8 @@ class BaselineModel(chainer.Chain):
                         grid_target_cad * grid_nontarget_empty[i]
                     )
                     denominator = F.sum(grid_target_cad) + 1e-16
-                    loss_i += intersection / denominator
+                    loss_i += self._loss_scale['occupancy'] * \
+                        intersection / denominator
             elif self._loss == 'add+add_s':
                 loss_i = objslampp.functions.average_distance_l1(
                     **kwargs, symmetric=True
