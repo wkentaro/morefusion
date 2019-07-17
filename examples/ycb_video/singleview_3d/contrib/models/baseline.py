@@ -33,10 +33,11 @@ class BaselineModel(chainer.Chain):
         self._loss = 'add/add_s' if loss is None else loss
         assert self._loss in [
             'add/add_s',
-            'add+add_s',
             'add/add_s+occupancy',
+            'overlap',
+            'overlap+occupancy',
         ]
-        if self._loss == 'add/add_s+occupancy':
+        if self._loss in ['add/add_s+occupancy', 'overlap+occupancy']:
             assert use_occupancy, \
                 f'use_occupancy must be True for this loss: {self._loss}'
 
@@ -326,62 +327,73 @@ class BaselineModel(chainer.Chain):
         T_cad2cam_pred = objslampp.functions.compose_transform(
             R_cad2cam_pred[:, :3, :3], translation_pred,
         )
-        del R_cad2cam_true
 
         batch_size = class_id.shape[0]
 
         loss = 0
         for i in range(batch_size):
             class_id_i = int(class_id[i])
-            is_symmetric = \
-                class_id_i in objslampp.datasets.ycb_video.class_ids_symmetric
-            cad_pcd = self._models.get_pcd(class_id=class_id_i)
-            cad_pcd = self.xp.asarray(cad_pcd, dtype=np.float32)
 
-            kwargs = dict(
-                points=cad_pcd,
-                transform1=T_cad2cam_true[i:i + 1],
-                transform2=T_cad2cam_pred[i:i + 1],
-            )
             if self._loss in ['add/add_s', 'add/add_s+occupancy']:
-                loss_i = objslampp.functions.average_distance_l1(
-                    **kwargs, symmetric=is_symmetric
-                )[0]
-                if self._loss == 'add/add_s+occupancy':
-                    solid_pcd = self._models.get_solid_voxel(
-                        class_id=class_id_i
+                is_symmetric = class_id_i in \
+                    objslampp.datasets.ycb_video.class_ids_symmetric
+                cad_pcd = self._models.get_pcd(class_id=class_id_i)
+                cad_pcd = self.xp.asarray(cad_pcd, dtype=np.float32)
+                kwargs = dict(
+                    points=cad_pcd,
+                    transform1=T_cad2cam_true[i:i + 1],
+                    transform2=T_cad2cam_pred[i:i + 1],
+                )
+
+            if self._loss in [
+                'add/add_s+occupancy', 'overlap', 'overlap+occupancy'
+            ]:
+                solid_pcd = self._models.get_solid_voxel(class_id=class_id_i)
+                solid_pcd = self.xp.asarray(solid_pcd.points, dtype=np.float32)
+                grid_target_pred = \
+                    objslampp.functions.pseudo_occupancy_voxelization(
+                        points=objslampp.functions.transform_points(
+                            solid_pcd, R_cad2cam_pred[i][None]
+                        )[0],
+                        pitch=float(pitch[i]),
+                        origin=cuda.to_cpu(origin[i]),
+                        dims=(self._voxel_dim,) * 3,
+                        threshold=0.5,
                     )
-                    solid_pcd = self.xp.asarray(
-                        solid_pcd.points, dtype=np.float32
-                    )
-                    solid_pcd = objslampp.functions.transform_points(
-                        solid_pcd, R_cad2cam_pred[i:i + 1]
-                    )[0]
-                    grid_target_cad = \
+                if self._loss in ['overlap', 'overlap+occupancy']:
+                    grid_target_true = \
                         objslampp.functions.pseudo_occupancy_voxelization(
-                            points=solid_pcd,
+                            points=objslampp.functions.transform_points(
+                                solid_pcd, R_cad2cam_true[i][None]
+                            )[0],
                             pitch=float(pitch[i]),
                             origin=cuda.to_cpu(origin[i]),
                             dims=(self._voxel_dim,) * 3,
                             threshold=0.5,
-                        )
-                    intersection = F.sum(
-                        grid_target_cad * grid_nontarget_empty[i]
-                    )
-                    denominator = F.sum(grid_target_cad) + 1e-16
-                    loss_i += self._loss_scale['occupancy'] * \
-                        intersection / denominator
-            elif self._loss == 'add+add_s':
+                        ).array
+                del solid_pcd
+            del R_cad2cam_pred
+            del R_cad2cam_true
+
+            if self._loss in ['add/add_s', 'add/add_s+occupancy']:
                 loss_i = objslampp.functions.average_distance_l1(
-                    **kwargs, symmetric=True
+                    **kwargs, symmetric=is_symmetric
                 )[0]
-                if not is_symmetric:
-                    loss_i += objslampp.functions.average_distance_l1(
-                        **kwargs, symmetric=False
-                    )[0]
-                    loss_i /= 2
+            elif self._loss in ['overlap', 'overlap+occupancy']:
+                intersection = F.sum(grid_target_pred * grid_target_true)
+                denominator = F.sum(grid_target_true) + 1e-16
+                loss_i = intersection / denominator
             else:
                 raise ValueError(f'unsupported loss: {self._loss}')
+
+            if self._loss in ['add/add_s+occupancy', 'overlap+occupancy']:
+                intersection = F.sum(
+                    grid_target_pred * grid_nontarget_empty[i]
+                )
+                denominator = F.sum(grid_target_pred) + 1e-16
+                loss_i += (
+                    self._loss_scale['occupancy'] * intersection / denominator
+                )
             loss += loss_i
         loss /= batch_size
 
