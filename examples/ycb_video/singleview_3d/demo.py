@@ -69,14 +69,12 @@ def main():
         if args.sampling is not None:
             warnings.warn('--sampling is only used with ycb_video dataset')
         args.root_dir = chainer.dataset.get_dataset_directory(
-            # plane type
-            'wkentaro/objslampp/ycb_video/synthetic_data/20190408_143724.600111',  # NOQA
-            # bin type
-            # 'wkentaro/objslampp/ycb_video/synthetic_data/20190402_174648.841996',  # NOQA
+            'wkentaro/objslampp/ycb_video/synthetic_data/20190715_113906.827534',  # NOQA
         )
         dataset = contrib.datasets.MySyntheticDataset(
             args.root_dir, class_ids=args_data['class_ids']
         )
+        dataset._ids = dataset._ids[600 * 15:]
     elif args.dataset == 'my_real':
         args.root_dir = chainer.dataset.get_dataset_directory(
             'wkentaro/objslampp/ycb_video/real_data/20190614_18'
@@ -123,11 +121,8 @@ def main():
     depth2rgb = imgviz.Depth2RGB()
     for index in range(len(dataset)):
         with chainer.using_config('debug', True):
-            examples = dataset.get_examples(index)
-            examples = [
-                transform(e) for e in examples
-                if e['class_id'] in dataset._class_ids
-            ]
+            examples = dataset.get_example(index)
+            examples = [transform(e) for e in examples if e['class_id'] != -1]
         if not examples:
             continue
         inputs = chainer.dataset.concat_examples(examples, device=args.gpu)
