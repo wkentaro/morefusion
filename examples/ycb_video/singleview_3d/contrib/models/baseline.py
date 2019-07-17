@@ -35,7 +35,6 @@ class BaselineModel(chainer.Chain):
             'add/add_s',
             'add+add_s',
             'add/add_s+occupancy',
-            'add/add_s+complete',
         ]
         if self._loss == 'add/add_s+occupancy':
             assert use_occupancy, \
@@ -94,32 +93,6 @@ class BaselineModel(chainer.Chain):
                 pad=1,
                 **kwargs,
             )  # 16x16x16 -> 8x8x8
-
-            if self._loss == 'add/add_s+complete':
-                self.deconv7 = L.Deconvolution3D(
-                    in_channels=16,
-                    out_channels=16,
-                    ksize=4,
-                    stride=2,
-                    pad=1,
-                    **kwargs,
-                )  # 8x8x8 -> 16x16x16
-                self.deconv6 = L.Deconvolution3D(
-                    in_channels=16,
-                    out_channels=in_channels,
-                    ksize=4,
-                    stride=2,
-                    pad=1,
-                    **kwargs
-                )  # 16x16x16 -> 32x32x32
-                self.deconv_complete = L.Deconvolution3D(
-                    in_channels=in_channels,
-                    out_channels=1,
-                    ksize=3,
-                    stride=1,
-                    pad=1,
-                    **kwargs
-                )  # 32x32x32 -> 32x32x32
 
             # 16 * 8 * 8 * 8 = 8192
             self.fc8 = L.Linear(8192, 1024, **kwargs)
@@ -211,15 +184,6 @@ class BaselineModel(chainer.Chain):
 
         h = F.relu(self.conv6(h))
         h = F.relu(self.conv7(h))
-
-        if self._loss == 'add/add_s+complete':
-            h2 = h
-            h2 = F.relu(self.deconv7(h2))
-            h2 = F.relu(self.deconv6(h2))
-            h2 = self.deconv_complete(h2)
-            grid_target_pred = h2
-            del h2
-
         h = F.relu(self.fc8(h))
 
         quaternion = self.fc_quaternion(h)
@@ -234,10 +198,7 @@ class BaselineModel(chainer.Chain):
         quaternion = F.normalize(quaternion, axis=1)
         translation = origin + translation * pitch[:, None] * self._voxel_dim
 
-        if self._loss == 'add/add_s+complete':
-            return quaternion, translation, grid_target_pred
-        else:
-            return quaternion, translation
+        return quaternion, translation
 
     def __call__(
         self,
@@ -249,7 +210,6 @@ class BaselineModel(chainer.Chain):
         pcd,
         quaternion_true,
         translation_true,
-        grid_target=None,
         grid_nontarget_empty=None,
     ):
         keep = class_id != -1
@@ -263,14 +223,11 @@ class BaselineModel(chainer.Chain):
         pcd = pcd[keep]
         quaternion_true = quaternion_true[keep]
         translation_true = translation_true[keep]
-        if self._loss == 'add/add_s+complete':
-            assert grid_target is not None
-            grid_target = grid_target[keep]
         if self._use_occupancy:
             assert grid_nontarget_empty is not None
             grid_nontarget_empty = grid_nontarget_empty[keep]
 
-        ret = self.predict(
+        quaternion_pred, translation_pred = self.predict(
             class_id=class_id,
             pitch=pitch,
             origin=origin,
@@ -278,11 +235,6 @@ class BaselineModel(chainer.Chain):
             pcd=pcd,
             grid_nontarget_empty=grid_nontarget_empty,
         )
-        if self._loss == 'add/add_s+complete':
-            quaternion_pred, translation_pred, grid_target_pred = ret
-        else:
-            grid_target_pred = None
-            quaternion_pred, translation_pred = ret
 
         self.evaluate(
             class_id=class_id,
@@ -301,8 +253,6 @@ class BaselineModel(chainer.Chain):
             pitch=pitch,
             origin=origin,
             grid_nontarget_empty=grid_nontarget_empty,
-            grid_target=grid_target,
-            grid_target_pred=grid_target_pred,
         )
         return loss
 
@@ -359,15 +309,11 @@ class BaselineModel(chainer.Chain):
         pitch=None,
         origin=None,
         grid_nontarget_empty=None,
-        grid_target=None,
-        grid_target_pred=None,
     ):
         quaternion_true = quaternion_true.astype(np.float32)
         translation_true = translation_true.astype(np.float32)
         pitch = None if pitch is None else pitch.astype(np.float32)
         origin = None if origin is None else origin.astype(np.float32)
-        if grid_target is not None:
-            grid_target = grid_target.astype(np.int32)
         if grid_nontarget_empty is not None:
             grid_nontarget_empty = grid_nontarget_empty.astype(np.float32)
 
@@ -397,9 +343,7 @@ class BaselineModel(chainer.Chain):
                 transform1=T_cad2cam_true[i:i + 1],
                 transform2=T_cad2cam_pred[i:i + 1],
             )
-            if self._loss in [
-                'add/add_s', 'add/add_s+occupancy', 'add/add_s+complete'
-            ]:
+            if self._loss in ['add/add_s', 'add/add_s+occupancy']:
                 loss_i = objslampp.functions.average_distance_l1(
                     **kwargs, symmetric=is_symmetric
                 )[0]
@@ -440,13 +384,6 @@ class BaselineModel(chainer.Chain):
                 raise ValueError(f'unsupported loss: {self._loss}')
             loss += loss_i
         loss /= batch_size
-
-        if self._loss == 'add/add_s+complete':
-            assert grid_target is not None
-            assert grid_target_pred is not None
-            loss += F.sigmoid_cross_entropy(
-                grid_target_pred[:, 0, :, :], grid_target
-            )
 
         values = {'loss': loss}
         chainer.report(values, observer=self)
