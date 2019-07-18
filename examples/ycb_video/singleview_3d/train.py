@@ -124,6 +124,7 @@ def main():
             'add/add_s+occupancy',
             'overlap',
             'overlap+occupancy',
+            'iou',
         ],
         default='add/add_s',
         help='loss',

@@ -37,6 +37,7 @@ class BaselineModel(chainer.Chain):
             'add/add_s+occupancy',
             'overlap',
             'overlap+occupancy',
+            'iou',
         ]
         if self._loss in ['add/add_s+occupancy', 'overlap+occupancy']:
             assert use_occupancy, \
@@ -351,7 +352,7 @@ class BaselineModel(chainer.Chain):
                 cad_pcd = self.xp.asarray(cad_pcd, dtype=np.float32)
 
             if self._loss in [
-                'add/add_s+occupancy', 'overlap', 'overlap+occupancy'
+                'add/add_s+occupancy', 'overlap', 'overlap+occupancy', 'iou'
             ]:
                 solid_pcd = self._models.get_solid_voxel(class_id=class_id_i)
                 solid_pcd = self.xp.asarray(solid_pcd.points, dtype=np.float32)
@@ -375,7 +376,7 @@ class BaselineModel(chainer.Chain):
                         )[0],
                         **kwargs,
                     )
-                if self._loss in ['overlap', 'overlap+occupancy']:
+                if self._loss in ['overlap', 'overlap+occupancy', 'iou']:
                     pcd_true = objslampp.functions.transform_points(
                         solid_pcd, T_cad2cam_true[i][None]
                     )[0]
@@ -406,6 +407,10 @@ class BaselineModel(chainer.Chain):
                 intersection = F.sum(grid_target_pred2 * grid_target_true)
                 denominator = F.sum(grid_target_true) + 1e-16
                 loss_i = - intersection / denominator
+            elif self._loss in ['iou']:
+                intersection = grid_target_pred2 * grid_target_true
+                union = grid_target_pred2 + grid_target_true - intersection
+                loss_i = 1 - F.sum(intersection) / F.sum(union)
             else:
                 raise ValueError(f'unsupported loss: {self._loss}')
 
