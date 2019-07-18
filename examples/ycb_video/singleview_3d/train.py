@@ -120,6 +120,8 @@ def main():
     parser.add_argument(
         '--loss',
         choices=[
+            'add',
+            'add_s',
             'add/add_s',
             'add/add_s+occupancy',
             'overlap',
