@@ -33,6 +33,8 @@ class BaselineModel(chainer.Chain):
 
         self._loss = 'add/add_s' if loss is None else loss
         assert self._loss in [
+            'add',
+            'add_s',
             'add/add_s',
             'add/add_s+occupancy',
             'overlap',
@@ -348,9 +350,17 @@ class BaselineModel(chainer.Chain):
         for i in range(batch_size):
             class_id_i = int(class_id[i])
 
-            if self._loss in ['add/add_s', 'add/add_s+occupancy']:
-                is_symmetric = class_id_i in \
-                    objslampp.datasets.ycb_video.class_ids_symmetric
+            if self._loss in [
+                'add', 'add_s', 'add/add_s', 'add/add_s+occupancy'
+            ]:
+                if self._loss == 'add':
+                    is_symmetric = False
+                elif self._loss == 'add_s':
+                    is_symmetric = True
+                else:
+                    assert self._loss in ['add/add_s', 'add/add_s+occupancy']
+                    is_symmetric = class_id_i in \
+                        objslampp.datasets.ycb_video.class_ids_symmetric
                 cad_pcd = self._models.get_pcd(class_id=class_id_i)
                 cad_pcd = self.xp.asarray(cad_pcd, dtype=np.float32)
 
@@ -408,7 +418,9 @@ class BaselineModel(chainer.Chain):
                     del indices
                 del solid_pcd
 
-            if self._loss in ['add/add_s', 'add/add_s+occupancy']:
+            if self._loss in [
+                'add', 'add_s', 'add/add_s', 'add/add_s+occupancy'
+            ]:
                 loss_i = objslampp.functions.average_distance_l1(
                     points=cad_pcd,
                     transform1=T_cad2cam_true[i][None],
