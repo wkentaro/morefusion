@@ -38,8 +38,11 @@ class BaselineModel(chainer.Chain):
             'overlap',
             'overlap+occupancy',
             'iou',
+            'iou+occupancy',
         ]
-        if self._loss in ['add/add_s+occupancy', 'overlap+occupancy']:
+        if self._loss in [
+            'add/add_s+occupancy', 'overlap+occupancy', 'iou+occupancy'
+        ]:
             assert use_occupancy, \
                 f'use_occupancy must be True for this loss: {self._loss}'
 
@@ -352,7 +355,11 @@ class BaselineModel(chainer.Chain):
                 cad_pcd = self.xp.asarray(cad_pcd, dtype=np.float32)
 
             if self._loss in [
-                'add/add_s+occupancy', 'overlap', 'overlap+occupancy', 'iou'
+                'add/add_s+occupancy',
+                'overlap',
+                'overlap+occupancy',
+                'iou',
+                'iou+occupancy',
             ]:
                 solid_pcd = self._models.get_solid_voxel(class_id=class_id_i)
                 solid_pcd = self.xp.asarray(solid_pcd.points, dtype=np.float32)
@@ -376,7 +383,12 @@ class BaselineModel(chainer.Chain):
                         )[0],
                         **kwargs,
                     )
-                if self._loss in ['overlap', 'overlap+occupancy', 'iou']:
+                if self._loss in [
+                    'overlap',
+                    'overlap+occupancy',
+                    'iou',
+                    'iou+occupancy',
+                ]:
                     pcd_true = objslampp.functions.transform_points(
                         solid_pcd, T_cad2cam_true[i][None]
                     )[0]
@@ -407,14 +419,18 @@ class BaselineModel(chainer.Chain):
                 intersection = F.sum(grid_target_pred2 * grid_target_true)
                 denominator = F.sum(grid_target_true) + 1e-16
                 loss_i = - intersection / denominator
-            elif self._loss in ['iou']:
+            elif self._loss in ['iou', 'iou+occupancy']:
                 intersection = grid_target_pred2 * grid_target_true
                 union = grid_target_pred2 + grid_target_true - intersection
                 loss_i = 1 - F.sum(intersection) / F.sum(union)
             else:
                 raise ValueError(f'unsupported loss: {self._loss}')
 
-            if self._loss in ['add/add_s+occupancy', 'overlap+occupancy']:
+            if self._loss in [
+                'add/add_s+occupancy',
+                'overlap+occupancy',
+                'iou+occupancy',
+            ]:
                 intersection = F.sum(
                     grid_target_pred1 * grid_nontarget_empty[i]
                 )
