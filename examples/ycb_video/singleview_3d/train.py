@@ -337,6 +337,12 @@ def main():
         # )
         trainer.extend(
             E.snapshot_object(
+                model, filename='snapshot_model_latest.npz'
+            ),
+            trigger=eval_interval,
+        )
+        trainer.extend(
+            E.snapshot_object(
                 model, filename='snapshot_model_best_auc_add.npz'
             ),
             trigger=trigger_best_add,
