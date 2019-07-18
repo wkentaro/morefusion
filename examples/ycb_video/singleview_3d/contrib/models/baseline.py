@@ -4,6 +4,7 @@ import chainer.functions as F
 import chainer.links as L
 from chainercv.links.model.vgg import VGG16
 import numpy as np
+import trimesh
 
 import objslampp
 
@@ -320,6 +321,8 @@ class BaselineModel(chainer.Chain):
 
         R_cad2cam_true = objslampp.functions.quaternion_matrix(quaternion_true)
         R_cad2cam_pred = objslampp.functions.quaternion_matrix(quaternion_pred)
+        del quaternion_true
+        del quaternion_pred
 
         T_cad2cam_true = objslampp.functions.compose_transform(
             R_cad2cam_true[:, :3, :3], translation_true,
@@ -330,6 +333,8 @@ class BaselineModel(chainer.Chain):
         T_cad2cam_pred2 = objslampp.functions.compose_transform(
             R_cad2cam_pred[:, :3, :3], translation_pred,
         )
+        del translation_true
+        del translation_pred
         del R_cad2cam_true
         del R_cad2cam_pred
 
@@ -371,13 +376,23 @@ class BaselineModel(chainer.Chain):
                         **kwargs,
                     )
                 if self._loss in ['overlap', 'overlap+occupancy']:
-                    grid_target_true = \
-                        objslampp.functions.pseudo_occupancy_voxelization(
-                            points=objslampp.functions.transform_points(
-                                solid_pcd, T_cad2cam_true[i][None]
-                            )[0],
-                            **kwargs,
-                        ).array
+                    pcd_true = objslampp.functions.transform_points(
+                        solid_pcd, T_cad2cam_true[i][None]
+                    )[0]
+                    pcd_true = cuda.to_cpu(pcd_true.array)
+                    indices = trimesh.voxel.points_to_indices(
+                        pcd_true,
+                        pitch=kwargs['pitch'],
+                        origin=kwargs['origin'],
+                    )
+                    del pcd_true
+                    grid_target_true = self.xp.zeros(
+                        kwargs['dims'], dtype=np.float32
+                    )
+                    grid_target_true[
+                        indices[:, 0], indices[:, 1], indices[:, 2]
+                    ] = 1
+                    del indices
                 del solid_pcd
 
             if self._loss in ['add/add_s', 'add/add_s+occupancy']:
