@@ -267,6 +267,7 @@ class BaselineModel(chainer.Chain):
             translation_pred=translation_pred,
             pitch=pitch,
             origin=origin,
+            grid_target=grid_target,
             grid_nontarget_empty=grid_nontarget_empty,
         )
         return loss
