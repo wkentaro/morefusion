@@ -136,10 +136,8 @@ class BaselineModel(chainer.Chain):
         rgb = rgb.transpose(0, 3, 1, 2).astype(np.float32)  # BHWC -> BCHW
         pcd = pcd.transpose(0, 3, 1, 2).astype(np.float32)  # BHW3 -> B3HW
         if self._use_occupancy:
-            # BXYZ -> B1XYZ
             assert grid_nontarget_empty.shape[1:] == dimensions
-            grid_nontarget_empty = \
-                grid_nontarget_empty[:, None, :, :, :].astype(np.float32)
+            grid_nontarget_empty = grid_nontarget_empty.astype(np.float32)
 
         # feature extraction
         mean = xp.asarray(self.extractor.mean)
@@ -193,7 +191,7 @@ class BaselineModel(chainer.Chain):
         if self._use_occupancy:
             if chainer.config.train and self.xp.random.randint(0, 2):
                 grid_nontarget_empty = self.xp.zeros_like(grid_nontarget_empty)
-            h_occ = self.conv5_occ(grid_nontarget_empty)
+            h_occ = self.conv5_occ(grid_nontarget_empty[:, None, :, :, :])
             h = F.concat([h, h_occ], axis=1)
 
         h = F.relu(self.conv6(h))
@@ -224,6 +222,7 @@ class BaselineModel(chainer.Chain):
         pcd,
         quaternion_true,
         translation_true,
+        grid_target=None,
         grid_nontarget_empty=None,
     ):
         keep = class_id != -1
@@ -238,7 +237,9 @@ class BaselineModel(chainer.Chain):
         quaternion_true = quaternion_true[keep]
         translation_true = translation_true[keep]
         if self._use_occupancy:
+            assert grid_target is not None
             assert grid_nontarget_empty is not None
+            grid_target = grid_target[keep]
             grid_nontarget_empty = grid_nontarget_empty[keep]
 
         quaternion_pred, translation_pred = self.predict(
@@ -322,12 +323,15 @@ class BaselineModel(chainer.Chain):
         translation_pred,
         pitch=None,
         origin=None,
+        grid_target=None,
         grid_nontarget_empty=None,
     ):
         quaternion_true = quaternion_true.astype(np.float32)
         translation_true = translation_true.astype(np.float32)
         pitch = None if pitch is None else pitch.astype(np.float32)
         origin = None if origin is None else origin.astype(np.float32)
+        if grid_target is not None:
+            grid_target = grid_target.astype(np.float32)
         if grid_nontarget_empty is not None:
             grid_nontarget_empty = grid_nontarget_empty.astype(np.float32)
 
@@ -463,6 +467,11 @@ class BaselineModel(chainer.Chain):
                 'overlap+occupancy',
                 'iou+occupancy',
             ]:
+                intersection = F.sum(grid_target_pred2 * grid_target[i])
+                denominator = F.sum(grid_target_pred2) + 1e-16
+                loss_i += (
+                    self._loss_scale['occupancy'] * intersection / denominator
+                )
                 intersection = F.sum(
                     grid_target_pred1 * grid_nontarget_empty[i]
                 )
