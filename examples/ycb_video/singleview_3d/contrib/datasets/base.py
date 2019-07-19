@@ -16,6 +16,7 @@ class DatasetBase(objslampp.datasets.DatasetBase):
 
     _models = objslampp.datasets.YCBVideoModels()
     _voxel_dim = 32
+    _mask_size_minimal = 1
 
     def __init__(
         self,
@@ -179,7 +180,7 @@ class DatasetBase(objslampp.datasets.DatasetBase):
                 continue
 
             mask = instance_label == instance_id
-            if mask.sum() == 0:
+            if mask.sum() < self._mask_size_minimal:
                 examples.append(self._get_invalid_data())
                 continue
 

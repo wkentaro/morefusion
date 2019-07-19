@@ -12,6 +12,7 @@ class MySyntheticDataset(DatasetBase):
         'wkentaro/objslampp/ycb_video/singleview_3d/ycb_video/my_synthetic/cache'  # NOQA
     )
     _cache_dir = path.Path(_cache_dir)
+    _mask_size_minimal = 500
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
