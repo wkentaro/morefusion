@@ -34,7 +34,9 @@ class BaselineModel(chainer.Chain):
         self._loss = 'add/add_s' if loss is None else loss
         assert self._loss in [
             'add',
+            'add+occupancy',
             'add_s',
+            'add_s+occupancy',
             'add/add_s',
             'add/add_s+occupancy',
             'overlap',
@@ -43,7 +45,11 @@ class BaselineModel(chainer.Chain):
             'iou+occupancy',
         ]
         if self._loss in [
-            'add/add_s+occupancy', 'overlap+occupancy', 'iou+occupancy'
+            'add+occupancy',
+            'add_s+occupancy',
+            'add/add_s+occupancy',
+            'overlap+occupancy',
+            'iou+occupancy',
         ]:
             assert use_occupancy, \
                 f'use_occupancy must be True for this loss: {self._loss}'
@@ -351,11 +357,16 @@ class BaselineModel(chainer.Chain):
             class_id_i = int(class_id[i])
 
             if self._loss in [
-                'add', 'add_s', 'add/add_s', 'add/add_s+occupancy'
+                'add',
+                'add+occupancy',
+                'add_s',
+                'add_s+occupancy',
+                'add/add_s',
+                'add/add_s+occupancy',
             ]:
-                if self._loss == 'add':
+                if self._loss in ['add', 'add+occupancy']:
                     is_symmetric = False
-                elif self._loss == 'add_s':
+                elif self._loss in ['add_s', 'add_s+occupancy']:
                     is_symmetric = True
                 else:
                     assert self._loss in ['add/add_s', 'add/add_s+occupancy']
@@ -365,6 +376,8 @@ class BaselineModel(chainer.Chain):
                 cad_pcd = self.xp.asarray(cad_pcd, dtype=np.float32)
 
             if self._loss in [
+                'add+occupancy',
+                'add_s+occupancy',
                 'add/add_s+occupancy',
                 'overlap',
                 'overlap+occupancy',
@@ -419,7 +432,12 @@ class BaselineModel(chainer.Chain):
                 del solid_pcd
 
             if self._loss in [
-                'add', 'add_s', 'add/add_s', 'add/add_s+occupancy'
+                'add',
+                'add+occupancy',
+                'add_s',
+                'add_s+occupancy',
+                'add/add_s',
+                'add/add_s+occupancy',
             ]:
                 loss_i = objslampp.functions.average_distance_l1(
                     points=cad_pcd,
@@ -439,6 +457,8 @@ class BaselineModel(chainer.Chain):
                 raise ValueError(f'unsupported loss: {self._loss}')
 
             if self._loss in [
+                'add+occupancy',
+                'add_s+occupancy',
                 'add/add_s+occupancy',
                 'overlap+occupancy',
                 'iou+occupancy',
