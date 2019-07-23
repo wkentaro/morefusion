@@ -144,6 +144,10 @@ def main():
         default=0.25,
         help='number of synthetic examples used',
     )
+    parser.add_argument(
+        '--pretrained-model',
+        help='pretrained model',
+    )
     args = parser.parse_args()
 
     chainer.global_config.debug = args.debug
@@ -238,6 +242,8 @@ def main():
         loss=args.loss,
         loss_scale=args.loss_scale,
     )
+    if args.pretrained_model is not None:
+        chainer.serializers.load_npz(args.pretrained_model, model)
     if device >= 0:
         model.to_gpu()
 
