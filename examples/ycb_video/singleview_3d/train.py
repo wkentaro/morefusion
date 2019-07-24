@@ -51,6 +51,10 @@ def concat_list_of_examples(list_of_examples, device=None, padding=None):
     )
 
 
+def sigmoid(x):
+    return 1 / (1 + np.exp(- x))
+
+
 def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -126,6 +130,7 @@ def main():
             'add/add_s',
             'add/add_s+occupancy',
             'add+add_s|linear',
+            'add+add_s|sigmoid',
             'overlap',
             'overlap+occupancy',
             'iou',
@@ -235,7 +240,7 @@ def main():
     args.class_names = objslampp.datasets.ycb_video.class_names.tolist()
 
     loss = args.loss
-    if loss == 'add+add_s|linear':
+    if loss in ['add+add_s|linear', 'add+add_s|sigmoid']:
         loss = 'add+add_s'
 
     # model initialization
@@ -307,13 +312,22 @@ def main():
 
     @chainer.training.make_extension(trigger=(1, 'iteration'))
     def update_loss_scale(trainer):
+        updater = trainer.updater
+        optimizer = updater.get_optimizer('main')
+        target = optimizer.target
+        assert trainer.stop_trigger.unit == 'epoch'
+        max_epoch = trainer.stop_trigger.period
+
         if args.loss == 'add+add_s|linear':
-            updater = trainer.updater
-            optimizer = updater.get_optimizer('main')
-            assert trainer.stop_trigger.unit == 'epoch'
-            max_epoch = trainer.stop_trigger.period
-            loss_scale_add = 1.0 - updater.epoch_detail / max_epoch
-            optimizer.target._loss_scale['add+add_s'] = loss_scale_add
+            loss_scale_add = 1 - updater.epoch_detail / max_epoch
+        elif args.loss == 'add+add_s|sigmoid':
+            loss_scale_add = 1 - sigmoid(updater.epoch_detail - max_epoch / 2)
+        else:
+            return
+        target._loss_scale['add+add_s'] = loss_scale_add
+
+        report = {f'loss_scale/{k}': v for k, v in target._loss_scale.items()}
+        chainer.report(report)
 
     trainer.extend(update_loss_scale)
 
@@ -332,6 +346,8 @@ def main():
         log_interval = 1, 'iteration'
         param_log_interval = 100, 'iteration'
         eval_interval = 0.3, 'epoch'
+
+        trainer.extend(E.observe_lr(), trigger=log_interval)
 
         # evaluate
         evaluator = objslampp.training.extensions.PoseEstimationEvaluator(
