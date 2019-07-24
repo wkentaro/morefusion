@@ -39,6 +39,7 @@ class BaselineModel(chainer.Chain):
             'add_s+occupancy',
             'add/add_s',
             'add/add_s+occupancy',
+            'add+add_s',
             'overlap',
             'overlap+occupancy',
             'iou',
@@ -55,9 +56,10 @@ class BaselineModel(chainer.Chain):
                 f'use_occupancy must be True for this loss: {self._loss}'
 
         if loss_scale is None:
-            loss_scale = dict(
-                occupancy=1.0,
-            )
+            loss_scale = {
+                'add+add_s': 0.5,
+                'occupancy': 1.0,
+            }
         self._loss_scale = loss_scale
 
         kwargs = dict(initialW=chainer.initializers.Normal(0.01))
@@ -368,8 +370,11 @@ class BaselineModel(chainer.Chain):
                 'add_s+occupancy',
                 'add/add_s',
                 'add/add_s+occupancy',
+                'add+add_s',
             ]:
-                if self._loss in ['add', 'add+occupancy']:
+                if self._loss in ['add+add_s']:
+                    is_symmetric = None
+                elif self._loss in ['add', 'add+occupancy']:
                     is_symmetric = False
                 elif self._loss in ['add_s', 'add_s+occupancy']:
                     is_symmetric = True
@@ -450,6 +455,22 @@ class BaselineModel(chainer.Chain):
                     transform2=T_cad2cam_pred2[i][None],
                     symmetric=is_symmetric,
                 )[0]
+            elif self._loss in ['add+add_s']:
+                kwargs = dict(
+                    points=cad_pcd,
+                    transform1=T_cad2cam_true[i][None],
+                    transform2=T_cad2cam_pred2[i][None],
+                )
+                loss_add_i = objslampp.functions.average_distance_l1(
+                    **kwargs, symmetric=False
+                )[0]
+                loss_add_s_i = objslampp.functions.average_distance_l1(
+                    **kwargs, symmetric=True
+                )[0]
+                loss_i = (
+                    self._loss_scale['add+add_s'] * loss_add_i +
+                    (1 - self._loss_scale['add+add_s']) * loss_add_s_i
+                )
             elif self._loss in ['overlap', 'overlap+occupancy']:
                 intersection = F.sum(grid_target_pred2 * grid_target_true)
                 denominator = F.sum(grid_target_true) + 1e-16

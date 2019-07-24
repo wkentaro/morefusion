@@ -125,6 +125,7 @@ def main():
             'add_s+occupancy',
             'add/add_s',
             'add/add_s+occupancy',
+            'add+add_s|linear',
             'overlap',
             'overlap+occupancy',
             'iou',
@@ -233,13 +234,17 @@ def main():
 
     args.class_names = objslampp.datasets.ycb_video.class_names.tolist()
 
+    loss = args.loss
+    if loss == 'add+add_s|linear':
+        loss = 'add+add_s'
+
     # model initialization
     model = contrib.models.BaselineModel(
         n_fg_class=len(args.class_names[1:]),
         freeze_until=args.freeze_until,
         voxelization=args.voxelization,
         use_occupancy=args.use_occupancy,
-        loss=args.loss,
+        loss=loss,
         loss_scale=args.loss_scale,
     )
     if args.pretrained_model is not None:
@@ -299,6 +304,18 @@ def main():
         updater, (args.max_epoch, 'epoch'), out=args.out
     )
     trainer.extend(E.FailOnNonNumber())
+
+    @chainer.training.make_extension(trigger=(1, 'iteration'))
+    def update_loss_scale(trainer):
+        if args.loss == 'add+add_s|linear':
+            updater = trainer.updater
+            optimizer = updater.get_optimizer('main')
+            assert trainer.stop_trigger.unit == 'epoch'
+            max_epoch = trainer.stop_trigger.period
+            loss_scale_add = 1.0 - updater.epoch_detail / max_epoch
+            optimizer.target._loss_scale['add+add_s'] = loss_scale_add
+
+    trainer.extend(update_loss_scale)
 
     if not args.multi_node or comm.rank == 0:
         # print arguments
