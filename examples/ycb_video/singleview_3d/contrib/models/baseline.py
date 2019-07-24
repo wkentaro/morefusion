@@ -449,6 +449,7 @@ class BaselineModel(chainer.Chain):
                 'add/add_s',
                 'add/add_s+occupancy',
             ]:
+                assert is_symmetric in [True, False]
                 loss_i = objslampp.functions.average_distance_l1(
                     points=cad_pcd,
                     transform1=T_cad2cam_true[i][None],
