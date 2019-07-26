@@ -129,6 +129,7 @@ def main():
             'add_s+occupancy',
             'add/add_s',
             'add/add_s+occupancy',
+            'add+add_s',
             'add+add_s|linear',
             'add+add_s|sigmoid',
             'overlap',
