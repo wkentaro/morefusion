@@ -30,6 +30,7 @@ def main():
         '--dataset',
         choices=[
             'my_synthetic',
+            'my_synthetic/train',
             'my_real',
             'ycb_video',
             'ycb_video/train',
@@ -67,7 +68,10 @@ def main():
 
     return_occupancy_grids = args_data.get('use_occupancy', False) or \
         args_data.get('loss', 'add/add_s') == 'add/add_s+complete'
-    if args.dataset == 'my_synthetic':
+    if args.dataset.startswith('my_synthetic'):
+        split = 'val'
+        if '/' in args.dataset:
+            _, split = args.dataset.split('/')
         if args.sampling is not None:
             warnings.warn('--sampling is only used with ycb_video dataset')
         args.root_dir = chainer.dataset.get_dataset_directory(
@@ -78,7 +82,11 @@ def main():
             class_ids=args_data['class_ids'],
             return_occupancy_grids=return_occupancy_grids,
         )
-        dataset._ids = dataset._ids[600 * 15:]
+        if split == 'val':
+            dataset._ids = dataset._ids[600 * 15:]
+        else:
+            assert split == 'train'
+            dataset._ids = dataset._ids[:600 * 15]
     elif args.dataset == 'my_real':
         args.root_dir = chainer.dataset.get_dataset_directory(
             'wkentaro/objslampp/ycb_video/real_data/20190614_18'
