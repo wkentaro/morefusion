@@ -11,7 +11,7 @@ class YCBVideoDataset(DatasetBase):
 
     _root_dir = objslampp.datasets.YCBVideoDataset._root_dir
     _cache_dir = chainer.dataset.get_dataset_directory(
-        'wkentaro/objslampp/ycb_video/singleview_3d/ycb_video/cache_examples'
+        'wkentaro/objslampp/ycb_video/singleview_3d/ycb_video/cache'
     )
     _cache_dir = path.Path(_cache_dir)
 

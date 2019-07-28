@@ -9,7 +9,7 @@ from .base import DatasetBase
 class MySyntheticDataset(DatasetBase):
 
     _cache_dir = chainer.dataset.get_dataset_directory(
-        'wkentaro/objslampp/ycb_video/singleview_3d/ycb_video/my_synthetic/cache'  # NOQA
+        'wkentaro/objslampp/ycb_video/singleview_3d/my_synthetic/cache'
     )
     _cache_dir = path.Path(_cache_dir)
     _mask_size_minimal = 500
