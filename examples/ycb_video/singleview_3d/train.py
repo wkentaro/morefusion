@@ -5,6 +5,7 @@ import datetime
 import os.path as osp
 import pprint
 import random
+import re
 import socket
 import textwrap
 
@@ -120,24 +121,35 @@ def main():
         action='store_true',
         help='use occupancy',
     )
+
+    def argparse_type_loss(string):
+        patterns = [
+            'add',
+            r'add\+occupancy',
+            'add_s',
+            r'add_s\+occupancy',
+            'add/add_s',
+            r'add/add_s\+occupancy',
+            r'add\+add_s',
+            r'add\+add_s\|linear',
+            r'add\+add_s\|sigmoid',
+            r'add\+add_s\|step\|\d+'
+            'overlap',
+            r'overlap\+occupancy',
+            'iou',
+            r'iou\+occupancy',
+        ]
+        for pattern in patterns:
+            if re.match(pattern, string):
+                break
+        else:
+            raise argparse.ArgumentTypeError
+        return string
+
     parser.add_argument(
         '--loss',
-        choices=[
-            'add',
-            'add+occupancy',
-            'add_s',
-            'add_s+occupancy',
-            'add/add_s',
-            'add/add_s+occupancy',
-            'add+add_s',
-            'add+add_s|linear',
-            'add+add_s|sigmoid',
-            'overlap',
-            'overlap+occupancy',
-            'iou',
-            'iou+occupancy',
-        ],
         default='add/add_s',
+        type=argparse_type_loss,
         help='loss',
     )
     parser.add_argument(
@@ -241,7 +253,7 @@ def main():
     args.class_names = objslampp.datasets.ycb_video.class_names.tolist()
 
     loss = args.loss
-    if loss in ['add+add_s|linear', 'add+add_s|sigmoid']:
+    if re.match(r'add\+add_s\|.*', loss):
         loss = 'add+add_s'
 
     # model initialization
@@ -322,6 +334,12 @@ def main():
             loss_scale_add = 1 - updater.epoch_detail / max_epoch
         elif args.loss == 'add+add_s|sigmoid':
             loss_scale_add = 1 - sigmoid(updater.epoch_detail - max_epoch / 2)
+        elif re.match(r'add\+add_s\|step\|\d+', args.loss):
+            match = re.match(r'add\+add_s\|step\|(\d+)', args.loss)
+            epoch_anchor = int(match.groups()[0])
+            loss_scale_add = 1
+            if updater.epoch_detail > epoch_anchor:
+                loss_scale_add = 0
         else:
             return
         target._loss_scale['add+add_s'] = loss_scale_add
