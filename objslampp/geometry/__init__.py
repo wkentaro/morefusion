@@ -21,3 +21,5 @@ from .points_from_angles import points_from_angles
 from .project_to_camera import project_to_camera
 
 from .voxel_mapping import VoxelMapping
+
+from .matrix_from_points import matrix_from_points
