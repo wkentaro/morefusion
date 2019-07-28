@@ -34,3 +34,5 @@ class MultiExamplePerImageSerialIterator(chainer.iterators.SerialIterator):
         batch = [batch[index] for index in indices]
 
         return batch
+
+    next = __next__

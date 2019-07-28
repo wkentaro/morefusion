@@ -294,7 +294,6 @@ def main():
     updater = chainer.training.StandardUpdater(
         iterator=iter_train,
         optimizer=optimizer,
-        converter=concat_list_of_examples,
         device=device,
     )
     if not args.multi_node or comm.rank == 0:
