@@ -23,6 +23,7 @@ class BaselineModel(chainer.Chain):
         use_occupancy=False,
         loss=None,
         loss_scale=None,
+        ohem_threshold=None,
     ):
         super().__init__()
 
@@ -61,6 +62,10 @@ class BaselineModel(chainer.Chain):
                 'occupancy': 1.0,
             }
         self._loss_scale = loss_scale
+
+        if ohem_threshold is None:
+            ohem_threshold = (0, 0)  # asymmetric, symmetric
+        self._ohem_threshold = ohem_threshold
 
         kwargs = dict(initialW=chainer.initializers.Normal(0.01))
         with self.init_scope():
@@ -455,6 +460,7 @@ class BaselineModel(chainer.Chain):
                     transform1=T_cad2cam_true[i][None],
                     transform2=T_cad2cam_pred2[i][None],
                     symmetric=is_symmetric,
+                    ohem_threshold=self._ohem_threshold[is_symmetric],
                 )[0]
             elif self._loss in ['add+add_s']:
                 kwargs = dict(

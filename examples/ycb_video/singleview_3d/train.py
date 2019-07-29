@@ -167,6 +167,12 @@ def main():
         '--pretrained-model',
         help='pretrained model',
     )
+    parser.add_argument(
+        '--ohem-threshold',
+        nargs=2,
+        type=float,
+        help='OHEM threshold [m] for ADD and ADD-S loss',
+    )
     args = parser.parse_args()
 
     chainer.global_config.debug = args.debug
@@ -264,6 +270,7 @@ def main():
         use_occupancy=args.use_occupancy,
         loss=loss,
         loss_scale=args.loss_scale,
+        ohem_threshold=args.ohem_threshold,
     )
     if args.pretrained_model is not None:
         chainer.serializers.load_npz(args.pretrained_model, model)
