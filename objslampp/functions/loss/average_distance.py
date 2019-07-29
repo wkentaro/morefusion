@@ -85,7 +85,8 @@ def average_distance_l1(
             if ohem_threshold == 0:
                 n_hard_example.append(len(dists))
             else:
-                n_hard_example.append((dists >= ohem_threshold).sum())
+                n = (dists >= ohem_threshold).sum()
+                n_hard_example.append(1 if n == 0 else n)
             points2_match.append(points2[i][indices])
         n_hard_example = xp.array(n_hard_example)
         points2_match = F.concat(points2_match, axis=0)
