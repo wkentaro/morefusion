@@ -218,12 +218,8 @@ def main():
     # dataset initialization
     return_occupancy_grids = \
         args.use_occupancy or args.loss == 'add/add_s+complete'
-    data_valid = contrib.datasets.YCBVideoDataset(
-        'val',
-        class_ids=args.class_ids,
-        return_occupancy_grids=return_occupancy_grids,
-    )
     data_train = None
+    data_valid = None
     if not args.multi_node or comm.rank == 0:
         if args.dataset == 'ycb_video':
             data_train = contrib.datasets.YCBVideoDataset(
@@ -248,6 +244,14 @@ def main():
             )
         else:
             raise ValueError(f'unsupported dataset: {args.dataset}')
+
+        if data_valid is None:
+            data_valid = contrib.datasets.YCBVideoDataset(
+                'val',
+                class_ids=args.class_ids,
+                return_occupancy_grids=return_occupancy_grids,
+            )
+
         termcolor.cprint('==> Dataset size', attrs={'bold': True})
         print(f'train={len(data_train)}, val={len(data_valid)}')
 
