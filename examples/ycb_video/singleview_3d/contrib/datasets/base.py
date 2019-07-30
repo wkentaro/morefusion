@@ -1,10 +1,12 @@
-import zipfile
+import tempfile
 
 import chainer
+import filelock
 import imgaug
 import imgaug.augmenters as iaa
 import imgviz
 import numpy as np
+import path
 import trimesh.transformations as tf
 
 import objslampp
@@ -78,29 +80,33 @@ class DatasetBase(objslampp.datasets.DatasetBase):
                         example.pop('grid_nontarget')
                         example.pop('grid_empty')
                     examples.append(example)
-            except (IOError, zipfile.BadZipfile):
+            except Exception:
                 examples = None
-                try:
-                    cache_dir.rmtree()
-                except OSError:
-                    pass
+                cache_dir.rmtree()
 
         if examples is None:
             if self._return_occupancy_grids:
                 examples = self._get_examples(index)
-                try:
-                    cache_dir.makedirs_p()
-                    for i, example in enumerate(examples):
-                        assert 'grid_target' in example
-                        assert 'grid_nontarget' in example
-                        assert 'grid_empty' in example
-                        file = cache_dir / f'{i:04d}.npz'
-                        np.savez_compressed(file, **example)
-                except Exception:
-                    try:
-                        cache_dir.rmtree()
-                    except OSError:
-                        pass
+
+                cache_dir.parent.makedirs_p()
+
+                temp_dir = tempfile.mkdtemp(
+                    prefix=cache_dir.name, dir=cache_dir.parent
+                )
+                temp_dir = path.Path(temp_dir)
+                for i, example in enumerate(examples):
+                    assert 'grid_target' in example
+                    assert 'grid_nontarget' in example
+                    assert 'grid_empty' in example
+                    file = temp_dir / f'{i:04d}.npz'
+                    np.savez_compressed(file, **example)
+
+                lock_path = cache_dir + '_lock'
+                lock_path.parent.makedirs_p()
+                with filelock.FileLock(lock_path):
+                    cache_dir.parent.makedirs_p()
+                    temp_dir.move(cache_dir)
+                temp_dir.rmtree_p()
             else:
                 examples = self._get_examples(index, filter_class_ids=True)
 
