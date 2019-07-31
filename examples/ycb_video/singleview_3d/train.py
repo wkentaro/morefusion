@@ -101,7 +101,7 @@ def main():
     parser.add_argument(
         '--max-epoch',
         type=int,
-        default=60,
+        default=120,
         help='max epoch',
     )
     parser.add_argument(
