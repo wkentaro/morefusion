@@ -217,7 +217,8 @@ class DatasetBase(objslampp.datasets.DatasetBase):
 
             pitch = self._get_pitch(class_id=class_id)
             centroid = np.nanmean(pcd_ins, axis=(0, 1))
-            origin = centroid - pitch * (self._voxel_dim / 2. - 0.5)
+            center = centroid + (0, 0, pitch * self._voxel_dim / 5)
+            origin = center - pitch * (self._voxel_dim / 2. - 0.5)
 
             quaternion_true = tf.quaternion_from_matrix(T_cad2cam)
             translation_true = tf.translation_from_matrix(T_cad2cam)
