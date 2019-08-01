@@ -7,6 +7,7 @@ import imgaug.augmenters as iaa
 import imgviz
 import numpy as np
 import path
+import trimesh
 import trimesh.transformations as tf
 
 import objslampp
@@ -33,6 +34,7 @@ class DatasetBase(objslampp.datasets.DatasetBase):
         self._class_ids = class_ids
         self._augmentation = augmentation
         self._return_occupancy_grids = return_occupancy_grids
+        self._random_state = np.random.RandomState()
 
     def _get_cache_dir(self, index):
         raise NotImplementedError
@@ -48,10 +50,12 @@ class DatasetBase(objslampp.datasets.DatasetBase):
             translation_true=np.zeros((3,), dtype=np.float64),
         )
         if self._return_occupancy_grids:
-            dimensions = (self._voxel_dim,) * 3
-            example['grid_target'] = np.zeros(dimensions, dtype=np.float64)
-            example['grid_nontarget'] = np.zeros(dimensions, dtype=np.float64)
-            example['grid_empty'] = np.zeros(dimensions, dtype=np.float64)
+            dims = (self._voxel_dim,) * 3
+            example['grid_target'] = np.zeros(dims, dtype=np.float64)
+            example['grid_nontarget'] = np.zeros(dims, dtype=np.float64)
+            example['grid_empty'] = np.zeros(dims, dtype=np.float64)
+            example['grid_target_full'] = np.zeros(dims, dtype=np.float64)
+            example['grid_nontarget_full'] = np.zeros(dims, dtype=np.float64)
         return example
 
     def _get_pitch(self, class_id):
@@ -110,8 +114,60 @@ class DatasetBase(objslampp.datasets.DatasetBase):
             else:
                 examples = self._get_examples(index, filter_class_ids=True)
 
+        if self._return_occupancy_grids:
+            n_example = len(examples)
+            for i_target, example in enumerate(examples):
+                if example['class_id'] == -1:
+                    continue
+
+                examples_nontarget = []
+                if n_example > 1:
+                    indices = np.arange(n_example)
+                    indices_nontarget = indices[indices != i_target]
+                    n_nontarget = self._random_state.randint(0, n_example - 1)
+                    indices_nontarget = self._random_state.choice(
+                        indices_nontarget, n_nontarget, replace=False
+                    )
+                    examples_nontarget = [
+                        examples[i] for i in indices_nontarget
+                    ]
+
+                pitch = example['pitch']
+                origin = example['origin']
+                grid_target_full = self._get_grid_full(
+                    [example], pitch, origin
+                )
+                grid_nontarget_full = self._get_grid_full(
+                    examples_nontarget, pitch, origin
+                )
+                example['grid_target_full'] = grid_target_full
+                example['grid_nontarget_full'] = grid_nontarget_full
+
         assert examples is not None
         return examples
+
+    def _get_grid_full(self, examples, pitch, origin):
+        dims = (self._voxel_dim,) * 3
+        grid_full = np.zeros(dims, dtype=np.float64)
+        for example in examples:
+            T = tf.quaternion_matrix(example['quaternion_true'])
+            T = objslampp.geometry.compose_transform(
+                R=T[:3, :3], t=example['translation_true']
+            )
+            vox = self._models.get_solid_voxel(example['class_id'])
+            points = trimesh.transform_points(vox.points, T)
+            indices = trimesh.voxel.points_to_indices(
+                points, pitch=pitch, origin=origin
+            )
+            I, J, K = indices[:, 0], indices[:, 1], indices[:, 2]
+            keep = (
+                (0 <= I) & (I < dims[0]) &
+                (0 <= J) & (J < dims[1]) &
+                (0 <= K) & (K < dims[2])
+            )
+            I, J, K = I[keep], J[keep], K[keep]
+            grid_full[I, J, K] = 1
+        return grid_full
 
     def _get_examples(self, index, filter_class_ids=False):
         frame = self.get_frame(index)
@@ -186,6 +242,7 @@ class DatasetBase(objslampp.datasets.DatasetBase):
         ):
             if filter_class_ids and self._class_ids and \
                     class_id not in self._class_ids:
+                examples.append(self._get_invalid_data())
                 continue
 
             mask = instance_label == instance_id
@@ -308,3 +365,19 @@ class DatasetBase(objslampp.datasets.DatasetBase):
         random_state = imgaug.current_random_state()
         depth += random_state.normal(scale=0.01, size=depth.shape)
         return depth
+
+
+def _read_vox_file(vox_file):
+    import binvox_rw
+
+    with open(vox_file, 'rb') as f:
+        vox = binvox_rw.read_as_3d_array(f)
+
+    assert vox.dims[0] == vox.dims[1] == vox.dims[2]
+    pitch = vox.scale / vox.dims[0]
+    voxel = trimesh.voxel.Voxel(
+        vox.data,
+        pitch=pitch,
+        origin=(0.5 * pitch,) * 3 + np.array(vox.translate),
+    )
+    return voxel

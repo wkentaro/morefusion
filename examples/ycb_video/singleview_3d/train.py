@@ -26,21 +26,89 @@ home = path.Path('~').expanduser()
 here = path.Path(__file__).abspath().parent
 
 
-def transform(examples):
-    for example in examples:
-        if 'grid_target' in example:
+class Transform:
+
+    def __init__(self, train):
+        self._train = train
+
+    def __call__(self, examples):
+        for example in examples:
+            if 'grid_target' not in example:
+                continue
             assert 'grid_nontarget' in example
             assert 'grid_empty' in example
 
-            grid_nontarget_empty = np.maximum(
-                example['grid_nontarget'], example['grid_empty']
+            if example['class_id'] == -1:
+                example['grid_nontarget_empty'] = np.zeros_like(
+                    example['grid_target']
+                )
+                example.pop('grid_nontarget')
+                example.pop('grid_empty')
+                example.pop('grid_target_full')
+                example.pop('grid_nontarget_full')
+                continue
+
+            if self._train:
+                case = np.random.choice([
+                    'none',
+                    'empty',
+                    'nontarget',
+                    'empty+nontarget',
+                    'nontarget_full',
+                    'empty+nontarget_full',
+                    'other_full',
+                    'nontarget_full+other_full',
+                    'empty+nontarget_full+other_full',
+                ])
+            else:
+                case = 'empty+nontarget'
+
+            if case == 'none':
+                grid_nontarget_empty = np.zeros_like(example['grid_target'])
+            elif case == 'empty+nontarget_full+other_full':
+                grid_nontarget_empty = ~example[
+                    'grid_target_full'
+                ].astype(bool)
+            else:
+                if case == 'empty':
+                    grid_nontarget_empty = example['grid_empty'] > 0.5
+                elif case == 'nontarget':
+                    grid_nontarget_empty = example['grid_nontarget'] > 0.5
+                elif case == 'empty+nontarget':
+                    grid_nontarget_empty = np.maximum(
+                        example['grid_nontarget'], example['grid_empty']
+                    ) > 0.5
+                elif case == 'nontarget_full':
+                    grid_nontarget_empty = example['grid_nontarget_full'] > 0.5
+                elif case == 'empty+nontarget_full':
+                    grid_nontarget_empty = np.maximum(
+                        example['grid_empty'], example['grid_nontarget_full']
+                    ) > 0.5
+                else:
+                    grid_other_full = (
+                        ~example['grid_target_full'].astype(bool) &
+                        ~example['grid_nontarget_full'].astype(bool) &
+                        ~example['grid_empty'].astype(bool) &
+                        ~example['grid_target'].astype(bool) &
+                        ~example['grid_nontarget'].astype(bool)
+                    )
+                    if case == 'other_full':
+                        grid_nontarget_empty = grid_other_full
+                    else:
+                        assert case == 'nontarget_full+other_full'
+                        grid_nontarget_empty = (
+                            example['grid_nontarget_full'].astype(bool) |
+                            grid_other_full
+                        )
+            example['grid_nontarget_empty'] = grid_nontarget_empty.astype(
+                np.float64
             )
-            grid_nontarget_empty = np.float64(grid_nontarget_empty > 0.5)
-            grid_nontarget_empty[example['grid_target'] > 0.5] = 0
-            example['grid_nontarget_empty'] = grid_nontarget_empty
+
             example.pop('grid_nontarget')
             example.pop('grid_empty')
-    return examples
+            example.pop('grid_target_full')
+            example.pop('grid_nontarget_full')
+        return examples
 
 
 def concat_list_of_examples(list_of_examples, device=None, padding=None):
@@ -255,8 +323,12 @@ def main():
         termcolor.cprint('==> Dataset size', attrs={'bold': True})
         print(f'train={len(data_train)}, val={len(data_valid)}')
 
-        data_valid = chainer.datasets.TransformDataset(data_valid, transform)
-        data_train = chainer.datasets.TransformDataset(data_train, transform)
+        data_train = chainer.datasets.TransformDataset(
+            data_train, Transform(train=True)
+        )
+        data_valid = chainer.datasets.TransformDataset(
+            data_valid, Transform(train=False)
+        )
     if args.multi_node:
         data_train = chainermn.scatter_dataset(data_train, comm, shuffle=True)
 
