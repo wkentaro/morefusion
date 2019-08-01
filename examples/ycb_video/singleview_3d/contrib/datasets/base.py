@@ -173,9 +173,12 @@ class DatasetBase(objslampp.datasets.DatasetBase):
                 mapping.integrate(ins_id, masks[i], pcd_2s)
 
             mapping.initialize(0, pitch=0.01)
-            mapping._octrees[0].setBBXMin(aabb_min.min(axis=0))
-            mapping._octrees[0].setBBXMax(aabb_max.max(axis=0))
-            mapping.integrate(0, instance_label_4s == 0, pcd_4s)
+            for ins_id in np.unique(instance_label_4s):
+                if ins_id in instance_ids:
+                    continue
+                mapping._octrees[0].setBBXMin(aabb_min.min(axis=0))
+                mapping._octrees[0].setBBXMax(aabb_max.max(axis=0))
+                mapping.integrate(0, instance_label_4s == ins_id, pcd_4s)
 
         examples = []
         for instance_id, class_id, T_cad2cam in zip(
