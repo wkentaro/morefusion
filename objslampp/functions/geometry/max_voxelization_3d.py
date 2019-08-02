@@ -91,9 +91,14 @@ class MaxVoxelization3D(Voxelization3D):
                 int index = (c * shape[1] * shape[2] * shape[3]) +
                             (ix * shape[2] * shape[3]) +
                             (iy * shape[3]) + iz;
-                float old = atomicMax(&matrix[index], values);
-                if (old != values) {
+                if (indices[index] == -1) {
+                    atomicExch(&matrix[index], values);
                     atomicExch(&indices[index], i);
+                } else {
+                    float old = atomicMax(&matrix[index], values);
+                    if (old != values) {
+                        atomicExch(&indices[index], i);
+                    }
                 }
             }
             ''',
