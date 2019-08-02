@@ -143,9 +143,12 @@ class PoseNet(chainer.Chain):
         quaternion_true,
         translation_true,
     ):
+        B = class_id.shape[0]
+        xp = self.xp
+
         keep = class_id != -1
         if keep.sum() == 0:
-            return chainer.Variable(self.xp.zeros((), dtype=np.float32))
+            return chainer.Variable(xp.zeros((), dtype=np.float32))
 
         class_id = class_id[keep]
         rgb = rgb[keep]
@@ -157,13 +160,13 @@ class PoseNet(chainer.Chain):
             class_id=class_id, rgb=rgb, pcd=pcd
         )
 
+        indices = F.argmax(confidence_pred, axis=1).array
         self.evaluate(
             class_id=class_id,
             quaternion_true=quaternion_true,
             translation_true=translation_true,
-            quaternion_pred=quaternion_pred,
-            translation_pred=translation_pred,
-            confidence_pred=confidence_pred,
+            quaternion_pred=quaternion_pred[xp.arange(B), indices],
+            translation_pred=translation_pred[xp.arange(B), indices],
         )
 
         loss = self.loss(
@@ -184,57 +187,38 @@ class PoseNet(chainer.Chain):
         translation_true,
         quaternion_pred,
         translation_pred,
-        confidence_pred,
     ):
-        xp = self.xp
-        B = class_id.shape[0]
+        quaternion_true = quaternion_true.astype(np.float32)
+        translation_true = translation_true.astype(np.float32)
 
-        indices = F.argmax(confidence_pred, axis=1).array
-        quaternion_pred = quaternion_pred[xp.arange(B), indices]
-        translation_pred = translation_pred[xp.arange(B), indices]
+        batch_size = class_id.shape[0]
 
         T_cad2cam_true = objslampp.functions.quaternion_matrix(quaternion_true)
         T_cad2cam_pred = objslampp.functions.quaternion_matrix(quaternion_pred)
-
-        T_cad2cam_true = cuda.to_cpu(T_cad2cam_true.array)
-        T_cad2cam_pred = cuda.to_cpu(T_cad2cam_pred.array)
-        translation_true = cuda.to_cpu(translation_true)
-        translation_pred = cuda.to_cpu(translation_pred.array)
-
-        # add_rotation
-        summary = chainer.DictSummary()
-        for i in range(B):
-            class_id_i = int(class_id[i])
-            cad_pcd = self._models.get_pcd(class_id=class_id_i)
-            add_rotation = objslampp.metrics.average_distance(
-                [cad_pcd], [T_cad2cam_true[i]], [T_cad2cam_pred[i]]
-            )[0][0]
-            if chainer.config.train:
-                summary.add({'add_rotation': add_rotation})
-            else:
-                summary.add({f'add_rotation/{class_id_i:04d}': add_rotation})
-        chainer.report(summary.compute_mean(), self)
-
         T_cad2cam_true = objslampp.functions.compose_transform(
             Rs=T_cad2cam_true[:, :3, :3], ts=translation_true,
-        ).array
+        )
         T_cad2cam_pred = objslampp.functions.compose_transform(
-            Rs=T_cad2cam_pred[:, :3, :3], ts=translation_pred
-        ).array
+            Rs=T_cad2cam_pred[:, :3, :3], ts=translation_pred,
+        )
+        T_cad2cam_true = cuda.to_cpu(T_cad2cam_true.array)
+        T_cad2cam_pred = cuda.to_cpu(T_cad2cam_pred.array)
 
-        # add
         summary = chainer.DictSummary()
-        for i in range(B):
+        for i in range(batch_size):
             class_id_i = int(class_id[i])
             cad_pcd = self._models.get_pcd(class_id=class_id_i)
-            add = objslampp.metrics.average_distance(
+            add, add_s = objslampp.metrics.average_distance(
                 [cad_pcd], [T_cad2cam_true[i]], [T_cad2cam_pred[i]]
-            )[0][0]
+            )
+            add, add_s = add[0], add_s[0]
             if chainer.config.train:
-                summary.add({'add': add})
+                summary.add({'add': add, 'add_s': add_s})
             else:
-                x = {f'add/{class_id_i:04d}': add}
-                summary.add(x)
+                summary.add({
+                    f'add/{class_id_i:04d}': add,
+                    f'add_s/{class_id_i:04d}': add_s,
+                })
         chainer.report(summary.compute_mean(), self)
 
     def loss(
@@ -273,10 +257,15 @@ class PoseNet(chainer.Chain):
             T_cad2cam_true = F.repeat(T_cad2cam_true, n_point, axis=0)
 
             class_id_i = int(class_id[i])
+            is_symmetric = class_id_i in \
+                objslampp.datasets.ycb_video.class_ids_symmetric
             cad_pcd = self._models.get_pcd(class_id=class_id_i)
             cad_pcd = xp.asarray(cad_pcd, dtype=np.float32)
             add = objslampp.functions.average_distance_l1(
-                cad_pcd, T_cad2cam_true, T_cad2cam_pred
+                cad_pcd,
+                T_cad2cam_true,
+                T_cad2cam_pred,
+                symmetric=is_symmetric,
             )
 
             # loss_i = F.mean(add)
