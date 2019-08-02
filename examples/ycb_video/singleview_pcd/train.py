@@ -42,6 +42,12 @@ def main():
     parser.add_argument('--gpu', type=int, default=0, help='gpu id')
     parser.add_argument('--seed', type=int, default=0, help='random seed')
     parser.add_argument(
+        '--dataset',
+        choices=['ycb_video'],
+        default='ycb_video',
+        help='dataset',
+    )
+    parser.add_argument(
         '--lr',
         type=float,
         default=0.0001,
@@ -54,6 +60,11 @@ def main():
         help='lambda confidence',
     )
     parser.add_argument(
+        '--single',
+        action='store_true',
+        help='single prediction using global feature',
+    )
+    parser.add_argument(
         '--max-epoch',
         type=int,
         default=30,
@@ -62,7 +73,7 @@ def main():
     parser.add_argument(
         '--call-evaluation-before-training',
         action='store_true',
-        help='no call evaluation before training',
+        help='call evaluation before training',
     )
     parser.add_argument(
         '--class-ids',
@@ -119,6 +130,7 @@ def main():
         n_fg_class=len(class_names) - 1,
         n_point=1000,
         lambda_confidence=args.lambda_confidence,
+        single=args.single,
     )
     if args.gpu >= 0:
         model.to_gpu()
