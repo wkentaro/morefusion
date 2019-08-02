@@ -149,18 +149,6 @@ def main():
         help='augmentation',
     )
     parser.add_argument(
-        '--freeze-until',
-        choices=['conv4_3', 'conv3_3', 'conv2_2', 'conv1_2', 'none'],
-        default='conv4_3',
-        help='freeze until',
-    )
-    parser.add_argument(
-        '--voxelization',
-        choices=['average', 'max'],
-        default='max',
-        help='voxelization function',
-    )
-    parser.add_argument(
         '--lr',
         type=float,
         default=0.0001,
@@ -173,9 +161,9 @@ def main():
         help='max epoch',
     )
     parser.add_argument(
-        '--nocall-evaluation-before-training',
+        '--call-evaluation-before-training',
         action='store_true',
-        help='no call evaluation before training',
+        help='call evaluation before training',
     )
     parser.add_argument(
         '--class-ids',
@@ -234,12 +222,6 @@ def main():
     parser.add_argument(
         '--pretrained-model',
         help='pretrained model',
-    )
-    parser.add_argument(
-        '--ohem-threshold',
-        nargs=2,
-        type=float,
-        help='OHEM threshold [m] for ADD and ADD-S loss',
     )
     args = parser.parse_args()
 
@@ -341,12 +323,9 @@ def main():
     # model initialization
     model = contrib.models.BaselineModel(
         n_fg_class=len(args.class_names[1:]),
-        freeze_until=args.freeze_until,
-        voxelization=args.voxelization,
         use_occupancy=args.use_occupancy,
         loss=loss,
         loss_scale=args.loss_scale,
-        ohem_threshold=args.ohem_threshold,
     )
     if args.pretrained_model is not None:
         chainer.serializers.load_npz(args.pretrained_model, model)
@@ -359,20 +338,6 @@ def main():
         optimizer = chainermn.create_multi_node_optimizer(optimizer, comm)
     optimizer.setup(model)
 
-    if args.freeze_until in ['conv1_2', 'conv2_2', 'conv3_3', 'conv4_3']:
-        model.extractor.conv1_1.disable_update()
-        model.extractor.conv1_2.disable_update()
-    if args.freeze_until in ['conv2_2', 'conv3_3', 'conv4_3']:
-        model.extractor.conv2_1.disable_update()
-        model.extractor.conv2_2.disable_update()
-    if args.freeze_until in ['conv3_3', 'conv4_3']:
-        model.extractor.conv3_1.disable_update()
-        model.extractor.conv3_2.disable_update()
-        model.extractor.conv3_3.disable_update()
-    if args.freeze_until in ['conv4_3']:
-        model.extractor.conv4_1.disable_update()
-        model.extractor.conv4_2.disable_update()
-        model.extractor.conv4_3.disable_update()
     if not args.multi_node or comm.rank == 0:
         termcolor.cprint('==> Link update rules', attrs={'bold': True})
         for name, link in model.namedlinks():
@@ -459,7 +424,7 @@ def main():
         trainer.extend(
             evaluator,
             trigger=eval_interval,
-            call_before_training=not args.nocall_evaluation_before_training,
+            call_before_training=args.call_evaluation_before_training,
         )
 
         # snapshot

@@ -169,7 +169,7 @@ class DatasetBase(objslampp.datasets.DatasetBase):
             grid_full[I, J, K] = 1
         return grid_full
 
-    def _get_examples(self, index, filter_class_ids=False):
+    def get_example(self, index):
         frame = self.get_frame(index)
 
         instance_ids = frame['instance_ids']
@@ -183,12 +183,12 @@ class DatasetBase(objslampp.datasets.DatasetBase):
             depth, fx=K[0, 0], fy=K[1, 1], cx=K[0, 2], cy=K[1, 2],
         )
 
-        if instance_ids.size == 0:
-            return [self._get_invalid_data()]
-
         if chainer.is_debug():
             print(f'[{index:08d}]: class_ids: {class_ids.tolist()}')
             print(f'[{index:08d}]: instance_ids: {instance_ids.tolist()}')
+
+        if instance_ids.size == 0:
+            return []
 
         if self._return_occupancy_grids:
             H = pcd.shape[0]
@@ -240,20 +240,16 @@ class DatasetBase(objslampp.datasets.DatasetBase):
         for instance_id, class_id, T_cad2cam in zip(
             instance_ids, class_ids, Ts_cad2cam
         ):
-            if filter_class_ids and self._class_ids and \
-                    class_id not in self._class_ids:
-                examples.append(self._get_invalid_data())
+            if self._class_ids and class_id not in self._class_ids:
                 continue
 
             mask = instance_label == instance_id
             if mask.sum() < self._mask_size_minimal:
-                examples.append(self._get_invalid_data())
                 continue
 
             bbox = objslampp.geometry.masks_to_bboxes(mask)
             y1, x1, y2, x2 = bbox.round().astype(int)
             if (y2 - y1) * (x2 - x1) == 0:
-                examples.append(self._get_invalid_data())
                 continue
 
             # augment
@@ -272,7 +268,6 @@ class DatasetBase(objslampp.datasets.DatasetBase):
 
             nonnan = ~np.isnan(pcd_ins).any(axis=2)
             if nonnan.sum() == 0:
-                examples.append(self._get_invalid_data())
                 continue
 
             pitch = self._get_pitch(class_id=class_id)
@@ -307,22 +302,6 @@ class DatasetBase(objslampp.datasets.DatasetBase):
 
             examples.append(example)
         return examples
-
-    def get_example(self, index):
-        examples = self.get_examples(index)
-
-        class_ids = np.array([e['class_id'] for e in examples], dtype=int)
-
-        if self._class_ids:
-            keep = np.isin(class_ids, self._class_ids)
-        else:
-            # None or []
-            keep = class_ids != -1
-
-        if keep.sum():
-            return [example for kp, example in zip(keep, examples) if kp]
-        else:
-            return [self._get_invalid_data()]
 
     def _augment(self, rgb, depth, mask):
         augmentation_all = {'rgb', 'depth'}
