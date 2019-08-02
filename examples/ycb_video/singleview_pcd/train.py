@@ -21,6 +21,15 @@ import contrib
 here = path.Path(__file__).abspath().parent
 
 
+def concat_list_of_examples(list_of_examples, device=None, padding=None):
+    batch = []
+    for examples in list_of_examples:
+        batch.extend(examples)
+    return chainer.dataset.concat_examples(
+        batch, device=device, padding=padding
+    )
+
+
 def main():
     now = datetime.datetime.now(datetime.timezone.utc)
     default_out = str(here / 'logs' / now.strftime('%Y%m%d_%H%M%S.%f'))
@@ -32,12 +41,6 @@ def main():
     parser.add_argument('--debug', action='store_true', help='debug mode')
     parser.add_argument('--gpu', type=int, default=0, help='gpu id')
     parser.add_argument('--seed', type=int, default=0, help='random seed')
-    parser.add_argument(
-        '--freeze-until',
-        choices=['conv4_3', 'conv3_3', 'conv2_2', 'conv1_2', 'none'],
-        default='conv4_3',
-        help='freeze until',
-    )
     parser.add_argument(
         '--lr',
         type=float,
@@ -57,7 +60,7 @@ def main():
         help='max epoch',
     )
     parser.add_argument(
-        '--nocall-evaluation-before-training',
+        '--call-evaluation-before-training',
         action='store_true',
         help='no call evaluation before training',
     )
@@ -65,8 +68,14 @@ def main():
         '--class-ids',
         type=int,
         nargs='*',
-        default=[2],
+        default=objslampp.datasets.ycb_video.class_ids_asymmetric,
         help='class ids',
+    )
+    parser.add_argument(
+        '--num-syn',
+        type=float,
+        default=0.25,
+        help='number of synthetic examples used',
     )
     args = parser.parse_args()
 
@@ -95,7 +104,7 @@ def main():
 
     # dataset initialization
     data_train = contrib.datasets.YCBVideoDataset(
-        'train', class_ids=args.class_ids
+        'train', class_ids=args.class_ids, num_syn=args.num_syn
     )
     data_valid = contrib.datasets.YCBVideoDataset(
         'val', class_ids=args.class_ids
@@ -108,7 +117,6 @@ def main():
     # model initialization
     model = contrib.models.PoseNet(
         n_fg_class=len(class_names) - 1,
-        freeze_until=args.freeze_until,
         n_point=1000,
         lambda_confidence=args.lambda_confidence,
     )
@@ -120,25 +128,11 @@ def main():
     optimizer.setup(model)
 
     termcolor.cprint('==> Link update rules', attrs={'bold': True})
-    if args.freeze_until in ['conv1_2', 'conv2_2', 'conv3_3', 'conv4_3']:
-        model.vgg_extractor.conv1_1.disable_update()
-        model.vgg_extractor.conv1_2.disable_update()
-    if args.freeze_until in ['conv2_2', 'conv3_3', 'conv4_3']:
-        model.vgg_extractor.conv2_1.disable_update()
-        model.vgg_extractor.conv2_2.disable_update()
-    if args.freeze_until in ['conv3_3', 'conv4_3']:
-        model.vgg_extractor.conv3_1.disable_update()
-        model.vgg_extractor.conv3_2.disable_update()
-        model.vgg_extractor.conv3_3.disable_update()
-    if args.freeze_until in ['conv4_3']:
-        model.vgg_extractor.conv4_1.disable_update()
-        model.vgg_extractor.conv4_2.disable_update()
-        model.vgg_extractor.conv4_3.disable_update()
     for name, link in model.namedlinks():
         print(name, link.update_enabled)
 
     # iterator initialization
-    iter_train = chainer.iterators.SerialIterator(
+    iter_train = contrib.iterators.MultiExamplePerImageSerialIterator(
         data_train, batch_size=16, repeat=True, shuffle=True
     )
     iter_valid = chainer.iterators.SerialIterator(
@@ -177,6 +171,7 @@ def main():
     # evaluate
     evaluator = objslampp.training.extensions.PoseEstimationEvaluator(
         iterator=iter_valid,
+        converter=concat_list_of_examples,
         target=model,
         device=args.gpu,
         progress_bar=True,
@@ -184,7 +179,7 @@ def main():
     trainer.extend(
         evaluator,
         trigger=eval_interval,
-        call_before_training=not args.nocall_evaluation_before_training,
+        call_before_training=args.call_evaluation_before_training,
     )
 
     # snapshot

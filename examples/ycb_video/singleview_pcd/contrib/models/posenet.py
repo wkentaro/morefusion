@@ -2,10 +2,9 @@ import chainer
 from chainer.backends import cuda
 import chainer.functions as F
 import chainer.links as L
-from chainercv.links.model.vgg import VGG16
 import numpy as np
 
-# from .pspnet import PSPNetExtractor
+from .pspnet import PSPNetExtractor
 
 import objslampp
 
@@ -18,25 +17,14 @@ class PoseNet(chainer.Chain):
         self,
         *,
         n_fg_class,
-        freeze_until,
         lambda_confidence,
         n_point=1000,
     ):
         super().__init__()
         with self.init_scope():
             # extractor
-            self.vgg_extractor = VGG16(pretrained_model='imagenet')
-            self.vgg_extractor.pick = [
-                'conv4_3', 'conv3_3', 'conv2_2', 'conv1_2'
-            ]
-            self.vgg_extractor.remove_unused()
-            self.conv5_extractor = L.Convolution2D(
-                in_channels=512,
-                out_channels=32,
-                ksize=1,
-                initialW=chainer.initializers.Normal(0.01),
-            )
-            # self.pspnet_extractor = PSPNetExtractor()
+            self.resnet_extractor = objslampp.models.ResNet18()
+            self.pspnet_extractor = PSPNetExtractor()
             self.posenet_extractor = PoseNetExtractor()
             # conv1
             self.conv1_rot = L.Convolution1D(1408, 640, 1)
@@ -56,7 +44,6 @@ class PoseNet(chainer.Chain):
             self.conv4_conf = L.Convolution1D(128, n_fg_class, 1)
 
         self._n_fg_class = n_fg_class
-        self._freeze_until = freeze_until
         self._n_point = n_point
         self._lambda_confidence = lambda_confidence
 
@@ -76,24 +63,9 @@ class PoseNet(chainer.Chain):
         rgb = rgb.astype(np.float32).transpose(0, 3, 1, 2)  # BHWC -> BCHW
         pcd = pcd.astype(np.float32).transpose(0, 3, 1, 2)  # BHWC -> BCHW
 
-        mean = xp.asarray(self.vgg_extractor.mean)
-        h_conv4_3, h_conv3_3, h_conv2_2, h_conv1_2 = \
-            self.vgg_extractor(rgb - mean[None])
-        if self._freeze_until == 'conv4_3':
-            h_conv4_3.unchain_backward()
-        elif self._freeze_until == 'conv3_3':
-            h_conv3_3.unchain_backward()
-        elif self._freeze_until == 'conv2_2':
-            h_conv2_2.unchain_backward()
-        elif self._freeze_until == 'conv1_2':
-            h_conv1_2.unchain_backward()
-        else:
-            assert self._freeze_until == 'none'
-        del h_conv3_3, h_conv2_2, h_conv1_2
-        h_rgb = h_conv4_3  # 1/8, 256x256 -> 32x32
-        # h_rgb = self.pspnet_extractor(h_rgb)  # 1/1
-        h_rgb = F.relu(self.conv5_extractor(h_rgb))
-        h_rgb = F.resize_images(h_rgb, (H, W))  # 1/1
+        mean = xp.asarray(self.resnet_extractor.mean)
+        h_rgb = self.resnet_extractor(rgb - mean[None])
+        h_rgb = self.pspnet_extractor(h_rgb)  # 1/1
 
         # extract indices
         h_rgb_masked = []
@@ -367,7 +339,6 @@ if __name__ == '__main__':
 
     model = PoseNet(
         n_fg_class=21,
-        freeze_until='conv4_3',
         lambda_confidence=0.015,
     )
     if gpu >= -1:

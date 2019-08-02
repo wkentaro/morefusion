@@ -2,4 +2,6 @@
 
 from . import datasets
 
+from . import iterators
+
 from . import models
