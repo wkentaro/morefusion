@@ -2,11 +2,12 @@ import chainer
 from chainer.backends import cuda
 import chainer.functions as F
 import chainer.links as L
-from chainercv.links.model.vgg import VGG16
 import numpy as np
 import trimesh
 
 import objslampp
+
+from .pspnet import PSPNetExtractor
 
 
 class BaselineModel(chainer.Chain):
@@ -18,8 +19,7 @@ class BaselineModel(chainer.Chain):
         self,
         *,
         n_fg_class,
-        freeze_until,
-        voxelization,
+        voxelization='max',
         use_occupancy=False,
         loss=None,
         loss_scale=None,
@@ -28,7 +28,6 @@ class BaselineModel(chainer.Chain):
         super().__init__()
 
         self._n_fg_class = n_fg_class
-        self._freeze_until = freeze_until
         self._voxelization = voxelization
         self._use_occupancy = use_occupancy
 
@@ -67,24 +66,17 @@ class BaselineModel(chainer.Chain):
             ohem_threshold = (0, 0)  # asymmetric, symmetric
         self._ohem_threshold = ohem_threshold
 
-        kwargs = dict(initialW=chainer.initializers.Normal(0.01))
         with self.init_scope():
-            self.extractor = VGG16(pretrained_model='imagenet')
-            self.extractor.pick = ['conv4_3', 'conv3_3', 'conv2_2', 'conv1_2']
-            self.extractor.remove_unused()
-            self.conv5 = L.Convolution2D(
-                in_channels=512,
-                out_channels=16,
-                ksize=1,
-                **kwargs,
-            )
+            # extractor
+            self.resnet_extractor = objslampp.models.ResNet18()
+            self.pspnet_extractor = PSPNetExtractor()
 
-            # voxelization_3d -> (16, 32, 32, 32)
+            # voxelization_3d -> (32, 32, 32, 32)
 
             if self._use_occupancy:
-                # target occupied (16)
+                # target occupied (32)
                 # nontarget occupied or empty (8)
-                in_channels = 16 + 8
+                in_channels = 32 + 8
 
                 self.conv5_occ = L.Convolution3D(
                     in_channels=1,
@@ -92,10 +84,9 @@ class BaselineModel(chainer.Chain):
                     ksize=3,
                     stride=1,
                     pad=1,
-                    **kwargs,
                 )  # 32x32x32 -> 32x32x32
             else:
-                in_channels = 16
+                in_channels = 32
 
             self.conv6 = L.Convolution3D(
                 in_channels=in_channels,
@@ -103,7 +94,6 @@ class BaselineModel(chainer.Chain):
                 ksize=4,
                 stride=2,
                 pad=1,
-                **kwargs,
             )  # 32x32x32 -> 16x16x16
 
             self.conv7 = L.Convolution3D(
@@ -112,13 +102,12 @@ class BaselineModel(chainer.Chain):
                 ksize=4,
                 stride=2,
                 pad=1,
-                **kwargs,
             )  # 16x16x16 -> 8x8x8
 
             # 16 * 8 * 8 * 8 = 8192
-            self.fc8 = L.Linear(8192, 1024, **kwargs)
-            self.fc_quaternion = L.Linear(1024, 4 * n_fg_class, **kwargs)
-            self.fc_translation = L.Linear(1024, 3 * n_fg_class, **kwargs)
+            self.fc8 = L.Linear(8192, 1024)
+            self.fc_quaternion = L.Linear(1024, 4 * n_fg_class)
+            self.fc_translation = L.Linear(1024, 3 * n_fg_class)
 
     def predict(
         self,
@@ -147,24 +136,9 @@ class BaselineModel(chainer.Chain):
             grid_nontarget_empty = grid_nontarget_empty.astype(np.float32)
 
         # feature extraction
-        mean = xp.asarray(self.extractor.mean)
-        h_conv4_3, h_conv3_3, h_conv2_2, h_conv1_2 = self.extractor(
-            rgb - mean[None]
-        )
-        if self._freeze_until == 'conv4_3':
-            h_conv4_3.unchain_backward()
-        elif self._freeze_until == 'conv3_3':
-            h_conv3_3.unchain_backward()
-        elif self._freeze_until == 'conv2_2':
-            h_conv2_2.unchain_backward()
-        elif self._freeze_until == 'conv1_2':
-            h_conv1_2.unchain_backward()
-        else:
-            self._freeze_until == 'none'
-        del h_conv3_3, h_conv2_2, h_conv1_2
-        h = h_conv4_3  # 1/8   # 256x256 -> 32x32
-        h = F.relu(self.conv5(h))
-        h = F.resize_images(h, (H, W))
+        mean = xp.asarray(self.resnet_extractor.mean)
+        h = self.resnet_extractor(rgb - mean[None])  # 1/8
+        h = self.pspnet_extractor(h)  # 1/1
 
         h_vox = []
         for i in range(B):
