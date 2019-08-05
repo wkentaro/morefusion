@@ -170,7 +170,13 @@ def max_voxelization_3d(
     pitch,
     dimensions,
     channels,
+    return_indices=False,
 ):
-    return MaxVoxelization3D(
+    func = MaxVoxelization3D(
         origin=origin, pitch=pitch, dimensions=dimensions, channels=channels
-    )(values, points)
+    )
+    vox = func(values, points)
+    if return_indices:
+        return vox, func.indices
+    else:
+        return vox
