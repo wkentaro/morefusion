@@ -262,7 +262,12 @@ def main():
             else:
                 text = f'[{which}]'
             viz = imgviz.draw.text_in_rectangle(
-                viz, loc='lt', text=text, size=20, background=(0, 255, 0)
+                viz,
+                loc='lt',
+                text=text,
+                size=20,
+                background=(0, 255, 0),
+                color=(0, 0, 0),
             )
             if which == 'true':
                 viz = imgviz.draw.text_in_rectangle(
@@ -271,6 +276,7 @@ def main():
                     text='singleview_3d',
                     size=20,
                     background=(255, 0, 0),
+                    color=(0, 0, 0),
                 )
             vizs.append(viz)
         viz = imgviz.tile(vizs, (2, 1), border=(255, 255, 255))
