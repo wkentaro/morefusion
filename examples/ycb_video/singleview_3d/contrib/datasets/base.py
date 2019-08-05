@@ -39,24 +39,24 @@ class DatasetBase(objslampp.datasets.DatasetBase):
     def _get_cache_dir(self, index):
         raise NotImplementedError
 
-    def _get_invalid_data(self):
-        example = dict(
-            class_id=-1,
-            pitch=0.,
-            origin=np.zeros((3,), dtype=np.float64),
-            rgb=np.zeros((256, 256, 3), dtype=np.uint8),
-            pcd=np.zeros((256, 256, 3), dtype=np.float64),
-            quaternion_true=np.zeros((4,), dtype=np.float64),
-            translation_true=np.zeros((3,), dtype=np.float64),
-        )
-        if self._return_occupancy_grids:
-            dims = (self._voxel_dim,) * 3
-            example['grid_target'] = np.zeros(dims, dtype=np.float64)
-            example['grid_nontarget'] = np.zeros(dims, dtype=np.float64)
-            example['grid_empty'] = np.zeros(dims, dtype=np.float64)
-            example['grid_target_full'] = np.zeros(dims, dtype=np.float64)
-            example['grid_nontarget_full'] = np.zeros(dims, dtype=np.float64)
-        return example
+    # def _get_invalid_data(self):
+    #     example = dict(
+    #         class_id=-1,
+    #         pitch=0.,
+    #         origin=np.zeros((3,), dtype=np.float64),
+    #         rgb=np.zeros((256, 256, 3), dtype=np.uint8),
+    #         pcd=np.zeros((256, 256, 3), dtype=np.float64),
+    #         quaternion_true=np.zeros((4,), dtype=np.float64),
+    #         translation_true=np.zeros((3,), dtype=np.float64),
+    #     )
+    #     if self._return_occupancy_grids:
+    #         dims = (self._voxel_dim,) * 3
+    #         example['grid_target'] = np.zeros(dims, dtype=np.float64)
+    #         example['grid_nontarget'] = np.zeros(dims, dtype=np.float64)
+    #         example['grid_empty'] = np.zeros(dims, dtype=np.float64)
+    #         example['grid_target_full'] = np.zeros(dims, dtype=np.float64)
+    #         example['grid_nontarget_full'] = np.zeros(dims, dtype=np.float64)
+    #     return example
 
     def _get_pitch(self, class_id):
         return self._models.get_voxel_pitch(
