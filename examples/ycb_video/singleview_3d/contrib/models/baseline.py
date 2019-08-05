@@ -19,7 +19,6 @@ class BaselineModel(chainer.Chain):
         self,
         *,
         n_fg_class,
-        voxelization='max',
         use_occupancy=False,
         loss=None,
         loss_scale=None,
@@ -28,7 +27,6 @@ class BaselineModel(chainer.Chain):
         super().__init__()
 
         self._n_fg_class = n_fg_class
-        self._voxelization = voxelization
         self._use_occupancy = use_occupancy
 
         self._loss = 'add/add_s' if loss is None else loss
@@ -71,13 +69,7 @@ class BaselineModel(chainer.Chain):
             self.resnet_extractor = objslampp.models.ResNet18()
             self.pspnet_extractor = PSPNetExtractor()
 
-            # voxelization_3d -> (32, 32, 32, 32)
-
             if self._use_occupancy:
-                # target occupied (32)
-                # nontarget occupied or empty (8)
-                in_channels = 32 + 8
-
                 self.conv5_occ = L.Convolution3D(
                     in_channels=1,
                     out_channels=8,
@@ -85,29 +77,17 @@ class BaselineModel(chainer.Chain):
                     stride=1,
                     pad=1,
                 )  # 32x32x32 -> 32x32x32
-            else:
-                in_channels = 32
 
-            self.conv6 = L.Convolution3D(
-                in_channels=in_channels,
-                out_channels=16,
-                ksize=4,
-                stride=2,
-                pad=1,
-            )  # 32x32x32 -> 16x16x16
+            self.voxel_extractor = VoxelFeatureExtractor()
 
-            self.conv7 = L.Convolution3D(
-                in_channels=16,
-                out_channels=16,
-                ksize=4,
-                stride=2,
-                pad=1,
-            )  # 16x16x16 -> 8x8x8
-
-            # 16 * 8 * 8 * 8 = 8192
-            self.fc8 = L.Linear(8192, 1024)
-            self.fc_quaternion = L.Linear(1024, 4 * n_fg_class)
-            self.fc_translation = L.Linear(1024, 3 * n_fg_class)
+            self.fc1_rot = L.Linear(None, 640, 1)
+            self.fc1_trans = L.Linear(None, 640, 1)
+            self.fc2_rot = L.Linear(640, 256, 1)
+            self.fc2_trans = L.Linear(640, 256, 1)
+            self.fc3_rot = L.Linear(256, 128, 1)
+            self.fc3_trans = L.Linear(256, 128, 1)
+            self.fc4_rot = L.Linear(128, n_fg_class * 4, 1)
+            self.fc4_trans = L.Linear(128, n_fg_class * 3, 1)
 
     def predict(
         self,
@@ -140,7 +120,7 @@ class BaselineModel(chainer.Chain):
         h = self.resnet_extractor(rgb - mean[None])  # 1/8
         h = self.pspnet_extractor(h)  # 1/1
 
-        h_vox = []
+        h_ = []
         for i in range(B):
             h_i = h[i]
             pcd_i = pcd[i]
@@ -152,12 +132,7 @@ class BaselineModel(chainer.Chain):
             values = h_i[mask_i, :]    # MC
             points = pcd_i[mask_i, :]  # M3
 
-            if self._voxelization == 'average':
-                func = objslampp.functions.average_voxelization_3d
-            else:
-                assert self._voxelization == 'max'
-                func = objslampp.functions.max_voxelization_3d
-            h_i = func(
+            h_i = objslampp.functions.max_voxelization_3d(
                 values=values,
                 points=points,
                 origin=origin[i],
@@ -165,29 +140,35 @@ class BaselineModel(chainer.Chain):
                 dimensions=dimensions,
                 channels=h_i.shape[2],
             )  # CXYZ
-            h_vox.append(h_i[None])
-        h = F.concat(h_vox, axis=0)          # BCXYZ
-        del h_vox
+            h_.append(h_i[None])
+        h = F.concat(h_, axis=0)          # BCXYZ
+        del h_
 
         if self._use_occupancy:
             h_occ = self.conv5_occ(grid_nontarget_empty[:, None, :, :, :])
             h = F.concat([h, h_occ], axis=1)
 
-        h = F.relu(self.conv6(h))
-        h = F.relu(self.conv7(h))
-        h = F.relu(self.fc8(h))
+        h = self.voxel_extractor(h)
 
-        quaternion = self.fc_quaternion(h)
-        quaternion = quaternion.reshape(B, self._n_fg_class, 4)
-        translation = self.fc_translation(h)
-        translation = translation.reshape(B, self._n_fg_class, 3)
+        h_rot = F.relu(self.fc1_rot(h))
+        h_trans = F.relu(self.fc1_trans(h))
+        h_rot = F.relu(self.fc2_rot(h_rot))
+        h_trans = F.relu(self.fc2_trans(h_trans))
+        h_rot = F.relu(self.fc3_rot(h_rot))
+        h_trans = F.relu(self.fc3_trans(h_trans))
+        cls_rot = self.fc4_rot(h_rot)
+        cls_trans = self.fc4_trans(h_trans)
+
+        quaternion = cls_rot.reshape(B, self._n_fg_class, 4)
+        translation = cls_trans.reshape(B, self._n_fg_class, 3)
 
         fg_class_id = class_id - 1
         quaternion = quaternion[xp.arange(B), fg_class_id, :]
         translation = translation[xp.arange(B), fg_class_id, :]
 
         quaternion = F.normalize(quaternion, axis=1)
-        translation = origin + translation * pitch[:, None] * self._voxel_dim
+        center = origin + pitch[:, None] * (self._voxel_dim / 2 - 0.5)
+        translation = center + translation * pitch[:, None] * self._voxel_dim
 
         return quaternion, translation
 
@@ -487,3 +468,23 @@ class BaselineModel(chainer.Chain):
         chainer.report(values, observer=self)
 
         return loss
+
+
+class VoxelFeatureExtractor(chainer.Chain):
+
+    def __init__(self):
+        super().__init__()
+        with self.init_scope():
+            self.conv1 = L.Convolution3D(None, 64, 4, stride=2, pad=1)
+            self.conv2 = L.Convolution3D(64, 128, 4, stride=2, pad=1)
+            self.conv3 = L.Convolution3D(128, 256, 4, stride=2, pad=1)
+            self.conv4 = L.Convolution3D(256, 512, 4, stride=2, pad=1)
+            self.conv5 = L.Convolution3D(512, 1024, 4, stride=2, pad=1)
+
+    def __call__(self, h):
+        h = F.relu(self.conv1(h))
+        h = F.relu(self.conv2(h))
+        h = F.relu(self.conv3(h))
+        h = F.relu(self.conv4(h))
+        h = F.relu(self.conv5(h))
+        return h
