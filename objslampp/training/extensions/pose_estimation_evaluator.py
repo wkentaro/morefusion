@@ -74,7 +74,8 @@ class PoseEstimationEvaluator(chainer.training.extensions.Evaluator):
 
         # compute auc for adds
         for sub_key, values in adds.items():
-            auc = metrics.auc_for_errors(values, max_threshold=0.1)
+            # auc = metrics.auc_for_errors(values, max_threshold=0.1)
+            auc = metrics.ycb_video_add_auc(values, max_value=0.1)
             result[f'validation/main/auc/{sub_key}'] = auc
 
         # average child observations
