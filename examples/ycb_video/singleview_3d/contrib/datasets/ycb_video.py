@@ -19,15 +19,11 @@ class YCBVideoDataset(DatasetBase):
         self,
         split,
         class_ids=None,
-        augmentation=None,
-        return_occupancy_grids=False,
         sampling=None,
         num_syn=1.0,
     ):
         super().__init__(
             class_ids=class_ids,
-            augmentation=augmentation,
-            return_occupancy_grids=return_occupancy_grids,
         )
 
         assert isinstance(split, str)
@@ -104,40 +100,3 @@ class YCBVideoDataset(DatasetBase):
             Ts_cad2cam=Ts_cad2cam,
             cad_files={},
         )
-
-
-def main():
-    dataset = YCBVideoDataset(
-        'train',
-        class_ids=None,
-        augmentation={'rgb', 'depth'},
-        return_occupancy_grids=True,
-    )
-    print(f'dataset_size: {len(dataset)}')
-
-    # -------------------------------------------------------------------------
-
-    import imgviz
-
-    def images():
-        for i in range(0, len(dataset)):
-            example = dataset[i]
-            print(f"class_id: {example['class_id']}")
-            print(f"pitch: {example['pitch']}")
-            print(f"quaternion_true: {example['quaternion_true']}")
-            print(f"translation_true: {example['translation_true']}")
-            if example['class_id'] > 0:
-                viz = imgviz.tile([
-                    example['rgb'],
-                    imgviz.depth2rgb(example['pcd'][:, :, 0]),
-                    imgviz.depth2rgb(example['pcd'][:, :, 1]),
-                    imgviz.depth2rgb(example['pcd'][:, :, 2]),
-                ], (1, 4), border=(255, 255, 255))
-                yield viz
-
-    imgviz.io.pyglet_imshow(images())
-    imgviz.io.pyglet_run()
-
-
-if __name__ == '__main__':
-    main()

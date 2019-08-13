@@ -1,4 +1,3 @@
-import chainer
 import imgviz
 import numpy as np
 import trimesh.transformations as tf
@@ -21,16 +20,6 @@ class DatasetBase(objslampp.datasets.DatasetBase):
             class_ids = tuple(class_ids)
         self._class_ids = class_ids
 
-    def _get_invalid_data(self):
-        example = dict(
-            class_id=-1,
-            rgb=np.zeros((256, 256, 3), dtype=np.uint8),
-            pcd=np.zeros((256, 256, 3), dtype=np.float64),
-            quaternion_true=np.zeros((4,), dtype=np.float64),
-            translation_true=np.zeros((3,), dtype=np.float64),
-        )
-        return example
-
     def get_example(self, index):
         frame = self.get_frame(index)
 
@@ -45,15 +34,10 @@ class DatasetBase(objslampp.datasets.DatasetBase):
             depth, fx=K[0, 0], fy=K[1, 1], cx=K[0, 2], cy=K[1, 2],
         )
 
-        if chainer.is_debug():
-            print(f'[{index:08d}]: class_ids: {class_ids.tolist()}')
-            print(f'[{index:08d}]: instance_ids: {instance_ids.tolist()}')
-
-        examples = []
-
         if instance_ids.size == 0:
             return []
 
+        examples = []
         for instance_id, class_id, T_cad2cam in zip(
             instance_ids, class_ids, Ts_cad2cam
         ):
