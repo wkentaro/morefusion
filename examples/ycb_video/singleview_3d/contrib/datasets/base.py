@@ -70,8 +70,7 @@ class DatasetBase(objslampp.datasets.DatasetBase):
             rgb_ins = imgviz.centerize(rgb_ins, (256, 256))
 
             pitch = self._get_pitch(class_id=class_id)
-            centroid = np.nanmean(pcd_ins, axis=(0, 1))
-            center = centroid + (0, 0, pitch * self._voxel_dim / 5)
+            center = np.nanmedian(pcd_ins, axis=(0, 1))
             origin = center - pitch * (self._voxel_dim / 2. - 0.5)
 
             quaternion_true = tf.quaternion_from_matrix(T_cad2cam)
