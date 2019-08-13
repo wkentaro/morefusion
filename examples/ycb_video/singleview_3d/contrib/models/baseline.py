@@ -80,8 +80,8 @@ class BaselineModel(chainer.Chain):
 
             self.voxel_extractor = VoxelFeatureExtractor()
 
-            self.fc1_rot = L.Linear(None, 640, 1)
-            self.fc1_trans = L.Linear(None, 640, 1)
+            self.fc1_rot = L.Linear(1024, 640, 1)
+            self.fc1_trans = L.Linear(1024, 640, 1)
             self.fc2_rot = L.Linear(640, 256, 1)
             self.fc2_trans = L.Linear(640, 256, 1)
             self.fc3_rot = L.Linear(256, 128, 1)
@@ -121,6 +121,8 @@ class BaselineModel(chainer.Chain):
         h = self.pspnet_extractor(h)  # 1/1
 
         h_ = []
+        counts = []
+        centroids = []
         for i in range(B):
             h_i = h[i]
             pcd_i = pcd[i]
@@ -132,23 +134,32 @@ class BaselineModel(chainer.Chain):
             values = h_i[mask_i, :]    # MC
             points = pcd_i[mask_i, :]  # M3
 
-            h_i = objslampp.functions.max_voxelization_3d(
+            h_i, counts_i = objslampp.functions.average_voxelization_3d(
                 values=values,
                 points=points,
                 origin=origin[i],
                 pitch=pitch[i],
                 dimensions=dimensions,
                 channels=h_i.shape[2],
+                return_counts=True,
             )  # CXYZ
             h_.append(h_i[None])
-        h = F.concat(h_, axis=0)          # BCXYZ
+            counts.append(counts_i[None])
+
+            # mean of active points (voxels)
+            centroid = xp.stack(xp.nonzero(counts_i[0])).mean(axis=1)
+            centroid = centroid * pitch[i] + origin[i]
+            centroids.append(centroid[None])
+        h = F.concat(h_, axis=0)           # BCXYZ
+        counts = xp.concatenate(counts, axis=0)  # BXYZ
+        centroids = xp.concatenate(centroids, axis=0)  # B3
         del h_
 
         if self._use_occupancy:
             h_occ = self.conv5_occ(grid_nontarget_empty[:, None, :, :, :])
             h = F.concat([h, h_occ], axis=1)
 
-        h = self.voxel_extractor(h)
+        h = self.voxel_extractor(h, counts)
 
         h_rot = F.relu(self.fc1_rot(h))
         h_trans = F.relu(self.fc1_trans(h))
@@ -167,8 +178,7 @@ class BaselineModel(chainer.Chain):
         translation = translation[xp.arange(B), fg_class_id, :]
 
         quaternion = F.normalize(quaternion, axis=1)
-        center = origin + pitch[:, None] * (self._voxel_dim / 2 - 0.5)
-        translation = center + translation * pitch[:, None] * self._voxel_dim
+        translation = centroids + translation * pitch[:, None]
 
         return quaternion, translation
 
@@ -475,16 +485,30 @@ class VoxelFeatureExtractor(chainer.Chain):
     def __init__(self):
         super().__init__()
         with self.init_scope():
+            # 32x32x32 -> 16x16x16
             self.conv1 = L.Convolution3D(None, 64, 4, stride=2, pad=1)
-            self.conv2 = L.Convolution3D(64, 128, 4, stride=2, pad=1)
-            self.conv3 = L.Convolution3D(128, 256, 4, stride=2, pad=1)
-            self.conv4 = L.Convolution3D(256, 512, 4, stride=2, pad=1)
-            self.conv5 = L.Convolution3D(512, 1024, 4, stride=2, pad=1)
+            self.conv2 = L.Convolution3D(64, 128, 3, stride=1, pad=1)
+            self.conv3 = L.Convolution3D(128, 256, 3, stride=1, pad=1)
+            self.conv4 = L.Convolution3D(256, 512, 3, stride=1, pad=1)
+            self.conv5 = L.Convolution3D(512, 1024, 3, stride=1, pad=1)
 
-    def __call__(self, h):
+    def __call__(self, h, counts):
+        xp = self.xp
+
         h = F.relu(self.conv1(h))
         h = F.relu(self.conv2(h))
         h = F.relu(self.conv3(h))
         h = F.relu(self.conv4(h))
         h = F.relu(self.conv5(h))
+
+        h_ = []
+        for i in range(h.shape[0]):
+            X, Y, Z = xp.nonzero(counts[i, 0, :, :, :])
+            X, Y, Z = X // 2, Y // 2, Z // 2
+            h_i = h[i, :, X, Y, Z]
+            h_i = F.average(h_i, axis=0)
+            h_.append(h_i[None])
+        h = F.concat(h_, axis=0)
+        del h_
+
         return h
