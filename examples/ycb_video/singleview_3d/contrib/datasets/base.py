@@ -9,7 +9,7 @@ class DatasetBase(objslampp.datasets.DatasetBase):
 
     _models = objslampp.datasets.YCBVideoModels()
     _voxel_dim = 32
-    _mask_size_minimal = 1
+    _n_points_minimal = 50
 
     def __init__(
         self,
@@ -51,27 +51,23 @@ class DatasetBase(objslampp.datasets.DatasetBase):
                 continue
 
             mask = instance_label == instance_id
-            if mask.sum() < self._mask_size_minimal:
-                continue
-
             bbox = objslampp.geometry.masks_to_bboxes(mask)
             y1, x1, y2, x2 = bbox.round().astype(int)
             if (y2 - y1) * (x2 - x1) == 0:
                 continue
 
+            pcd_ins = pcd.copy()
+            pcd_ins[~mask] = np.nan
+            pcd_ins = pcd_ins[y1:y2, x1:x2]
+            nonnan = ~np.isnan(pcd_ins).any(axis=2)
+            if nonnan.sum() < self._n_points_minimal:
+                continue
+            pcd_ins = imgviz.centerize(pcd_ins, (256, 256), cval=np.nan)
+
             rgb_ins = rgb.copy()
             rgb_ins[~mask] = 0
             rgb_ins = rgb_ins[y1:y2, x1:x2]
             rgb_ins = imgviz.centerize(rgb_ins, (256, 256))
-
-            pcd_ins = pcd.copy()
-            pcd_ins[~mask] = np.nan
-            pcd_ins = pcd_ins[y1:y2, x1:x2]
-            pcd_ins = imgviz.centerize(pcd_ins, (256, 256), cval=np.nan)
-
-            nonnan = ~np.isnan(pcd_ins).any(axis=2)
-            if nonnan.sum() == 0:
-                continue
 
             pitch = self._get_pitch(class_id=class_id)
             centroid = np.nanmean(pcd_ins, axis=(0, 1))
