@@ -12,7 +12,10 @@ install_v-hacd: install_anaconda3
 install_binvox: install_anaconda3
 	@.make/install_binvox.sh
 
-install: install_anaconda3 install_v-hacd install_binvox
+install_pykfusion: install_anaconda3
+	@.make/install_pykfusion.sh
+
+install: install_anaconda3 install_v-hacd install_binvox install_pykfusion
 	@.make/install.sh
 
 lint:

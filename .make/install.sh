@@ -48,6 +48,9 @@ pip install cython numpy
 
 echo_bold "==> Checking the remaining change in src/"
 for dir in src/*; do
+  if [ ! -d $dir ]; then
+    continue
+  fi
   diff=$(cd $dir && git diff)
   if [ "$diff" != "" ]; then
     echo_error "==> Found a diff in the source: $dir"
