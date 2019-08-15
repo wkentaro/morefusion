@@ -6,6 +6,8 @@ import pyglet
 import trimesh
 import trimesh.transformations as tf
 
+from .._pyglet import numpy_to_image
+
 
 def _get_tile_shape(num, hw_ratio=1):
     r_num = int(round(math.sqrt(num / hw_ratio)))  # weighted by wh_ratio
@@ -40,11 +42,23 @@ def display_scenes(data, height=480, width=640, tile=None, caption=None):
     else:
         nrow, ncol = tile
 
-    window = pyglet.window.Window(
-        height=height * nrow,
-        width=width * ncol,
-        caption=caption,
-    )
+    configs = [
+        pyglet.gl.Config(
+            sample_buffers=1, samples=4, depth_size=24, double_buffer=True
+        ),
+        pyglet.gl.Config(double_buffer=True),
+    ]
+    for config in configs:
+        try:
+            window = pyglet.window.Window(
+                height=height * nrow,
+                width=width * ncol,
+                caption=caption,
+                config=config,
+            )
+            break
+        except pyglet.window.NoSuchConfigException:
+            pass
     window.rotate = 0
 
     if scenes_group:
@@ -82,24 +96,30 @@ def display_scenes(data, height=480, width=640, tile=None, caption=None):
     def callback(dt):
         if window.rotate:
             for widget in widgets.values():
-                scene = widget.scene
-                camera = scene.camera
-                axis = tf.transform_points(
-                    [[0, 1, 0]], camera.transform, translate=False
-                )[0]
-                camera.transform = tf.rotation_matrix(
-                    np.deg2rad(window.rotate), axis, point=scene.centroid
-                ) @ camera.transform
-                widget.view['ball']._n_pose = camera.transform
+                if isinstance(widget, trimesh.viewer.SceneWidget):
+                    scene = widget.scene
+                    camera = scene.camera
+                    axis = tf.transform_points(
+                        [[0, 1, 0]], camera.transform, translate=False
+                    )[0]
+                    camera.transform = tf.rotation_matrix(
+                        np.deg2rad(window.rotate), axis, point=scene.centroid
+                    ) @ camera.transform
+                    widget.view['ball']._n_pose = camera.transform
             return
 
         if window.scenes_group and (window.next or window.play):
             try:
                 scenes = next(window.scenes_group)
                 for key, widget in widgets.items():
-                    widget.scene.geometry.update(scenes[key].geometry)
-                    widget.scene.graph.load(scenes[key].graph.to_edgelist())
-                    widget._draw()
+                    if isinstance(widget, trimesh.viewer.SceneWidget):
+                        widget.scene.geometry.update(scenes[key].geometry)
+                        widget.scene.graph.load(
+                            scenes[key].graph.to_edgelist()
+                        )
+                        widget._draw()
+                    elif isinstance(widget, glooey.Image):
+                        widget.set_image(numpy_to_image(scenes[key]))
             except StopIteration:
                 window.play = False
             window.next = False
@@ -113,11 +133,18 @@ def display_scenes(data, height=480, width=640, tile=None, caption=None):
     for i, (name, scene) in enumerate(scenes.items()):
         vbox = glooey.VBox()
         vbox.add(glooey.Label(text=name, color=(255,) * 3), size=0)
-        widgets[name] = trimesh.viewer.SceneWidget(scene)
-        if trackball is None:
-            trackball = widgets[name].view['ball']
+        if isinstance(scene, trimesh.Scene):
+            widgets[name] = trimesh.viewer.SceneWidget(scene)
+            if trackball is None:
+                trackball = widgets[name].view['ball']
+            else:
+                widgets[name].view['ball'] = trackball
+        elif isinstance(scene, np.ndarray):
+            widgets[name] = glooey.Image(
+                numpy_to_image(scene), responsive=True
+            )
         else:
-            widgets[name].view['ball'] = trackball
+            raise TypeError(f'unsupported type of scene: {scene}')
         vbox.add(widgets[name])
         grid[i // ncol, i % ncol] = vbox
 
