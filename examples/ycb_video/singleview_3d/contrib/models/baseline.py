@@ -485,12 +485,10 @@ class VoxelFeatureExtractor(chainer.Chain):
     def __init__(self):
         super().__init__()
         with self.init_scope():
-            # 32x32x32 -> 16x16x16
-            self.conv1 = L.Convolution3D(None, 64, 4, stride=2, pad=1)
-            self.conv2 = L.Convolution3D(64, 128, 3, stride=1, pad=1)
-            self.conv3 = L.Convolution3D(128, 256, 3, stride=1, pad=1)
-            self.conv4 = L.Convolution3D(256, 512, 3, stride=1, pad=1)
-            self.conv5 = L.Convolution3D(512, 1024, 3, stride=1, pad=1)
+            self.conv1 = L.Convolution3D(None, 128, 4, stride=2, pad=1)
+            self.conv2 = L.Convolution3D(128, 256, 3, stride=1, pad=1)
+            self.conv3 = L.Convolution3D(256, 512, 3, stride=1, pad=1)
+            self.conv4 = L.Convolution3D(512, 1024, 3, stride=1, pad=1)
 
     def __call__(self, h, counts):
         xp = self.xp
@@ -499,7 +497,6 @@ class VoxelFeatureExtractor(chainer.Chain):
         h = F.relu(self.conv2(h))
         h = F.relu(self.conv3(h))
         h = F.relu(self.conv4(h))
-        h = F.relu(self.conv5(h))
 
         h_ = []
         for i in range(h.shape[0]):
