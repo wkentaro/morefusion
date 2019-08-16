@@ -275,8 +275,8 @@ def main():
             data_train = contrib.datasets.YCBVideoDataset(
                 'train',
                 class_ids=args.class_ids,
-                augmentation=args.augmentation,
-                return_occupancy_grids=return_occupancy_grids,
+                # augmentation=args.augmentation,
+                # return_occupancy_grids=return_occupancy_grids,
                 num_syn=args.num_syn,
             )
         elif args.dataset == 'my_synthetic':
@@ -299,7 +299,7 @@ def main():
             data_valid = contrib.datasets.YCBVideoDataset(
                 'val',
                 class_ids=args.class_ids,
-                return_occupancy_grids=return_occupancy_grids,
+                # return_occupancy_grids=return_occupancy_grids,
             )
 
         termcolor.cprint('==> Dataset size', attrs={'bold': True})
