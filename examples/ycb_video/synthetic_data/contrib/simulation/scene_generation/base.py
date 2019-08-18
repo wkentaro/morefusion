@@ -24,7 +24,7 @@ class SceneGenerationBase:
         self._models = models
         self._n_object = n_object
         if random_state is None:
-            random_state = np.random.RandomState()
+            random_state = np.random.mtrand._rand
         self._random_state = random_state
         self._class_weight = class_weight
         self._multi_instance = multi_instance

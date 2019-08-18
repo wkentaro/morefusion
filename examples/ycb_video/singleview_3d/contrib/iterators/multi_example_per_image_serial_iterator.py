@@ -7,7 +7,7 @@ class MultiExamplePerImageSerialIterator(chainer.iterators.SerialIterator):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._random_state = numpy.random.RandomState()
+        self._random_state = numpy.random.mtrand._rand
 
     def __next__(self):
         self._previous_epoch_detail = self.epoch_detail
