@@ -63,12 +63,36 @@ class BaselineModel(chainer.Chain):
         rgb,
         pcd,
     ):
+        values, points = self._extract(
+            class_id=class_id,
+            pitch=pitch,
+            origin=origin,
+            rgb=rgb,
+            pcd=pcd,
+        )
+
+        h, actives = self._voxelize(
+            class_id=class_id,
+            pitch=pitch,
+            origin=origin,
+            values=values,
+            points=points,
+        )
+
+        return self._predict_from_voxel(
+            class_id=class_id,
+            pitch=pitch,
+            origin=origin,
+            matrix=h,
+            actives=actives,
+        )
+
+    def _extract(self, class_id, pitch, origin, rgb, pcd):
         xp = self.xp
 
         B, H, W, C = rgb.shape
         assert H == W == 256
         assert C == 3
-        dimensions = (self._voxel_dim,) * 3
 
         # prepare
         pitch = pitch.astype(np.float32)
@@ -81,32 +105,62 @@ class BaselineModel(chainer.Chain):
         h_rgb = self.resnet_extractor(rgb - mean[None])  # 1/8
         h_rgb = self.pspnet_extractor(h_rgb)  # 1/1
 
+        mask = ~xp.isnan(pcd).any(axis=1)  # BHW
+        values = []  # BMC
+        points = []  # BM3
+        for i in range(B):
+            # mask[i]:  HW
+            # h_rgb[i]: CHW
+            # pcd[i]:   3HW
+            values.append(h_rgb[i][:, mask[i]].transpose(1, 0))  # MC
+            points.append(pcd[i][:, mask[i]].transpose(1, 0))    # M3
+
+        return values, points
+
+    def _voxelize(
+        self,
+        class_id,
+        pitch,
+        origin,
+        values,
+        points,
+    ):
+        xp = self.xp
+
+        B = class_id.shape[0]
+        dimensions = (self._voxel_dim,) * 3
+
+        # prepare
+        pitch = pitch.astype(np.float32)
+        origin = origin.astype(np.float32)
+
         h = []
         actives = []
         for i in range(B):
-            h_rgb_i = h_rgb[i]
-            pcd_i = pcd[i]
-
-            h_rgb_i = h_rgb_i.transpose(1, 2, 0)      # CHW -> HWC
-            pcd_i = pcd_i.transpose(1, 2, 0)  # 3HW -> HW3
-            mask_i = ~xp.isnan(pcd_i).any(axis=2)
-
-            values = h_rgb_i[mask_i, :]    # MC
-            points = pcd_i[mask_i, :]  # M3
-
             h_i, counts_i = objslampp.functions.average_voxelization_3d(
-                values=values,
-                points=points,
+                values=values[i],
+                points=points[i],
                 origin=origin[i],
                 pitch=pitch[i],
                 dimensions=dimensions,
-                channels=h_rgb_i.shape[2],
+                channels=values[i].shape[1],
                 return_counts=True,
             )  # CXYZ
+            actives_i = counts_i[0] > 0
+
             h.append(h_i[None])
-            actives.append(counts_i[0][None] > 0)
+            actives.append(actives_i[None])
+
         h = F.concat(h, axis=0)           # BCXYZ
         actives = xp.concatenate(actives, axis=0)  # BXYZ
+
+        return h, actives
+
+    def _predict_from_voxel(
+        self, class_id, pitch, origin, matrix, actives
+    ):
+        xp = self.xp
+        B = class_id.shape[0]
 
         centroids = []
         for i in range(B):
@@ -116,7 +170,7 @@ class BaselineModel(chainer.Chain):
             centroids.append(centroid[None])
         centroids = xp.concatenate(centroids, axis=0)  # B3
 
-        h = self.voxel_extractor(h, actives)
+        h = self.voxel_extractor(matrix, actives)
 
         h_rot = F.relu(self.fc1_rot(h))
         h_trans = F.relu(self.fc1_trans(h))
