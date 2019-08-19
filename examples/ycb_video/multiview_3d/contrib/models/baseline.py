@@ -57,7 +57,7 @@ class BaselineModel(SingleView3DBaselineModel):
                 if len(indices) > 0:
                     n_fuse = np.random.randint(0, len(indices) + 1)
                     if n_fuse > 0:
-                        if np.random.random() < 0.1:
+                        if np.random.choice([True, False]):
                             # drop current view
                             h_i = xp.zeros_like(h_i.array)
                             actives_i = xp.zeros_like(actives_i)
