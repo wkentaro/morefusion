@@ -26,6 +26,91 @@ home = path.Path('~').expanduser()
 here = path.Path(__file__).abspath().parent
 
 
+class Transform:
+
+    def __init__(self, train):
+        self._train = train
+
+    def __call__(self, examples):
+        for example in examples:
+            if 'grid_target' not in example:
+                continue
+            assert 'grid_nontarget' in example
+            assert 'grid_empty' in example
+
+            if example['class_id'] == -1:
+                example['grid_nontarget_empty'] = np.zeros_like(
+                    example['grid_target']
+                )
+                example.pop('grid_nontarget')
+                example.pop('grid_empty')
+                example.pop('grid_target_full')
+                example.pop('grid_nontarget_full')
+                continue
+
+            if self._train:
+                case = np.random.choice([
+                    'none',
+                    'empty',
+                    'nontarget',
+                    'empty+nontarget',
+                    'nontarget_full',
+                    'empty+nontarget_full',
+                    'other_full',
+                    'nontarget_full+other_full',
+                    'empty+nontarget_full+other_full',
+                ])
+            else:
+                case = 'empty+nontarget'
+
+            if case == 'none':
+                grid_nontarget_empty = np.zeros_like(example['grid_target'])
+            elif case == 'empty+nontarget_full+other_full':
+                grid_nontarget_empty = ~example[
+                    'grid_target_full'
+                ].astype(bool)
+            else:
+                if case == 'empty':
+                    grid_nontarget_empty = example['grid_empty'] > 0.5
+                elif case == 'nontarget':
+                    grid_nontarget_empty = example['grid_nontarget'] > 0.5
+                elif case == 'empty+nontarget':
+                    grid_nontarget_empty = np.maximum(
+                        example['grid_nontarget'], example['grid_empty']
+                    ) > 0.5
+                elif case == 'nontarget_full':
+                    grid_nontarget_empty = example['grid_nontarget_full'] > 0.5
+                elif case == 'empty+nontarget_full':
+                    grid_nontarget_empty = np.maximum(
+                        example['grid_empty'], example['grid_nontarget_full']
+                    ) > 0.5
+                else:
+                    grid_other_full = (
+                        ~example['grid_target_full'].astype(bool) &
+                        ~example['grid_nontarget_full'].astype(bool) &
+                        ~example['grid_empty'].astype(bool) &
+                        ~example['grid_target'].astype(bool) &
+                        ~example['grid_nontarget'].astype(bool)
+                    )
+                    if case == 'other_full':
+                        grid_nontarget_empty = grid_other_full
+                    else:
+                        assert case == 'nontarget_full+other_full'
+                        grid_nontarget_empty = (
+                            example['grid_nontarget_full'].astype(bool) |
+                            grid_other_full
+                        )
+            example['grid_nontarget_empty'] = grid_nontarget_empty.astype(
+                np.float64
+            )
+
+            example.pop('grid_nontarget')
+            example.pop('grid_empty')
+            example.pop('grid_target_full')
+            example.pop('grid_nontarget_full')
+        return examples
+
+
 def concat_list_of_examples(list_of_examples, device=None, padding=None):
     batch = []
     for examples in list_of_examples:
@@ -83,15 +168,27 @@ def main():
         default=objslampp.datasets.ycb_video.class_ids_asymmetric.tolist(),
         help='class id',
     )
+    parser.add_argument(
+        '--use-occupancy',
+        action='store_true',
+        help='use occupancy',
+    )
 
     def argparse_type_loss(string):
         patterns = [
             'add',
+            r'add\+occupancy',
             'add_s',
+            r'add_s\+occupancy',
             'add/add_s',
+            r'add/add_s\+occupancy',
             r'add\+add_s',
             r'add\+add_s\|linear',
             r'add\+add_s\|step\|\d+'
+            'overlap',
+            r'overlap\+occupancy',
+            'iou',
+            r'iou\+occupancy',
         ]
         for pattern in patterns:
             if re.match(pattern, string):
@@ -109,7 +206,7 @@ def main():
     parser.add_argument(
         '--loss-scale',
         type=yaml.safe_load,
-        help='loss scale e.g., {add+add_s: 1.0}',
+        help='loss scale e.g., {occupancy: 1.0}',
     )
     parser.add_argument(
         '--num-syn',
@@ -164,6 +261,8 @@ def main():
         chainer.cuda.cupy.random.seed(args.seed)
 
     # dataset initialization
+    return_occupancy_grids = \
+        args.use_occupancy or args.loss == 'add/add_s+complete'
     data_train = None
     data_valid = None
     if not args.multi_node or comm.rank == 0:
@@ -171,6 +270,8 @@ def main():
             data_train = contrib.datasets.YCBVideoDataset(
                 'train',
                 class_ids=args.class_ids,
+                # augmentation=args.augmentation,
+                # return_occupancy_grids=return_occupancy_grids,
                 num_syn=args.num_syn,
             )
         elif args.dataset == 'my_synthetic':
@@ -179,6 +280,7 @@ def main():
                 root_dir=root_dir,
                 class_ids=args.class_ids,
                 augmentation=args.augmentation,
+                return_occupancy_grids=return_occupancy_grids,
             )
             assert len(data.root_dir.dirs()) == 750
             assert len(data) == 750 * 15
@@ -192,11 +294,18 @@ def main():
             data_valid = contrib.datasets.YCBVideoDataset(
                 'val',
                 class_ids=args.class_ids,
+                # return_occupancy_grids=return_occupancy_grids,
             )
 
         termcolor.cprint('==> Dataset size', attrs={'bold': True})
         print(f'train={len(data_train)}, val={len(data_valid)}')
 
+        data_train = chainer.datasets.TransformDataset(
+            data_train, Transform(train=True)
+        )
+        data_valid = chainer.datasets.TransformDataset(
+            data_valid, Transform(train=False)
+        )
     if args.multi_node:
         data_train = chainermn.scatter_dataset(data_train, comm, shuffle=True)
 
@@ -209,6 +318,7 @@ def main():
     # model initialization
     model = contrib.models.BaselineModel(
         n_fg_class=len(args.class_names[1:]),
+        use_occupancy=args.use_occupancy,
         loss=loss,
         loss_scale=args.loss_scale,
     )

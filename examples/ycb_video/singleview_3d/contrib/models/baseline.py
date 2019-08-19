@@ -3,7 +3,6 @@ from chainer.backends import cuda
 import chainer.functions as F
 import chainer.links as L
 import numpy as np
-import trimesh
 
 import objslampp
 
@@ -19,43 +18,24 @@ class BaselineModel(chainer.Chain):
         self,
         *,
         n_fg_class,
-        use_occupancy=False,
         loss=None,
         loss_scale=None,
     ):
         super().__init__()
 
         self._n_fg_class = n_fg_class
-        self._use_occupancy = use_occupancy
 
         self._loss = 'add/add_s' if loss is None else loss
         assert self._loss in [
             'add',
-            'add+occupancy',
             'add_s',
-            'add_s+occupancy',
             'add/add_s',
-            'add/add_s+occupancy',
             'add+add_s',
-            'overlap',
-            'overlap+occupancy',
-            'iou',
-            'iou+occupancy',
         ]
-        if self._loss in [
-            'add+occupancy',
-            'add_s+occupancy',
-            'add/add_s+occupancy',
-            'overlap+occupancy',
-            'iou+occupancy',
-        ]:
-            assert use_occupancy, \
-                f'use_occupancy must be True for this loss: {self._loss}'
 
         if loss_scale is None:
             loss_scale = {
                 'add+add_s': 0.5,
-                'occupancy': 1.0,
             }
         self._loss_scale = loss_scale
 
@@ -63,16 +43,6 @@ class BaselineModel(chainer.Chain):
             # extractor
             self.resnet_extractor = objslampp.models.ResNet18()
             self.pspnet_extractor = PSPNetExtractor()
-
-            if self._use_occupancy:
-                self.conv5_occ = L.Convolution3D(
-                    in_channels=1,
-                    out_channels=8,
-                    ksize=3,
-                    stride=1,
-                    pad=1,
-                )  # 32x32x32 -> 32x32x32
-
             self.voxel_extractor = VoxelFeatureExtractor()
 
             self.fc1_rot = L.Linear(1024, 640, 1)
@@ -92,7 +62,6 @@ class BaselineModel(chainer.Chain):
         origin,
         rgb,
         pcd,
-        grid_nontarget_empty=None,
     ):
         xp = self.xp
 
@@ -106,9 +75,6 @@ class BaselineModel(chainer.Chain):
         origin = origin.astype(np.float32)
         rgb = rgb.transpose(0, 3, 1, 2).astype(np.float32)  # BHWC -> BCHW
         pcd = pcd.transpose(0, 3, 1, 2).astype(np.float32)  # BHW3 -> B3HW
-        if self._use_occupancy:
-            assert grid_nontarget_empty.shape[1:] == dimensions
-            grid_nontarget_empty = grid_nontarget_empty.astype(np.float32)
 
         # feature extraction
         mean = xp.asarray(self.resnet_extractor.mean)
@@ -150,10 +116,6 @@ class BaselineModel(chainer.Chain):
         centroids = xp.concatenate(centroids, axis=0)  # B3
         del h_
 
-        if self._use_occupancy:
-            h_occ = self.conv5_occ(grid_nontarget_empty[:, None, :, :, :])
-            h = F.concat([h, h_occ], axis=1)
-
         h = self.voxel_extractor(h, counts)
 
         h_rot = F.relu(self.fc1_rot(h))
@@ -187,8 +149,6 @@ class BaselineModel(chainer.Chain):
         pcd,
         quaternion_true,
         translation_true,
-        grid_target=None,
-        grid_nontarget_empty=None,
     ):
         keep = class_id != -1
         if keep.sum() == 0:
@@ -201,11 +161,6 @@ class BaselineModel(chainer.Chain):
         pcd = pcd[keep]
         quaternion_true = quaternion_true[keep]
         translation_true = translation_true[keep]
-        if self._use_occupancy:
-            assert grid_target is not None
-            assert grid_nontarget_empty is not None
-            grid_target = grid_target[keep]
-            grid_nontarget_empty = grid_nontarget_empty[keep]
 
         quaternion_pred, translation_pred = self.predict(
             class_id=class_id,
@@ -213,7 +168,6 @@ class BaselineModel(chainer.Chain):
             origin=origin,
             rgb=rgb,
             pcd=pcd,
-            grid_nontarget_empty=grid_nontarget_empty,
         )
 
         self.evaluate(
@@ -230,10 +184,6 @@ class BaselineModel(chainer.Chain):
             translation_true=translation_true,
             quaternion_pred=quaternion_pred,
             translation_pred=translation_pred,
-            pitch=pitch,
-            origin=origin,
-            grid_target=grid_target,
-            grid_nontarget_empty=grid_nontarget_empty,
         )
         return loss
 
@@ -287,19 +237,9 @@ class BaselineModel(chainer.Chain):
         translation_true,
         quaternion_pred,
         translation_pred,
-        pitch=None,
-        origin=None,
-        grid_target=None,
-        grid_nontarget_empty=None,
     ):
         quaternion_true = quaternion_true.astype(np.float32)
         translation_true = translation_true.astype(np.float32)
-        pitch = None if pitch is None else pitch.astype(np.float32)
-        origin = None if origin is None else origin.astype(np.float32)
-        if grid_target is not None:
-            grid_target = grid_target.astype(np.float32)
-        if grid_nontarget_empty is not None:
-            grid_nontarget_empty = grid_nontarget_empty.astype(np.float32)
 
         R_cad2cam_true = objslampp.functions.quaternion_matrix(quaternion_true)
         R_cad2cam_pred = objslampp.functions.quaternion_matrix(quaternion_pred)
@@ -309,10 +249,7 @@ class BaselineModel(chainer.Chain):
         T_cad2cam_true = objslampp.functions.compose_transform(
             R_cad2cam_true[:, :3, :3], translation_true,
         )
-        T_cad2cam_pred1 = objslampp.functions.compose_transform(
-            R_cad2cam_pred[:, :3, :3], translation_true,
-        )
-        T_cad2cam_pred2 = objslampp.functions.compose_transform(
+        T_cad2cam_pred = objslampp.functions.compose_transform(
             R_cad2cam_pred[:, :3, :3], translation_pred,
         )
         del translation_true
@@ -328,102 +265,40 @@ class BaselineModel(chainer.Chain):
 
             if self._loss in [
                 'add',
-                'add+occupancy',
                 'add_s',
-                'add_s+occupancy',
                 'add/add_s',
-                'add/add_s+occupancy',
                 'add+add_s',
             ]:
                 if self._loss in ['add+add_s']:
                     is_symmetric = None
-                elif self._loss in ['add', 'add+occupancy']:
+                elif self._loss in ['add']:
                     is_symmetric = False
-                elif self._loss in ['add_s', 'add_s+occupancy']:
+                elif self._loss in ['add_s']:
                     is_symmetric = True
                 else:
-                    assert self._loss in ['add/add_s', 'add/add_s+occupancy']
+                    assert self._loss in ['add/add_s']
                     is_symmetric = class_id_i in \
                         objslampp.datasets.ycb_video.class_ids_symmetric
                 cad_pcd = self._models.get_pcd(class_id=class_id_i)
                 cad_pcd = self.xp.asarray(cad_pcd, dtype=np.float32)
 
             if self._loss in [
-                'add+occupancy',
-                'add_s+occupancy',
-                'add/add_s+occupancy',
-                'overlap',
-                'overlap+occupancy',
-                'iou',
-                'iou+occupancy',
-            ]:
-                solid_pcd = self._models.get_solid_voxel(class_id=class_id_i)
-                solid_pcd = self.xp.asarray(solid_pcd.points, dtype=np.float32)
-                kwargs = dict(
-                    pitch=float(pitch[i]),
-                    origin=cuda.to_cpu(origin[i]),
-                    dims=(self._voxel_dim,) * 3,
-                    threshold=2.0,
-                )
-                grid_target_pred1 = \
-                    objslampp.functions.pseudo_occupancy_voxelization(
-                        points=objslampp.functions.transform_points(
-                            solid_pcd, T_cad2cam_pred1[i][None]
-                        )[0],
-                        **kwargs,
-                    )
-                grid_target_pred2 = \
-                    objslampp.functions.pseudo_occupancy_voxelization(
-                        points=objslampp.functions.transform_points(
-                            solid_pcd, T_cad2cam_pred2[i][None]
-                        )[0],
-                        **kwargs,
-                    )
-                if self._loss in [
-                    'overlap',
-                    'overlap+occupancy',
-                    'iou',
-                    'iou+occupancy',
-                ]:
-                    pcd_true = objslampp.functions.transform_points(
-                        solid_pcd, T_cad2cam_true[i][None]
-                    )[0]
-                    pcd_true = cuda.to_cpu(pcd_true.array)
-                    indices = trimesh.voxel.points_to_indices(
-                        pcd_true,
-                        pitch=kwargs['pitch'],
-                        origin=kwargs['origin'],
-                    )
-                    del pcd_true
-                    grid_target_true = self.xp.zeros(
-                        kwargs['dims'], dtype=np.float32
-                    )
-                    grid_target_true[
-                        indices[:, 0], indices[:, 1], indices[:, 2]
-                    ] = 1
-                    del indices
-                del solid_pcd
-
-            if self._loss in [
                 'add',
-                'add+occupancy',
                 'add_s',
-                'add_s+occupancy',
                 'add/add_s',
-                'add/add_s+occupancy',
             ]:
                 assert is_symmetric in [True, False]
                 loss_i = objslampp.functions.average_distance_l1(
                     points=cad_pcd,
                     transform1=T_cad2cam_true[i][None],
-                    transform2=T_cad2cam_pred2[i][None],
+                    transform2=T_cad2cam_pred[i][None],
                     symmetric=is_symmetric,
                 )[0]
             elif self._loss in ['add+add_s']:
                 kwargs = dict(
                     points=cad_pcd,
                     transform1=T_cad2cam_true[i][None],
-                    transform2=T_cad2cam_pred2[i][None],
+                    transform2=T_cad2cam_pred[i][None],
                 )
                 loss_add_i = objslampp.functions.average_distance_l1(
                     **kwargs, symmetric=False
@@ -435,36 +310,9 @@ class BaselineModel(chainer.Chain):
                     self._loss_scale['add+add_s'] * loss_add_i +
                     (1 - self._loss_scale['add+add_s']) * loss_add_s_i
                 )
-            elif self._loss in ['overlap', 'overlap+occupancy']:
-                intersection = F.sum(grid_target_pred2 * grid_target_true)
-                denominator = F.sum(grid_target_true) + 1e-16
-                loss_i = - intersection / denominator
-            elif self._loss in ['iou', 'iou+occupancy']:
-                intersection = grid_target_pred2 * grid_target_true
-                union = grid_target_pred2 + grid_target_true - intersection
-                loss_i = 1 - F.sum(intersection) / F.sum(union)
             else:
                 raise ValueError(f'unsupported loss: {self._loss}')
 
-            if self._loss in [
-                'add+occupancy',
-                'add_s+occupancy',
-                'add/add_s+occupancy',
-                'overlap+occupancy',
-                'iou+occupancy',
-            ]:
-                intersection = F.sum(grid_target_pred2 * grid_target[i])
-                denominator = F.sum(grid_target_pred2) + 1e-16
-                loss_i += (
-                    self._loss_scale['occupancy'] * intersection / denominator
-                )
-                intersection = F.sum(
-                    grid_target_pred1 * grid_nontarget_empty[i]
-                )
-                denominator = F.sum(grid_target_pred1) + 1e-16
-                loss_i += (
-                    self._loss_scale['occupancy'] * intersection / denominator
-                )
             loss += loss_i
         loss /= batch_size
 
