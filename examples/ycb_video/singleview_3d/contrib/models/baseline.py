@@ -64,9 +64,6 @@ class BaselineModel(chainer.Chain):
         pcd,
     ):
         values, points = self._extract(
-            class_id=class_id,
-            pitch=pitch,
-            origin=origin,
             rgb=rgb,
             pcd=pcd,
         )
@@ -87,7 +84,7 @@ class BaselineModel(chainer.Chain):
             actives=actives,
         )
 
-    def _extract(self, class_id, pitch, origin, rgb, pcd):
+    def _extract(self, rgb, pcd):
         xp = self.xp
 
         B, H, W, C = rgb.shape
@@ -95,8 +92,6 @@ class BaselineModel(chainer.Chain):
         assert C == 3
 
         # prepare
-        pitch = pitch.astype(np.float32)
-        origin = origin.astype(np.float32)
         rgb = rgb.transpose(0, 3, 1, 2).astype(np.float32)  # BHWC -> BCHW
         pcd = pcd.transpose(0, 3, 1, 2).astype(np.float32)  # BHW3 -> B3HW
 
