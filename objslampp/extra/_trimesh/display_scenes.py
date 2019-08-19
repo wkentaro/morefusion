@@ -76,7 +76,8 @@ def display_scenes(data, height=480, width=640, tile=None, caption=None):
                 window.play = not window.play
             elif symbol == pyglet.window.key.Z:
                 for name in scenes:
-                    widgets[name].reset_view()
+                    if isinstance(widgets[name], trimesh.viewer.SceneWidget):
+                        widgets[name].reset_view()
         if symbol == pyglet.window.key.N:
             if modifiers == 0:
                 window.next = True
