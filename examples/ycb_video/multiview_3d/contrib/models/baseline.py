@@ -110,12 +110,9 @@ class BaselineModel(chainer.Chain):
             actives_i = counts_i[0] > 0
 
             if chainer.config.train:
-                T_cad2cam_i = objslampp.functions.quaternion_matrix(
-                    quaternion_true[i][None]
-                )[0]
-                T_cad2cam_i = objslampp.functions.compose_transform(
-                    T_cad2cam_i[:3, :3][None], translation_true[i][None]
-                )[0]
+                T_cad2cam_i = _transform_matrix(
+                    quaternion_true[i], translation_true[i]
+                )
 
                 indices = xp.where(class_id[i])[0]
                 indices = indices[indices != i].tolist()
@@ -136,12 +133,9 @@ class BaselineModel(chainer.Chain):
                     values = h_rgb_j[mask_j, :]
                     points = pcd_j[mask_j, :]
 
-                    T_cad2cam_j = objslampp.functions.quaternion_matrix(
-                        quaternion_true[j][None]
-                    )[0]
-                    T_cad2cam_j = objslampp.functions.compose_transform(
-                        T_cad2cam_j[:3, :3][None], translation_true[j][None]
-                    )[0]
+                    T_cad2cam_j = _transform_matrix(
+                        quaternion_true[j], translation_true[j]
+                    )
                     points = objslampp.functions.transform_points(
                         points, F.inv(T_cad2cam_j)[None]
                     )[0]
@@ -260,21 +254,15 @@ class BaselineModel(chainer.Chain):
         quaternion_true = quaternion_true.astype(np.float32)
         translation_true = translation_true.astype(np.float32)
 
-        batch_size = class_id.shape[0]
+        B = class_id.shape[0]
 
-        T_cad2cam_true = objslampp.functions.quaternion_matrix(quaternion_true)
-        T_cad2cam_pred = objslampp.functions.quaternion_matrix(quaternion_pred)
-        T_cad2cam_true = objslampp.functions.compose_transform(
-            Rs=T_cad2cam_true[:, :3, :3], ts=translation_true,
-        )
-        T_cad2cam_pred = objslampp.functions.compose_transform(
-            Rs=T_cad2cam_pred[:, :3, :3], ts=translation_pred,
-        )
+        T_cad2cam_true = _transform_matrix(quaternion_true, translation_true)
+        T_cad2cam_pred = _transform_matrix(quaternion_pred, translation_pred)
         T_cad2cam_true = cuda.to_cpu(T_cad2cam_true.array)
         T_cad2cam_pred = cuda.to_cpu(T_cad2cam_pred.array)
 
         summary = chainer.DictSummary()
-        for i in range(batch_size):
+        for i in range(B):
             class_id_i = int(class_id[i])
             cad_pcd = self._models.get_pcd(class_id=class_id_i)
             add, add_s = objslampp.metrics.average_distance(
@@ -302,26 +290,13 @@ class BaselineModel(chainer.Chain):
         quaternion_true = quaternion_true.astype(np.float32)
         translation_true = translation_true.astype(np.float32)
 
-        R_cad2cam_true = objslampp.functions.quaternion_matrix(quaternion_true)
-        R_cad2cam_pred = objslampp.functions.quaternion_matrix(quaternion_pred)
-        del quaternion_true
-        del quaternion_pred
+        T_cad2cam_true = _transform_matrix(quaternion_true, translation_true)
+        T_cad2cam_pred = _transform_matrix(quaternion_pred, translation_pred)
 
-        T_cad2cam_true = objslampp.functions.compose_transform(
-            R_cad2cam_true[:, :3, :3], translation_true,
-        )
-        T_cad2cam_pred = objslampp.functions.compose_transform(
-            R_cad2cam_pred[:, :3, :3], translation_pred,
-        )
-        del translation_true
-        del translation_pred
-        del R_cad2cam_true
-        del R_cad2cam_pred
-
-        batch_size = class_id.shape[0]
+        B = class_id.shape[0]
 
         loss = 0
-        for i in range(batch_size):
+        for i in range(B):
             class_id_i = int(class_id[i])
 
             if self._loss in [
@@ -375,7 +350,7 @@ class BaselineModel(chainer.Chain):
                 raise ValueError(f'unsupported loss: {self._loss}')
 
             loss += loss_i
-        loss /= batch_size
+        loss /= B
 
         values = {'loss': loss}
         chainer.report(values, observer=self)
@@ -412,3 +387,21 @@ class VoxelFeatureExtractor(chainer.Chain):
         del h_
 
         return h
+
+
+def _transform_matrix(quaternion, translation):
+    if quaternion.ndim == 2:
+        batch_size = quaternion.shape[0]
+        assert quaternion.shape == (batch_size, 4)
+        assert translation.shape == (batch_size, 3)
+        T = objslampp.functions.quaternion_matrix(quaternion)
+        T = objslampp.functions.compose_transform(T[:, :3, :3], translation)
+    else:
+        assert quaternion.ndim == 1
+        assert quaternion.shape == (4,)
+        assert translation.shape == (3,)
+        T = objslampp.functions.quaternion_matrix(quaternion[None])[0]
+        T = objslampp.functions.compose_transform(
+            T[None, :3, :3], translation[None]
+        )[0]
+    return T

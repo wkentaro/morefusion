@@ -78,21 +78,20 @@ class BaselineModel(chainer.Chain):
 
         # feature extraction
         mean = xp.asarray(self.resnet_extractor.mean)
-        h = self.resnet_extractor(rgb - mean[None])  # 1/8
-        h = self.pspnet_extractor(h)  # 1/1
+        h_rgb = self.resnet_extractor(rgb - mean[None])  # 1/8
+        h_rgb = self.pspnet_extractor(h_rgb)  # 1/1
 
-        h_ = []
-        counts = []
-        centroids = []
+        h = []
+        actives = []
         for i in range(B):
-            h_i = h[i]
+            h_rgb_i = h_rgb[i]
             pcd_i = pcd[i]
 
-            h_i = h_i.transpose(1, 2, 0)      # CHW -> HWC
+            h_rgb_i = h_rgb_i.transpose(1, 2, 0)      # CHW -> HWC
             pcd_i = pcd_i.transpose(1, 2, 0)  # 3HW -> HW3
             mask_i = ~xp.isnan(pcd_i).any(axis=2)
 
-            values = h_i[mask_i, :]    # MC
+            values = h_rgb_i[mask_i, :]    # MC
             points = pcd_i[mask_i, :]  # M3
 
             h_i, counts_i = objslampp.functions.average_voxelization_3d(
@@ -101,22 +100,24 @@ class BaselineModel(chainer.Chain):
                 origin=origin[i],
                 pitch=pitch[i],
                 dimensions=dimensions,
-                channels=h_i.shape[2],
+                channels=h_rgb_i.shape[2],
                 return_counts=True,
             )  # CXYZ
-            h_.append(h_i[None])
-            counts.append(counts_i[None])
+            h.append(h_i[None])
+            actives.append(counts_i[0][None] > 0)
 
+        h = F.concat(h, axis=0)           # BCXYZ
+        actives = xp.concatenate(actives, axis=0)  # BXYZ
+
+        centroids = []
+        for i in range(B):
             # mean of active points (voxels)
-            centroid = xp.stack(xp.nonzero(counts_i[0])).mean(axis=1)
+            centroid = xp.stack(xp.where(actives[i])).mean(axis=1)
             centroid = centroid * pitch[i] + origin[i]
             centroids.append(centroid[None])
-        h = F.concat(h_, axis=0)           # BCXYZ
-        counts = xp.concatenate(counts, axis=0)  # BXYZ
         centroids = xp.concatenate(centroids, axis=0)  # B3
-        del h_
 
-        h = self.voxel_extractor(h, counts)
+        h = self.voxel_extractor(h, actives)
 
         h_rot = F.relu(self.fc1_rot(h))
         h_trans = F.relu(self.fc1_trans(h))
@@ -199,21 +200,15 @@ class BaselineModel(chainer.Chain):
         quaternion_true = quaternion_true.astype(np.float32)
         translation_true = translation_true.astype(np.float32)
 
-        batch_size = class_id.shape[0]
+        B = class_id.shape[0]
 
-        T_cad2cam_true = objslampp.functions.quaternion_matrix(quaternion_true)
-        T_cad2cam_pred = objslampp.functions.quaternion_matrix(quaternion_pred)
-        T_cad2cam_true = objslampp.functions.compose_transform(
-            Rs=T_cad2cam_true[:, :3, :3], ts=translation_true,
-        )
-        T_cad2cam_pred = objslampp.functions.compose_transform(
-            Rs=T_cad2cam_pred[:, :3, :3], ts=translation_pred,
-        )
+        T_cad2cam_true = _transform_matrix(quaternion_true, translation_true)
+        T_cad2cam_pred = _transform_matrix(quaternion_pred, translation_pred)
         T_cad2cam_true = cuda.to_cpu(T_cad2cam_true.array)
         T_cad2cam_pred = cuda.to_cpu(T_cad2cam_pred.array)
 
         summary = chainer.DictSummary()
-        for i in range(batch_size):
+        for i in range(B):
             class_id_i = int(class_id[i])
             cad_pcd = self._models.get_pcd(class_id=class_id_i)
             add, add_s = objslampp.metrics.average_distance(
@@ -241,26 +236,13 @@ class BaselineModel(chainer.Chain):
         quaternion_true = quaternion_true.astype(np.float32)
         translation_true = translation_true.astype(np.float32)
 
-        R_cad2cam_true = objslampp.functions.quaternion_matrix(quaternion_true)
-        R_cad2cam_pred = objslampp.functions.quaternion_matrix(quaternion_pred)
-        del quaternion_true
-        del quaternion_pred
+        T_cad2cam_true = _transform_matrix(quaternion_true, translation_true)
+        T_cad2cam_pred = _transform_matrix(quaternion_pred, translation_pred)
 
-        T_cad2cam_true = objslampp.functions.compose_transform(
-            R_cad2cam_true[:, :3, :3], translation_true,
-        )
-        T_cad2cam_pred = objslampp.functions.compose_transform(
-            R_cad2cam_pred[:, :3, :3], translation_pred,
-        )
-        del translation_true
-        del translation_pred
-        del R_cad2cam_true
-        del R_cad2cam_pred
-
-        batch_size = class_id.shape[0]
+        B = class_id.shape[0]
 
         loss = 0
-        for i in range(batch_size):
+        for i in range(B):
             class_id_i = int(class_id[i])
 
             if self._loss in [
@@ -314,7 +296,7 @@ class BaselineModel(chainer.Chain):
                 raise ValueError(f'unsupported loss: {self._loss}')
 
             loss += loss_i
-        loss /= batch_size
+        loss /= B
 
         values = {'loss': loss}
         chainer.report(values, observer=self)
@@ -332,7 +314,7 @@ class VoxelFeatureExtractor(chainer.Chain):
             self.conv3 = L.Convolution3D(256, 512, 3, stride=1, pad=1)
             self.conv4 = L.Convolution3D(512, 1024, 3, stride=1, pad=1)
 
-    def __call__(self, h, counts):
+    def __call__(self, h, actives):
         xp = self.xp
 
         h = F.relu(self.conv1(h))
@@ -342,7 +324,7 @@ class VoxelFeatureExtractor(chainer.Chain):
 
         h_ = []
         for i in range(h.shape[0]):
-            X, Y, Z = xp.nonzero(counts[i, 0, :, :, :])
+            X, Y, Z = xp.where(actives[i, :, :, :])
             X, Y, Z = X // 2, Y // 2, Z // 2
             h_i = h[i, :, X, Y, Z]
             h_i = F.average(h_i, axis=0)
@@ -351,3 +333,22 @@ class VoxelFeatureExtractor(chainer.Chain):
         del h_
 
         return h
+
+
+def _transform_matrix(quaternion, translation):
+    if quaternion.ndim == 2:
+        batch_size = quaternion.shape[0]
+        assert quaternion.shape == (batch_size, 4)
+        assert translation.shape == (batch_size, 3)
+        T = objslampp.functions.quaternion_matrix(quaternion)
+        T = objslampp.functions.compose_transform(T[:, :3, :3], translation)
+    else:
+        assert quaternion.ndim == 1
+        assert quaternion.shape == (4,)
+        assert translation.shape == (3,)
+        T = objslampp.functions.quaternion_matrix(quaternion[None])[0]
+        T = objslampp.functions.compose_transform(
+            T[None, :3, :3], translation[None]
+        )[0]
+    return T
+
