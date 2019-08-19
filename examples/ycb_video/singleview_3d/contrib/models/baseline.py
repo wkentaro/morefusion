@@ -105,7 +105,6 @@ class BaselineModel(chainer.Chain):
             )  # CXYZ
             h.append(h_i[None])
             actives.append(counts_i[0][None] > 0)
-
         h = F.concat(h, axis=0)           # BCXYZ
         actives = xp.concatenate(actives, axis=0)  # BXYZ
 
@@ -351,4 +350,3 @@ def _transform_matrix(quaternion, translation):
             T[None, :3, :3], translation[None]
         )[0]
     return T
-
