@@ -120,10 +120,6 @@ def concat_list_of_examples(list_of_examples, device=None, padding=None):
     )
 
 
-def sigmoid(x):
-    return 1 / (1 + np.exp(- x))
-
-
 def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -188,7 +184,6 @@ def main():
             r'add/add_s\+occupancy',
             r'add\+add_s',
             r'add\+add_s\|linear',
-            r'add\+add_s\|sigmoid',
             r'add\+add_s\|step\|\d+'
             'overlap',
             r'overlap\+occupancy',
@@ -380,8 +375,6 @@ def main():
 
         if args.loss == 'add+add_s|linear':
             loss_scale_add = 1 - updater.epoch_detail / max_epoch
-        elif args.loss == 'add+add_s|sigmoid':
-            loss_scale_add = 1 - sigmoid(updater.epoch_detail - max_epoch / 2)
         elif re.match(r'add\+add_s\|step\|\d+', args.loss):
             match = re.match(r'add\+add_s\|step\|(\d+)', args.loss)
             epoch_anchor = int(match.groups()[0])
