@@ -103,9 +103,6 @@ class BaselineModel(SingleView3DBaselineModel):
         translation_true=None,
     ):
         values, points = self._extract(
-            class_id=class_id,
-            pitch=pitch,
-            origin=origin,
             rgb=rgb,
             pcd=pcd,
         )
