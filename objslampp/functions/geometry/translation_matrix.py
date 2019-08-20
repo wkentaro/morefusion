@@ -29,4 +29,13 @@ class TranslationMatrix(chainer.Function):
 
 
 def translation_matrix(translation):
-    return TranslationMatrix()(translation)
+    squeeze_axis0 = False
+    if translation.ndim == 1:
+        translation = translation[None]
+        squeeze_axis0 = True
+
+    matrix = TranslationMatrix()(translation)
+
+    if squeeze_axis0:
+        matrix = matrix[0, :, :]
+    return matrix

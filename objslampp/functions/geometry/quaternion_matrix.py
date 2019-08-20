@@ -65,7 +65,16 @@ def outer(a, b):
 
 
 def quaternion_matrix(quaternion):
+    squeeze_axis0 = False
+    if quaternion.ndim == 1:
+        squeeze_axis0 = True
+        quaternion = quaternion[None]
+
     norm = F.sum(quaternion ** 2, axis=1, keepdims=True)
     quaternion = quaternion * F.sqrt(2. / norm)
     quaternion = outer(quaternion, quaternion)
-    return QuaternionMatrix()(quaternion)
+    matrix = QuaternionMatrix()(quaternion)
+
+    if squeeze_axis0:
+        matrix = matrix[0, :, :]
+    return matrix

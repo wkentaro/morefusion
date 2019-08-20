@@ -35,5 +35,15 @@ class ComposeTransform(chainer.Function):
         return gR, gt
 
 
-def compose_transform(Rs, ts):
-    return ComposeTransform()(Rs, ts)
+def compose_transform(R, t):
+    squeeze_axis0 = False
+    if R.ndim == 2 and t.ndim == 1:
+        R = R[None]  # 3x3 -> 1x3x3
+        t = t[None]  # 4 -> 1x4
+        squeeze_axis0 = True
+
+    matrix = ComposeTransform()(R, t)
+
+    if squeeze_axis0:
+        matrix = matrix[0, :, :]
+    return matrix
