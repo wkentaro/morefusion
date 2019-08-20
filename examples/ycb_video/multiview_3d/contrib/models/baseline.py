@@ -126,7 +126,6 @@ class BaselineModel(SingleView3DBaselineModel):
             T_cad2cam_true = objslampp.functions.transformation_matrix(
                 quaternion_true, translation_true
             ).array
-            quaternion_true = []
             for i in range(B):
                 T_cam2cad_true_i = F.inv(T_cad2cam_true[i]).array
                 points[i] = objslampp.functions.transform_points(
@@ -139,12 +138,9 @@ class BaselineModel(SingleView3DBaselineModel):
                 points[i] = objslampp.functions.transform_points(
                     points[i], T_cad2cam_true_i
                 ).array
-                quaternion_true_i = tf.quaternion_from_matrix(
+                quaternion_true[i] = xp.asarray(tf.quaternion_from_matrix(
                     cuda.to_cpu(T_cad2cam_true_i)
-                )
-                quaternion_true_i = xp.asarray(quaternion_true_i)
-                quaternion_true.append(quaternion_true_i)
-            quaternion_true = xp.stack(quaternion_true)
+                ))
 
         pitch, origin, matrix, actives = self._voxelize(
             class_id=class_id,
@@ -162,15 +158,7 @@ class BaselineModel(SingleView3DBaselineModel):
             actives=actives,
         )
 
-        if chainer.config.train:
-            return (
-                quaternion_pred,
-                translation_pred,
-                quaternion_true,
-                translation_true,
-            )
-        else:
-            return quaternion_pred, translation_pred
+        return quaternion_pred, translation_pred
 
     def __call__(
         self,
@@ -191,14 +179,13 @@ class BaselineModel(SingleView3DBaselineModel):
         quaternion_true = quaternion_true[keep]
         translation_true = translation_true[keep]
 
-        quaternion_pred, translation_pred, quaternion_true, translation_true =\
-            self.predict(
-                class_id=class_id,
-                rgb=rgb,
-                pcd=pcd,
-                quaternion_true=quaternion_true,
-                translation_true=translation_true,
-            )
+        quaternion_pred, translation_pred = self.predict(
+            class_id=class_id,
+            rgb=rgb,
+            pcd=pcd,
+            quaternion_true=quaternion_true,
+            translation_true=translation_true,
+        )
 
         self.evaluate(
             class_id=class_id,
