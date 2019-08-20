@@ -1,6 +1,8 @@
 import chainer
+from chainer.backends import cuda
 import chainer.functions as F
 import numpy as np
+import trimesh.transformations as tf
 
 import objslampp
 
@@ -101,10 +103,40 @@ class BaselineModel(SingleView3DBaselineModel):
         quaternion_true=None,
         translation_true=None,
     ):
+        xp = self.xp
+        B = class_id.shape[0]
+
         values, points = self._extract(
             rgb=rgb,
             pcd=pcd,
         )
+
+        if chainer.config.train:
+            assert quaternion_true is not None
+            assert translation_true is not None
+            quaternion_true = quaternion_true.astype(np.float32)
+            T_cad2cam_true = objslampp.functions.transformation_matrix(
+                quaternion_true, translation_true
+            ).array
+            quaternion_true = []
+            for i in range(B):
+                T_cam2cad_true_i = F.inv(T_cad2cam_true[i]).array
+                points[i] = objslampp.functions.transform_points(
+                    points[i], T_cam2cad_true_i
+                ).array
+                T_random_rot = xp.asarray(
+                    tf.random_rotation_matrix(), dtype=np.float32
+                )
+                T_cad2cam_true_i = T_cad2cam_true[i] @ T_random_rot
+                points[i] = objslampp.functions.transform_points(
+                    points[i], T_cad2cam_true_i
+                ).array
+                quaternion_true_i = tf.quaternion_from_matrix(
+                    cuda.to_cpu(T_cad2cam_true_i)
+                )
+                quaternion_true_i = xp.asarray(quaternion_true_i)
+                quaternion_true.append(quaternion_true_i)
+            quaternion_true = xp.stack(quaternion_true)
 
         h, actives = self._voxelize(
             class_id=class_id,
@@ -116,13 +148,23 @@ class BaselineModel(SingleView3DBaselineModel):
             translation_true=translation_true,
         )
 
-        return self._predict_from_voxel(
+        quaternion_pred, translation_pred = self._predict_from_voxel(
             class_id=class_id,
             pitch=pitch,
             origin=origin,
             matrix=h,
             actives=actives,
         )
+
+        if chainer.config.train:
+            return (
+                quaternion_pred,
+                translation_pred,
+                quaternion_true,
+                translation_true,
+            )
+        else:
+            return quaternion_pred, translation_pred
 
     def __call__(
         self,
@@ -147,15 +189,16 @@ class BaselineModel(SingleView3DBaselineModel):
         quaternion_true = quaternion_true[keep]
         translation_true = translation_true[keep]
 
-        quaternion_pred, translation_pred = self.predict(
-            class_id=class_id,
-            pitch=pitch,
-            origin=origin,
-            rgb=rgb,
-            pcd=pcd,
-            quaternion_true=quaternion_true,
-            translation_true=translation_true,
-        )
+        quaternion_pred, translation_pred, quaternion_true, translation_true =\
+            self.predict(
+                class_id=class_id,
+                pitch=pitch,
+                origin=origin,
+                rgb=rgb,
+                pcd=pcd,
+                quaternion_true=quaternion_true,
+                translation_true=translation_true,
+            )
 
         self.evaluate(
             class_id=class_id,
