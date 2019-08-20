@@ -1,3 +1,4 @@
+from chainer.backends import cuda
 import chainer.functions as F
 
 import numpy as np
@@ -41,3 +42,21 @@ def resize_image(x, output_shape, order):
         raise TypeError('unsupported dtype: {}'.format(x.dtype))
 
     return y
+
+
+def median(x, axis=None):
+    xp = cuda.get_array_module(x)
+
+    if axis is None:
+        x = x.flatten()
+        axis = 0
+
+    n = x.shape[axis]
+    s = xp.sort(x, axis)
+
+    m_odd = xp.take(s, n // 2, axis)
+    if n % 2 == 1:
+        return m_odd
+    else:
+        m_even = xp.take(s, n // 2 - 1, axis)
+        return (m_odd + m_even) / 2
