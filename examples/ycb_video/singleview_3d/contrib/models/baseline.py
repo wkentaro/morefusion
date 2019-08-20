@@ -58,8 +58,6 @@ class BaselineModel(chainer.Chain):
         self,
         *,
         class_id,
-        pitch,
-        origin,
         rgb,
         pcd,
     ):
@@ -68,10 +66,8 @@ class BaselineModel(chainer.Chain):
             pcd=pcd,
         )
 
-        h, actives = self._voxelize(
+        pitch, origin, matrix, actives = self._voxelize(
             class_id=class_id,
-            pitch=pitch,
-            origin=origin,
             values=values,
             points=points,
         )
@@ -80,7 +76,7 @@ class BaselineModel(chainer.Chain):
             class_id=class_id,
             pitch=pitch,
             origin=origin,
-            matrix=h,
+            matrix=matrix,
             actives=actives,
         )
 
@@ -115,8 +111,6 @@ class BaselineModel(chainer.Chain):
     def _voxelize(
         self,
         class_id,
-        pitch,
-        origin,
         values,
         points,
     ):
@@ -125,31 +119,41 @@ class BaselineModel(chainer.Chain):
         B = class_id.shape[0]
         dimensions = (self._voxel_dim,) * 3
 
-        # prepare
-        pitch = pitch.astype(np.float32)
-        origin = origin.astype(np.float32)
-
+        pitch = []
+        origin = []
         h = []
         actives = []
         for i in range(B):
+            pitch_i = self._models.get_voxel_pitch(
+                dimension=self._voxel_dim, class_id=int(class_id[i]),
+            )
+            if xp == np:
+                center_i = np.median(points[i], axis=0)
+            else:
+                center_i = objslampp.extra.cupy.median(points[i], axis=0)
+            origin_i = center_i - pitch_i * (self._voxel_dim / 2. - 0.5)
             h_i, counts_i = objslampp.functions.average_voxelization_3d(
                 values=values[i],
                 points=points[i],
-                origin=origin[i],
-                pitch=pitch[i],
+                origin=origin_i,
+                pitch=pitch_i,
                 dimensions=dimensions,
                 channels=values[i].shape[1],
                 return_counts=True,
             )  # CXYZ
             actives_i = counts_i[0] > 0
 
-            h.append(h_i[None])
-            actives.append(actives_i[None])
+            pitch.append(pitch_i)
+            origin.append(origin_i)
+            h.append(h_i)
+            actives.append(actives_i)
 
-        h = F.concat(h, axis=0)           # BCXYZ
-        actives = xp.concatenate(actives, axis=0)  # BXYZ
+        pitch = xp.array(pitch)
+        origin = xp.stack(origin)
+        h = F.stack(h)           # BCXYZ
+        actives = xp.stack(actives)  # BXYZ
 
-        return h, actives
+        return pitch, origin, h, actives
 
     def _predict_from_voxel(
         self, class_id, pitch, origin, matrix, actives
@@ -192,8 +196,6 @@ class BaselineModel(chainer.Chain):
         self,
         *,
         class_id,
-        pitch,
-        origin,
         rgb,
         pcd,
         quaternion_true,
@@ -204,8 +206,6 @@ class BaselineModel(chainer.Chain):
             return chainer.Variable(self.xp.zeros((), dtype=np.float32))
 
         class_id = class_id[keep]
-        pitch = pitch[keep]
-        origin = origin[keep]
         rgb = rgb[keep]
         pcd = pcd[keep]
         quaternion_true = quaternion_true[keep]
@@ -213,8 +213,6 @@ class BaselineModel(chainer.Chain):
 
         quaternion_pred, translation_pred = self.predict(
             class_id=class_id,
-            pitch=pitch,
-            origin=origin,
             rgb=rgb,
             pcd=pcd,
         )

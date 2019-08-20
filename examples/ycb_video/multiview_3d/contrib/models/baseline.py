@@ -14,8 +14,6 @@ class BaselineModel(SingleView3DBaselineModel):
     def _voxelize(
         self,
         class_id,
-        pitch,
-        origin,
         values,
         points,
         quaternion_true=None,
@@ -27,21 +25,29 @@ class BaselineModel(SingleView3DBaselineModel):
         dimensions = (self._voxel_dim,) * 3
 
         # prepare
-        pitch = pitch.astype(np.float32)
-        origin = origin.astype(np.float32)
         if quaternion_true is not None:
             quaternion_true = quaternion_true.astype(np.float32)
         if translation_true is not None:
             translation_true = translation_true.astype(np.float32)
 
+        pitch = []
+        origin = []
         h = []
         actives = []
         for i in range(B):
+            pitch_i = self._models.get_voxel_pitch(
+                dimension=self._voxel_dim, class_id=int(class_id[i]),
+            )
+            if xp == np:
+                center_i = np.median(points[i], axis=0)
+            else:
+                center_i = objslampp.extra.cupy.median(points[i], axis=0)
+            origin_i = center_i - pitch_i * (self._voxel_dim / 2. - 0.5)
             h_i, counts_i = objslampp.functions.average_voxelization_3d(
                 values=values[i],
                 points=points[i],
-                origin=origin[i],
-                pitch=pitch[i],
+                origin=origin_i,
+                pitch=pitch_i,
                 dimensions=dimensions,
                 channels=values[i].shape[1],
                 return_counts=True,
@@ -74,8 +80,8 @@ class BaselineModel(SingleView3DBaselineModel):
                     h_j, counts_j = objslampp.functions.average_voxelization_3d(  # NOQA
                         values=values[j],
                         points=points_j,
-                        origin=origin[i],
-                        pitch=pitch[i],
+                        origin=origin_i,
+                        pitch=pitch_i,
                         dimensions=dimensions,
                         channels=values[j].shape[1],
                         return_counts=True,
@@ -84,20 +90,22 @@ class BaselineModel(SingleView3DBaselineModel):
                     h_i = F.maximum(h_i, h_j)
                     actives_i = actives_i | (counts_j[0] > 0)
 
-            h.append(h_i[None])
-            actives.append(actives_i[None])
+            pitch.append(pitch_i)
+            origin.append(origin_i)
+            h.append(h_i)
+            actives.append(actives_i)
 
-        h = F.concat(h, axis=0)           # BCXYZ
-        actives = xp.concatenate(actives, axis=0)  # BXYZ
+        pitch = xp.array(pitch)
+        origin = xp.stack(origin)
+        h = F.stack(h)           # BCXYZ
+        actives = xp.stack(actives)  # BXYZ
 
-        return h, actives
+        return pitch, origin, h, actives
 
     def predict(
         self,
         *,
         class_id,
-        pitch,
-        origin,
         rgb,
         pcd,
         quaternion_true=None,
@@ -138,10 +146,8 @@ class BaselineModel(SingleView3DBaselineModel):
                 quaternion_true.append(quaternion_true_i)
             quaternion_true = xp.stack(quaternion_true)
 
-        h, actives = self._voxelize(
+        pitch, origin, matrix, actives = self._voxelize(
             class_id=class_id,
-            pitch=pitch,
-            origin=origin,
             values=values,
             points=points,
             quaternion_true=quaternion_true,
@@ -152,7 +158,7 @@ class BaselineModel(SingleView3DBaselineModel):
             class_id=class_id,
             pitch=pitch,
             origin=origin,
-            matrix=h,
+            matrix=matrix,
             actives=actives,
         )
 
@@ -170,8 +176,6 @@ class BaselineModel(SingleView3DBaselineModel):
         self,
         *,
         class_id,
-        pitch,
-        origin,
         rgb,
         pcd,
         quaternion_true,
@@ -182,8 +186,6 @@ class BaselineModel(SingleView3DBaselineModel):
             return chainer.Variable(self.xp.zeros((), dtype=np.float32))
 
         class_id = class_id[keep]
-        pitch = pitch[keep]
-        origin = origin[keep]
         rgb = rgb[keep]
         pcd = pcd[keep]
         quaternion_true = quaternion_true[keep]
@@ -192,8 +194,6 @@ class BaselineModel(SingleView3DBaselineModel):
         quaternion_pred, translation_pred, quaternion_true, translation_true =\
             self.predict(
                 class_id=class_id,
-                pitch=pitch,
-                origin=origin,
                 rgb=rgb,
                 pcd=pcd,
                 quaternion_true=quaternion_true,

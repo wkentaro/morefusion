@@ -7,8 +7,6 @@ import objslampp
 
 class DatasetBase(objslampp.datasets.DatasetBase):
 
-    _models = objslampp.datasets.YCBVideoModels()
-    _voxel_dim = 32
     _n_points_minimal = 50
 
     def __init__(
@@ -20,11 +18,6 @@ class DatasetBase(objslampp.datasets.DatasetBase):
         if class_ids is not None:
             class_ids = tuple(class_ids)
         self._class_ids = class_ids
-
-    def _get_pitch(self, class_id):
-        return self._models.get_voxel_pitch(
-            dimension=self._voxel_dim, class_id=class_id
-        )
 
     def get_example(self, index):
         frame = self.get_frame(index)
@@ -69,17 +62,11 @@ class DatasetBase(objslampp.datasets.DatasetBase):
             rgb_ins = rgb_ins[y1:y2, x1:x2]
             rgb_ins = imgviz.centerize(rgb_ins, (256, 256))
 
-            pitch = self._get_pitch(class_id=class_id)
-            center = np.nanmedian(pcd_ins, axis=(0, 1))
-            origin = center - pitch * (self._voxel_dim / 2. - 0.5)
-
             quaternion_true = tf.quaternion_from_matrix(T_cad2cam)
             translation_true = tf.translation_from_matrix(T_cad2cam)
 
             example = dict(
                 class_id=class_id,
-                pitch=pitch,
-                origin=origin,
                 rgb=rgb_ins,
                 pcd=pcd_ins,
                 quaternion_true=quaternion_true,
