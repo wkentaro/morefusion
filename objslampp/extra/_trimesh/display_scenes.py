@@ -104,7 +104,9 @@ def display_scenes(data, height=480, width=640, tile=None, caption=None):
                         [[0, 1, 0]], camera.transform, translate=False
                     )[0]
                     camera.transform = tf.rotation_matrix(
-                        np.deg2rad(window.rotate), axis, point=scene.centroid
+                        np.deg2rad(window.rotate * 5),
+                        axis,
+                        point=scene.centroid,
                     ) @ camera.transform
                     widget.view['ball']._n_pose = camera.transform
             return
