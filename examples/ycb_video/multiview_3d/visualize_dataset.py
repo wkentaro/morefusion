@@ -49,7 +49,8 @@ geom = trimesh.PointCloud(vertices=pcd2[mask2], colors=rgb2[mask2])
 scene.add_geometry(geom, transform=T_cad2cam1 @ np.linalg.inv(T_cad2cam2))
 scene.camera.transform = objslampp.extra.trimesh.to_opengl_transform()
 scene.camera.resolution = (320, 240)
-scene.camera.focal = (frame1['intrinsic_matrix'][0, 0] / np.sqrt(2), frame1['intrinsic_matrix'][1, 1] / np.sqrt(2))
+K = frame1['intrinsic_matrix']
+scene.camera.focal = (K[0, 0] / np.sqrt(2), K[1, 1] / np.sqrt(2))
 
 objslampp.extra.trimesh.display_scenes({
     'rgb1': frame1['rgb'],
