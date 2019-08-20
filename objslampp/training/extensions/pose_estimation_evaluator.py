@@ -1,6 +1,7 @@
 import collections
 import copy
 import os.path as osp
+import re
 import warnings
 
 import chainer
@@ -50,18 +51,19 @@ class PoseEstimationEvaluator(chainer.training.extensions.Evaluator):
                         eval_func(in_arrays)
 
             observation_processed = {}
-            parent_keys = [
-                'validation/main/add',
-                'validation/main/add_s',
-                'validation/main/add_rotation',  # deprecated
-            ]
+            add_types = ['add', 'add_s']
             for key, value in observation.items():
-                if osp.dirname(key) in parent_keys:
-                    # add/2, add_rotation/2
-                    sub_key = key[len('validation/main/'):]
-                    adds[sub_key].append(value)
+                for add_type in add_types:
+                    # validation/main/{add_type}/{class_id}/{instance_id}
+                    pattern = f'validation/main/{add_type}/([0-9]+)/[0-9]+'
+                    match = re.match(pattern, key)
+                    if not match:
+                        continue
+                    class_id = match.groups()[0]
+                    key = f'validation/main/{add_type}/{class_id}'
+                    adds[f'{add_type}/{class_id}'].append(value)
+                    break
                 observation_processed[key] = value
-
             summary.add(observation_processed)
 
             if self._progress_bar:
@@ -73,10 +75,10 @@ class PoseEstimationEvaluator(chainer.training.extensions.Evaluator):
         result = summary.compute_mean()
 
         # compute auc for adds
-        for sub_key, values in adds.items():
+        for add_type_and_class_id, values in adds.items():
             # auc = metrics.auc_for_errors(values, max_threshold=0.1)
             auc = metrics.ycb_video_add_auc(values, max_value=0.1)
-            result[f'validation/main/auc/{sub_key}'] = auc
+            result[f'validation/main/auc/{add_type_and_class_id}'] = auc
 
         # average child observations
         parent_keys = [
@@ -85,10 +87,8 @@ class PoseEstimationEvaluator(chainer.training.extensions.Evaluator):
             'validation/main/loss_translation',
             'validation/main/add',
             'validation/main/add_s',
-            'validation/main/add_rotation',  # deprecated
             'validation/main/auc/add',
             'validation/main/auc/add_s',
-            'validation/main/auc/add_rotation',  # deprecated
         ]
         summary = reporter_module.DictSummary()
         for parent_key in parent_keys:

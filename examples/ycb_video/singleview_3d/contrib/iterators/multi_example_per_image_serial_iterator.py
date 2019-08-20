@@ -6,6 +6,7 @@ import numpy
 class MultiExamplePerImageSerialIterator(chainer.iterators.SerialIterator):
 
     def __init__(self, *args, **kwargs):
+        self._strict_batch_size = kwargs.pop('strict_batch_size', True)
         super().__init__(*args, **kwargs)
         self._random_state = numpy.random.mtrand._rand
 
@@ -30,8 +31,11 @@ class MultiExamplePerImageSerialIterator(chainer.iterators.SerialIterator):
             if len(batch) >= self.batch_size:
                 break
 
-        indices = self._random_state.permutation(len(batch))[:self.batch_size]
-        batch = [batch[index] for index in indices]
+        if self._strict_batch_size:
+            indices = self._random_state.permutation(
+                len(batch)
+            )[:self.batch_size]
+            batch = [batch[index] for index in indices]
 
         return batch
 

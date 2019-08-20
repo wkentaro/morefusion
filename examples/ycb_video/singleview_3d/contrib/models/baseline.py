@@ -201,16 +201,6 @@ class BaselineModel(chainer.Chain):
         quaternion_true,
         translation_true,
     ):
-        keep = class_id != -1
-        if keep.sum() == 0:
-            return chainer.Variable(self.xp.zeros((), dtype=np.float32))
-
-        class_id = class_id[keep]
-        rgb = rgb[keep]
-        pcd = pcd[keep]
-        quaternion_true = quaternion_true[keep]
-        translation_true = translation_true[keep]
-
         quaternion_pred, translation_pred = self.predict(
             class_id=class_id,
             rgb=rgb,
@@ -269,8 +259,8 @@ class BaselineModel(chainer.Chain):
                 summary.add({'add': add, 'add_s': add_s})
             else:
                 summary.add({
-                    f'add/{class_id_i:04d}': add,
-                    f'add_s/{class_id_i:04d}': add_s,
+                    f'add/{class_id_i:04d}/{i:04d}': add,
+                    f'add_s/{class_id_i:04d}/{i:04d}': add_s,
                 })
         chainer.report(summary.compute_mean(), self)
 

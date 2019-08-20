@@ -24,15 +24,6 @@ home = path.Path('~').expanduser()
 here = path.Path(__file__).abspath().parent
 
 
-def concat_list_of_examples(list_of_examples, device=None, padding=None):
-    batch = []
-    for examples in list_of_examples:
-        batch.extend(examples)
-    return chainer.dataset.concat_examples(
-        batch, device=device, padding=padding
-    )
-
-
 def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -184,8 +175,12 @@ def main():
     iter_train = contrib.iterators.MultiExamplePerImageSerialIterator(
         data_train, batch_size=16 // n_gpu, repeat=True, shuffle=True
     )
-    iter_valid = chainer.iterators.SerialIterator(
-        data_valid, batch_size=1, repeat=False, shuffle=False
+    iter_valid = contrib.iterators.MultiExamplePerImageSerialIterator(
+        data_valid,
+        batch_size=16,
+        repeat=False,
+        shuffle=False,
+        strict_batch_size=False,
     )
 
     updater = chainer.training.StandardUpdater(
@@ -226,7 +221,6 @@ def main():
         # evaluate
         evaluator = objslampp.training.extensions.PoseEstimationEvaluator(
             iterator=iter_valid,
-            converter=concat_list_of_examples,
             target=model,
             device=device,
             progress_bar=True,
