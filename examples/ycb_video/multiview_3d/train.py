@@ -35,10 +35,6 @@ def concat_list_of_examples(list_of_examples, device=None, padding=None):
     )
 
 
-def sigmoid(x):
-    return 1 / (1 + np.exp(- x))
-
-
 def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -87,28 +83,14 @@ def main():
         default=objslampp.datasets.ycb_video.class_ids_asymmetric.tolist(),
         help='class id',
     )
-    parser.add_argument(
-        '--use-occupancy',
-        action='store_true',
-        help='use occupancy',
-    )
 
     def argparse_type_loss(string):
         patterns = [
             'add',
-            r'add\+occupancy',
             'add_s',
-            r'add_s\+occupancy',
             'add/add_s',
-            r'add/add_s\+occupancy',
             r'add\+add_s',
-            r'add\+add_s\|linear',
-            r'add\+add_s\|sigmoid',
             r'add\+add_s\|step\|\d+'
-            'overlap',
-            r'overlap\+occupancy',
-            'iou',
-            r'iou\+occupancy',
         ]
         for pattern in patterns:
             if re.match(pattern, string):
@@ -126,7 +108,7 @@ def main():
     parser.add_argument(
         '--loss-scale',
         type=yaml.safe_load,
-        help='loss scale e.g., {occupancy: 1.0}',
+        help='loss scale e.g., {"add+add_s": 1.0}',
     )
     parser.add_argument(
         '--num-syn',
@@ -181,8 +163,6 @@ def main():
         chainer.cuda.cupy.random.seed(args.seed)
 
     # dataset initialization
-    return_occupancy_grids = \
-        args.use_occupancy or args.loss == 'add/add_s+complete'
     data_train = None
     data_valid = None
     if not args.multi_node or comm.rank == 0:
@@ -190,8 +170,6 @@ def main():
             data_train = contrib.datasets.YCBVideoDataset(
                 'train',
                 class_ids=args.class_ids,
-                # augmentation=args.augmentation,
-                # return_occupancy_grids=return_occupancy_grids,
                 num_syn=args.num_syn,
             )
         elif args.dataset == 'my_synthetic':
@@ -200,7 +178,6 @@ def main():
                 root_dir=root_dir,
                 class_ids=args.class_ids,
                 augmentation=args.augmentation,
-                return_occupancy_grids=return_occupancy_grids,
             )
             assert len(data.root_dir.dirs()) == 750
             assert len(data) == 750 * 15
@@ -214,7 +191,6 @@ def main():
             data_valid = contrib.datasets.YCBVideoDataset(
                 'val',
                 class_ids=args.class_ids,
-                # return_occupancy_grids=return_occupancy_grids,
             )
 
         termcolor.cprint('==> Dataset size', attrs={'bold': True})
@@ -232,7 +208,6 @@ def main():
     # model initialization
     model = contrib.models.BaselineModel(
         n_fg_class=len(args.class_names[1:]),
-        # use_occupancy=args.use_occupancy,
         loss=loss,
         loss_scale=args.loss_scale,
     )
@@ -285,13 +260,8 @@ def main():
         optimizer = updater.get_optimizer('main')
         target = optimizer.target
         assert trainer.stop_trigger.unit == 'epoch'
-        max_epoch = trainer.stop_trigger.period
 
-        if args.loss == 'add+add_s|linear':
-            loss_scale_add = 1 - updater.epoch_detail / max_epoch
-        elif args.loss == 'add+add_s|sigmoid':
-            loss_scale_add = 1 - sigmoid(updater.epoch_detail - max_epoch / 2)
-        elif re.match(r'add\+add_s\|step\|\d+', args.loss):
+        if re.match(r'add\+add_s\|step\|\d+', args.loss):
             match = re.match(r'add\+add_s\|step\|(\d+)', args.loss)
             epoch_anchor = int(match.groups()[0])
             loss_scale_add = 1
