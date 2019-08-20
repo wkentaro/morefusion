@@ -221,7 +221,7 @@ def main():
 
         log_interval = 1, 'iteration'
         param_log_interval = 100, 'iteration'
-        eval_interval = 0.3, 'epoch'
+        eval_interval = 1, 'epoch'
 
         # evaluate
         evaluator = objslampp.training.extensions.PoseEstimationEvaluator(
