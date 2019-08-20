@@ -208,13 +208,11 @@ class PoseNet(chainer.Chain):
 
         batch_size = class_id.shape[0]
 
-        T_cad2cam_true = objslampp.functions.quaternion_matrix(quaternion_true)
-        T_cad2cam_pred = objslampp.functions.quaternion_matrix(quaternion_pred)
-        T_cad2cam_true = objslampp.functions.compose_transform(
-            Rs=T_cad2cam_true[:, :3, :3], ts=translation_true,
+        T_cad2cam_true = objslampp.functions.transformation_matrix(
+            quaternion_true, translation_true
         )
-        T_cad2cam_pred = objslampp.functions.compose_transform(
-            Rs=T_cad2cam_pred[:, :3, :3], ts=translation_pred,
+        T_cad2cam_pred = objslampp.functions.transformation_matrix(
+            quaternion_pred, translation_pred
         )
         T_cad2cam_true = cuda.to_cpu(T_cad2cam_true.array)
         T_cad2cam_pred = cuda.to_cpu(T_cad2cam_pred.array)
@@ -256,20 +254,14 @@ class PoseNet(chainer.Chain):
         for i in range(B):
             n_point = quaternion_pred[i].shape[0]
 
-            T_cad2cam_pred = objslampp.functions.quaternion_matrix(
-                quaternion_pred[i]
-            )
-            T_cad2cam_pred = objslampp.functions.compose_transform(
-                T_cad2cam_pred[:, :3, :3], translation_pred[i],
+            T_cad2cam_pred = objslampp.functions.transformation_matrix(
+                quaternion_pred[i], translation_pred[i]
             )  # (M, 4, 4)
 
-            T_cad2cam_true = objslampp.functions.quaternion_matrix(
-                quaternion_true[i:i + 1]
-            )
-            T_cad2cam_true = objslampp.functions.compose_transform(
-                T_cad2cam_true[:, :3, :3], translation_true[i:i + 1],
-            )  # (1, 4, 4)
-            T_cad2cam_true = F.repeat(T_cad2cam_true, n_point, axis=0)
+            T_cad2cam_true = objslampp.functions.transformation_matrix(
+                quaternion_true[i], translation_true[i]
+            )  # (4, 4)
+            T_cad2cam_true = F.repeat(T_cad2cam_true[None], n_point, axis=0)
 
             class_id_i = int(class_id[i])
             is_symmetric = class_id_i in \
