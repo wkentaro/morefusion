@@ -7,6 +7,7 @@ from .geometry import occupancy_grid_3d
 from .geometry import pseudo_occupancy_voxelization
 from .geometry import quaternion_matrix
 from .geometry import transform_points
+from .geometry import transformation_matrix
 from .geometry import translation_matrix
 from .geometry import truncated_distance_function
 

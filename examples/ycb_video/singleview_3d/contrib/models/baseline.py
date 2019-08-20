@@ -250,8 +250,12 @@ class BaselineModel(chainer.Chain):
 
         B = class_id.shape[0]
 
-        T_cad2cam_true = _transform_matrix(quaternion_true, translation_true)
-        T_cad2cam_pred = _transform_matrix(quaternion_pred, translation_pred)
+        T_cad2cam_true = objslampp.functions.transformation_matrix(
+            quaternion_true, translation_true
+        )
+        T_cad2cam_pred = objslampp.functions.transformation_matrix(
+            quaternion_pred, translation_pred
+        )
         T_cad2cam_true = cuda.to_cpu(T_cad2cam_true.array)
         T_cad2cam_pred = cuda.to_cpu(T_cad2cam_pred.array)
 
@@ -284,8 +288,12 @@ class BaselineModel(chainer.Chain):
         quaternion_true = quaternion_true.astype(np.float32)
         translation_true = translation_true.astype(np.float32)
 
-        T_cad2cam_true = _transform_matrix(quaternion_true, translation_true)
-        T_cad2cam_pred = _transform_matrix(quaternion_pred, translation_pred)
+        T_cad2cam_true = objslampp.functions.transformation_matrix(
+            quaternion_true, translation_true
+        )
+        T_cad2cam_pred = objslampp.functions.transformation_matrix(
+            quaternion_pred, translation_pred
+        )
 
         B = class_id.shape[0]
 
@@ -381,21 +389,3 @@ class VoxelFeatureExtractor(chainer.Chain):
         del h_
 
         return h
-
-
-def _transform_matrix(quaternion, translation):
-    if quaternion.ndim == 2:
-        batch_size = quaternion.shape[0]
-        assert quaternion.shape == (batch_size, 4)
-        assert translation.shape == (batch_size, 3)
-        T = objslampp.functions.quaternion_matrix(quaternion)
-        T = objslampp.functions.compose_transform(T[:, :3, :3], translation)
-    else:
-        assert quaternion.ndim == 1
-        assert quaternion.shape == (4,)
-        assert translation.shape == (3,)
-        T = objslampp.functions.quaternion_matrix(quaternion[None])[0]
-        T = objslampp.functions.compose_transform(
-            T[None, :3, :3], translation[None]
-        )[0]
-    return T

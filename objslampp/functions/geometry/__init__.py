@@ -14,6 +14,8 @@ from .quaternion_matrix import quaternion_matrix
 
 from .transform_points import transform_points
 
+from .transformation_matrix import transformation_matrix
+
 from .translation_matrix import translation_matrix
 
 from .truncated_distance_function import truncated_distance_function

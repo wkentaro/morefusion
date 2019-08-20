@@ -5,7 +5,6 @@ import numpy as np
 import objslampp
 
 from .singleview_3d_baseline import BaselineModel as SingleView3DBaselineModel
-from .singleview_3d_baseline import _transform_matrix
 
 
 class BaselineModel(SingleView3DBaselineModel):
@@ -48,7 +47,7 @@ class BaselineModel(SingleView3DBaselineModel):
             actives_i = counts_i[0] > 0
 
             if chainer.config.train:
-                T_cad2cam_i = _transform_matrix(
+                T_cad2cam_i = objslampp.functions.transformation_matrix(
                     quaternion_true[i], translation_true[i]
                 )
 
@@ -62,7 +61,7 @@ class BaselineModel(SingleView3DBaselineModel):
                         )
                 for j in indices:
                     points_j = points[j]
-                    T_cad2cam_j = _transform_matrix(
+                    T_cad2cam_j = objslampp.functions.transformation_matrix(
                         quaternion_true[j], translation_true[j]
                     )
                     points_j = objslampp.functions.transform_points(
