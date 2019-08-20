@@ -66,8 +66,8 @@ class BaselineModel(SingleView3DBaselineModel):
                     )
                     points_j = objslampp.functions.transform_points(
                         points_j,
-                        F.matmul(T_cad2cam_i, F.inv(T_cad2cam_j))[None],
-                    )[0]
+                        F.matmul(T_cad2cam_i, F.inv(T_cad2cam_j)),
+                    )
 
                     h_j, counts_j = objslampp.functions.average_voxelization_3d(  # NOQA
                         values=values[j],
