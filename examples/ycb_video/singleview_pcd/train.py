@@ -2,12 +2,14 @@
 
 import argparse
 import datetime
+import os.path as osp
 import pprint
 import random
 import socket
 import textwrap
 
 import chainer
+from chainer.training import extensions as E
 import numpy as np
 import path
 import termcolor
@@ -18,6 +20,7 @@ import objslampp
 import contrib
 
 
+home = path.Path('~').expanduser()
 here = path.Path(__file__).abspath().parent
 
 
@@ -31,13 +34,13 @@ def concat_list_of_examples(list_of_examples, device=None, padding=None):
 
 
 def main():
-    now = datetime.datetime.now(datetime.timezone.utc)
-    default_out = str(here / 'logs' / now.strftime('%Y%m%d_%H%M%S.%f'))
-
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument('--out', default=default_out, help='output directory')
+    parser.add_argument(
+        '--multi-node', action='store_true', help='multi node'
+    )
+    parser.add_argument('--out', help='output directory')
     parser.add_argument('--debug', action='store_true', help='debug mode')
     parser.add_argument('--gpu', type=int, default=0, help='gpu id')
     parser.add_argument('--seed', type=int, default=0, help='random seed')
@@ -79,8 +82,8 @@ def main():
         '--class-ids',
         type=int,
         nargs='*',
-        default=objslampp.datasets.ycb_video.class_ids_asymmetric,
-        help='class ids',
+        default=objslampp.datasets.ycb_video.class_ids_asymmetric.tolist(),
+        help='class id',
     )
     parser.add_argument(
         '--num-syn',
@@ -92,157 +95,215 @@ def main():
 
     chainer.global_config.debug = args.debug
 
-    termcolor.cprint('==> Started training', attrs={'bold': True})
-
-    args.timestamp = now.isoformat()
-    args.hostname = socket.gethostname()
-    args.githash = objslampp.utils.githash(__file__)
-
-    writer = tensorboardX.SummaryWriter(log_dir=args.out)
-    writer_with_updater = objslampp.training.SummaryWriterWithUpdater(writer)
-
     # -------------------------------------------------------------------------
 
     # device initialization
-    if args.gpu >= 0:
-        chainer.cuda.get_device_from_id(args.gpu).use()
+    if args.multi_node:
+        import chainermn
+
+        comm = chainermn.create_communicator('hierarchical')
+        device = comm.intra_rank
+        n_gpu = comm.size
+    else:
+        device = args.gpu
+        n_gpu = 1
+
+    if not args.multi_node or comm.rank == 0:
+        now = datetime.datetime.now(datetime.timezone.utc)
+        args.timestamp = now.isoformat()
+        args.hostname = socket.gethostname()
+        args.githash = objslampp.utils.githash(__file__)
+
+        termcolor.cprint('==> Started training', attrs={'bold': True})
+
+    if args.out is None:
+        if not args.multi_node or comm.rank == 0:
+            args.out = osp.join(here, 'logs', now.strftime('%Y%m%d_%H%M%S.%f'))
+        else:
+            args.out = None
+        if args.multi_node:
+            args.out = comm.bcast_obj(args.out)
+
+    if device >= 0:
+        chainer.cuda.get_device_from_id(device).use()
 
     # seed initialization
     random.seed(args.seed)
     np.random.seed(args.seed)
-    if args.gpu >= 0:
+    if device >= 0:
         chainer.cuda.cupy.random.seed(args.seed)
 
     # dataset initialization
-    data_train = contrib.datasets.YCBVideoDataset(
-        'train', class_ids=args.class_ids, num_syn=args.num_syn
-    )
-    data_valid = contrib.datasets.YCBVideoDataset(
-        'val', class_ids=args.class_ids
-    )
-    class_names = objslampp.datasets.ycb_video.class_names
+    data_train = None
+    data_valid = None
+    if not args.multi_node or comm.rank == 0:
+        if args.dataset == 'ycb_video':
+            data_train = contrib.datasets.YCBVideoDataset(
+                'train',
+                class_ids=args.class_ids,
+                num_syn=args.num_syn,
+            )
+        else:
+            raise ValueError(f'unsupported dataset: {args.dataset}')
 
-    termcolor.cprint('==> Dataset size', attrs={'bold': True})
-    print('train={}, val={}'.format(len(data_train), len(data_valid)))
+        if data_valid is None:
+            data_valid = contrib.datasets.YCBVideoDataset(
+                'val',
+                class_ids=args.class_ids,
+            )
+
+        termcolor.cprint('==> Dataset size', attrs={'bold': True})
+        print(f'train={len(data_train)}, val={len(data_valid)}')
+    if args.multi_node:
+        data_train = chainermn.scatter_dataset(data_train, comm, shuffle=True)
+
+    args.class_names = objslampp.datasets.ycb_video.class_names.tolist()
 
     # model initialization
     model = contrib.models.PoseNet(
-        n_fg_class=len(class_names) - 1,
+        n_fg_class=len(args.class_names) - 1,
         n_point=1000,
         lambda_confidence=args.lambda_confidence,
         single=args.single,
     )
-    if args.gpu >= 0:
+    if device >= 0:
         model.to_gpu()
 
     # optimizer initialization
     optimizer = chainer.optimizers.Adam(alpha=args.lr)
+    if args.multi_node:
+        optimizer = chainermn.create_multi_node_optimizer(optimizer, comm)
     optimizer.setup(model)
 
-    termcolor.cprint('==> Link update rules', attrs={'bold': True})
-    for name, link in model.namedlinks():
-        print(name, link.update_enabled)
+    if not args.multi_node or comm.rank == 0:
+        termcolor.cprint('==> Link update rules', attrs={'bold': True})
+        for name, link in model.namedlinks():
+            print(name, link.update_enabled)
 
     # iterator initialization
     iter_train = contrib.iterators.MultiExamplePerImageSerialIterator(
-        data_train, batch_size=16, repeat=True, shuffle=True
+        data_train, batch_size=16 // n_gpu, repeat=True, shuffle=True
     )
     iter_valid = chainer.iterators.SerialIterator(
         data_valid, batch_size=1, repeat=False, shuffle=False
     )
 
-    updater = chainer.training.updater.StandardUpdater(
+    updater = chainer.training.StandardUpdater(
         iterator=iter_train,
         optimizer=optimizer,
-        device=args.gpu,
+        device=device,
     )
-    writer_with_updater.setup(updater)
+    if not args.multi_node or comm.rank == 0:
+        writer = tensorboardX.SummaryWriter(log_dir=args.out)
+        writer_with_updater = objslampp.training.SummaryWriterWithUpdater(
+            writer
+        )
+        writer_with_updater.setup(updater)
 
     # -------------------------------------------------------------------------
 
     trainer = chainer.training.Trainer(
         updater, (args.max_epoch, 'epoch'), out=args.out
     )
-    trainer.extend(chainer.training.extensions.FailOnNonNumber())
+    trainer.extend(E.FailOnNonNumber())
 
-    # print arguments
-    msg = pprint.pformat(args.__dict__)
-    msg = textwrap.indent(msg, prefix=' ' * 2)
-    termcolor.cprint('==> Arguments', attrs={'bold': True})
-    print(f'\n{msg}\n')
+    if not args.multi_node or comm.rank == 0:
+        # print arguments
+        msg = pprint.pformat(args.__dict__)
+        msg = textwrap.indent(msg, prefix=' ' * 2)
+        termcolor.cprint('==> Arguments', attrs={'bold': True})
+        print(f'\n{msg}\n')
 
-    trainer.extend(
-        objslampp.training.extensions.ArgsReport(args),
-        call_before_training=True,
-    )
+        trainer.extend(
+            objslampp.training.extensions.ArgsReport(args),
+            call_before_training=True,
+        )
 
-    log_interval = 1, 'iteration'
-    param_log_interval = 100, 'iteration'
-    eval_interval = 0.3, 'epoch'
+        log_interval = 1, 'iteration'
+        param_log_interval = 100, 'iteration'
+        eval_interval = 0.3, 'epoch'
 
-    # evaluate
-    evaluator = objslampp.training.extensions.PoseEstimationEvaluator(
-        iterator=iter_valid,
-        converter=concat_list_of_examples,
-        target=model,
-        device=args.gpu,
-        progress_bar=True,
-    )
-    trainer.extend(
-        evaluator,
-        trigger=eval_interval,
-        call_before_training=args.call_evaluation_before_training,
-    )
+        # evaluate
+        evaluator = objslampp.training.extensions.PoseEstimationEvaluator(
+            iterator=iter_valid,
+            converter=concat_list_of_examples,
+            target=model,
+            device=device,
+            progress_bar=True,
+        )
+        trainer.extend(
+            evaluator,
+            trigger=eval_interval,
+            call_before_training=args.call_evaluation_before_training,
+        )
 
-    # snapshot
-    trainer.extend(
-        chainer.training.extensions.snapshot_object(
-            model, filename='snapshot_model_best_auc_add.npz'
-        ),
-        trigger=chainer.training.triggers.MaxValueTrigger(
+        # snapshot
+        trigger_best_add = chainer.training.triggers.MaxValueTrigger(
             key='validation/main/auc/add',
             trigger=eval_interval,
-        ),
-    )
+        )
+        trigger_best_add_s = chainer.training.triggers.MaxValueTrigger(
+            key='validation/main/auc/add_s',
+            trigger=eval_interval,
+        )
+        trainer.extend(
+            E.snapshot(filename='snapshot_trainer_latest.npz'),
+            trigger=eval_interval,
+        )
+        trainer.extend(
+            E.snapshot_object(
+                model, filename='snapshot_model_latest.npz'
+            ),
+            trigger=eval_interval,
+        )
+        trainer.extend(
+            E.snapshot_object(
+                model, filename='snapshot_model_best_auc_add.npz'
+            ),
+            trigger=trigger_best_add,
+        )
+        trainer.extend(
+            E.snapshot_object(
+                model, filename='snapshot_model_best_auc_add_s.npz'
+            ),
+            trigger=trigger_best_add_s,
+        )
 
-    # log
-    trainer.extend(
-        chainer.training.extensions.observe_lr(),
-        trigger=log_interval,
-    )
-    trainer.extend(
-        objslampp.training.extensions.LogTensorboardReport(
-            writer=writer,
+        # log
+        trainer.extend(
+            objslampp.training.extensions.LogTensorboardReport(
+                writer=writer,
+                trigger=log_interval,
+            ),
+            call_before_training=True,
+        )
+        trainer.extend(
+            objslampp.training.extensions.ParameterTensorboardReport(
+                writer=writer
+            ),
+            call_before_training=True,
+            trigger=param_log_interval,
+        )
+        trainer.extend(
+            E.PrintReport(
+                [
+                    'epoch',
+                    'iteration',
+                    'elapsed_time',
+                    'main/loss',
+                    'main/add',
+                    'main/add_s',
+                    'validation/main/auc/add',
+                    'validation/main/auc/add_s',
+                ],
+                log_report='LogTensorboardReport',
+            ),
             trigger=log_interval,
-        ),
-        call_before_training=True,
-    )
-    trainer.extend(
-        objslampp.training.extensions.ParameterTensorboardReport(
-            writer=writer
-        ),
-        call_before_training=True,
-        trigger=param_log_interval,
-    )
-    trainer.extend(
-        chainer.training.extensions.PrintReport(
-            [
-                'epoch',
-                'iteration',
-                'elapsed_time',
-                'lr',
-                'main/loss',
-                'main/add',
-                'main/add_s',
-                'validation/main/auc/add',
-                'validation/main/auc/add_s',
-            ],
-            log_report='LogTensorboardReport',
-        ),
-        trigger=log_interval,
-        call_before_training=True,
-    )
-    trainer.extend(chainer.training.extensions.ProgressBar(update_interval=1))
+            call_before_training=True,
+        )
+        trainer.extend(
+            E.ProgressBar(update_interval=1)
+        )
 
     # -------------------------------------------------------------------------
 
