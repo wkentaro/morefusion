@@ -18,6 +18,8 @@ class BaselineModel(SingleView3DBaselineModel):
         points,
         quaternion_true=None,
         translation_true=None,
+        pitch=None,
+        origin=None,
     ):
         xp = self.xp
 
@@ -29,25 +31,29 @@ class BaselineModel(SingleView3DBaselineModel):
             quaternion_true = quaternion_true.astype(np.float32)
         if translation_true is not None:
             translation_true = translation_true.astype(np.float32)
+        if pitch is None:
+            pitch = xp.full((B,), np.nan, dtype=np.float32)
+        if origin is None:
+            origin = xp.full((B, 3), np.nan, dtype=np.float32)
 
-        pitch = []
-        origin = []
         h = []
         actives = []
         for i in range(B):
-            pitch_i = self._models.get_voxel_pitch(
-                dimension=self._voxel_dim, class_id=int(class_id[i]),
-            )
-            if xp == np:
-                center_i = np.median(points[i], axis=0)
-            else:
-                center_i = objslampp.extra.cupy.median(points[i], axis=0)
-            origin_i = center_i - pitch_i * (self._voxel_dim / 2. - 0.5)
+            if xp.isnan(pitch[i]):
+                pitch[i] = self._models.get_voxel_pitch(
+                    dimension=self._voxel_dim, class_id=int(class_id[i]),
+                )
+            if xp.isnan(origin[i]).any():
+                if xp == np:
+                    center_i = np.median(points[i], axis=0)
+                else:
+                    center_i = objslampp.extra.cupy.median(points[i], axis=0)
+                origin[i] = center_i - pitch[i] * (self._voxel_dim / 2. - 0.5)
             h_i, counts_i = objslampp.functions.average_voxelization_3d(
                 values=values[i],
                 points=points[i],
-                origin=origin_i,
-                pitch=pitch_i,
+                origin=origin[i],
+                pitch=pitch[i],
                 dimensions=dimensions,
                 channels=values[i].shape[1],
                 return_counts=True,
@@ -80,8 +86,8 @@ class BaselineModel(SingleView3DBaselineModel):
                     h_j, counts_j = objslampp.functions.average_voxelization_3d(  # NOQA
                         values=values[j],
                         points=points_j,
-                        origin=origin_i,
-                        pitch=pitch_i,
+                        origin=origin[i],
+                        pitch=pitch[i],
                         dimensions=dimensions,
                         channels=values[j].shape[1],
                         return_counts=True,
@@ -90,13 +96,9 @@ class BaselineModel(SingleView3DBaselineModel):
                     h_i = F.maximum(h_i, h_j)
                     actives_i = actives_i | (counts_j[0] > 0)
 
-            pitch.append(pitch_i)
-            origin.append(origin_i)
             h.append(h_i)
             actives.append(actives_i)
 
-        pitch = xp.array(pitch)
-        origin = xp.stack(origin)
         h = F.stack(h)           # BCXYZ
         actives = xp.stack(actives)  # BXYZ
 
