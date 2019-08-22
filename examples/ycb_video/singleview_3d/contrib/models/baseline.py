@@ -353,27 +353,38 @@ class VoxelFeatureExtractor(chainer.Chain):
     def __init__(self):
         super().__init__()
         with self.init_scope():
-            self.conv1 = L.Convolution3D(None, 128, 4, stride=2, pad=1)
-            self.conv2 = L.Convolution3D(128, 256, 3, stride=1, pad=1)
-            self.conv3 = L.Convolution3D(256, 512, 3, stride=1, pad=1)
-            self.conv4 = L.Convolution3D(512, 1024, 3, stride=1, pad=1)
+            # 32x32x32x32 -> 64x16x16x16
+            self.conv1_1 = L.Convolution3D(None, 64, 4, stride=2, pad=1)
+            self.conv1_2 = L.Convolution3D(64, 64, 1, stride=1, pad=0)
+            self.conv1_3 = L.Convolution3D(64, 64, 1, stride=1, pad=0)
+            # 64x16x16x16 -> 128x8x8x8
+            self.conv2_1 = L.Convolution3D(64, 128, 4, stride=2, pad=1)
+            self.conv2_2 = L.Convolution3D(128, 128, 1, stride=1, pad=0)
+            self.conv2_3 = L.Convolution3D(128, 128, 1, stride=1, pad=0)
+            # 128x8x8x8 -> 256x4x4x4
+            self.conv3_1 = L.Convolution3D(128, 256, 4, stride=2, pad=1)
+            self.conv3_2 = L.Convolution3D(256, 256, 1, stride=1, pad=0)
+            self.conv3_3 = L.Convolution3D(256, 256, 1, stride=1, pad=0)
+            # 256x4x4x4 -> 512x4x4x4
+            self.conv4_1 = L.Convolution3D(256, 512, 3, stride=1, pad=1)
+            self.conv4_2 = L.Convolution3D(512, 512, 1, stride=1, pad=0)
+            self.conv4_3 = L.Convolution3D(512, 512, 1, stride=1, pad=0)
+            # 512 * 4 * 4 * 4 = 32768 -> 1024
+            self.fc5 = L.Linear(512 * 4 * 4 * 4, 1024)
 
     def __call__(self, h, actives):
-        xp = self.xp
-
-        h = F.relu(self.conv1(h))
-        h = F.relu(self.conv2(h))
-        h = F.relu(self.conv3(h))
-        h = F.relu(self.conv4(h))
-
-        h_ = []
-        for i in range(h.shape[0]):
-            X, Y, Z = xp.where(actives[i, :, :, :])
-            X, Y, Z = X // 2, Y // 2, Z // 2
-            h_i = h[i, :, X, Y, Z]
-            h_i = F.average(h_i, axis=0)
-            h_.append(h_i[None])
-        h = F.concat(h_, axis=0)
-        del h_
+        h = F.relu(self.conv1_1(h))
+        h = F.relu(self.conv1_2(h))
+        h = F.relu(self.conv1_3(h))
+        h = F.relu(self.conv2_1(h))
+        h = F.relu(self.conv2_2(h))
+        h = F.relu(self.conv2_3(h))
+        h = F.relu(self.conv3_1(h))
+        h = F.relu(self.conv3_2(h))
+        h = F.relu(self.conv3_3(h))
+        h = F.relu(self.conv4_1(h))
+        h = F.relu(self.conv4_2(h))
+        h = F.relu(self.conv4_3(h))
+        h = F.relu(self.fc5(h))
 
         return h
