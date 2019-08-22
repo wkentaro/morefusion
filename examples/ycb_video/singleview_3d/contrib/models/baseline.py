@@ -72,7 +72,7 @@ class BaselineModel(chainer.Chain):
             points=points,
         )
 
-        return self._predict_from_voxel(
+        return self._predict_from_voxelized(
             class_id=class_id,
             pitch=pitch,
             origin=origin,
@@ -155,7 +155,7 @@ class BaselineModel(chainer.Chain):
 
         return pitch, origin, h, actives
 
-    def _predict_from_voxel(
+    def _predict_from_voxelized(
         self, class_id, pitch, origin, voxelized, actives
     ):
         xp = self.xp

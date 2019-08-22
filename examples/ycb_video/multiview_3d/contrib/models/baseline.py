@@ -152,7 +152,7 @@ class BaselineModel(SingleView3DBaselineModel):
             translation_true=translation_true,
         )
 
-        quaternion_pred, translation_pred = self._predict_from_voxel(
+        quaternion_pred, translation_pred = self._predict_from_voxelized(
             class_id=class_id,
             pitch=pitch,
             origin=origin,
