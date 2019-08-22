@@ -37,7 +37,6 @@ class BaselineModel(SingleView3DBaselineModel):
             origin = xp.full((B, 3), np.nan, dtype=np.float32)
 
         h = []
-        actives = []
         for i in range(B):
             if xp.isnan(pitch[i]):
                 pitch[i] = self._models.get_voxel_pitch(
@@ -49,16 +48,14 @@ class BaselineModel(SingleView3DBaselineModel):
                 else:
                     center_i = objslampp.extra.cupy.median(points[i], axis=0)
                 origin[i] = center_i - pitch[i] * (self._voxel_dim / 2. - 0.5)
-            h_i, counts_i = objslampp.functions.average_voxelization_3d(
+            h_i = objslampp.functions.average_voxelization_3d(
                 values=values[i],
                 points=points[i],
                 origin=origin[i],
                 pitch=pitch[i],
                 dimensions=dimensions,
                 channels=values[i].shape[1],
-                return_counts=True,
             )  # CXYZ
-            actives_i = counts_i[0] > 0
 
             if chainer.config.train:
                 T_cad2cam_i = objslampp.functions.transformation_matrix(
@@ -94,15 +91,12 @@ class BaselineModel(SingleView3DBaselineModel):
                     )  # CXYZ
 
                     h_i = F.maximum(h_i, h_j)
-                    actives_i = actives_i | (counts_j[0] > 0)
 
             h.append(h_i)
-            actives.append(actives_i)
 
         h = F.stack(h)           # BCXYZ
-        actives = xp.stack(actives)  # BXYZ
 
-        return pitch, origin, h, actives
+        return pitch, origin, h
 
     def predict(
         self,
@@ -144,7 +138,7 @@ class BaselineModel(SingleView3DBaselineModel):
                     cuda.to_cpu(T_cad2cam_true_i)
                 ))
 
-        pitch, origin, voxelized, actives = self._voxelize(
+        pitch, origin, voxelized = self._voxelize(
             class_id=class_id,
             values=values,
             points=points,
@@ -157,7 +151,6 @@ class BaselineModel(SingleView3DBaselineModel):
             pitch=pitch,
             origin=origin,
             voxelized=voxelized,
-            actives=actives,
         )
 
         return quaternion_pred, translation_pred

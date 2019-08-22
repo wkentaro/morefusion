@@ -66,7 +66,7 @@ class BaselineModel(chainer.Chain):
             pcd=pcd,
         )
 
-        pitch, origin, voxelized, actives = self._voxelize(
+        pitch, origin, voxelized = self._voxelize(
             class_id=class_id,
             values=values,
             points=points,
@@ -77,7 +77,6 @@ class BaselineModel(chainer.Chain):
             pitch=pitch,
             origin=origin,
             voxelized=voxelized,
-            actives=actives,
         )
 
     def _extract(self, rgb, pcd):
@@ -122,7 +121,6 @@ class BaselineModel(chainer.Chain):
         pitch = []
         origin = []
         h = []
-        actives = []
         for i in range(B):
             pitch_i = self._models.get_voxel_pitch(
                 dimension=self._voxel_dim, class_id=int(class_id[i]),
@@ -132,44 +130,32 @@ class BaselineModel(chainer.Chain):
             else:
                 center_i = objslampp.extra.cupy.median(points[i], axis=0)
             origin_i = center_i - pitch_i * (self._voxel_dim / 2. - 0.5)
-            h_i, counts_i = objslampp.functions.average_voxelization_3d(
+            h_i = objslampp.functions.average_voxelization_3d(
                 values=values[i],
                 points=points[i],
                 origin=origin_i,
                 pitch=pitch_i,
                 dimensions=dimensions,
                 channels=values[i].shape[1],
-                return_counts=True,
             )  # CXYZ
-            actives_i = counts_i[0] > 0
 
             pitch.append(pitch_i)
             origin.append(origin_i)
             h.append(h_i)
-            actives.append(actives_i)
 
         pitch = xp.array(pitch)
         origin = xp.stack(origin)
         h = F.stack(h)           # BCXYZ
-        actives = xp.stack(actives)  # BXYZ
 
-        return pitch, origin, h, actives
+        return pitch, origin, h
 
     def _predict_from_voxelized(
-        self, class_id, pitch, origin, voxelized, actives
+        self, class_id, pitch, origin, voxelized
     ):
         xp = self.xp
         B = class_id.shape[0]
 
-        centroids = []
-        for i in range(B):
-            # mean of active points (voxels)
-            centroid = xp.stack(xp.where(actives[i])).mean(axis=1)
-            centroid = centroid * pitch[i] + origin[i]
-            centroids.append(centroid[None])
-        centroids = xp.concatenate(centroids, axis=0)  # B3
-
-        h = self.voxel_extractor(voxelized, actives)
+        h = self.voxel_extractor(voxelized)
 
         h_rot = F.relu(self.fc1_rot(h))
         h_trans = F.relu(self.fc1_trans(h))
@@ -188,7 +174,7 @@ class BaselineModel(chainer.Chain):
         translation = translation[xp.arange(B), fg_class_id, :]
 
         quaternion = F.normalize(quaternion, axis=1)
-        translation = centroids + translation * pitch[:, None]
+        translation = origin + translation * pitch[:, None]
 
         return quaternion, translation
 
@@ -372,7 +358,7 @@ class VoxelFeatureExtractor(chainer.Chain):
             # 512 * 4 * 4 * 4 = 32768 -> 1024
             self.fc5 = L.Linear(512 * 4 * 4 * 4, 1024)
 
-    def __call__(self, h, actives):
+    def __call__(self, h):
         h = F.relu(self.conv1_1(h))
         h = F.relu(self.conv1_2(h))
         h = F.relu(self.conv1_3(h))
