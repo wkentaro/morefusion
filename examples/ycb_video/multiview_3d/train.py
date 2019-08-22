@@ -104,8 +104,14 @@ def main():
     parser.add_argument(
         '--num-syn',
         type=float,
-        default=0.25,
+        default=0.1,
         help='number of synthetic examples used',
+    )
+    parser.add_argument(
+        '--sampling',
+        type=int,
+        default=16,
+        help='sampling of ycb_video train',
     )
     parser.add_argument(
         '--pretrained-model',
@@ -161,6 +167,7 @@ def main():
             data_train = contrib.datasets.YCBVideoDataset(
                 'train',
                 class_ids=args.class_ids,
+                sampling=args.sampling,
                 num_syn=args.num_syn,
             )
         elif args.dataset == 'my_synthetic':
