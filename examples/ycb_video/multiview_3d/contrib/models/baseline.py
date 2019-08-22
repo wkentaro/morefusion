@@ -142,7 +142,7 @@ class BaselineModel(SingleView3DBaselineModel):
                     cuda.to_cpu(T_cad2cam_true_i)
                 ))
 
-        pitch, origin, matrix, actives = self._voxelize(
+        pitch, origin, voxelized, actives = self._voxelize(
             class_id=class_id,
             values=values,
             points=points,
@@ -154,7 +154,7 @@ class BaselineModel(SingleView3DBaselineModel):
             class_id=class_id,
             pitch=pitch,
             origin=origin,
-            matrix=matrix,
+            voxelized=voxelized,
             actives=actives,
         )
 

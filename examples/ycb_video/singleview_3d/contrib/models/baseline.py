@@ -66,7 +66,7 @@ class BaselineModel(chainer.Chain):
             pcd=pcd,
         )
 
-        pitch, origin, matrix, actives = self._voxelize(
+        pitch, origin, voxelized, actives = self._voxelize(
             class_id=class_id,
             values=values,
             points=points,
@@ -76,7 +76,7 @@ class BaselineModel(chainer.Chain):
             class_id=class_id,
             pitch=pitch,
             origin=origin,
-            matrix=matrix,
+            voxelized=voxelized,
             actives=actives,
         )
 
@@ -156,7 +156,7 @@ class BaselineModel(chainer.Chain):
         return pitch, origin, h, actives
 
     def _predict_from_voxel(
-        self, class_id, pitch, origin, matrix, actives
+        self, class_id, pitch, origin, voxelized, actives
     ):
         xp = self.xp
         B = class_id.shape[0]
@@ -169,7 +169,7 @@ class BaselineModel(chainer.Chain):
             centroids.append(centroid[None])
         centroids = xp.concatenate(centroids, axis=0)  # B3
 
-        h = self.voxel_extractor(matrix, actives)
+        h = self.voxel_extractor(voxelized, actives)
 
         h_rot = F.relu(self.fc1_rot(h))
         h_trans = F.relu(self.fc1_trans(h))
