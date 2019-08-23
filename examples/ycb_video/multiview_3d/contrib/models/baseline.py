@@ -37,6 +37,7 @@ class BaselineModel(SingleView3DBaselineModel):
             origin = xp.full((B, 3), np.nan, dtype=np.float32)
 
         h = []
+        count = []
         for i in range(B):
             if xp.isnan(pitch[i]):
                 pitch[i] = self._models.get_voxel_pitch(
@@ -48,13 +49,13 @@ class BaselineModel(SingleView3DBaselineModel):
                 else:
                     center_i = objslampp.extra.cupy.median(points[i], axis=0)
                 origin[i] = center_i - pitch[i] * (self._voxel_dim / 2. - 0.5)
-            h_i = objslampp.functions.average_voxelization_3d(
+            h_i, count_i = objslampp.functions.average_voxelization_3d(
                 values=values[i],
                 points=points[i],
                 origin=origin[i],
                 pitch=pitch[i],
                 dimensions=dimensions,
-                channels=values[i].shape[1],
+                return_counts=True,
             )  # CXYZ
 
             if chainer.config.train:
@@ -80,23 +81,27 @@ class BaselineModel(SingleView3DBaselineModel):
                         F.matmul(T_cad2cam_i, F.inv(T_cad2cam_j)),
                     )
 
-                    h_j, counts_j = objslampp.functions.average_voxelization_3d(  # NOQA
+                    h_j, count_j = objslampp.functions.average_voxelization_3d(
                         values=values[j],
                         points=points_j,
                         origin=origin[i],
                         pitch=pitch[i],
                         dimensions=dimensions,
-                        channels=values[j].shape[1],
                         return_counts=True,
                     )  # CXYZ
 
-                    h_i = F.maximum(h_i, h_j)
+                    count_i = count_i + count_j
+                    denominator = count_i.copy()
+                    denominator[denominator == 0] = 1
+                    h_i = (h_i * count_i + h_j * count_j) / denominator
 
             h.append(h_i)
+            count.append(count_i)
 
         h = F.stack(h)           # BCXYZ
+        count = xp.stack(count)           # BCXYZ
 
-        return pitch, origin, h
+        return pitch, origin, h, count
 
     def predict(
         self,
@@ -138,7 +143,7 @@ class BaselineModel(SingleView3DBaselineModel):
                     cuda.to_cpu(T_cad2cam_true_i)
                 ))
 
-        pitch, origin, voxelized = self._voxelize(
+        pitch, origin, voxelized, count = self._voxelize(
             class_id=class_id,
             values=values,
             points=points,
@@ -151,6 +156,7 @@ class BaselineModel(SingleView3DBaselineModel):
             pitch=pitch,
             origin=origin,
             voxelized=voxelized,
+            count=count,
         )
 
         return quaternion_pred, translation_pred
