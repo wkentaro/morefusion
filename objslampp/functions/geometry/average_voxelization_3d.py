@@ -29,10 +29,10 @@ class AverageVoxelization3D(Voxelization3D):
             if valid:
                 ix, iy, iz = index
                 matrix[:, ix, iy, iz] += value
-                counts[:, ix, iy, iz] += 1
+                counts[ix, iy, iz] += 1
 
-        nonzero = np.nonzero(counts)
-        matrix[nonzero] /= counts[nonzero]
+        I, J, K = np.nonzero(counts)
+        matrix[:, I, J, K] /= counts[I, J, K]
 
         self.counts = counts
         return matrix,
@@ -47,7 +47,7 @@ class AverageVoxelization3D(Voxelization3D):
 
         shape = (self.channels,) + self.dimensions
         matrix = cuda.cupy.zeros(shape, dtype=np.float32)
-        counts = cuda.cupy.zeros(shape, dtype=np.int32)
+        counts = cuda.cupy.zeros(self.dimensions, dtype=np.int32)
         origin = cuda.cupy.asarray(self.origin, dtype=np.float32)
         shape = cuda.cupy.asarray(shape, dtype=np.int32)
 
@@ -77,11 +77,12 @@ class AverageVoxelization3D(Voxelization3D):
                 iy >= 0 && iy < shape[2] &&
                 iz >= 0 && iz < shape[3])
             {
-                int index = (c * shape[1] * shape[2] * shape[3]) +
-                            (ix * shape[2] * shape[3]) +
-                            (iy * shape[3]) + iz;
-                atomicAdd(&matrix[index], values);
-                atomicAdd(&counts[index], 1);
+                int index_counts = (ix * shape[2] * shape[3]) +
+                                   (iy * shape[3]) + iz;
+                int index_matrix = (c * shape[1] * shape[2] * shape[3]) +
+                                   index_counts;
+                atomicAdd(&matrix[index_matrix], values);
+                atomicAdd(&counts[index_counts], 1);
             }
             ''',
             'voxelize_fwd',
@@ -91,8 +92,8 @@ class AverageVoxelization3D(Voxelization3D):
             matrix, counts,
         )
 
-        nonzero = cuda.cupy.nonzero(counts)
-        matrix[nonzero] /= counts[nonzero].astype(np.float32)
+        I, J, K = cuda.cupy.nonzero(counts)
+        matrix[:, I, J, K] /= counts[I, J, K].astype(np.float32)
 
         self.counts = counts
         return matrix,
@@ -113,7 +114,7 @@ class AverageVoxelization3D(Voxelization3D):
             valid = ((0 <= index) & (index < self.dimensions)).all()
             if valid:
                 ix, iy, iz = index
-                gvalues[i] = gmatrix[:, ix, iy, iz] / counts[:, ix, iy, iz]
+                gvalues[i] = gmatrix[:, ix, iy, iz] / counts[ix, iy, iz]
 
         return gvalues, None
 
@@ -155,10 +156,11 @@ class AverageVoxelization3D(Voxelization3D):
                 iy >= 0 && iy < shape[2] &&
                 iz >= 0 && iz < shape[3])
             {
-                int index = (c * shape[1] * shape[2] * shape[3]) +
-                            (ix * shape[2] * shape[3]) +
-                            (iy * shape[3]) + iz;
-                gvalues = gmatrix[index] / counts[index];
+                int index_counts = (ix * shape[2] * shape[3]) +
+                                   (iy * shape[3]) + iz;
+                int index_matrix = (c * shape[1] * shape[2] * shape[3]) +
+                                   index_counts;
+                gvalues = gmatrix[index_matrix] / counts[index_counts];
             }
             ''',
             'voxelize_bwd',
@@ -178,9 +180,9 @@ def average_voxelization_3d(
     origin,
     pitch,
     dimensions,
-    channels,
     return_counts=False,
 ):
+    channels = values.shape[1]
     func = AverageVoxelization3D(
         origin=origin, pitch=pitch, dimensions=dimensions, channels=channels
     )
