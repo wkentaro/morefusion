@@ -338,49 +338,69 @@ class VoxelFeatureExtractor(chainer.Chain):
     def __init__(self):
         super().__init__()
         with self.init_scope():
-            self.count_conv1_1 = L.Convolution3D(1, 3, 3, stride=1, pad=1)
-            self.count_conv1_2 = L.Convolution3D(3, 3, 1, stride=1, pad=0)
-            self.count_conv2_1 = L.Convolution3D(3, 8, 3, stride=1, pad=1)
-            self.count_conv2_2 = L.Convolution3D(8, 8, 1, stride=1, pad=0)
+            # conv1: 32 -> 16
+            self.conv1_1_rgb = L.Convolution3D(32, 64, 4, stride=2, pad=1)
+            self.conv1_2_rgb = L.Convolution3D(64, 64, 1, stride=1, pad=0)
+            self.conv1_3_rgb = L.Convolution3D(64, 64, 1, stride=1, pad=0)
+            self.conv1_1_ind = L.Convolution3D(3, 64, 4, stride=2, pad=1)
+            self.conv1_2_ind = L.Convolution3D(64, 64, 1, stride=1, pad=0)
+            self.conv1_3_ind = L.Convolution3D(64, 64, 1, stride=1, pad=0)
+            # conv2: 16 -> 8
+            self.conv2_1_rgb = L.Convolution3D(64, 128, 4, stride=2, pad=1)
+            self.conv2_2_rgb = L.Convolution3D(128, 128, 1, stride=1, pad=0)
+            self.conv2_3_rgb = L.Convolution3D(128, 128, 1, stride=1, pad=0)
+            self.conv2_1_ind = L.Convolution3D(64, 128, 4, stride=2, pad=1)
+            self.conv2_2_ind = L.Convolution3D(128, 128, 1, stride=1, pad=0)
+            self.conv2_3_ind = L.Convolution3D(128, 128, 1, stride=1, pad=0)
+            # conv3: 8
+            self.conv3_1 = L.Convolution3D(256, 512, 3, stride=1, pad=1)
+            self.conv3_2 = L.Convolution3D(512, 512, 1, stride=1, pad=0)
+            self.conv3_3 = L.Convolution3D(512, 512, 1, stride=1, pad=0)
+            # conv4: 8
+            self.conv4_1 = L.Convolution3D(512, 1024, 3, stride=1, pad=1)
+            self.conv4_2 = L.Convolution3D(1024, 1024, 1, stride=1, pad=0)
+            self.conv4_3 = L.Convolution3D(1024, 1024, 1, stride=1, pad=0)
 
-            # (32+8)x32x32x32 -> 64x16x16x16
-            self.conv1_1 = L.Convolution3D(32 + 8, 64, 4, stride=2, pad=1)
-            self.conv1_2 = L.Convolution3D(64, 64, 1, stride=1, pad=0)
-            self.conv1_3 = L.Convolution3D(64, 64, 1, stride=1, pad=0)
-            # 64x16x16x16 -> 128x8x8x8
-            self.conv2_1 = L.Convolution3D(64, 128, 4, stride=2, pad=1)
-            self.conv2_2 = L.Convolution3D(128, 128, 1, stride=1, pad=0)
-            self.conv2_3 = L.Convolution3D(128, 128, 1, stride=1, pad=0)
-            # 128x8x8x8 -> 256x4x4x4
-            self.conv3_1 = L.Convolution3D(128, 256, 4, stride=2, pad=1)
-            self.conv3_2 = L.Convolution3D(256, 256, 1, stride=1, pad=0)
-            self.conv3_3 = L.Convolution3D(256, 256, 1, stride=1, pad=0)
-            # 256x4x4x4 -> 512x4x4x4
-            self.conv4_1 = L.Convolution3D(256, 512, 3, stride=1, pad=1)
-            self.conv4_2 = L.Convolution3D(512, 512, 1, stride=1, pad=0)
-            self.conv4_3 = L.Convolution3D(512, 512, 1, stride=1, pad=0)
-            # 512 * 4 * 4 * 4 = 32768 -> 1024
-            self.fc5 = L.Linear(512 * 4 * 4 * 4, 1024)
+    def __call__(self, h_rgb, count):
+        xp = self.xp
+        B, _, X, Y, Z = h_rgb.shape
 
-    def __call__(self, h, count):
-        h_count = count[:, None].astype(h.array.dtype)
-        h_count = F.relu(self.count_conv1_1(h_count))
-        h_count = F.relu(self.count_conv1_2(h_count))
-        h_count = F.relu(self.count_conv2_1(h_count))
-        h_count = F.relu(self.count_conv2_2(h_count))
+        h_ind = xp.stack(xp.meshgrid(xp.arange(X), xp.arange(Y), xp.arange(Z)))
+        h_ind = xp.repeat(h_ind[None], B, axis=0)
+        Ib, Ix, Iy, Iz = xp.where(count == 0)
+        h_ind[Ib, :, Ix, Iy, Iz] = -1
+        h_ind = h_ind.astype(np.float32)
 
-        h = F.concat((h, h_count), axis=1)
-        h = F.relu(self.conv1_1(h))
-        h = F.relu(self.conv1_2(h))
-        h = F.relu(self.conv1_3(h))
-        h = F.relu(self.conv2_1(h))
-        h = F.relu(self.conv2_2(h))
-        h = F.relu(self.conv2_3(h))
+        # conv1
+        h_rgb = F.relu(self.conv1_1_rgb(h_rgb))
+        h_rgb = F.relu(self.conv1_2_rgb(h_rgb))
+        h_rgb = F.relu(self.conv1_3_rgb(h_rgb))
+        h_ind = F.relu(self.conv1_1_ind(h_ind))
+        h_ind = F.relu(self.conv1_2_ind(h_ind))
+        h_ind = F.relu(self.conv1_3_ind(h_ind))
+        # conv2
+        h_rgb = F.relu(self.conv2_1_rgb(h_rgb))
+        h_rgb = F.relu(self.conv2_2_rgb(h_rgb))
+        h_rgb = F.relu(self.conv2_3_rgb(h_rgb))
+        h_ind = F.relu(self.conv2_1_ind(h_ind))
+        h_ind = F.relu(self.conv2_2_ind(h_ind))
+        h_ind = F.relu(self.conv2_3_ind(h_ind))
+
+        h = F.concat((h_rgb, h_ind), axis=1)
+
+        # conv3
         h = F.relu(self.conv3_1(h))
         h = F.relu(self.conv3_2(h))
         h = F.relu(self.conv3_3(h))
+        # conv4
         h = F.relu(self.conv4_1(h))
         h = F.relu(self.conv4_2(h))
         h = F.relu(self.conv4_3(h))
-        h = F.relu(self.fc5(h))
-        return h
+
+        h_avg = []
+        for i in range(B):
+            Ix, Iy, Iz = xp.where(count[i] > 0)
+            Ix, Iy, Iz = Ix // 4, Iy // 4, Iz // 4  # 32 -> 8
+            h_avg.append(F.average(h[i, :, Ix, Iy, Iz], axis=0))
+        h_avg = F.stack(h_avg)
+        return h_avg
