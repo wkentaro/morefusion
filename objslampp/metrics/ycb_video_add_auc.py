@@ -20,14 +20,18 @@ def ycb_video_add_auc(
     accuracy = np.cumsum(np.ones((1, n))) / n
 
     keep = np.isfinite(d)
-    d = d[keep]
-    accuracy = accuracy[keep]
-
-    auc = VOCap(d, accuracy, max_value=max_value)
-
-    if return_xy:
+    if keep.any():
+        d = d[keep]
+        accuracy = accuracy[keep]
+        auc = VOCap(d, accuracy, max_value=max_value)
         x = np.r_[0, d, max_value]
         y = np.r_[0, accuracy, accuracy[-1]]
+    else:
+        auc = 0
+        x = np.array([0, max_value], dtype=float)
+        y = np.array([0, 0], dtype=float)
+
+    if return_xy:
         return auc, x, y
     else:
         return auc

@@ -51,7 +51,7 @@ class PoseEstimationEvaluator(chainer.training.extensions.Evaluator):
                         eval_func(in_arrays)
 
             observation_processed = {}
-            add_types = ['add', 'add_s']
+            add_types = ['add', 'add_s', 'addr', 'addr_s']
             for key, value in observation.items():
                 for add_type in add_types:
                     # validation/main/{add_type}/{class_id}/{instance_id}
@@ -87,8 +87,12 @@ class PoseEstimationEvaluator(chainer.training.extensions.Evaluator):
             'validation/main/loss_translation',
             'validation/main/add',
             'validation/main/add_s',
+            'validation/main/addr',
+            'validation/main/addr_s',
             'validation/main/auc/add',
             'validation/main/auc/add_s',
+            'validation/main/auc/addr',
+            'validation/main/auc/addr_s',
         ]
         summary = reporter_module.DictSummary()
         for parent_key in parent_keys:

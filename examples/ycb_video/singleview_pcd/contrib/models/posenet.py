@@ -196,7 +196,7 @@ class PoseNet(chainer.Chain):
         quaternion_true = quaternion_true.astype(np.float32)
         translation_true = translation_true.astype(np.float32)
 
-        batch_size = class_id.shape[0]
+        B = class_id.shape[0]
 
         T_cad2cam_true = objslampp.functions.transformation_matrix(
             quaternion_true, translation_true
@@ -208,20 +208,25 @@ class PoseNet(chainer.Chain):
         T_cad2cam_pred = cuda.to_cpu(T_cad2cam_pred.array)
 
         summary = chainer.DictSummary()
-        for i in range(batch_size):
+        for i in range(B):
             class_id_i = int(class_id[i])
             cad_pcd = self._models.get_pcd(class_id=class_id_i)
-            add, add_s = objslampp.metrics.average_distance(
-                [cad_pcd], [T_cad2cam_true[i]], [T_cad2cam_pred[i]]
-            )
-            add, add_s = add[0], add_s[0]
-            if chainer.config.train:
-                summary.add({'add': add, 'add_s': add_s})
-            else:
-                summary.add({
-                    f'add/{class_id_i:04d}/{i:04d}': add,
-                    f'add_s/{class_id_i:04d}/{i:04d}': add_s,
-                })
+            for translate in [True, False]:
+                add, add_s = objslampp.metrics.average_distance(
+                    points=[cad_pcd],
+                    transform1=[T_cad2cam_true[i]],
+                    transform2=[T_cad2cam_pred[i]],
+                    translate=translate,
+                )
+                add, add_s = add[0], add_s[0]
+                add_type = 'add' if translate else 'addr'
+                if chainer.config.train:
+                    summary.add({f'{add_type}': add, f'{add_type}_s': add_s})
+                else:
+                    summary.add({
+                        f'{add_type}/{class_id_i:04d}/{i:04d}': add,
+                        f'{add_type}_s/{class_id_i:04d}/{i:04d}': add_s,
+                    })
         chainer.report(summary.compute_mean(), self)
 
     def loss(
