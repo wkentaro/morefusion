@@ -215,7 +215,7 @@ def main():
         model.to_gpu()
 
     # optimizer initialization
-    optimizer = chainer.optimizers.Adam(alpha=args.lr)
+    optimizer = chainer.optimizers.Adam(alpha=args.lr * n_gpu)
     if args.multi_node:
         optimizer = chainermn.create_multi_node_optimizer(optimizer, comm)
     optimizer.setup(model)
@@ -227,7 +227,7 @@ def main():
 
     # iterator initialization
     iter_train = contrib.iterators.MultiExamplePerImageSerialIterator(
-        data_train, batch_size=16 // n_gpu, repeat=True, shuffle=True
+        data_train, batch_size=16, repeat=True, shuffle=True
     )
     iter_valid = contrib.iterators.MultiExamplePerImageSerialIterator(
         data_valid,
