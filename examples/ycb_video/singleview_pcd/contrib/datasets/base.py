@@ -21,6 +21,10 @@ class DatasetBase(objslampp.datasets.DatasetBase):
         self._class_ids = class_ids
 
     def get_example(self, index):
+        class_ids = self.get_class_ids(index)
+        if not np.isin(self._class_ids, class_ids).any():
+            return []
+
         frame = self.get_frame(index)
 
         instance_ids = frame['instance_ids']

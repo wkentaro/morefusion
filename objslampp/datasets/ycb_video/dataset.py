@@ -37,6 +37,7 @@ class YCBVideoDataset(DatasetBase):
         assert split in ('train', 'val', 'trainval', 'keyframe')
         self._split = split
         self._ids = self.get_ids(sampling=sampling)
+        self._id_to_class_ids = None
 
         if not self.root_dir.exists():
             self.download()
@@ -44,6 +45,18 @@ class YCBVideoDataset(DatasetBase):
     def get_example(self, i):
         image_id = self.ids[i]
         return self.get_frame(image_id)
+
+    def class_ids_from_image_id(self, image_id):
+        if self._id_to_class_ids is None:
+            url: str = 'https://drive.google.com/uc?id=1t-zQDZMlR7p2_79h6XHyNj6knfqMWfqT'  # NOQA
+            md5: str = '9b813120611fa7a3de38bbf4e95e1593'
+            file = path.Path(chainer.dataset.get_dataset_directory(
+                'wkentaro/objslampp/ycb_video'
+            )) / 'id_to_class_ids.npz'
+            gdown.cached_download(url=url, path=file, md5=md5, quiet=True)
+            self._id_to_class_ids = np.load(file)
+        key = f'{self._data_dir}/{image_id}'
+        return self._id_to_class_ids[key]
 
     @staticmethod
     def get_image_id(

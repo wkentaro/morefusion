@@ -32,50 +32,55 @@ class YCBVideoDataset(DatasetBase):
         assert 0 < num_syn <= 1
         self._num_syn = num_syn
 
+        self._dataset = None
+        self._dataset_syn = None
         self._ids = self._get_ids()
-
-    def _get_cache_dir(self, index):
-        is_real, image_id = self._ids[index]
-        if is_real:
-            cache_dir = self._cache_dir / 'real' / f'{image_id}'
-        else:
-            cache_dir = self._cache_dir / 'syn' / f'{image_id}'
-        return cache_dir
 
     def _get_ids(self):
         assert self.split in ['train', 'syn', 'val']
 
         if self.split == 'val':
             sampling = 1 if self._sampling is None else self._sampling
-            ids = objslampp.datasets.YCBVideoDataset(
+            self._dataset = objslampp.datasets.YCBVideoDataset(
                 split='keyframe'
-            ).get_ids(sampling=sampling)
+            )
+            ids = self._dataset.get_ids(sampling=sampling)
         elif self.split == 'train':
             sampling = 8 if self._sampling is None else self._sampling
-            ids = objslampp.datasets.YCBVideoDataset(
+            self._dataset = objslampp.datasets.YCBVideoDataset(
                 split='train'
-            ).get_ids(sampling=sampling)
+            )
+            ids = self._dataset.get_ids(sampling=sampling)
         elif self.split == 'syn':
             ids = []
 
         ids = [(True, x) for x in ids]
 
         if self.split in ['train', 'syn']:
-            ids_syn = objslampp.datasets.YCBVideoSyntheticDataset().get_ids()
+            self._dataset_syn = objslampp.datasets.YCBVideoSyntheticDataset()
+            ids_syn = self._dataset_syn.get_ids()
             ids_syn = [(False, x) for x in ids_syn]
             num_syn = int(round(self._num_syn * len(ids_syn)))
             ids += ids_syn[:num_syn]
 
         return tuple(ids)
 
+    def get_class_ids(self, index):
+        is_real, image_id = self._ids[index]
+        if is_real:
+            dataset = self._dataset
+        else:
+            dataset = self._dataset_syn
+        class_ids = dataset.class_ids_from_image_id(image_id)
+        return class_ids
+
     def get_frame(self, index):
         is_real, image_id = self._ids[index]
         if is_real:
-            frame = objslampp.datasets.YCBVideoDataset.get_frame(image_id)
+            dataset = self._dataset
         else:
-            frame = objslampp.datasets.YCBVideoSyntheticDataset.get_frame(
-                image_id
-            )
+            dataset = self._dataset_syn
+        frame = dataset.get_frame(image_id)
         class_ids = frame['meta']['cls_indexes'].astype(np.int32)
         instance_ids = class_ids.copy()
         if 'rotation_translation_matrix' in frame['meta']:
