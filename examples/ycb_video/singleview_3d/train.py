@@ -118,6 +118,11 @@ def main():
         '--pretrained-model',
         help='pretrained model',
     )
+    parser.add_argument(
+        '--randomize-base',
+        action='store_true',
+        help='randomize base frame',
+    )
     args = parser.parse_args()
 
     chainer.global_config.debug = args.debug
@@ -209,6 +214,7 @@ def main():
         n_fg_class=len(args.class_names[1:]),
         loss=loss,
         loss_scale=args.loss_scale,
+        randomize_base=args.randomize_base,
     )
     if args.pretrained_model is not None:
         chainer.serializers.load_npz(args.pretrained_model, model)

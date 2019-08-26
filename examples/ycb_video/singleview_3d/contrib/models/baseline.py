@@ -3,6 +3,7 @@ from chainer.backends import cuda
 import chainer.functions as F
 import chainer.links as L
 import numpy as np
+import trimesh.transformations as tf
 
 import objslampp
 
@@ -20,6 +21,7 @@ class BaselineModel(chainer.Chain):
         n_fg_class,
         loss=None,
         loss_scale=None,
+        randomize_base=False,
     ):
         super().__init__()
 
@@ -39,6 +41,8 @@ class BaselineModel(chainer.Chain):
             }
         self._loss_scale = loss_scale
 
+        self._randomize_base = randomize_base
+
         with self.init_scope():
             # extractor
             self.resnet_extractor = objslampp.models.ResNet18()
@@ -54,17 +58,52 @@ class BaselineModel(chainer.Chain):
             self.fc4_rot = L.Linear(128, n_fg_class * 4, 1)
             self.fc4_trans = L.Linear(128, n_fg_class * 3, 1)
 
+    def randomize_base(
+        self, points, quaternion_true, translation_true
+    ):
+        xp = self.xp
+        B = len(points)
+
+        assert quaternion_true is not None
+        assert translation_true is not None
+
+        quaternion_true = quaternion_true.astype(np.float32)
+        translation_true = translation_true.astype(np.float32)
+        T_cad2cam_true = objslampp.functions.transformation_matrix(
+            quaternion_true, translation_true
+        ).array
+        for i in range(B):
+            T_cam2cad_true_i = F.inv(T_cad2cam_true[i]).array
+            points[i] = objslampp.functions.transform_points(
+                points[i], T_cam2cad_true_i
+            ).array  # cad frame
+            T_random_rot = xp.asarray(
+                tf.random_rotation_matrix(), dtype=np.float32
+            )
+            T_cad2cam_true_i = T_cad2cam_true[i] @ T_random_rot
+            points[i] = objslampp.functions.transform_points(
+                points[i], T_cad2cam_true_i
+            ).array  # cam frame
+            quaternion_true[i] = xp.asarray(tf.quaternion_from_matrix(
+                cuda.to_cpu(T_cad2cam_true_i)
+            ), dtype=np.float32)
+
     def predict(
         self,
         *,
         class_id,
         rgb,
         pcd,
+        quaternion_true=None,
+        translation_true=None,
     ):
         values, points = self._extract(
             rgb=rgb,
             pcd=pcd,
         )
+
+        if self._randomize_base and chainer.config.train:
+            self.randomize_base(points, quaternion_true, translation_true)
 
         pitch, origin, voxelized, count = self._voxelize(
             class_id=class_id,
@@ -190,6 +229,8 @@ class BaselineModel(chainer.Chain):
             class_id=class_id,
             rgb=rgb,
             pcd=pcd,
+            quaternion_true=quaternion_true,
+            translation_true=translation_true,
         )
 
         self.evaluate(
