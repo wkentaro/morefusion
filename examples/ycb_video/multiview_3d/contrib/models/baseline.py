@@ -1,8 +1,6 @@
 import chainer
-from chainer.backends import cuda
 import chainer.functions as F
 import numpy as np
-import trimesh.transformations as tf
 
 import objslampp
 
@@ -126,95 +124,3 @@ class BaselineModel(SingleView3DBaselineModel):
         count = xp.stack(count)           # BCXYZ
 
         return pitch, origin, h, count
-
-    def predict(
-        self,
-        *,
-        class_id,
-        rgb,
-        pcd,
-        quaternion_true=None,
-        translation_true=None,
-    ):
-        xp = self.xp
-        B = class_id.shape[0]
-
-        values, points = self._extract(
-            rgb=rgb,
-            pcd=pcd,
-        )
-
-        if chainer.config.train:
-            assert quaternion_true is not None
-            assert translation_true is not None
-            quaternion_true = quaternion_true.astype(np.float32)
-            T_cad2cam_true = objslampp.functions.transformation_matrix(
-                quaternion_true, translation_true
-            ).array
-            for i in range(B):
-                T_cam2cad_true_i = F.inv(T_cad2cam_true[i]).array
-                points[i] = objslampp.functions.transform_points(
-                    points[i], T_cam2cad_true_i
-                ).array
-                T_random_rot = xp.asarray(
-                    tf.random_rotation_matrix(), dtype=np.float32
-                )
-                T_cad2cam_true_i = T_cad2cam_true[i] @ T_random_rot
-                points[i] = objslampp.functions.transform_points(
-                    points[i], T_cad2cam_true_i
-                ).array
-                quaternion_true[i] = xp.asarray(tf.quaternion_from_matrix(
-                    cuda.to_cpu(T_cad2cam_true_i)
-                ))
-
-        pitch, origin, voxelized, count = self._voxelize(
-            class_id=class_id,
-            values=values,
-            points=points,
-            quaternion_true=quaternion_true,
-            translation_true=translation_true,
-        )
-
-        quaternion_pred, translation_pred = self._predict_from_voxelized(
-            class_id=class_id,
-            pitch=pitch,
-            origin=origin,
-            voxelized=voxelized,
-            count=count,
-        )
-
-        return quaternion_pred, translation_pred
-
-    def __call__(
-        self,
-        *,
-        class_id,
-        rgb,
-        pcd,
-        quaternion_true,
-        translation_true,
-    ):
-        quaternion_pred, translation_pred = self.predict(
-            class_id=class_id,
-            rgb=rgb,
-            pcd=pcd,
-            quaternion_true=quaternion_true,
-            translation_true=translation_true,
-        )
-
-        self.evaluate(
-            class_id=class_id,
-            quaternion_true=quaternion_true,
-            translation_true=translation_true,
-            quaternion_pred=quaternion_pred,
-            translation_pred=translation_pred,
-        )
-
-        loss = self.loss(
-            class_id=class_id,
-            quaternion_true=quaternion_true,
-            translation_true=translation_true,
-            quaternion_pred=quaternion_pred,
-            translation_pred=translation_pred,
-        )
-        return loss
