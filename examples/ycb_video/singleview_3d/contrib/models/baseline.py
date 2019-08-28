@@ -121,12 +121,19 @@ class BaselineModel(chainer.Chain):
             points=points,
         )
 
-        return self._predict_from_voxelized(
+        quaternion_pred, translation_pred = self._predict_from_voxelized(
             class_id=class_id,
             pitch=pitch,
             origin=origin,
             voxelized=voxelized,
             count=count,
+        )
+
+        return (
+            quaternion_pred,
+            translation_pred,
+            quaternion_true,
+            translation_true,
         )
 
     def _extract(self, rgb, pcd):
@@ -235,13 +242,14 @@ class BaselineModel(chainer.Chain):
         quaternion_true,
         translation_true,
     ):
-        quaternion_pred, translation_pred = self.predict(
-            class_id=class_id,
-            rgb=rgb,
-            pcd=pcd,
-            quaternion_true=quaternion_true,
-            translation_true=translation_true,
-        )
+        quaternion_pred, translation_pred, quaternion_true, translation_true =\
+            self.predict(
+                class_id=class_id,
+                rgb=rgb,
+                pcd=pcd,
+                quaternion_true=quaternion_true,
+                translation_true=translation_true,
+            )
 
         self.evaluate(
             class_id=class_id,
