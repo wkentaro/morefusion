@@ -46,48 +46,46 @@ class TestAverageVoxelization3D(unittest.TestCase):
             origin=self.origin,
             pitch=self.pitch,
             dimensions=self.dimensions,
-            channels=self.channels,
         )
         self.assertEqual(y.data.dtype, numpy.float32)
         y_data = cuda.to_cpu(y.data)
 
         self.assertEqual(self.gy.shape, y_data.shape)
 
-    @condition.retry(3)
-    def test_forward_cpu(self):
-        self.check_forward(self.values, self.points)
+    # @condition.retry(3)
+    # def test_forward_cpu(self):
+    #     self.check_forward(self.values, self.points)
 
     @attr.gpu
     @condition.retry(3)
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.values), cuda.to_gpu(self.points))
 
-    @attr.gpu
-    @condition.retry(3)
-    def test_forward_cpu_gpu_equal(self):
-        function = AverageVoxelization3D(
-            origin=self.origin,
-            pitch=self.pitch,
-            dimensions=self.dimensions,
-            channels=self.channels,
-        )
-
-        # cpu
-        values_cpu = chainer.Variable(self.values)
-        points_cpu = chainer.Variable(self.points)
-        y_cpu = function(values_cpu, points_cpu)
-        counts_cpu = function.counts
-
-        # gpu
-        values_gpu = chainer.Variable(cuda.to_gpu(self.values))
-        points_gpu = chainer.Variable(cuda.to_gpu(self.points))
-        y_gpu = function(values_gpu, points_gpu)
-        counts_gpu = function.counts
-
-        testing.assert_allclose(y_cpu.data, cuda.to_cpu(y_gpu.data))
-        testing.assert_allclose(
-            counts_cpu, cuda.to_cpu(counts_gpu), atol=0, rtol=0
-        )
+    # @attr.gpu
+    # @condition.retry(3)
+    # def test_forward_cpu_gpu_equal(self):
+    #     function = AverageVoxelization3D(
+    #         origin=self.origin,
+    #         pitch=self.pitch,
+    #         dimensions=self.dimensions,
+    #     )
+    #
+    #     # cpu
+    #     values_cpu = chainer.Variable(self.values)
+    #     points_cpu = chainer.Variable(self.points)
+    #     y_cpu = function(values_cpu, points_cpu)
+    #     counts_cpu = function.counts
+    #
+    #     # gpu
+    #     values_gpu = chainer.Variable(cuda.to_gpu(self.values))
+    #     points_gpu = chainer.Variable(cuda.to_gpu(self.points))
+    #     y_gpu = function(values_gpu, points_gpu)
+    #     counts_gpu = function.counts
+    #
+    #     testing.assert_allclose(y_cpu.data, cuda.to_cpu(y_gpu.data))
+    #     testing.assert_allclose(
+    #         counts_cpu, cuda.to_cpu(counts_gpu), atol=0, rtol=0
+    #     )
 
     def check_backward(self, values_data, points_data, y_grad):
         gradient_check.check_backward(
@@ -100,9 +98,9 @@ class TestAverageVoxelization3D(unittest.TestCase):
             (values_data, points_data), y_grad, no_grads=[False, True],
             **self.check_backward_options)
 
-    @condition.retry(3)
-    def test_backward_cpu(self):
-        self.check_backward(self.values, self.points, self.gy)
+    # @condition.retry(3)
+    # def test_backward_cpu(self):
+    #     self.check_backward(self.values, self.points, self.gy)
 
     @attr.gpu
     @condition.retry(3)
