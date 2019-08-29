@@ -23,7 +23,6 @@ def check_average_voxelization_3d(
         origin=origin,
         pitch=pitch,
         dimensions=(32, 32, 32),
-        channels=3,
     )
     y = y.transpose(1, 2, 3, 0)
 
