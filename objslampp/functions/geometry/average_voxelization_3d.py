@@ -257,8 +257,10 @@ class AverageVoxelization3D(Voxelization3D):
                                        (ixyz[j][1] * shape[3]) + ixyz[j][2];
                     int index_matrix = (c * shape[1] * shape[2] * shape[3]) +
                                        index_counts;
-                    gvalues += w[j] * gmatrix[index_matrix] /
-                               counts[index_counts];
+                    if (counts[index_counts] > 0) {
+                        gvalues += w[j] * gmatrix[index_matrix] /
+                                   counts[index_counts];
+                    }
                 }
             }
             ''',
