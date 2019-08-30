@@ -38,12 +38,6 @@ def main():
     parser.add_argument('--gpu', type=int, default=0, help='gpu id')
     parser.add_argument('--seed', type=int, default=0, help='random seed')
     parser.add_argument(
-        '--dataset',
-        choices=['ycb_video', 'my_synthetic'],
-        default='ycb_video',
-        help='dataset',
-    )
-    parser.add_argument(
         '--augmentation',
         nargs='*',
         default=None,
@@ -169,30 +163,15 @@ def main():
     data_train = None
     data_valid = None
     if not args.multi_node or comm.rank == 0:
-        if args.dataset == 'ycb_video':
-            data_train = contrib.datasets.YCBVideoDataset(
-                'train',
-                class_ids=args.class_ids,
-                sampling=args.sampling,
-                num_syn=args.num_syn,
-            )
-        elif args.dataset == 'my_synthetic':
-            root_dir = home / 'data/datasets/wkentaro/objslampp/ycb_video/synthetic_data/20190715_113906.827534'  # NOQA
-            data = contrib.datasets.MySyntheticDataset(
-                root_dir=root_dir,
-                class_ids=args.class_ids,
-                augmentation=args.augmentation,
-            )
-            assert len(data.root_dir.dirs()) == 750
-            assert len(data) == 750 * 15
-            data_train, data_valid = chainer.datasets.split_dataset(
-                data, split_at=600 * 15
-            )
-        else:
-            raise ValueError(f'unsupported dataset: {args.dataset}')
+        data_train = contrib.datasets.YCBVideoSingleInstanceDataset(
+            'train',
+            class_ids=args.class_ids,
+            sampling=args.sampling,
+            num_syn=args.num_syn,
+        )
 
         if data_valid is None:
-            data_valid = contrib.datasets.YCBVideoDataset(
+            data_valid = contrib.datasets.YCBVideoSingleInstanceDataset(
                 'val',
                 class_ids=args.class_ids,
             )
@@ -233,15 +212,17 @@ def main():
             print(name, link.update_enabled)
 
     # iterator initialization
-    iter_train = contrib.iterators.MultiExamplePerImageSerialIterator(
-        data_train, batch_size=16 // n_gpu, repeat=True, shuffle=True
+    iter_train = chainer.iterators.MultiprocessIterator(
+        data_train,
+        batch_size=16 // n_gpu,
+        repeat=True,
+        shuffle=True,
     )
-    iter_valid = contrib.iterators.MultiExamplePerImageSerialIterator(
+    iter_valid = chainer.iterators.MultiprocessIterator(
         data_valid,
         batch_size=16,
         repeat=False,
         shuffle=False,
-        strict_batch_size=False,
     )
 
     updater = chainer.training.StandardUpdater(
