@@ -37,6 +37,7 @@ def task(index):
 def main():
     global dataset
 
+    id_to_class_id = {}
     for split in ['val', 'train']:
         dataset = contrib.datasets.YCBVideoDataset(split=split, sampling=1)
         executor = concurrent.futures.ProcessPoolExecutor()
@@ -44,7 +45,6 @@ def main():
         for index in range(len(dataset)):
             future = executor.submit(task, index)
             futures.append(future)
-        id_to_class_id = {}
         for index, future in tqdm.tqdm(enumerate(futures), total=len(futures)):
             for id, class_id in future.result().items():
                 id_to_class_id[id] = int(class_id)
