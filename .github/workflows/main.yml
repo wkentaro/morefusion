@@ -1,0 +1,29 @@
+name: CI
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+
+    - name: Update submodules
+      run: |
+        git submodule update --init --recursive
+
+    - name: Install
+      run: |
+        make install
+
+    - name: Lint
+      run: |
+        make lint
+
+    - name: Test
+      env:
+        CI: true
+      run: |
+        make test
