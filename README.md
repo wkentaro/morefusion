@@ -7,7 +7,7 @@
 </h4>
 
 <div align="center">
-  <a href="https://travis-ci.com/wkentaro/objslampp">
+  <a href="https://github.com/wkentaro/objslampp/actions">
     <img src="https://github.com/wkentaro/objslampp/workflows/CI/badge.svg">
   </a>
 </div>
