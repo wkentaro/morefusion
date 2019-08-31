@@ -105,13 +105,13 @@ def main():
     parser.add_argument(
         '--num-syn',
         type=float,
-        default=0.1,
+        default=1,
         help='number of synthetic examples used',
     )
     parser.add_argument(
         '--sampling',
         type=int,
-        default=16,
+        default=8,
         help='sampling of ycb_video train',
     )
     parser.add_argument(
