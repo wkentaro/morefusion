@@ -5,7 +5,7 @@ import datetime
 import os.path as osp
 import pprint
 import random
-import re
+# import re
 import socket
 import textwrap
 
@@ -15,7 +15,7 @@ import numpy as np
 import path
 import termcolor
 import tensorboardX
-import yaml
+# import yaml
 
 import objslampp
 
@@ -69,33 +69,33 @@ def main():
         help='class id',
     )
 
-    def argparse_type_loss(string):
-        patterns = [
-            'add',
-            'add_s',
-            'add/add_s',
-            r'add\+add_s',
-            r'add\+add_s\|linear',
-            r'add\+add_s\|step\|\d+'
-        ]
-        for pattern in patterns:
-            if re.match(pattern, string):
-                break
-        else:
-            raise argparse.ArgumentTypeError
-        return string
-
-    parser.add_argument(
-        '--loss',
-        default='add/add_s',
-        type=argparse_type_loss,
-        help='loss',
-    )
-    parser.add_argument(
-        '--loss-scale',
-        type=yaml.safe_load,
-        help='loss scale e.g., {add+add_s: 1.0}',
-    )
+    # def argparse_type_loss(string):
+    #     patterns = [
+    #         'add',
+    #         'add_s',
+    #         'add/add_s',
+    #         r'add\+add_s',
+    #         r'add\+add_s\|linear',
+    #         r'add\+add_s\|step\|\d+'
+    #     ]
+    #     for pattern in patterns:
+    #         if re.match(pattern, string):
+    #             break
+    #     else:
+    #         raise argparse.ArgumentTypeError
+    #     return string
+    #
+    # parser.add_argument(
+    #     '--loss',
+    #     default='add/add_s',
+    #     type=argparse_type_loss,
+    #     help='loss',
+    # )
+    # parser.add_argument(
+    #     '--loss-scale',
+    #     type=yaml.safe_load,
+    #     help='loss scale e.g., {add+add_s: 1.0}',
+    # )
     parser.add_argument(
         '--num-syn',
         type=float,
@@ -179,15 +179,15 @@ def main():
 
     args.class_names = objslampp.datasets.ycb_video.class_names.tolist()
 
-    loss = args.loss
-    if re.match(r'add\+add_s\|.*', loss):
-        loss = 'add+add_s'
+    # loss = args.loss
+    # if re.match(r'add\+add_s\|.*', loss):
+    #     loss = 'add+add_s'
 
     # model initialization
     model = contrib.models.BaselineModel(
         n_fg_class=len(args.class_names[1:]),
-        loss=loss,
-        loss_scale=args.loss_scale,
+        # loss=loss,
+        # loss_scale=args.loss_scale,
     )
     if args.pretrained_model is not None:
         chainer.serializers.load_npz(args.pretrained_model, model)
@@ -238,30 +238,30 @@ def main():
     )
     trainer.extend(E.FailOnNonNumber())
 
-    @chainer.training.make_extension(trigger=(1, 'iteration'))
-    def update_loss_scale(trainer):
-        updater = trainer.updater
-        optimizer = updater.get_optimizer('main')
-        target = optimizer.target
-        assert trainer.stop_trigger.unit == 'epoch'
-        max_epoch = trainer.stop_trigger.period
-
-        if args.loss == 'add+add_s|linear':
-            loss_scale_add = 1 - updater.epoch_detail / max_epoch
-        elif re.match(r'add\+add_s\|step\|\d+', args.loss):
-            match = re.match(r'add\+add_s\|step\|(\d+)', args.loss)
-            epoch_anchor = int(match.groups()[0])
-            loss_scale_add = 1
-            if updater.epoch_detail > epoch_anchor:
-                loss_scale_add = 0
-        else:
-            return
-        target._loss_scale['add+add_s'] = loss_scale_add
-
-        report = {f'loss_scale/{k}': v for k, v in target._loss_scale.items()}
-        chainer.report(report)
-
-    trainer.extend(update_loss_scale)
+    # @chainer.training.make_extension(trigger=(1, 'iteration'))
+    # def update_loss_scale(trainer):
+    #     updater = trainer.updater
+    #     optimizer = updater.get_optimizer('main')
+    #     target = optimizer.target
+    #     assert trainer.stop_trigger.unit == 'epoch'
+    #     max_epoch = trainer.stop_trigger.period
+    #
+    #     if args.loss == 'add+add_s|linear':
+    #         loss_scale_add = 1 - updater.epoch_detail / max_epoch
+    #     elif re.match(r'add\+add_s\|step\|\d+', args.loss):
+    #         match = re.match(r'add\+add_s\|step\|(\d+)', args.loss)
+    #         epoch_anchor = int(match.groups()[0])
+    #         loss_scale_add = 1
+    #         if updater.epoch_detail > epoch_anchor:
+    #             loss_scale_add = 0
+    #     else:
+    #         return
+    #     target._loss_scale['add+add_s'] = loss_scale_add
+    #
+    #     report = {f'loss_scale/{k}': v for k, v in target._loss_scale.items()}  # NOQA
+    #     chainer.report(report)
+    #
+    # trainer.extend(update_loss_scale)
 
     if not args.multi_node or comm.rank == 0:
         # print arguments
