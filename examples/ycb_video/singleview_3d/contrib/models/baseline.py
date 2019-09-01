@@ -194,7 +194,6 @@ class BaselineModel(chainer.Chain):
         translation_true,
     ):
         B = class_id.shape[0]
-        xp = self.xp
 
         batch_indices, quaternion_pred, translation_pred, confidence_pred = \
             self.predict(
@@ -203,18 +202,22 @@ class BaselineModel(chainer.Chain):
                 pcd=pcd,
             )
 
-        indices = []
+        quaternion_pred_selected = []
+        translation_pred_selected = []
         for i in range(B):
             mask = batch_indices == i
-            indices.append(F.argmax(confidence_pred[mask]).array)
-        indices = xp.stack(indices)
+            index = F.argmax(confidence_pred[mask]).array
+            quaternion_pred_selected.append(quaternion_pred[mask][index])
+            translation_pred_selected.append(translation_pred[mask][index])
+        quaternion_pred_selected = F.stack(quaternion_pred_selected)
+        translation_pred_selected = F.stack(translation_pred_selected)
 
         self.evaluate(
             class_id=class_id,
             quaternion_true=quaternion_true,
             translation_true=translation_true,
-            quaternion_pred=quaternion_pred[indices],
-            translation_pred=translation_pred[indices],
+            quaternion_pred=quaternion_pred_selected,
+            translation_pred=translation_pred_selected,
         )
 
         loss = self.loss(
