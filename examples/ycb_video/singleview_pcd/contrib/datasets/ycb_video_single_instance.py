@@ -1,0 +1,1 @@
+../../../singleview_3d/contrib/datasets/ycb_video_single_instance.py
