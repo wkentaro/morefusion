@@ -126,10 +126,7 @@ class BaselineModel(chainer.Chain):
             pitch[i] = self._models.get_voxel_pitch(
                 dimension=self._voxel_dim, class_id=int(class_id[i]),
             )
-            if xp == np:
-                center_i = np.median(points[i], axis=0)
-            else:
-                center_i = objslampp.extra.cupy.median(points[i], axis=0)
+            center_i = objslampp.extra.cupy.median(points[i], axis=0)
             origin[i] = center_i - pitch[i] * (self._voxel_dim / 2. - 0.5)
             voxelized_i, count_i = objslampp.functions.average_voxelization_3d(
                 values=values[i],
@@ -402,6 +399,8 @@ class VoxelFeatureExtractor(chainer.Chain):
         points = []
         for i in range(B):
             I, J, K = xp.nonzero(count[i])
+            P = len(I)
+            assert P > 0
             h_conv1_i = h_conv1[i, :, I, J, K]
             h_conv2_i = h_conv2[i, :, I // 2, J // 2, K // 2]
             h_conv3_i = h_conv3[i, :, I // 4, J // 4, K // 4]
@@ -416,7 +415,7 @@ class VoxelFeatureExtractor(chainer.Chain):
                 h_conv5_i,
                 h_conv6_i,
             ], axis=1)
-            batch_indices.append(xp.full((len(I),), i, dtype=np.int32))
+            batch_indices.append(xp.full((P,), i, dtype=np.int32))
             values.append(h_i)
             points.append(xp.column_stack((I, J, K)))
         batch_indices = xp.concatenate(batch_indices, axis=0)
