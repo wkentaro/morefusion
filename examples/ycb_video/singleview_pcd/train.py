@@ -151,7 +151,7 @@ def main():
         model.to_gpu()
 
     # optimizer initialization
-    optimizer = chainer.optimizers.Adam(alpha=args.lr * n_gpu)
+    optimizer = chainer.optimizers.Adam(alpha=args.lr)
     if args.multi_node:
         optimizer = chainermn.create_multi_node_optimizer(optimizer, comm)
     optimizer.setup(model)
@@ -164,7 +164,7 @@ def main():
     # iterator initialization
     iter_train = chainer.iterators.MultiprocessIterator(
         data_train,
-        batch_size=16,
+        batch_size=16 // n_gpu,
         repeat=True,
         shuffle=True,
     )
