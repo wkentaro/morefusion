@@ -12,30 +12,25 @@ import objslampp
 class PoseNet(chainer.Chain):
 
     _models = objslampp.datasets.YCBVideoModels()
+    _lambda_confidence = 0.015
+    _n_point = 1000
 
     def __init__(
         self,
         *,
         n_fg_class,
-        lambda_confidence,
-        n_point=1000,
-        single=False,
     ):
         super().__init__()
         with self.init_scope():
             # extractor
             self.resnet_extractor = objslampp.models.ResNet18()
             self.pspnet_extractor = PSPNetExtractor()
-            self.posenet_extractor = PoseNetExtractor(single=single)
+            self.posenet_extractor = PoseNetExtractor()
 
             # conv1
-            if single:
-                in_channels = 1024
-            else:
-                in_channels = 1408
-            self.conv1_rot = L.Convolution1D(in_channels, 640, 1)
-            self.conv1_trans = L.Convolution1D(in_channels, 640, 1)
-            self.conv1_conf = L.Convolution1D(in_channels, 640, 1)
+            self.conv1_rot = L.Convolution1D(1408, 640, 1)
+            self.conv1_trans = L.Convolution1D(1408, 640, 1)
+            self.conv1_conf = L.Convolution1D(1408, 640, 1)
             # conv2
             self.conv2_rot = L.Convolution1D(640, 256, 1)
             self.conv2_trans = L.Convolution1D(640, 256, 1)
@@ -50,9 +45,6 @@ class PoseNet(chainer.Chain):
             self.conv4_conf = L.Convolution1D(128, n_fg_class, 1)
 
         self._n_fg_class = n_fg_class
-        self._lambda_confidence = lambda_confidence
-        self._n_point = n_point
-        self._single = single
 
     def predict(self, *, class_id, rgb, pcd):
         xp = self.xp
@@ -123,19 +115,12 @@ class PoseNet(chainer.Chain):
         cls_trans = self.conv4_trans(h_trans)
         cls_conf = F.sigmoid(self.conv4_conf(h_conf))
 
-        if self._single:
-            n_predict = 1
-        else:
-            n_predict = self._n_point
-        cls_rot = cls_rot.reshape((B, self._n_fg_class, 4, n_predict))
-        cls_trans = cls_trans.reshape((B, self._n_fg_class, 3, n_predict))
-        cls_conf = cls_conf.reshape((B, self._n_fg_class, n_predict))
+        cls_rot = cls_rot.reshape((B, self._n_fg_class, 4, self._n_point))
+        cls_trans = cls_trans.reshape((B, self._n_fg_class, 3, self._n_point))
+        cls_conf = cls_conf.reshape((B, self._n_fg_class, self._n_point))
 
-        if self._single:
-            cls_trans = centroids[:, None, :, None] + cls_trans
-        else:
-            pcd_masked = pcd_masked + centroids[:, :, None]
-            cls_trans = pcd_masked[:, None, :, :] + cls_trans
+        pcd_masked = pcd_masked + centroids[:, :, None]
+        cls_trans = pcd_masked[:, None, :, :] + cls_trans
         del pcd_masked
 
         fg_class_id = class_id - 1
@@ -270,14 +255,10 @@ class PoseNet(chainer.Chain):
                 symmetric=is_symmetric,
             )
 
-            if self._single:
-                assert add.shape == (1,)
-                loss_i = add[0]
-            else:
-                loss_i = F.mean(
-                    add * confidence_pred[i] -
-                    self._lambda_confidence * F.log(confidence_pred[i])
-                )
+            loss_i = F.mean(
+                add * confidence_pred[i] -
+                self._lambda_confidence * F.log(confidence_pred[i])
+            )
             loss += loss_i
         loss /= B
 
@@ -290,8 +271,7 @@ class PoseNet(chainer.Chain):
 # https://github.com/knorth55/chainer-dense-fusion/blob/master/chainer_dense_fusion/links/model/posenet.py  # NOQA
 class PoseNetExtractor(chainer.Chain):
 
-    def __init__(self, single=False):
-        self._single = single
+    def __init__(self):
         super().__init__()
         with self.init_scope():
             # conv1
@@ -319,8 +299,6 @@ class PoseNetExtractor(chainer.Chain):
         h = F.relu(self.conv4(h))
         h = F.average_pooling_1d(h, n_point)
         h = h.reshape((B, 1024, 1))
-        if self._single:
-            return h
         feat3 = F.repeat(h, n_point, axis=2)
         feat = F.concat((feat1, feat2, feat3), axis=1)
         return feat

@@ -48,17 +48,6 @@ def main():
         help='learning rate',
     )
     parser.add_argument(
-        '--lambda-confidence',
-        type=float,
-        default=0.015,
-        help='lambda confidence',
-    )
-    parser.add_argument(
-        '--single',
-        action='store_true',
-        help='single prediction using global feature',
-    )
-    parser.add_argument(
         '--max-epoch',
         type=int,
         default=30,
@@ -157,9 +146,6 @@ def main():
     # model initialization
     model = contrib.models.PoseNet(
         n_fg_class=len(args.class_names) - 1,
-        n_point=1000,
-        lambda_confidence=args.lambda_confidence,
-        single=args.single,
     )
     if device >= 0:
         model.to_gpu()
