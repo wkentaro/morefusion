@@ -3,7 +3,6 @@ from chainer.backends import cuda
 import chainer.functions as F
 import chainer.links as L
 import numpy as np
-import trimesh.transformations as tf
 
 import objslampp
 
@@ -14,6 +13,8 @@ class BaselineModel(chainer.Chain):
 
     _models = objslampp.datasets.YCBVideoModels()
     _voxel_dim = 32
+    _n_point = 1000
+    _lambda_confidence = 0.015
 
     def __init__(
         self,
@@ -46,14 +47,18 @@ class BaselineModel(chainer.Chain):
             self.pspnet_extractor = PSPNetExtractor()
             self.voxel_extractor = VoxelFeatureExtractor()
 
-            self.fc1_rot = L.Linear(1024, 640, 1)
-            self.fc1_trans = L.Linear(1024, 640, 1)
-            self.fc2_rot = L.Linear(640, 256, 1)
-            self.fc2_trans = L.Linear(640, 256, 1)
-            self.fc3_rot = L.Linear(256, 128, 1)
-            self.fc3_trans = L.Linear(256, 128, 1)
-            self.fc4_rot = L.Linear(128, n_fg_class * 4, 1)
-            self.fc4_trans = L.Linear(128, n_fg_class * 3, 1)
+            self.conv1_rot = L.Convolution1D(1024, 640, 1)
+            self.conv1_trans = L.Convolution1D(1024, 640, 1)
+            self.conv1_conf = L.Convolution1D(1024, 640, 1)
+            self.conv2_rot = L.Convolution1D(640, 256, 1)
+            self.conv2_trans = L.Convolution1D(640, 256, 1)
+            self.conv2_conf = L.Convolution1D(640, 256, 1)
+            self.conv3_rot = L.Convolution1D(256, 128, 1)
+            self.conv3_trans = L.Convolution1D(256, 128, 1)
+            self.conv3_conf = L.Convolution1D(256, 128, 1)
+            self.conv4_rot = L.Convolution1D(128, n_fg_class * 4, 1)
+            self.conv4_trans = L.Convolution1D(128, n_fg_class * 3, 1)
+            self.conv4_conf = L.Convolution1D(128, n_fg_class, 1)
 
     def predict(
         self,
@@ -75,20 +80,16 @@ class BaselineModel(chainer.Chain):
             points=points,
         )
 
-        quaternion_pred, translation_pred = self._predict_from_voxelized(
-            class_id=class_id,
-            pitch=pitch,
-            origin=origin,
-            voxelized=voxelized,
-            count=count,
-        )
+        quaternion_pred, translation_pred, confidence_pred = \
+            self._predict_from_voxelized(
+                class_id=class_id,
+                pitch=pitch,
+                origin=origin,
+                voxelized=voxelized,
+                count=count,
+            )
 
-        return (
-            quaternion_pred,
-            translation_pred,
-            quaternion_true,
-            translation_true,
-        )
+        return quaternion_pred, translation_pred, confidence_pred
 
     def _extract(self, rgb, pcd):
         xp = self.xp
@@ -164,28 +165,56 @@ class BaselineModel(chainer.Chain):
         xp = self.xp
         B = class_id.shape[0]
 
-        h = self.voxel_extractor(voxelized, count)
+        h = self.voxel_extractor(voxelized)
 
-        h_rot = F.relu(self.fc1_rot(h))
-        h_trans = F.relu(self.fc1_trans(h))
-        h_rot = F.relu(self.fc2_rot(h_rot))
-        h_trans = F.relu(self.fc2_trans(h_trans))
-        h_rot = F.relu(self.fc3_rot(h_rot))
-        h_trans = F.relu(self.fc3_trans(h_trans))
-        cls_rot = self.fc4_rot(h_rot)
-        cls_trans = self.fc4_trans(h_trans)
+        values = []
+        points = []
+        for i in range(B):
+            I, J, K = xp.nonzero(count[i])
+            n_point = len(I)
+            if n_point >= self._n_point:
+                keep = xp.random.permutation(n_point)[:self._n_point]
+            else:
+                keep = xp.r_[
+                    xp.arange(n_point),
+                    xp.random.randint(0, n_point, self._n_point - n_point)
+                ]
+            assert keep.shape == (self._n_point,)
+            I, J, K = I[keep], J[keep], K[keep]
+            values.append(h[i, I, J, K])
+            points.append(xp.column_stack((I, J, K)))
+        values = F.stack(values)
+        points = xp.stack(points)
+        points = origin[:, None, :] + points * pitch[:, None, None]
+
+        h = values
+
+        h_rot = F.relu(self.conv1_rot(h))
+        h_trans = F.relu(self.conv1_trans(h))
+        h_conf = F.relu(self.conv1_conf(h))
+        h_rot = F.relu(self.conv2_rot(h_rot))
+        h_trans = F.relu(self.conv2_trans(h_trans))
+        h_conf = F.relu(self.conv2_conf(h_conf))
+        h_rot = F.relu(self.conv3_rot(h_rot))
+        h_trans = F.relu(self.conv3_trans(h_trans))
+        h_conf = F.relu(self.conv3_conf(h_conf))
+        cls_rot = self.conv4_rot(h_rot)
+        cls_trans = self.conv4_trans(h_trans)
+        cls_conf = self.conv4_conf(h_conf)
 
         quaternion = cls_rot.reshape(B, self._n_fg_class, 4)
         translation = cls_trans.reshape(B, self._n_fg_class, 3)
+        confidence = cls_conf.reshape(B, self._n_fg_class)
 
         fg_class_id = class_id - 1
         quaternion = quaternion[xp.arange(B), fg_class_id, :]
         translation = translation[xp.arange(B), fg_class_id, :]
+        confidence = confidence[xp.arange(B), fg_class_id]
 
         quaternion = F.normalize(quaternion, axis=1)
-        translation = origin + translation * pitch[:, None]
+        translation = points + translation * pitch[:, None]
 
-        return quaternion, translation
+        return quaternion, translation, confidence
 
     def __call__(
         self,
@@ -196,21 +225,24 @@ class BaselineModel(chainer.Chain):
         quaternion_true,
         translation_true,
     ):
-        quaternion_pred, translation_pred, quaternion_true, translation_true =\
-            self.predict(
-                class_id=class_id,
-                rgb=rgb,
-                pcd=pcd,
-                quaternion_true=quaternion_true,
-                translation_true=translation_true,
-            )
+        B = class_id.shape[0]
+        xp = self.xp
 
+        quaternion_pred, translation_pred, confidence_pred = self.predict(
+            class_id=class_id,
+            rgb=rgb,
+            pcd=pcd,
+            quaternion_true=quaternion_true,
+            translation_true=translation_true,
+        )
+
+        indices = F.argmax(confidence_pred, axis=1).array
         self.evaluate(
             class_id=class_id,
             quaternion_true=quaternion_true,
             translation_true=translation_true,
-            quaternion_pred=quaternion_pred,
-            translation_pred=translation_pred,
+            quaternion_pred=quaternion_pred[xp.arange(B), indices],
+            translation_pred=translation_pred[xp.arange(B), indices],
         )
 
         loss = self.loss(
@@ -219,6 +251,7 @@ class BaselineModel(chainer.Chain):
             translation_true=translation_true,
             quaternion_pred=quaternion_pred,
             translation_pred=translation_pred,
+            confidence_pred=confidence_pred,
         )
         return loss
 
@@ -275,6 +308,7 @@ class BaselineModel(chainer.Chain):
         translation_true,
         quaternion_pred,
         translation_pred,
+        confidence_pred,
     ):
         quaternion_true = quaternion_true.astype(np.float32)
         translation_true = translation_true.astype(np.float32)
@@ -342,6 +376,10 @@ class BaselineModel(chainer.Chain):
             else:
                 raise ValueError(f'unsupported loss: {self._loss}')
 
+            loss_i = F.mean(
+                loss_i * confidence_pred[i] -
+                self._lambda_confidence * F.log(confidence_pred[i])
+            )
             loss += loss_i
         loss /= B
 
@@ -356,69 +394,30 @@ class VoxelFeatureExtractor(chainer.Chain):
     def __init__(self):
         super().__init__()
         with self.init_scope():
-            # conv1: 32 -> 16
-            self.conv1_1_rgb = L.Convolution3D(32, 64, 4, stride=2, pad=1)
-            self.conv1_2_rgb = L.Convolution3D(64, 64, 1, stride=1, pad=0)
-            self.conv1_3_rgb = L.Convolution3D(64, 64, 1, stride=1, pad=0)
-            self.conv1_1_ind = L.Convolution3D(3, 64, 4, stride=2, pad=1)
-            self.conv1_2_ind = L.Convolution3D(64, 64, 1, stride=1, pad=0)
-            self.conv1_3_ind = L.Convolution3D(64, 64, 1, stride=1, pad=0)
-            # conv2: 16 -> 8
-            self.conv2_1_rgb = L.Convolution3D(64, 128, 4, stride=2, pad=1)
-            self.conv2_2_rgb = L.Convolution3D(128, 128, 1, stride=1, pad=0)
-            self.conv2_3_rgb = L.Convolution3D(128, 128, 1, stride=1, pad=0)
-            self.conv2_1_ind = L.Convolution3D(64, 128, 4, stride=2, pad=1)
-            self.conv2_2_ind = L.Convolution3D(128, 128, 1, stride=1, pad=0)
-            self.conv2_3_ind = L.Convolution3D(128, 128, 1, stride=1, pad=0)
-            # conv3: 8
-            self.conv3_1 = L.Convolution3D(256, 512, 3, stride=1, pad=1)
-            self.conv3_2 = L.Convolution3D(512, 512, 1, stride=1, pad=0)
-            self.conv3_3 = L.Convolution3D(512, 512, 1, stride=1, pad=0)
-            # conv4: 8
-            self.conv4_1 = L.Convolution3D(512, 1024, 3, stride=1, pad=1)
-            self.conv4_2 = L.Convolution3D(1024, 1024, 1, stride=1, pad=0)
-            self.conv4_3 = L.Convolution3D(1024, 1024, 1, stride=1, pad=0)
+            # conv1: 32
+            self.conv1_1 = L.Convolution3D(32, 32, 3, 1, pad=1)
+            self.conv1_2 = L.Convolution3D(32, 32, 1, 1, pad=0)
+            self.conv1_3 = L.Convolution3D(32, 32, 1, 1, pad=0)
+            # conv2: 32
+            self.conv2_1 = L.Convolution3D(32, 64, 3, 1, pad=1)
+            self.conv2_2 = L.Convolution3D(64, 64, 1, 1, pad=0)
+            self.conv2_3 = L.Convolution3D(64, 64, 1, 1, pad=0)
+            # conv3: 32
+            self.conv3_1 = L.Convolution3D(64, 128, 3, 1, pad=1)
+            self.conv3_2 = L.Convolution3D(128, 128, 1, 1, pad=0)
+            self.conv3_3 = L.Convolution3D(128, 128, 1, 1, pad=0)
 
-    def __call__(self, h_rgb, count):
-        xp = self.xp
-        B, _, X, Y, Z = h_rgb.shape
-
-        h_ind = xp.stack(xp.meshgrid(xp.arange(X), xp.arange(Y), xp.arange(Z)))
-        h_ind = xp.repeat(h_ind[None], B, axis=0)
-        Ib, Ix, Iy, Iz = xp.where(count == 0)
-        h_ind[Ib, :, Ix, Iy, Iz] = -1
-        h_ind = h_ind.astype(np.float32)
-
+    def __call__(self, h):
         # conv1
-        h_rgb = F.relu(self.conv1_1_rgb(h_rgb))
-        h_rgb = F.relu(self.conv1_2_rgb(h_rgb))
-        h_rgb = F.relu(self.conv1_3_rgb(h_rgb))
-        h_ind = F.relu(self.conv1_1_ind(h_ind))
-        h_ind = F.relu(self.conv1_2_ind(h_ind))
-        h_ind = F.relu(self.conv1_3_ind(h_ind))
+        h = F.relu(self.conv1_1(h))
+        h = F.relu(self.conv1_2(h))
+        h = F.relu(self.conv1_3(h))
         # conv2
-        h_rgb = F.relu(self.conv2_1_rgb(h_rgb))
-        h_rgb = F.relu(self.conv2_2_rgb(h_rgb))
-        h_rgb = F.relu(self.conv2_3_rgb(h_rgb))
-        h_ind = F.relu(self.conv2_1_ind(h_ind))
-        h_ind = F.relu(self.conv2_2_ind(h_ind))
-        h_ind = F.relu(self.conv2_3_ind(h_ind))
-
-        h = F.concat((h_rgb, h_ind), axis=1)
-
+        h = F.relu(self.conv2_1(h))
+        h = F.relu(self.conv2_2(h))
+        h = F.relu(self.conv2_3(h))
         # conv3
         h = F.relu(self.conv3_1(h))
         h = F.relu(self.conv3_2(h))
         h = F.relu(self.conv3_3(h))
-        # conv4
-        h = F.relu(self.conv4_1(h))
-        h = F.relu(self.conv4_2(h))
-        h = F.relu(self.conv4_3(h))
-
-        h_avg = []
-        for i in range(B):
-            Ix, Iy, Iz = xp.where(count[i] > 0)
-            Ix, Iy, Iz = Ix // 4, Iy // 4, Iz // 4  # 32 -> 8
-            h_avg.append(F.average(h[i, :, Ix, Iy, Iz], axis=0))
-        h_avg = F.stack(h_avg)
-        return h_avg
+        return h
