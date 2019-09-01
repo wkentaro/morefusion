@@ -400,7 +400,6 @@ class VoxelFeatureExtractor(chainer.Chain):
         for i in range(B):
             I, J, K = xp.nonzero(count[i])
             P = len(I)
-            assert P > 0
             h_conv1_i = h_conv1[i, :, I, J, K]
             h_conv2_i = h_conv2[i, :, I // 2, J // 2, K // 2]
             h_conv3_i = h_conv3[i, :, I // 4, J // 4, K // 4]
