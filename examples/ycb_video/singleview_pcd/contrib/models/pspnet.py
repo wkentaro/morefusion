@@ -32,7 +32,7 @@ class PSPNetExtractor(chainer.Chain):
         h = self.up3(h)
         # head
         h = self.conv1(h)
-        feat = - F.log_softmax(h)
+        feat = F.log_softmax(h)
         return feat
 
 
