@@ -25,27 +25,26 @@ class NearestNeighborICP(chainer.Link):
 
     @property
     def T(self):
-        # source -> target
-        R = objslampp.functions.quaternion_matrix(self.quaternion[None])[0]
-        T = objslampp.functions.translation_matrix(self.translation[None])[0]
-        return R @ T
+        return objslampp.functions.transformation_matrix(
+            self.quaternion, self.translation
+        )
 
     def forward(self, source, target):
-        # source is transformed
-        # source is the starting point for nearest neighbor
+        # source: from cad
+        # target: from depth
 
         source = objslampp.functions.transform_points(source, self.T[None])[0]
 
         dists = F.sum(
             (source[None, :, :] - target[:, None, :]) ** 2, axis=2
         ).array
-        correspondence = F.argmin(dists, axis=0).array
-        dists = dists[correspondence, np.arange(dists.shape[1])]
+        correspondence = F.argmin(dists, axis=1).array
+        dists = dists[np.arange(dists.shape[0]), correspondence]
 
         keep = dists < 0.02
-        source_match = source[keep]
+        target_match = target[keep]
         correspondence = correspondence[keep]
-        target_match = target[correspondence]
+        source_match = source[correspondence]
 
         loss = F.sum(
             F.sum((source_match - target_match) ** 2, axis=1), axis=0
@@ -93,7 +92,7 @@ def algorithm():
         pcd_depth_target = cuda.to_gpu(pcd_depth_target)
 
     quaternion_init = np.array([1, 0, 0, 0], dtype=np.float32)
-    translation_init = - pcd_depth_target.mean(axis=0)
+    translation_init = pcd_depth_target.mean(axis=0)
     nnicp = NearestNeighborICP(
         quaternion_init=quaternion_init,
         translation_init=translation_init,
@@ -106,8 +105,7 @@ def algorithm():
     nnicp.translation.update_rule.hyperparam.alpha *= 0.1
 
     for i in range(300):
-        T_cam2cad = cuda.to_cpu(nnicp.T.array)
-        T_cad2cam = np.linalg.inv(T_cam2cad)
+        T_cad2cam = cuda.to_cpu(nnicp.T.array)
 
         scene = trimesh.Scene()
         geom = trimesh.PointCloud(pcd_depth_target_cpu, colors=[1., 0, 0])
@@ -120,7 +118,7 @@ def algorithm():
         yield scene
 
         optimizer.target.cleargrads()
-        loss = optimizer.target(source=pcd_depth_target, target=pcd_cad)
+        loss = optimizer.target(source=pcd_cad, target=pcd_depth_target)
         loss.backward()
         optimizer.update()
 
