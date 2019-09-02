@@ -46,7 +46,6 @@ class TestAverageVoxelization3D(unittest.TestCase):
             origin=self.origin,
             pitch=self.pitch,
             dimensions=self.dimensions,
-            channels=self.channels,
         )
         self.assertEqual(y.data.dtype, numpy.float32)
         y_data = cuda.to_cpu(y.data)
