@@ -150,10 +150,14 @@ class BaselineModel(chainer.Chain):
 
         batch_indices, values, points = self.voxel_extractor(voxelized, count)
 
+        # prepare
+        pitch = pitch.astype(np.float32)
+        origin = origin.astype(np.float32)
+
         class_id = class_id[batch_indices]
         pitch = pitch[batch_indices]
         origin = origin[batch_indices]
-        points = origin + points * pitch[:, None]
+        points = origin + points.astype(np.float32) * pitch[:, None]
 
         h_rot = F.relu(self.fc1_rot(values))
         h_trans = F.relu(self.fc1_trans(values))
