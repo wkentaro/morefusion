@@ -61,17 +61,24 @@ class MultiInstanceICPRegistration:
         class_id = self._class_ids[instance_id]
         pcd_cad = self._models.get_pcd(class_id=class_id).astype(np.float32)
 
+        pcd_cad = objslampp.extra.open3d.voxel_down_sample(pcd_cad, 0.01)
+        pcd_depth = objslampp.extra.open3d.voxel_down_sample(pcd_depth, 0.01)
+
         self._instance_id = instance_id
         self._pcd_cad = pcd_cad
         self._pcd_depth = pcd_depth
 
-        registration = preliminary.ICPRegistration(
-            pcd_depth, pcd_cad, self._Ts_cad2cam_pred[instance_id]
-        )
+        from icp import ICPRegistration
+        if 1:
+            registration = ICPRegistration(
+                pcd_depth, pcd_cad, self._Ts_cad2cam_pred[instance_id]
+            )
+        else:
+            registration = preliminary.ICPRegistration(
+                pcd_depth, pcd_cad, self._Ts_cad2cam_pred[instance_id]
+            )
         with chainer.using_config('debug', True):
-            for transform in registration.register_iterative(
-                iteration=100, voxel_size=0.01
-            ):
+            for transform in registration.register_iterative(iteration=100):
                 self._Ts_cad2cam_pred[instance_id] = transform
                 yield
 
