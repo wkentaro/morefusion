@@ -65,15 +65,6 @@ class YCBVideoDataset(DatasetBase):
 
         return tuple(ids)
 
-    def get_class_ids(self, index):
-        is_real, image_id = self._ids[index]
-        if is_real:
-            dataset = self._dataset
-        else:
-            dataset = self._dataset_syn
-        class_ids = dataset.class_ids_from_image_id(image_id)
-        return class_ids
-
     def get_frame(self, index):
         is_real, image_id = self._ids[index]
         if is_real:
