@@ -31,9 +31,9 @@ class BaselineModel(chainer.Chain):
             self.voxel_extractor = VoxelFeatureExtractor()
 
             # fc1
-            self.fc1_rot = L.Linear(1984, 640)
-            self.fc1_trans = L.Linear(1984, 640)
-            self.fc1_conf = L.Linear(1984, 640)
+            self.fc1_rot = L.Linear(992, 640)
+            self.fc1_trans = L.Linear(992, 640)
+            self.fc1_conf = L.Linear(992, 640)
             # fc2
             self.fc2_rot = L.Linear(640, 256)
             self.fc2_trans = L.Linear(640, 256)
@@ -341,21 +341,23 @@ class VoxelFeatureExtractor(chainer.Chain):
     def __init__(self):
         super().__init__()
         with self.init_scope():
+            # C = [32 + 3, 64, 128, 256, 512, 1024]
+            C = [32 + 3, 32, 64, 128, 256, 512]
             # conv1: 32
-            self.conv1_1 = L.Convolution3D(32 + 3, 32, 3, 1, pad=1)
-            self.conv1_2 = L.Convolution3D(32, 32, 1, 1, pad=0)
+            self.conv1_1 = L.Convolution3D(C[0], C[1], 3, 1, pad=1)
+            self.conv1_2 = L.Convolution3D(C[1], C[1], 1, 1, pad=0)
             # conv2: 32 -> 16
-            self.conv2_1 = L.Convolution3D(32, 64, 4, 2, pad=1)
-            self.conv2_2 = L.Convolution3D(64, 64, 1, 1, pad=0)
+            self.conv2_1 = L.Convolution3D(C[1], C[2], 4, 2, pad=1)
+            self.conv2_2 = L.Convolution3D(C[2], C[2], 1, 1, pad=0)
             # conv3: 16 -> 8
-            self.conv3_1 = L.Convolution3D(64, 128, 4, 2, pad=1)
-            self.conv3_2 = L.Convolution3D(128, 128, 1, 1, pad=0)
+            self.conv3_1 = L.Convolution3D(C[2], C[3], 4, 2, pad=1)
+            self.conv3_2 = L.Convolution3D(C[3], C[3], 1, 1, pad=0)
             # conv4: 8 -> 4
-            self.conv4_1 = L.Convolution3D(128, 256, 4, 2, pad=1)
-            self.conv4_2 = L.Convolution3D(256, 256, 1, 1, pad=0)
+            self.conv4_1 = L.Convolution3D(C[3], C[4], 4, 2, pad=1)
+            self.conv4_2 = L.Convolution3D(C[4], C[4], 1, 1, pad=0)
             # conv5: 4 -> 1
-            self.conv5_1 = L.Convolution3D(256, 512, 4, 1, pad=0)
-            self.conv5_2 = L.Convolution3D(512, 512, 1, 1, pad=0)
+            self.conv5_1 = L.Convolution3D(C[4], C[5], 4, 1, pad=0)
+            self.conv5_2 = L.Convolution3D(C[5], C[5], 1, 1, pad=0)
 
     def __call__(self, h, count):
         B, _, X, Y, Z = h.shape
