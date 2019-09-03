@@ -30,9 +30,9 @@ class BaselineModel(chainer.Chain):
             self.voxel_extractor = VoxelFeatureExtractor()
 
             # fc1
-            self.fc1_rot = L.Linear(992, 640)
-            self.fc1_trans = L.Linear(992, 640)
-            self.fc1_conf = L.Linear(992, 640)
+            self.fc1_rot = L.Linear(1408, 640)
+            self.fc1_trans = L.Linear(1408, 640)
+            self.fc1_conf = L.Linear(1408, 640)
             # fc2
             self.fc2_rot = L.Linear(640, 256)
             self.fc2_trans = L.Linear(640, 256)
@@ -340,23 +340,12 @@ class VoxelFeatureExtractor(chainer.Chain):
     def __init__(self):
         super().__init__()
         with self.init_scope():
-            # C = [32 + 3, 64, 128, 256, 512, 1024]
-            C = [32 + 3, 32, 64, 128, 256, 512]
-            # conv1: 32
-            self.conv1_1 = L.Convolution3D(C[0], C[1], 3, 1, pad=1)
-            self.conv1_2 = L.Convolution3D(C[1], C[1], 1, 1, pad=0)
-            # conv2: 32 -> 16
-            self.conv2_1 = L.Convolution3D(C[1], C[2], 4, 2, pad=1)
-            self.conv2_2 = L.Convolution3D(C[2], C[2], 1, 1, pad=0)
-            # conv3: 16 -> 8
-            self.conv3_1 = L.Convolution3D(C[2], C[3], 4, 2, pad=1)
-            self.conv3_2 = L.Convolution3D(C[3], C[3], 1, 1, pad=0)
-            # conv4: 8 -> 4
-            self.conv4_1 = L.Convolution3D(C[3], C[4], 4, 2, pad=1)
-            self.conv4_2 = L.Convolution3D(C[4], C[4], 1, 1, pad=0)
-            # conv5: 4 -> 1
-            self.conv5_1 = L.Convolution3D(C[4], C[5], 4, 1, pad=0)
-            self.conv5_2 = L.Convolution3D(C[5], C[5], 1, 1, pad=0)
+            self.conv1_rgb = L.Convolution3D(32, 64, 1, pad=0)
+            self.conv1_ind = L.Convolution3D(3, 64, 1, pad=0)
+            self.conv2_rgb = L.Convolution3D(64, 128, 1, pad=0)
+            self.conv2_ind = L.Convolution3D(64, 128, 1, pad=0)
+            self.conv3 = L.Linear(256, 512)
+            self.conv4 = L.Linear(512, 1024)
 
     def __call__(self, h, count):
         B, _, X, Y, Z = h.shape
@@ -364,39 +353,25 @@ class VoxelFeatureExtractor(chainer.Chain):
 
         h_ind = xp.stack(xp.meshgrid(xp.arange(X), xp.arange(Y), xp.arange(Z)))
         h_ind = h_ind.transpose(1, 2, 3, 0)
-        assert X == Y == Z == 32
-        h_ind = X / 2. - h_ind  # vector to the center
         h_ind = h_ind[None].repeat(B, axis=0)
         h_ind[count == 0] = -1
         h_ind = h_ind.transpose(0, 4, 1, 2, 3)
         h_ind = h_ind.astype(np.float32)
         assert h_ind.shape == (B, 3, X, Y, Z)
 
-        h = F.concat([h, h_ind], axis=1)
-
+        h_rgb = h
         # conv1
-        h = F.relu(self.conv1_1(h))
-        h = F.relu(self.conv1_2(h))
-        h_conv1 = h  # 32
+        h_rgb = F.relu(self.conv1_rgb(h_rgb))
+        h_ind = F.relu(self.conv1_ind(h_ind))
+        feat1 = F.concat((h_rgb, h_ind), axis=1)
         # conv2
-        h = F.relu(self.conv2_1(h))
-        h = F.relu(self.conv2_2(h))
-        h_conv2 = h  # 16
-        # conv3
-        h = F.relu(self.conv3_1(h))
-        h = F.relu(self.conv3_2(h))
-        h_conv3 = h  # 8
-        # conv4
-        h = F.relu(self.conv4_1(h))
-        h = F.relu(self.conv4_2(h))
-        h_conv4 = h  # 4
-        # conv5
-        h = F.relu(self.conv5_1(h))
-        h = F.relu(self.conv5_2(h))
-        h_conv5 = h  # 1
+        h_rgb = F.relu(self.conv2_rgb(h_rgb))
+        h_ind = F.relu(self.conv2_ind(h_ind))
+        feat2 = F.concat((h_rgb, h_ind), axis=1)
 
         batch_indices = []
-        values = []
+        values_feat1 = []
+        values_feat2 = []
         points = []
         for i in range(B):
             I, J, K = xp.nonzero(count[i])
@@ -405,23 +380,28 @@ class VoxelFeatureExtractor(chainer.Chain):
                 keep = xp.random.permutation(P)[:1000]
                 I, J, K = I[keep], J[keep], K[keep]
                 P = 1000
-            h_conv1_i = h_conv1[i, :, I, J, K]
-            h_conv2_i = h_conv2[i, :, I // 2, J // 2, K // 2]
-            h_conv3_i = h_conv3[i, :, I // 4, J // 4, K // 4]
-            h_conv4_i = h_conv4[i, :, I // 8, J // 8, K // 8]
-            h_conv5_i = h_conv5[i, :, I // 32, J // 32, K // 32]
-            h_i = F.concat([
-                h_conv1_i,
-                h_conv2_i,
-                h_conv3_i,
-                h_conv4_i,
-                h_conv5_i,
-            ], axis=1)
+            feat1_i = feat1[i, :, I, J, K]
+            feat2_i = feat2[i, :, I, J, K]
             batch_indices.append(xp.full((P,), i, dtype=np.int32))
-            values.append(h_i)
+            values_feat1.append(feat1_i)
+            values_feat2.append(feat2_i)
             points.append(xp.column_stack((I, J, K)))
         batch_indices = xp.concatenate(batch_indices, axis=0)
-        values = F.concat(values, axis=0)
+        values_feat1 = F.concat(values_feat1, axis=0)
+        values_feat2 = F.concat(values_feat2, axis=0)
         points = xp.concatenate(points, axis=0)
+
+        h = F.relu(self.conv3(values_feat2))
+        h = F.relu(self.conv4(h))
+
+        values_feat3 = []
+        for i in range(B):
+            mask = batch_indices == i
+            feat3_i = F.average(h[mask], axis=0)
+            feat3_i = F.repeat(feat3_i[None], int(mask.sum()), axis=0)
+            values_feat3.append(feat3_i)
+        values_feat3 = F.concat(values_feat3, axis=0)
+
+        values = F.concat([values_feat1, values_feat2, values_feat3], axis=1)
 
         return batch_indices, values, points
