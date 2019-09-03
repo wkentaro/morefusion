@@ -363,6 +363,8 @@ class VoxelFeatureExtractor(chainer.Chain):
 
         h_ind = xp.stack(xp.meshgrid(xp.arange(X), xp.arange(Y), xp.arange(Z)))
         h_ind = h_ind.transpose(1, 2, 3, 0)
+        assert X == Y == Z == 32
+        h_ind = X / 2. - h_ind  # vector to the center
         h_ind = h_ind[None].repeat(B, axis=0)
         h_ind[count == 0] = -1
         h_ind = h_ind.transpose(0, 4, 1, 2, 3)
@@ -414,8 +416,6 @@ class VoxelFeatureExtractor(chainer.Chain):
                 h_conv4_i,
                 h_conv5_i,
             ], axis=1)
-            h_i_glob = F.repeat(F.average(h_i, axis=0)[None], P, axis=0)
-            h_i = F.concat([h_i, h_i_glob], axis=1)
             batch_indices.append(xp.full((P,), i, dtype=np.int32))
             values.append(h_i)
             points.append(xp.column_stack((I, J, K)))
