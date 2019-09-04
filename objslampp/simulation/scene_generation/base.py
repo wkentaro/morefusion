@@ -1,7 +1,6 @@
 import frozendict
 import imgviz
 import numpy as np
-import pybullet
 import pyrender
 import termcolor
 import trimesh
@@ -56,6 +55,8 @@ class SceneGenerationBase:
         return ratio >= threshold
 
     def _simulate(self, nstep, fix=None):
+        import pybullet
+
         poses = {}
         if fix is not None:
             for unique_id in fix:
@@ -70,6 +71,8 @@ class SceneGenerationBase:
             pybullet.stepSimulation()
 
     def _is_colliding(self, unique_id):
+        import pybullet
+
         # check collision
         is_colliding = False
         for other_unique_id in objslampp.extra.pybullet.unique_ids:
@@ -84,6 +87,8 @@ class SceneGenerationBase:
         return is_colliding
 
     def _spawn_object(self, class_id):
+        import pybullet
+
         termcolor.cprint(
             f'==> Spawning a new object: {class_id:04d}',
             attrs={'bold': True},
@@ -149,6 +154,8 @@ class SceneGenerationBase:
         )
 
     def unique_id_to_pose(self, unique_id):
+        import pybullet
+
         pos, ori = pybullet.getBasePositionAndOrientation(unique_id)
         R_cad2world = pybullet.getMatrixFromQuaternion(ori)
         R_cad2world = np.asarray(R_cad2world, dtype=float).reshape(3, 3)

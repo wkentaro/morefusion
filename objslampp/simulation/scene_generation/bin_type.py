@@ -2,7 +2,6 @@ import numbers
 
 import numpy as np
 import path
-import pybullet
 import trimesh
 
 import objslampp
@@ -30,6 +29,8 @@ class BinTypeSceneGeneration(SceneGenerationBase):
         self._temp_dir.rmtree_p()
 
     def init_space(self):
+        import pybullet
+
         cad = objslampp.extra.trimesh.bin_model(
             extents=self._extents,
             thickness=self._thickness,
