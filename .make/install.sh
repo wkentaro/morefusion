@@ -48,7 +48,7 @@ pip install cython numpy
 
 echo_bold "==> Checking the remaining change in src/"
 for dir in src/*; do
-  if [ ! -d $dir ]; then
+  if [ ! -d $dir/.git ]; then
     continue
   fi
   diff=$(cd $dir && git diff)
