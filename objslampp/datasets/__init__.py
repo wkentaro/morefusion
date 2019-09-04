@@ -9,3 +9,4 @@ from .ycb_video import YCBVideoModels
 from .ycb_video import YCBVideoSyntheticDataset
 
 from .rgbd_pose_estimation import YCBVideoRGBDPoseEstimationDataset
+from .rgbd_pose_estimation import YCBVideoRGBDPoseEstimationDatasetReIndexed

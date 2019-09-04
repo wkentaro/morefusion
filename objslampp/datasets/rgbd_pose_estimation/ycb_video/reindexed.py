@@ -2,25 +2,30 @@ import os.path as osp
 import collections
 import json
 
-import chainer
 import numpy as np
 
-import objslampp
+from ...base import DatasetBase
+from ...ycb_video import YCBVideoDataset
+from ...ycb_video import YCBVideoSyntheticDataset
 
 
-class YCBVideoSingleInstanceDataset(objslampp.datasets.DatasetBase):
+class YCBVideoRGBDPoseEstimationDatasetReIndexed(DatasetBase):
 
-    _root_dir = chainer.dataset.get_dataset_directory(
-        'wkentaro/objslampp/ycb_video/single_instance_dataset'
-    )
+    _root_dir = YCBVideoDataset._root_dir + '.reindexed'
 
     def __init__(
         self,
         split,
         sampling=None,
         class_ids=None,
-        num_syn=1.0,
     ):
+        if not self.root_dir.exists():
+            raise IOError(
+                f'{self.root_dir} does not exist. '
+                'Please run following: python -m '
+                'objslampp.datasets.rgbd_pose_estimation.ycb_video.reindex'
+            )
+
         if class_ids is not None:
             class_ids = tuple(class_ids)
         self._class_ids = class_ids
@@ -28,8 +33,6 @@ class YCBVideoSingleInstanceDataset(objslampp.datasets.DatasetBase):
         assert isinstance(split, str)
         self._split = split
         self._sampling = sampling
-        assert 0 < num_syn <= 1
-        self._num_syn = num_syn
 
         self._ids = self._get_ids()
 
@@ -46,21 +49,15 @@ class YCBVideoSingleInstanceDataset(objslampp.datasets.DatasetBase):
 
         if self.split == 'val':
             sampling = 1 if self._sampling is None else self._sampling
-            dataset = objslampp.datasets.YCBVideoDataset(
-                split='keyframe'
-            )
+            dataset = YCBVideoDataset(split='keyframe')
         elif self.split == 'train':
             sampling = 8 if self._sampling is None else self._sampling
-            dataset = objslampp.datasets.YCBVideoDataset(
-                split='train'
-            )
+            dataset = YCBVideoDataset(split='train')
         image_ids = [f'data/{x}' for x in dataset.get_ids(sampling=sampling)]
 
         if self.split in ['train', 'syn']:
-            dataset_syn = objslampp.datasets.YCBVideoSyntheticDataset()
-            image_ids_syn = [f'data_syn/{x}' for x in dataset_syn.get_ids()]
-            num_syn = int(round(self._num_syn * len(image_ids_syn)))
-            image_ids += image_ids_syn[:num_syn]
+            dataset_syn = YCBVideoSyntheticDataset()
+            image_ids += [f'data_syn/{x}' for x in dataset_syn.get_ids()]
 
         ids = []
         for image_id in image_ids:

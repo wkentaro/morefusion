@@ -1,13 +1,11 @@
 import numpy as np
 
-from ..ycb_video import YCBVideoDataset
-from ..ycb_video import YCBVideoSyntheticDataset
-from .base import RGBDPoseEstimationDatasetBase
+from ...ycb_video import YCBVideoDataset
+from ...ycb_video import YCBVideoSyntheticDataset
+from ..base import RGBDPoseEstimationDatasetBase
 
 
 class YCBVideoRGBDPoseEstimationDataset(RGBDPoseEstimationDatasetBase):
-
-    _root_dir = YCBVideoDataset._root_dir
 
     def __init__(
         self,
@@ -15,7 +13,10 @@ class YCBVideoRGBDPoseEstimationDataset(RGBDPoseEstimationDatasetBase):
         class_ids=None,
         sampling=None,
     ):
-        super().__init__(class_ids=class_ids)
+        super().__init__(
+            root_dir=YCBVideoDataset._root_dir,
+            class_ids=class_ids,
+        )
 
         assert isinstance(split, str)
         self._split = split

@@ -158,15 +158,14 @@ def main():
     data_train = None
     data_valid = None
     if not args.multi_node or comm.rank == 0:
-        data_train = contrib.datasets.YCBVideoSingleInstanceDataset(
+        data_train = objslampp.datasets.YCBVideoRGBDPoseEstimationDatasetReIndexed(  # NOQA
             'train',
             class_ids=args.class_ids,
             sampling=args.sampling,
-            num_syn=args.num_syn,
         )
 
         if data_valid is None:
-            data_valid = contrib.datasets.YCBVideoSingleInstanceDataset(
+            data_valid = objslampp.datasets.YCBVideoRGBDPoseEstimationDatasetReIndexed(  # NOQA
                 'val',
                 class_ids=args.class_ids,
             )
