@@ -1,4 +1,3 @@
--e git+https://github.com/chainer/chainercv.git@master#egg=chainercv
 -e git+https://github.com/wkentaro/trimesh.git@objslampp#egg=trimesh[easy]
 -e git+https://github.com/wkentaro/chainer.git@objslampp#egg=chainer
 -e git+https://github.com/wkentaro/imgviz.git@master#egg=imgviz
