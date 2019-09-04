@@ -31,9 +31,9 @@ class Model(chainer.Chain):
             self.voxel_extractor = VoxelFeatureExtractor(self._n_point)
 
             # fc1
-            self.conv1_rot = L.Convolution1D(1408, 640, 1)
-            self.conv1_trans = L.Convolution1D(1408, 640, 1)
-            self.conv1_conf = L.Convolution1D(1408, 640, 1)
+            self.conv1_rot = L.Convolution1D(992, 640, 1)
+            self.conv1_trans = L.Convolution1D(992, 640, 1)
+            self.conv1_conf = L.Convolution1D(992, 640, 1)
             # conv2
             self.conv2_rot = L.Convolution1D(640, 256, 1)
             self.conv2_trans = L.Convolution1D(640, 256, 1)
@@ -332,12 +332,12 @@ class VoxelFeatureExtractor(chainer.Chain):
         self._n_point = n_point
         super().__init__()
         with self.init_scope():
-            self.conv1_rgb = L.Convolution3D(32, 64, 1, pad=0)
-            self.conv1_ind = L.Convolution3D(3, 64, 1, pad=0)
-            self.conv2_rgb = L.Convolution3D(64, 128, 1, pad=0)
-            self.conv2_ind = L.Convolution3D(64, 128, 1, pad=0)
-            self.conv3 = L.Convolution1D(256, 512, 1, pad=0)
-            self.conv4 = L.Convolution1D(512, 1024, 1, pad=0)
+            C = [32 + 3, 32, 64, 128, 256, 512]
+            self.conv1 = L.Convolution3D(C[0], C[1], 3, 1, pad=1)  # 32
+            self.conv2 = L.Convolution3D(C[1], C[2], 4, 2, pad=1)  # 32 -> 16
+            self.conv3 = L.Convolution3D(C[2], C[3], 4, 2, pad=1)  # 16 -> 8
+            self.conv4 = L.Convolution3D(C[3], C[4], 4, 2, pad=1)  # 8 -> 4
+            self.conv5 = L.Convolution3D(C[4], C[5], 4, 1, pad=0)  # 4 -> 1
 
     def __call__(self, h, count):
         B, _, X, Y, Z = h.shape
@@ -345,21 +345,34 @@ class VoxelFeatureExtractor(chainer.Chain):
 
         h_ind = xp.stack(xp.meshgrid(xp.arange(X), xp.arange(Y), xp.arange(Z)))
         h_ind = h_ind[None].repeat(B, axis=0)
-        h_ind = h_ind.astype(np.float32)
+        assert X == Y == Z == 32
+        h_ind = (X / 2.0 - 0.5) - h_ind.astype(np.float32)
         assert h_ind.shape == (B, 3, X, Y, Z)
 
-        h_rgb = h
-        # conv1
-        h_rgb = F.relu(self.conv1_rgb(h_rgb))
-        h_ind = F.relu(self.conv1_ind(h_ind))
-        feat1 = F.concat((h_rgb, h_ind), axis=1)
-        # conv2
-        h_rgb = F.relu(self.conv2_rgb(h_rgb))
-        h_ind = F.relu(self.conv2_ind(h_ind))
-        feat2 = F.concat((h_rgb, h_ind), axis=1)
+        h = F.concat([h, h_ind], axis=1)
 
-        values_feat1 = []
-        values_feat2 = []
+        # conv1
+        h = F.relu(self.conv1(h))
+        h_conv1 = h
+        assert h_conv1.shape == (B, 32, 32, 32, 32)
+        # conv2
+        h = F.relu(self.conv2(h))
+        h_conv2 = h
+        assert h_conv2.shape == (B, 64, 16, 16, 16)
+        # conv3
+        h = F.relu(self.conv3(h))
+        h_conv3 = h
+        assert h_conv3.shape == (B, 128, 8, 8, 8)
+        # conv4
+        h = F.relu(self.conv4(h))
+        h_conv4 = h
+        assert h_conv4.shape == (B, 256, 4, 4, 4)
+        # conv5
+        h = F.relu(self.conv5(h))
+        h_conv5 = h
+        assert h_conv5.shape == (B, 512, 1, 1, 1)
+
+        values = []
         points = []
         for i in range(B):
             I, J, K = xp.nonzero(count[i])
@@ -373,24 +386,19 @@ class VoxelFeatureExtractor(chainer.Chain):
                 ]
             assert keep.shape == (self._n_point,)
             I, J, K = I[keep], J[keep], K[keep]
-            feat1_i = feat1[i, :, I, J, K]
-            feat2_i = feat2[i, :, I, J, K]
-            values_feat1.append(feat1_i)
-            values_feat2.append(feat2_i)
+            values_i = F.concat([
+                h_conv1[i, :, I, J, K],
+                h_conv2[i, :, I // 2, J // 2, K // 2],
+                h_conv3[i, :, I // 4, J // 4, K // 4],
+                h_conv4[i, :, I // 8, J // 8, K // 8],
+                h_conv5[i, :, I // 32, J // 32, K // 32],
+            ], axis=1)
+            values.append(values_i)
             points.append(xp.column_stack((I, J, K)))
-        values_feat1 = F.stack(values_feat1)
-        values_feat2 = F.stack(values_feat2)
+        values = F.stack(values)
         points = xp.stack(points)
 
-        values_feat1 = values_feat1.transpose(0, 2, 1)  # BMC -> BCM
-        values_feat2 = values_feat2.transpose(0, 2, 1)  # BMC -> BCM
+        values = values.transpose(0, 2, 1)  # BMC -> BCM
         points = points.transpose(0, 2, 1)  # BM3 -> B3M
-
-        h = F.relu(self.conv3(values_feat2))
-        h = F.relu(self.conv4(h))
-        h = F.average_pooling_1d(h, self._n_point)
-        values_feat3 = F.repeat(h, self._n_point, axis=2)  # BCM
-
-        values = F.concat([values_feat1, values_feat2, values_feat3], axis=1)
 
         return values, points
