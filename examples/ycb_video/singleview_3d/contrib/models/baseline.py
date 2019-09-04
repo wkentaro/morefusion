@@ -12,6 +12,7 @@ class BaselineModel(chainer.Chain):
     _models = objslampp.datasets.YCBVideoModels()
     _voxel_dim = 32
     _lambda_confidence = 0.015
+    _n_point = 1000
 
     def __init__(
         self,
@@ -27,24 +28,24 @@ class BaselineModel(chainer.Chain):
             self.resnet_extractor = objslampp.models.ResNet18()
             self.pspnet_extractor = \
                 objslampp.models.dense_fusion.PSPNetExtractor()
-            self.voxel_extractor = VoxelFeatureExtractor()
+            self.voxel_extractor = VoxelFeatureExtractor(self._n_point)
 
             # fc1
-            self.fc1_rot = L.Linear(1408, 640)
-            self.fc1_trans = L.Linear(1408, 640)
-            self.fc1_conf = L.Linear(1408, 640)
-            # fc2
-            self.fc2_rot = L.Linear(640, 256)
-            self.fc2_trans = L.Linear(640, 256)
-            self.fc2_conf = L.Linear(640, 256)
-            # fc3
-            self.fc3_rot = L.Linear(256, 128)
-            self.fc3_trans = L.Linear(256, 128)
-            self.fc3_conf = L.Linear(256, 128)
-            # fc4
-            self.fc4_rot = L.Linear(128, n_fg_class * 4)
-            self.fc4_trans = L.Linear(128, n_fg_class * 3)
-            self.fc4_conf = L.Linear(128, n_fg_class)
+            self.conv1_rot = L.Convolution1D(1408, 640, 1)
+            self.conv1_trans = L.Convolution1D(1408, 640, 1)
+            self.conv1_conf = L.Convolution1D(1408, 640, 1)
+            # conv2
+            self.conv2_rot = L.Convolution1D(640, 256, 1)
+            self.conv2_trans = L.Convolution1D(640, 256, 1)
+            self.conv2_conf = L.Convolution1D(640, 256, 1)
+            # conv3
+            self.conv3_rot = L.Convolution1D(256, 128, 1)
+            self.conv3_trans = L.Convolution1D(256, 128, 1)
+            self.conv3_conf = L.Convolution1D(256, 128, 1)
+            # conv4
+            self.conv4_rot = L.Convolution1D(128, n_fg_class * 4, 1)
+            self.conv4_trans = L.Convolution1D(128, n_fg_class * 3, 1)
+            self.conv4_conf = L.Convolution1D(128, n_fg_class, 1)
 
     def predict(
         self,
@@ -64,7 +65,7 @@ class BaselineModel(chainer.Chain):
             points=points,
         )
 
-        batch_indices, quaternion_pred, translation_pred, confidence_pred = \
+        quaternion_pred, translation_pred, confidence_pred = \
             self._predict_from_voxelized(
                 class_id=class_id,
                 pitch=pitch,
@@ -73,9 +74,7 @@ class BaselineModel(chainer.Chain):
                 count=count,
             )
 
-        return (
-            batch_indices, quaternion_pred, translation_pred, confidence_pred
-        )
+        return quaternion_pred, translation_pred, confidence_pred
 
     def _extract(self, rgb, pcd):
         xp = self.xp
@@ -145,47 +144,51 @@ class BaselineModel(chainer.Chain):
     def _predict_from_voxelized(
         self, class_id, pitch, origin, voxelized, count
     ):
+        B = class_id.shape[0]
         xp = self.xp
 
-        batch_indices, values, points = self.voxel_extractor(voxelized, count)
+        values, points = self.voxel_extractor(voxelized, count)
 
         # prepare
         pitch = pitch.astype(np.float32)
         origin = origin.astype(np.float32)
 
-        class_id = class_id[batch_indices]
-        pitch = pitch[batch_indices]
-        origin = origin[batch_indices]
-        points = origin + points.astype(np.float32) * pitch[:, None]
+        points = (
+            origin[:, :, None] +
+            points.astype(np.float32) *
+            pitch[:, None, None]
+        )
 
-        h_rot = F.relu(self.fc1_rot(values))
-        h_trans = F.relu(self.fc1_trans(values))
-        h_conf = F.relu(self.fc1_conf(values))
-        h_rot = F.relu(self.fc2_rot(h_rot))
-        h_trans = F.relu(self.fc2_trans(h_trans))
-        h_conf = F.relu(self.fc2_conf(h_conf))
-        h_rot = F.relu(self.fc3_rot(h_rot))
-        h_trans = F.relu(self.fc3_trans(h_trans))
-        h_conf = F.relu(self.fc3_conf(h_conf))
-        cls_rot = self.fc4_rot(h_rot)
-        cls_trans = self.fc4_trans(h_trans)
-        cls_conf = F.sigmoid(self.fc4_conf(h_conf))
+        h_rot = F.relu(self.conv1_rot(values))
+        h_trans = F.relu(self.conv1_trans(values))
+        h_conf = F.relu(self.conv1_conf(values))
+        h_rot = F.relu(self.conv2_rot(h_rot))
+        h_trans = F.relu(self.conv2_trans(h_trans))
+        h_conf = F.relu(self.conv2_conf(h_conf))
+        h_rot = F.relu(self.conv3_rot(h_rot))
+        h_trans = F.relu(self.conv3_trans(h_trans))
+        h_conf = F.relu(self.conv3_conf(h_conf))
+        cls_rot = self.conv4_rot(h_rot)
+        cls_trans = self.conv4_trans(h_trans)
+        cls_conf = F.sigmoid(self.conv4_conf(h_conf))
 
-        P = batch_indices.shape[0]
-
-        quaternion = cls_rot.reshape(P, self._n_fg_class, 4)
-        translation = cls_trans.reshape(P, self._n_fg_class, 3)
-        confidence = cls_conf.reshape(P, self._n_fg_class)
+        quaternion = cls_rot.reshape(B, self._n_fg_class, 4, self._n_point)
+        translation = cls_trans.reshape(B, self._n_fg_class, 3, self._n_point)
+        confidence = cls_conf.reshape(B, self._n_fg_class, self._n_point)
 
         fg_class_id = class_id - 1
-        quaternion = quaternion[xp.arange(P), fg_class_id, :]
-        translation = translation[xp.arange(P), fg_class_id, :]
-        confidence = confidence[xp.arange(P), fg_class_id]
+        assert (fg_class_id >= 0).all()
+        quaternion = quaternion[xp.arange(B), fg_class_id, :, :]
+        translation = translation[xp.arange(B), fg_class_id, :, :]
+        confidence = confidence[xp.arange(B), fg_class_id, :]
 
         quaternion = F.normalize(quaternion, axis=1)
-        translation = points + translation * pitch[:, None]
+        translation = points + translation * pitch[:, None, None]
 
-        return batch_indices, quaternion, translation, confidence
+        quaternion = quaternion.transpose(0, 2, 1)    # B4M -> BM4
+        translation = translation.transpose(0, 2, 1)  # B3M -> BM3
+
+        return quaternion, translation, confidence
 
     def __call__(
         self,
@@ -197,37 +200,27 @@ class BaselineModel(chainer.Chain):
         translation_true,
     ):
         B = class_id.shape[0]
+        xp = self.xp
 
-        batch_indices, quaternion_pred, translation_pred, confidence_pred = \
-            self.predict(
-                class_id=class_id,
-                rgb=rgb,
-                pcd=pcd,
-            )
+        quaternion_pred, translation_pred, confidence_pred = self.predict(
+            class_id=class_id,
+            rgb=rgb,
+            pcd=pcd,
+        )
 
-        quaternion_pred_selected = []
-        translation_pred_selected = []
-        for i in range(B):
-            mask = batch_indices == i
-            index = F.argmax(confidence_pred[mask]).array
-            quaternion_pred_selected.append(quaternion_pred[mask][index])
-            translation_pred_selected.append(translation_pred[mask][index])
-        quaternion_pred_selected = F.stack(quaternion_pred_selected)
-        translation_pred_selected = F.stack(translation_pred_selected)
-
+        indices = F.argmax(confidence_pred, axis=1).array
         self.evaluate(
             class_id=class_id,
             quaternion_true=quaternion_true,
             translation_true=translation_true,
-            quaternion_pred=quaternion_pred_selected,
-            translation_pred=translation_pred_selected,
+            quaternion_pred=quaternion_pred[xp.arange(B), indices],
+            translation_pred=translation_pred[xp.arange(B), indices],
         )
 
         loss = self.loss(
             class_id=class_id,
             quaternion_true=quaternion_true,
             translation_true=translation_true,
-            batch_indices=batch_indices,
             quaternion_pred=quaternion_pred,
             translation_pred=translation_pred,
             confidence_pred=confidence_pred,
@@ -284,7 +277,6 @@ class BaselineModel(chainer.Chain):
         class_id,
         quaternion_true,
         translation_true,
-        batch_indices,
         quaternion_pred,
         translation_pred,
         confidence_pred,
@@ -298,17 +290,16 @@ class BaselineModel(chainer.Chain):
 
         loss = 0
         for i in range(B):
-            mask = batch_indices == i
-            P = int(mask.sum())
+            n_point = quaternion_pred[i].shape[0]
 
             T_cad2cam_pred = objslampp.functions.transformation_matrix(
-                quaternion_pred[mask], translation_pred[mask]
+                quaternion_pred[i], translation_pred[i]
             )  # (M, 4, 4)
 
             T_cad2cam_true = objslampp.functions.transformation_matrix(
                 quaternion_true[i], translation_true[i]
             )  # (4, 4)
-            T_cad2cam_true = F.repeat(T_cad2cam_true[None], P, axis=0)
+            T_cad2cam_true = F.repeat(T_cad2cam_true[None], n_point, axis=0)
 
             class_id_i = int(class_id[i])
             is_symmetric = class_id_i in \
@@ -337,15 +328,16 @@ class BaselineModel(chainer.Chain):
 
 class VoxelFeatureExtractor(chainer.Chain):
 
-    def __init__(self):
+    def __init__(self, n_point):
+        self._n_point = n_point
         super().__init__()
         with self.init_scope():
             self.conv1_rgb = L.Convolution3D(32, 64, 1, pad=0)
             self.conv1_ind = L.Convolution3D(3, 64, 1, pad=0)
             self.conv2_rgb = L.Convolution3D(64, 128, 1, pad=0)
             self.conv2_ind = L.Convolution3D(64, 128, 1, pad=0)
-            self.conv3 = L.Linear(256, 512)
-            self.conv4 = L.Linear(512, 1024)
+            self.conv3 = L.Convolution1D(256, 512, 1, pad=0)
+            self.conv4 = L.Convolution1D(512, 1024, 1, pad=0)
 
     def __call__(self, h, count):
         B, _, X, Y, Z = h.shape
@@ -366,39 +358,39 @@ class VoxelFeatureExtractor(chainer.Chain):
         h_ind = F.relu(self.conv2_ind(h_ind))
         feat2 = F.concat((h_rgb, h_ind), axis=1)
 
-        batch_indices = []
         values_feat1 = []
         values_feat2 = []
         points = []
         for i in range(B):
             I, J, K = xp.nonzero(count[i])
-            P = len(I)
-            if P > 1000:  # max points
-                keep = xp.random.permutation(P)[:1000]
-                I, J, K = I[keep], J[keep], K[keep]
-                P = 1000
+            n_point = len(I)
+            if n_point >= self._n_point:
+                keep = xp.random.permutation(n_point)[:self._n_point]
+            else:
+                keep = xp.r_[
+                    xp.arange(n_point),
+                    xp.random.randint(0, n_point, self._n_point - n_point),
+                ]
+            assert keep.shape == (self._n_point,)
+            I, J, K = I[keep], J[keep], K[keep]
             feat1_i = feat1[i, :, I, J, K]
             feat2_i = feat2[i, :, I, J, K]
-            batch_indices.append(xp.full((P,), i, dtype=np.int32))
             values_feat1.append(feat1_i)
             values_feat2.append(feat2_i)
             points.append(xp.column_stack((I, J, K)))
-        batch_indices = xp.concatenate(batch_indices, axis=0)
-        values_feat1 = F.concat(values_feat1, axis=0)
-        values_feat2 = F.concat(values_feat2, axis=0)
-        points = xp.concatenate(points, axis=0)
+        values_feat1 = F.stack(values_feat1)
+        values_feat2 = F.stack(values_feat2)
+        points = xp.stack(points)
+
+        values_feat1 = values_feat1.transpose(0, 2, 1)  # BMC -> BCM
+        values_feat2 = values_feat2.transpose(0, 2, 1)  # BMC -> BCM
+        points = points.transpose(0, 2, 1)  # BM3 -> B3M
 
         h = F.relu(self.conv3(values_feat2))
         h = F.relu(self.conv4(h))
-
-        values_feat3 = []
-        for i in range(B):
-            mask = batch_indices == i
-            feat3_i = F.average(h[mask], axis=0)
-            feat3_i = F.repeat(feat3_i[None], int(mask.sum()), axis=0)
-            values_feat3.append(feat3_i)
-        values_feat3 = F.concat(values_feat3, axis=0)
+        h = F.average_pooling_1d(h, self._n_point)
+        values_feat3 = F.repeat(h, self._n_point, axis=2)  # BCM
 
         values = F.concat([values_feat1, values_feat2, values_feat3], axis=1)
 
-        return batch_indices, values, points
+        return values, points
