@@ -58,7 +58,9 @@ def main():
     print('==> Done model loading')
 
     if args.dataset == 'ycb_video':
-        dataset = contrib.datasets.YCBVideoDataset('val', class_ids=[2])
+        dataset = objslampp.datasets.YCBVideoRGBDPoseEstimationDataset(
+            'val', class_ids=[2]
+        )
     else:
         assert args.dataset == 'bin_type'
         dataset = contrib.datasets.MySyntheticDataset(

@@ -100,11 +100,11 @@ def main():
         split = 'val'
         if '/' in args.dataset:
             _, split = args.dataset.split('/')
-        dataset = contrib.datasets.YCBVideoDataset(
+        dataset = objslampp.datasets.YCBVideoRGBDPoseEstimationDataset(
             split=split,
             class_ids=args_data['class_ids'],
             sampling=args.sampling,
-            return_occupancy_grids=return_occupancy_grids,
+            # return_occupancy_grids=return_occupancy_grids,
         )
     else:
         raise ValueError(f'unexpected dataset: {args.dataset}')

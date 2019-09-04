@@ -6,6 +6,4 @@ from .my_real import MyRealDataset
 
 from .my_synthetic import MySyntheticDataset
 
-from .ycb_video import YCBVideoDataset
-
 from .ycb_video_single_instance import YCBVideoSingleInstanceDataset
