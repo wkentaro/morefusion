@@ -1,25 +1,20 @@
 #!/usr/bin/env python
 
-import sys
-
 import imgviz
 import numpy as np
 import pybullet
 
 import objslampp
 
-sys.path.insert(0, '.')  # NOQA
-import contrib
-
 
 def main():
     models = objslampp.datasets.YCBVideoModels()
 
     random_state = np.random.RandomState(0)
-    generator = contrib.simulation.BinTypeSceneGeneration(
+    generator = objslampp.simulation.BinTypeSceneGeneration(
         extents=(0.3, 0.5, 0.3),
         models=models,
-        n_object=10,
+        n_object=5,
         random_state=random_state,
     )
     pybullet.resetDebugVisualizerCamera(
@@ -54,16 +49,16 @@ def main():
             text = f'{i + 1:04d} / {n_points:04d}'
             size = imgviz.draw.text_size(text, font_size)
             viz = imgviz.draw.rectangle(
-                viz, (1, 1), size, color=(0, 255, 0), fill=(0, 255, 0)
+                viz, (1, 1), size, outline=(0, 255, 0), fill=(0, 255, 0)
             )
             viz = imgviz.draw.text(
                 viz, (1, 1), text, color=(0, 0, 0), size=font_size
             )
 
-            yield viz
+            imgviz.io.cv_imshow(viz)
+            imgviz.io.cv_waitkey(10)
 
-    imgviz.io.pyglet_imshow(images(generator, Ts_cam2world))
-    imgviz.io.pyglet_run()
+    images(generator, Ts_cam2world)
 
 
 if __name__ == '__main__':

@@ -1,22 +1,17 @@
 #!/usr/bin/env python
 
-import sys
-
 import numpy as np
 import pybullet
 
 import objslampp
-
-sys.path.insert(0, '.')  # NOQA
-import contrib
 
 
 def main():
     models = objslampp.datasets.YCBVideoModels()
 
     random_state = np.random.RandomState(0)
-    generator = contrib.simulation.BinTypeSceneGeneration(
-        models=models, n_object=10, random_state=random_state
+    generator = objslampp.simulation.BinTypeSceneGeneration(
+        models=models, n_object=5, random_state=random_state
     )
     pybullet.resetDebugVisualizerCamera(
         cameraDistance=0.8,

@@ -12,8 +12,6 @@ import trimesh
 
 import objslampp
 
-import contrib
-
 
 def generate_a_video(out, random_state, connection_method=None):
     out.makedirs_p()
@@ -30,7 +28,7 @@ def generate_a_video(out, random_state, connection_method=None):
     # class_weight[...] = 1
     class_weight /= class_weight.sum()
 
-    generator = contrib.simulation.BinTypeSceneGeneration(
+    generator = objslampp.simulation.BinTypeSceneGeneration(
         # option 1,3
         # extents=random_state.uniform((0.2, 0.2, 0.1), (0.4, 0.4, 0.3)),
         # option 2

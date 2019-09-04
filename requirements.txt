@@ -1,5 +1,6 @@
 chainer
 chainercv
+frozendict
 gdown>=3.7.0
 glooey
 imgaug
@@ -11,6 +12,7 @@ opencv-python
 pandas
 path.py
 pybullet
+pyrender
 pyyaml
 scikit-image
 scikit-learn
