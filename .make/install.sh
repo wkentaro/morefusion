@@ -69,5 +69,5 @@ pip install -e .
 echo_bold "\nAll is well! You can start using this!
 
   $ source .anaconda3/bin/activate
-  $ python examples/ycb_video/ycb_video.py
+  $ python checks/datasets_checks/ycb_video_checks/check_models.py
 "
