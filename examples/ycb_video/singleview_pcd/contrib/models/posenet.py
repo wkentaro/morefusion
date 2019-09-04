@@ -4,8 +4,6 @@ import chainer.functions as F
 import chainer.links as L
 import numpy as np
 
-from .pspnet import PSPNetExtractor
-
 import objslampp
 
 
@@ -24,7 +22,8 @@ class PoseNet(chainer.Chain):
         with self.init_scope():
             # extractor
             self.resnet_extractor = objslampp.models.ResNet18()
-            self.pspnet_extractor = PSPNetExtractor()
+            self.pspnet_extractor = \
+                objslampp.models.dense_fusion.PSPNetExtractor()
             self.posenet_extractor = PoseNetExtractor()
 
             # conv1

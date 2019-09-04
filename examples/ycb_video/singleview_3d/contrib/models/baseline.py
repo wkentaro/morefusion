@@ -6,8 +6,6 @@ import numpy as np
 
 import objslampp
 
-from .pspnet import PSPNetExtractor
-
 
 class BaselineModel(chainer.Chain):
 
@@ -27,7 +25,8 @@ class BaselineModel(chainer.Chain):
         with self.init_scope():
             # extractor
             self.resnet_extractor = objslampp.models.ResNet18()
-            self.pspnet_extractor = PSPNetExtractor()
+            self.pspnet_extractor = \
+                objslampp.models.dense_fusion.PSPNetExtractor()
             self.voxel_extractor = VoxelFeatureExtractor()
 
             # fc1
