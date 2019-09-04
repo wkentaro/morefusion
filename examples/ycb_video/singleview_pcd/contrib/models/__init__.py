@@ -1,3 +1,3 @@
 # flake8: noqa
 
-from .posenet import PoseNet
+from .model import Model

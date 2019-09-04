@@ -143,7 +143,7 @@ def main():
     args.class_names = objslampp.datasets.ycb_video.class_names.tolist()
 
     # model initialization
-    model = contrib.models.PoseNet(
+    model = contrib.models.Model(
         n_fg_class=len(args.class_names) - 1,
     )
     if device >= 0:

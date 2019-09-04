@@ -7,7 +7,7 @@ import numpy as np
 import objslampp
 
 
-class PoseNet(chainer.Chain):
+class Model(chainer.Chain):
 
     _models = objslampp.datasets.YCBVideoModels()
     _lambda_confidence = 0.015
@@ -301,21 +301,3 @@ class PoseNetExtractor(chainer.Chain):
         feat3 = F.repeat(h, n_point, axis=2)
         feat = F.concat((feat1, feat2, feat3), axis=1)
         return feat
-
-
-if __name__ == '__main__':
-    from .dataset import Dataset
-
-    gpu = 0
-
-    dataset = Dataset(split='train', class_ids=[2])
-    inputs = chainer.dataset.concat_examples(dataset[0:2], device=gpu)
-
-    model = PoseNet(
-        n_fg_class=21,
-        lambda_confidence=0.015,
-    )
-    if gpu >= -1:
-        model.to_gpu()
-
-    loss = model.__call__(**inputs)
