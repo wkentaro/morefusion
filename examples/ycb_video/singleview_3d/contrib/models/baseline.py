@@ -352,10 +352,7 @@ class VoxelFeatureExtractor(chainer.Chain):
         xp = self.xp
 
         h_ind = xp.stack(xp.meshgrid(xp.arange(X), xp.arange(Y), xp.arange(Z)))
-        h_ind = h_ind.transpose(1, 2, 3, 0)
         h_ind = h_ind[None].repeat(B, axis=0)
-        h_ind[count == 0] = -1
-        h_ind = h_ind.transpose(0, 4, 1, 2, 3)
         h_ind = h_ind.astype(np.float32)
         assert h_ind.shape == (B, 3, X, Y, Z)
 
