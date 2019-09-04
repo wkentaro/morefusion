@@ -45,6 +45,9 @@ class RGBDPoseEstimationDatasetBase(DatasetBase):
         for instance_id, class_id, T_cad2cam in zip(
             instance_ids, class_ids, Ts_cad2cam
         ):
+            if class_id == 0:
+                continue
+
             if self._class_ids and class_id not in self._class_ids:
                 continue
 
