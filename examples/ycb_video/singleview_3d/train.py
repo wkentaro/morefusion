@@ -183,7 +183,7 @@ def main():
     #     loss = 'add+add_s'
 
     # model initialization
-    model = contrib.models.BaselineModel(
+    model = contrib.models.Model(
         n_fg_class=len(args.class_names[1:]),
         # loss=loss,
         # loss_scale=args.loss_scale,

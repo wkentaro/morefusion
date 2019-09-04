@@ -1,3 +1,3 @@
 # flake8: noqa
 
-from .baseline import BaselineModel
+from .model import Model

@@ -7,7 +7,7 @@ import numpy as np
 import objslampp
 
 
-class BaselineModel(chainer.Chain):
+class Model(chainer.Chain):
 
     _models = objslampp.datasets.YCBVideoModels()
     _voxel_dim = 32
