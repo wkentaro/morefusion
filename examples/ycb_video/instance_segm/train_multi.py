@@ -32,8 +32,6 @@ from chainercv.links.model.fpn import rpn_loss
 
 import objslampp
 
-from dataset import YCBVideoInstanceSegmentationDataset
-from dataset import YCBVideoSyntheticInstanceSegmentationDataset
 from transforms import AsType
 from transforms import ClassIds2FGClassIds
 from transforms import Compose
@@ -219,8 +217,10 @@ def main():
 
     if comm.rank == 0:
         train = chainer.datasets.ConcatenatedDataset(
-            YCBVideoInstanceSegmentationDataset(split='train', sampling=15),
-            YCBVideoSyntheticInstanceSegmentationDataset(),
+            objslampp.datasets.YCBVideoInstanceSegmentationDataset(
+                split='train', sampling=15
+            ),
+            objslampp.datasets.YCBVideoSyntheticInstanceSegmentationDataset(),
         )
         transform = Compose(
             RGBAugmentation(['rgb']),
@@ -232,7 +232,9 @@ def main():
             Transform(800, 1333, model.extractor.mean),
         )
         train = TransformDataset(train, transform)
-        val = YCBVideoInstanceSegmentationDataset(split='val', sampling=15)
+        val = objslampp.datasets.YCBVideoInstanceSegmentationDataset(
+            split='val', sampling=15
+        )
         transform = Compose(
             ClassIds2FGClassIds(['labels']),
             AsType(['rgb', 'labels', 'bboxes'],
