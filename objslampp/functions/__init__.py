@@ -2,6 +2,7 @@
 
 from .geometry import average_voxelization_3d
 from .geometry import compose_transform
+from .geometry import insert_voxelization_3d
 from .geometry import max_voxelization_3d
 from .geometry import occupancy_grid_3d
 from .geometry import pseudo_occupancy_voxelization
