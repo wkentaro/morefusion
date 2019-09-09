@@ -56,6 +56,11 @@ class MultiInstanceOctreeMapping:
         grid_empty: numpy.ndarray
             Empty space.
         '''
+        assert not np.isnan(origin).any()
+        assert len(dimensions) == 3
+        assert (np.asarray(dimensions) > 0).all()
+        assert pitch > 0
+
         grid_target = np.zeros(dimensions, dtype=np.float32)
         grid_nontarget = np.zeros(dimensions, dtype=np.float32)
         grid_empty = np.zeros(dimensions, np.float32)
