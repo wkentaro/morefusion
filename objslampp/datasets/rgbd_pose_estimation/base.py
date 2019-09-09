@@ -9,7 +9,7 @@ from ...contrib import MultiInstanceOctreeMapping
 
 class RGBDPoseEstimationDatasetBase(DatasetBase):
 
-    _n_points_minimal = 0
+    _n_points_minimal = 1
     _image_size = 256
     _voxel_dim = 32
 
