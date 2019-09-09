@@ -13,14 +13,11 @@ root_dir = dataset_train.root_dir + '.reindexed'
 
 
 def task(index):
-    is_real, image_id = dataset._ids[index]
+    dataset_parent, image_id = dataset._ids[index]
     examples = dataset.get_example(index)
     id_to_class_id = {}
     for ind, example in enumerate(examples):
-        if is_real:
-            id = f'data/{image_id}/{ind:08d}'
-        else:
-            id = f'data_syn/{image_id}/{ind:08d}'
+        id = f'{dataset_parent._data_dir}/{image_id}/{ind:08d}'
         npz_file = root_dir / f'{id}.npz'
         npz_file.parent.makedirs_p()
         np.savez_compressed(npz_file, **example)
