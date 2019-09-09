@@ -1,5 +1,6 @@
 # flake8: noqa
 
+from . import contrib
 from . import datasets
 from . import extra
 from . import geometry
