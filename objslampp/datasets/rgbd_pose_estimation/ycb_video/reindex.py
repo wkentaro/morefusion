@@ -7,9 +7,8 @@ import tqdm
 from .dataset import YCBVideoRGBDPoseEstimationDataset
 
 
-dataset_train = YCBVideoRGBDPoseEstimationDataset(split='train', sampling=8)
-dataset_val = YCBVideoRGBDPoseEstimationDataset(split='val', sampling=1)
-root_dir = dataset_train.root_dir + '.reindexed'
+dataset = None
+root_dir = None
 
 
 def task(index):
@@ -27,18 +26,25 @@ def task(index):
 
 def main():
     global dataset
+    global root_dir
 
+    id_to_class_id = {}
     executor = concurrent.futures.ProcessPoolExecutor()
-    futures = []
-    for dataset in [dataset_train, dataset_val]:
+    for split in ['val', 'train']:
+        dataset = YCBVideoRGBDPoseEstimationDataset(split=split)
+        root_dir = dataset.root_dir + '.reindexed'
+
+        futures = []
         for index in range(len(dataset)):
             future = executor.submit(task, index)
             futures.append(future)
 
-    id_to_class_id = {}
-    for index, future in tqdm.tqdm(enumerate(futures), total=len(futures)):
-        for id, class_id in future.result().items():
-            id_to_class_id[id] = int(class_id)
+        for index, future in tqdm.tqdm(enumerate(futures), total=len(futures)):
+            for id, class_id in future.result().items():
+                id_to_class_id[id] = int(class_id)
+
+        dataset = None
+        root_dir = None
 
     with open(root_dir / 'id_to_class_id.json', 'w') as f:
         json.dump(id_to_class_id, f, indent=4)
