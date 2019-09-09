@@ -24,6 +24,15 @@ home = path.Path('~').expanduser()
 here = path.Path(__file__).abspath().parent
 
 
+def transform(in_data):
+    in_data.pop('pitch')
+    in_data.pop('origin')
+    in_data.pop('grid_target')
+    in_data.pop('grid_nontarget')
+    in_data.pop('grid_empty')
+    return in_data
+
+
 def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -65,12 +74,6 @@ def main():
         nargs='*',
         default=objslampp.datasets.ycb_video.class_ids_asymmetric.tolist(),
         help='class id',
-    )
-    parser.add_argument(
-        '--sampling',
-        type=int,
-        default=8,
-        help='sampling of ycb_video train',
     )
     parser.add_argument(
         '--pretrained-model',
@@ -125,7 +128,6 @@ def main():
         data_train = objslampp.datasets.YCBVideoRGBDPoseEstimationDatasetReIndexed(  # NOQA
             'train',
             class_ids=args.class_ids,
-            sampling=args.sampling,
         )
 
         if data_valid is None:
@@ -133,6 +135,9 @@ def main():
                 'val',
                 class_ids=args.class_ids,
             )
+
+        data_train = chainer.datasets.TransformDataset(data_train, transform)
+        data_valid = chainer.datasets.TransformDataset(data_valid, transform)
 
         termcolor.cprint('==> Dataset size', attrs={'bold': True})
         print(f'train={len(data_train)}, val={len(data_valid)}')
