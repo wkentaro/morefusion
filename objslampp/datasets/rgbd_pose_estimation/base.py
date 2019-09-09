@@ -93,7 +93,10 @@ class RGBDPoseEstimationDatasetBase(DatasetBase):
             if nonnan.sum() < self._n_points_minimal:
                 continue
             pcd_ins = imgviz.centerize(
-                pcd_ins, (self._image_size, self._image_size), cval=np.nan
+                pcd_ins,
+                (self._image_size, self._image_size),
+                cval=np.nan,
+                interpolation='nearest',
             )
 
             rgb_ins = rgb.copy()
