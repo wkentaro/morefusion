@@ -1,11 +1,15 @@
 import numpy as np
 
 from ...ycb_video import YCBVideoDataset
+from ...ycb_video import YCBVideoModels
 from ...ycb_video import YCBVideoSyntheticDataset
 from ..base import RGBDPoseEstimationDatasetBase
 
 
 class YCBVideoRGBDPoseEstimationDataset(RGBDPoseEstimationDatasetBase):
+
+    _models = YCBVideoModels()
+    _bounded_rate_minimal = 0.5
 
     def __init__(
         self,
@@ -13,6 +17,9 @@ class YCBVideoRGBDPoseEstimationDataset(RGBDPoseEstimationDatasetBase):
         class_ids=None,
         sampling=None,
     ):
+        if split != 'val':
+            self._n_points_minimal = 50
+
         super().__init__(
             root_dir=YCBVideoDataset._root_dir,
             class_ids=class_ids,
@@ -69,3 +76,29 @@ class YCBVideoRGBDPoseEstimationDataset(RGBDPoseEstimationDatasetBase):
             Ts_cad2cam=Ts_cad2cam,
             cad_files={},
         )
+
+    def get_example(self, index):
+        examples = super().get_example(index)
+
+        if self.split == 'val':
+            return examples
+
+        examples_filtered = []
+        for example in examples:
+            diagonal = self._models.get_bbox_diagonal(example['class_id'])
+            aabb_min = example['translation_true'] - (diagonal / 2.)
+            aabb_max = aabb_min + diagonal
+
+            nonnan = ~np.isnan(example['pcd']).any(axis=2)
+            points = example['pcd'][nonnan]
+            bounded = (
+                (aabb_min <= points).all(axis=1) &
+                (points < aabb_max).all(axis=1)
+            )
+
+            bounded_rate = bounded.sum() / len(points)
+            if bounded_rate < self._bounded_rate_minimal:
+                continue
+            examples_filtered.append(example)
+
+        return examples_filtered
