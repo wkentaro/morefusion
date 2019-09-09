@@ -14,12 +14,14 @@ for split in ['val', 'train']:
 
 
 def task(split, index):
+    root_dir = datasets['train'].root_dir + '.reindexed'
+
     dataset_parent, image_id = datasets[split]._ids[index]
     examples = datasets[split].get_example(index)
     id_to_class_id = {}
     for ind, example in enumerate(examples):
         id = f'{dataset_parent._data_dir}/{image_id}/{ind:08d}'
-        npz_file = datasets[split].root_dir / f'{id}.npz'
+        npz_file = root_dir / f'{id}.npz'
         npz_file.parent.makedirs_p()
         np.savez_compressed(npz_file, **example)
         id_to_class_id[id] = example['class_id']
@@ -27,7 +29,7 @@ def task(split, index):
 
 
 def main():
-    root_dir = datasets['train'].root_dir
+    root_dir = datasets['train'].root_dir + '.reindexed'
 
     id_to_class_id = {}
     executor = concurrent.futures.ProcessPoolExecutor()
