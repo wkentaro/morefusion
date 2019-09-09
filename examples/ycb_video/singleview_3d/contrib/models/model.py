@@ -386,12 +386,19 @@ class VoxelFeatureExtractor(chainer.Chain):
                 ]
             assert keep.shape == (self._n_point,)
             I, J, K = I[keep], J[keep], K[keep]
+            indices = xp.column_stack((I, J, K)).astype(np.float32)
             values_i = F.concat([
                 h_conv1[i, :, I, J, K],
-                h_conv2[i, :, I // 2, J // 2, K // 2],
-                h_conv3[i, :, I // 4, J // 4, K // 4],
-                h_conv4[i, :, I // 8, J // 8, K // 8],
-                h_conv5[i, :, I // 32, J // 32, K // 32],
+                objslampp.functions.interpolate_voxel_grid(
+                    h_conv2[i], indices / 2.
+                ),
+                objslampp.functions.interpolate_voxel_grid(
+                    h_conv3[i], indices / 4.
+                ),
+                objslampp.functions.interpolate_voxel_grid(
+                    h_conv4[i], indices / 8.
+                ),
+                F.repeat(h_conv5[i, :, 0, 0, 0][None], self._n_point, axis=0),
             ], axis=1)
             values.append(values_i)
             points.append(xp.column_stack((I, J, K)))
