@@ -8,7 +8,7 @@ from ... import geometry as geometry_module
 
 class RGBDPoseEstimationDatasetBase(DatasetBase):
 
-    _n_points_minimal = 50
+    _n_points_minimal = 0
     _image_size = 256
 
     def __init__(
