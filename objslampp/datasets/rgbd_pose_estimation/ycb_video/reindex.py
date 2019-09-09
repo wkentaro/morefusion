@@ -7,17 +7,19 @@ import tqdm
 from .dataset import YCBVideoRGBDPoseEstimationDataset
 
 
-dataset = None
-root_dir = None
+datasets = {}
+for split in ['val', 'train']:
+    datasets[split] = YCBVideoRGBDPoseEstimationDataset(split=split)
+    del split
 
 
-def task(index):
-    dataset_parent, image_id = dataset._ids[index]
-    examples = dataset.get_example(index)
+def task(split, index):
+    dataset_parent, image_id = datasets[split]._ids[index]
+    examples = datasets[split].get_example(index)
     id_to_class_id = {}
     for ind, example in enumerate(examples):
         id = f'{dataset_parent._data_dir}/{image_id}/{ind:08d}'
-        npz_file = root_dir / f'{id}.npz'
+        npz_file = datasets[split].root_dir / f'{id}.npz'
         npz_file.parent.makedirs_p()
         np.savez_compressed(npz_file, **example)
         id_to_class_id[id] = example['class_id']
@@ -25,26 +27,20 @@ def task(index):
 
 
 def main():
-    global dataset
-    global root_dir
+    root_dir = datasets['train'].root_dir
 
     id_to_class_id = {}
     executor = concurrent.futures.ProcessPoolExecutor()
     for split in ['val', 'train']:
-        dataset = YCBVideoRGBDPoseEstimationDataset(split=split)
-        root_dir = dataset.root_dir + '.reindexed'
-
+        dataset = datasets[split]
         futures = []
         for index in range(len(dataset)):
-            future = executor.submit(task, index)
+            future = executor.submit(task, split, index)
             futures.append(future)
 
         for index, future in tqdm.tqdm(enumerate(futures), total=len(futures)):
             for id, class_id in future.result().items():
                 id_to_class_id[id] = int(class_id)
-
-        dataset = None
-        root_dir = None
 
     with open(root_dir / 'id_to_class_id.json', 'w') as f:
         json.dump(id_to_class_id, f, indent=4)
