@@ -1,7 +1,6 @@
 import frozendict
 import imgviz
 import numpy as np
-import pyrender
 import termcolor
 import trimesh
 
@@ -173,6 +172,8 @@ class SceneGenerationBase:
 
     @property
     def scene(self):
+        import pyrender
+
         if self._scene is not None:
             return self._scene
 
@@ -196,6 +197,8 @@ class SceneGenerationBase:
         return self._scene
 
     def _render_pyrender(self, T_camera2world, fovy, height, width):
+        import pyrender
+
         scene = self.scene
         node_camera = scene.add(
             obj=pyrender.PerspectiveCamera(
