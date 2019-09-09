@@ -272,10 +272,10 @@ def main():
     print('-' * 79)
 
     voxelized = mapping.values.transpose(3, 0, 1, 2).astype(np.float32)
-    values = RegularGridInterpolator()(voxelized, points).array
+    values = InterpolateVoxelGrid()(voxelized, points).array
     print(points[0], values[0])
 
-    values = RegularGridInterpolator()(
+    values = InterpolateVoxelGrid()(
         cuda.to_gpu(voxelized), cuda.to_gpu(points)
     ).array
     print(points[0], values[0])
