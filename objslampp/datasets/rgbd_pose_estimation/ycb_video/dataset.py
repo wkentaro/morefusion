@@ -15,7 +15,6 @@ class YCBVideoRGBDPoseEstimationDataset(RGBDPoseEstimationDatasetBase):
         self,
         split,
         class_ids=None,
-        sampling=None,
     ):
         if split != 'val':
             self._n_points_minimal = 50
@@ -27,7 +26,6 @@ class YCBVideoRGBDPoseEstimationDataset(RGBDPoseEstimationDatasetBase):
 
         assert isinstance(split, str)
         self._split = split
-        self._sampling = sampling
 
         self._ids = self._get_ids()
 
@@ -38,10 +36,10 @@ class YCBVideoRGBDPoseEstimationDataset(RGBDPoseEstimationDatasetBase):
         assert self.split in ['train', 'syn', 'val']
 
         if self.split == 'val':
-            sampling = 1 if self._sampling is None else self._sampling
+            sampling = 1
             dataset = YCBVideoDataset(split='keyframe')
         elif self.split == 'train':
-            sampling = 8 if self._sampling is None else self._sampling
+            sampling = 8
             dataset = YCBVideoDataset(split='train')
 
         ids = [(dataset, x) for x in dataset.get_ids(sampling=sampling)]
