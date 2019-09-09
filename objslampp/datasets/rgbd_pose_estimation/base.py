@@ -4,12 +4,14 @@ import trimesh.transformations as tf
 
 from ..base import DatasetBase
 from ... import geometry as geometry_module
+from ...contrib import MultiInstanceOctreeMapping
 
 
 class RGBDPoseEstimationDatasetBase(DatasetBase):
 
     _n_points_minimal = 0
     _image_size = 256
+    _voxel_dim = 32
 
     def __init__(
         self,
@@ -23,6 +25,29 @@ class RGBDPoseEstimationDatasetBase(DatasetBase):
 
     def get_frame(self, index):
         raise NotImplementedError
+
+    def get_voxel_pitch(self, class_id):
+        raise NotImplementedError
+
+    def build_octomap(self, pcd, instance_label, instance_ids, class_ids):
+        mapping = MultiInstanceOctreeMapping()
+        nonnan = ~np.isnan(pcd).any(axis=2)
+
+        # map foreground objects
+        for instance_id, class_id in zip(instance_ids, class_ids):
+            mask = (instance_label == instance_id) & nonnan
+            pitch = self.get_voxel_pitch(class_id)
+            mapping.initialize(instance_id, pitch=pitch)
+            mapping.integrate(instance_id, mask, pcd)
+
+        # map background objects
+        mapping.initialize(0, pitch=0.01)
+        for instance_id in np.unique(instance_label):
+            if instance_id in instance_ids:  # foreground
+                continue
+            mask = (instance_label == instance_id) & nonnan
+            mapping.integrate(0, mask, pcd)
+        return mapping
 
     def get_example(self, index):
         frame = self.get_frame(index)
@@ -40,6 +65,10 @@ class RGBDPoseEstimationDatasetBase(DatasetBase):
 
         if instance_ids.size == 0:
             return []
+
+        mapping = self.build_octomap(
+            pcd, instance_label, instance_ids, class_ids
+        )
 
         examples = []
         for instance_id, class_id, T_cad2cam in zip(
@@ -77,12 +106,28 @@ class RGBDPoseEstimationDatasetBase(DatasetBase):
             quaternion_true = tf.quaternion_from_matrix(T_cad2cam)
             translation_true = tf.translation_from_matrix(T_cad2cam)
 
+            center = np.nanmedian(pcd_ins, axis=(0, 1))
+            dim = self._voxel_dim
+            pitch = self.get_voxel_pitch(class_id)
+            origin = center - (dim / 2 - 0.5) * pitch
+            grid_target, grid_nontarget, grid_empty = mapping.get_target_grids(
+                instance_id,
+                dimensions=(dim, dim, dim),
+                pitch=pitch,
+                origin=origin,
+            )
+
             example = dict(
                 class_id=class_id,
                 rgb=rgb_ins,
                 pcd=pcd_ins,
                 quaternion_true=quaternion_true,
                 translation_true=translation_true,
+                origin=origin,
+                pitch=pitch,
+                grid_target=grid_target,
+                grid_nontarget=grid_nontarget,
+                grid_empty=grid_empty,
             )
 
             examples.append(example)

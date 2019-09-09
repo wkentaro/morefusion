@@ -31,6 +31,9 @@ class YCBVideoRGBDPoseEstimationDataset(RGBDPoseEstimationDatasetBase):
 
         self._ids = self._get_ids()
 
+    def get_voxel_pitch(self, class_id):
+        return self._models.get_voxel_pitch(self._voxel_dim, class_id=class_id)
+
     def _get_ids(self):
         assert self.split in ['train', 'syn', 'val']
 
