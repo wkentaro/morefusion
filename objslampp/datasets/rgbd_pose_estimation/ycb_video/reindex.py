@@ -7,7 +7,7 @@ import tqdm
 from .dataset import YCBVideoRGBDPoseEstimationDataset
 
 
-dataset_train = YCBVideoRGBDPoseEstimationDataset(split='train', sampling=1)
+dataset_train = YCBVideoRGBDPoseEstimationDataset(split='train', sampling=8)
 dataset_val = YCBVideoRGBDPoseEstimationDataset(split='val', sampling=1)
 root_dir = dataset_train.root_dir + '.reindexed'
 

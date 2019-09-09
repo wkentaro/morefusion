@@ -16,7 +16,6 @@ class YCBVideoRGBDPoseEstimationDatasetReIndexed(DatasetBase):
     def __init__(
         self,
         split,
-        sampling=None,
         class_ids=None,
     ):
         if not self.root_dir.exists():
@@ -32,7 +31,6 @@ class YCBVideoRGBDPoseEstimationDatasetReIndexed(DatasetBase):
 
         assert isinstance(split, str)
         self._split = split
-        self._sampling = sampling
 
         self._ids = self._get_ids()
 
@@ -48,10 +46,10 @@ class YCBVideoRGBDPoseEstimationDatasetReIndexed(DatasetBase):
         image_id_to_instance_ids = dict(image_id_to_instance_ids)
 
         if self.split == 'val':
-            sampling = 1 if self._sampling is None else self._sampling
+            sampling = 1
             dataset = YCBVideoDataset(split='keyframe')
         elif self.split == 'train':
-            sampling = 8 if self._sampling is None else self._sampling
+            sampling = 8
             dataset = YCBVideoDataset(split='train')
         image_ids = [f'data/{x}' for x in dataset.get_ids(sampling=sampling)]
 
