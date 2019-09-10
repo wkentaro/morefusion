@@ -59,4 +59,9 @@ scenes['float_indexing'] = trimesh.Scene(
     geom, camera=scenes['original'].camera
 )
 
-objslampp.extra.trimesh.display_scenes(scenes)
+objslampp.extra.trimesh.display_scenes(
+    scenes,
+    tile=(1, 3),
+    height=int(480 * 0.8),
+    width=int(640 * 0.8),
+)
