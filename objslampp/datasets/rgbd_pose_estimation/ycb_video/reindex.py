@@ -14,7 +14,7 @@ for split in ['val', 'train']:
 
 
 def task(split, index):
-    root_dir = datasets['train'].root_dir + '.reindexed'
+    root_dir = datasets['train'].root_dir + '.reindexed.w_full_occupancy'
 
     dataset_parent, image_id = datasets[split]._ids[index]
     examples = datasets[split].get_example(index)

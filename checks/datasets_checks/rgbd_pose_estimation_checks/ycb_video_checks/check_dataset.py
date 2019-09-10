@@ -56,6 +56,24 @@ def get_scene():
         ).as_boxes(colors=(0.5, 0.5, 0.5, 0.5))
         scenes[f'empty_{i:04d}'] = trimesh.Scene(geom, camera=camera)
 
+        geom = trimesh.voxel.Voxel(
+            example['grid_target_full'],
+            example['pitch'],
+            example['origin'],
+        ).as_boxes(colors=(1., 0, 0, 0.5))
+        scenes[f'full_occupied_{i:04d}'] = trimesh.Scene(geom, camera=camera)
+
+        if (example['grid_nontarget_full'] > 0).any():
+            colors = imgviz.label2rgb(
+                example['grid_nontarget_full'].reshape(1, -1) + 1
+            ).reshape(example['grid_nontarget_full'].shape + (3,))
+            geom = trimesh.voxel.Voxel(
+                example['grid_nontarget_full'],
+                example['pitch'],
+                example['origin'],
+            ).as_boxes(colors=colors)
+            scenes[f'full_occupied_{i:04d}'].add_geometry(geom)
+
         dim = example['grid_target'].shape[0]
         extents = np.array([dim, dim, dim]) * example['pitch']
         geom = trimesh.path.creation.box_outline(extents)
@@ -72,5 +90,5 @@ def get_scene():
 
 
 objslampp.extra.trimesh.display_scenes(
-    get_scene(), tile=(4, 2), height=int(320 * 0.8), width=int(480 * 0.8)
+    get_scene(), height=int(320 * 0.8), width=int(480 * 0.8)
 )

@@ -8,7 +8,6 @@ from ..base import RGBDPoseEstimationDatasetBase
 
 class YCBVideoRGBDPoseEstimationDataset(RGBDPoseEstimationDatasetBase):
 
-    _models = YCBVideoModels()
     _bounded_rate_minimal = 0.5
 
     def __init__(
@@ -20,6 +19,7 @@ class YCBVideoRGBDPoseEstimationDataset(RGBDPoseEstimationDatasetBase):
             self._n_points_minimal = 50
 
         super().__init__(
+            models=YCBVideoModels(),
             root_dir=YCBVideoDataset._root_dir,
             class_ids=class_ids,
         )
@@ -28,9 +28,6 @@ class YCBVideoRGBDPoseEstimationDataset(RGBDPoseEstimationDatasetBase):
         self._split = split
 
         self._ids = self._get_ids()
-
-    def get_voxel_pitch(self, class_id):
-        return self._models.get_voxel_pitch(self._voxel_dim, class_id=class_id)
 
     def _get_ids(self):
         assert self.split in ['train', 'syn', 'val']

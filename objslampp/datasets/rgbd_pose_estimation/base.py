@@ -1,5 +1,6 @@
 import imgviz
 import numpy as np
+import trimesh
 import trimesh.transformations as tf
 
 from ..base import DatasetBase
@@ -15,18 +16,18 @@ class RGBDPoseEstimationDatasetBase(DatasetBase):
 
     def __init__(
         self,
+        models,
         root_dir=None,
         class_ids=None,
     ):
+        self._models = models
         self._root_dir = root_dir
         if class_ids is not None:
             class_ids = tuple(class_ids)
         self._class_ids = class_ids
+        self._random_state = np.random.mtrand._rand
 
     def get_frame(self, index):
-        raise NotImplementedError
-
-    def get_voxel_pitch(self, class_id):
         raise NotImplementedError
 
     def build_octomap(self, pcd, instance_label, instance_ids, class_ids):
@@ -36,7 +37,7 @@ class RGBDPoseEstimationDatasetBase(DatasetBase):
         # map foreground objects
         for instance_id, class_id in zip(instance_ids, class_ids):
             mask = (instance_label == instance_id) & nonnan
-            pitch = self.get_voxel_pitch(class_id)
+            pitch = self._models.get_voxel_pitch(self._voxel_dim, class_id)
             mapping.initialize(instance_id, pitch=pitch)
             mapping.integrate(instance_id, mask, pcd)
 
@@ -48,6 +49,29 @@ class RGBDPoseEstimationDatasetBase(DatasetBase):
             mask = (instance_label == instance_id) & nonnan
             mapping.integrate(0, mask, pcd)
         return mapping
+
+    def _get_grid_full(self, examples, pitch, origin):
+        dims = (self._voxel_dim,) * 3
+        grid_full = np.zeros(dims, dtype=np.int32)
+        for i, example in enumerate(examples):
+            T = tf.quaternion_matrix(example['quaternion_true'])
+            T = geometry_module.compose_transform(
+                R=T[:3, :3], t=example['translation_true']
+            )
+            vox = self._models.get_solid_voxel(example['class_id'])
+            points = trimesh.transform_points(vox.points, T)
+            indices = trimesh.voxel.points_to_indices(
+                points, pitch=pitch, origin=origin
+            )
+            I, J, K = indices[:, 0], indices[:, 1], indices[:, 2]
+            keep = (
+                (0 <= I) & (I < dims[0]) &
+                (0 <= J) & (J < dims[1]) &
+                (0 <= K) & (K < dims[2])
+            )
+            I, J, K = I[keep], J[keep], K[keep]
+            grid_full[I, J, K] = i + 1  # starts from 1
+        return grid_full
 
     def get_example(self, index):
         frame = self.get_frame(index)
@@ -111,7 +135,7 @@ class RGBDPoseEstimationDatasetBase(DatasetBase):
 
             center = np.nanmedian(pcd_ins, axis=(0, 1))
             dim = self._voxel_dim
-            pitch = self.get_voxel_pitch(class_id)
+            pitch = self._models.get_voxel_pitch(self._voxel_dim, class_id)
             origin = center - (dim / 2 - 0.5) * pitch
             grid_target, grid_nontarget, grid_empty = mapping.get_target_grids(
                 instance_id,
@@ -134,4 +158,24 @@ class RGBDPoseEstimationDatasetBase(DatasetBase):
             )
 
             examples.append(example)
+
+        n_examples = len(examples)
+        for i_target, example in enumerate(examples):
+            assert example['class_id'] >= 1
+
+            indices = np.arange(n_examples)
+            indices_nontarget = indices[indices != i_target]
+            examples_nontarget = [examples[i] for i in indices_nontarget]
+
+            pitch = example['pitch']
+            origin = example['origin']
+            grid_target_full = self._get_grid_full(
+                [example], pitch, origin
+            )
+            grid_nontarget_full = self._get_grid_full(
+                examples_nontarget, pitch, origin
+            )
+            example['grid_target_full'] = grid_target_full
+            example['grid_nontarget_full'] = grid_nontarget_full
+
         return examples
