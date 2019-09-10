@@ -3,41 +3,74 @@
 import objslampp
 
 import imgviz
+import numpy as np
+import trimesh
 
 
-class Images:
+def get_scene():
+    dataset = objslampp.datasets.YCBVideoRGBDPoseEstimationDataset(
+        split='train'
+    )
 
-    def __init__(self):
-        self._dataset = objslampp.datasets.YCBVideoRGBDPoseEstimationDataset(
-            split='train'
+    camera = trimesh.scene.Camera(
+        fov=(30, 22.5),
+        transform=objslampp.extra.trimesh.to_opengl_transform()
+    )
+    index = 0
+    frame = dataset.get_frame(index)
+    examples = dataset.get_example(index)
+
+    scenes = {
+        'scene_rgb': frame['rgb'],
+        'object_rgb': None,
+    }
+
+    vizs = []
+    for i, example in enumerate(examples):
+        viz = imgviz.tile([
+            example['rgb'],
+            imgviz.depth2rgb(example['pcd'][:, :, 0]),
+            imgviz.depth2rgb(example['pcd'][:, :, 1]),
+            imgviz.depth2rgb(example['pcd'][:, :, 2]),
+        ], border=(255, 255, 255))
+        vizs.append(viz)
+
+        geom = trimesh.voxel.Voxel(
+            example['grid_target'],
+            example['pitch'],
+            example['origin'],
+        ).as_boxes(colors=(1., 0, 0, 0.5))
+        scenes[f'occupied_{i:04d}'] = trimesh.Scene(geom, camera=camera)
+
+        geom = trimesh.voxel.Voxel(
+            example['grid_nontarget'],
+            example['pitch'],
+            example['origin'],
+        ).as_boxes(colors=(0, 1., 0, 0.5))
+        scenes[f'occupied_{i:04d}'].add_geometry(geom)
+
+        geom = trimesh.voxel.Voxel(
+            example['grid_empty'],
+            example['pitch'],
+            example['origin'],
+        ).as_boxes(colors=(0.5, 0.5, 0.5, 0.5))
+        scenes[f'empty_{i:04d}'] = trimesh.Scene(geom, camera=camera)
+
+        dim = example['grid_target'].shape[0]
+        extents = np.array([dim, dim, dim]) * example['pitch']
+        geom = trimesh.path.creation.box_outline(extents)
+        geom.apply_translation(
+            example['origin'] + (dim / 2 - 0.5) * example['pitch']
         )
+        scenes[f'occupied_{i:04d}'].add_geometry(geom)
+        scenes[f'empty_{i:04d}'].add_geometry(geom)
+    viz = imgviz.tile(vizs)
 
-    def __len__(self):
-        return len(self._dataset)
+    scenes['object_rgb'] = viz
 
-    def __getitem__(self, index):
-        dataset = self._dataset
-
-        frame = dataset.get_frame(index)
-        examples = dataset.get_example(index)
-
-        vizs = []
-        for example in examples:
-            viz = imgviz.tile([
-                example['rgb'],
-                imgviz.depth2rgb(example['pcd'][:, :, 0]),
-                imgviz.depth2rgb(example['pcd'][:, :, 1]),
-                imgviz.depth2rgb(example['pcd'][:, :, 2]),
-            ], border=(255, 255, 255))
-            vizs.append(viz)
-        viz = imgviz.tile(vizs)
-        del vizs
-
-        viz = imgviz.tile([frame['rgb'], viz])
-        viz = imgviz.resize(viz, width=1000)
-
-        return viz
+    return scenes
 
 
-imgviz.io.pyglet_imshow(Images())
-imgviz.io.pyglet_run()
+objslampp.extra.trimesh.display_scenes(
+    get_scene(), tile=(4, 2), height=int(320 * 0.8), width=int(480 * 0.8)
+)
