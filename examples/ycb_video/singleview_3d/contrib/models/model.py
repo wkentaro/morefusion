@@ -53,6 +53,9 @@ class Model(chainer.Chain):
         class_id,
         rgb,
         pcd,
+        pitch=None,
+        origin=None,
+        grid_nontarget_empty=None,
     ):
         values, points = self._extract(
             rgb=rgb,
@@ -63,6 +66,9 @@ class Model(chainer.Chain):
             class_id=class_id,
             values=values,
             points=points,
+            pitch=pitch,
+            origin=origin,
+            grid_nontarget_empty=grid_nontarget_empty,
         )
 
         quaternion_pred, translation_pred, confidence_pred = \
@@ -109,23 +115,30 @@ class Model(chainer.Chain):
         class_id,
         values,
         points,
+        pitch=None,
+        origin=None,
+        grid_nontarget_empty=None,
     ):
         xp = self.xp
 
         B = class_id.shape[0]
         dimensions = (self._voxel_dim,) * 3
 
-        pitch = xp.empty((B,), dtype=np.float32)
-        origin = xp.empty((B, 3), dtype=np.float32)
+        if pitch is None:
+            pitch = [None] * B
+        if origin is None:
+            origin = [None] * B
 
         voxelized = []
         count = []
         for i in range(B):
-            pitch[i] = self._models.get_voxel_pitch(
-                dimension=self._voxel_dim, class_id=int(class_id[i]),
-            )
-            center_i = objslampp.extra.cupy.median(points[i], axis=0)
-            origin[i] = center_i - pitch[i] * (self._voxel_dim / 2. - 0.5)
+            if pitch[i] is None:
+                pitch[i] = self._models.get_voxel_pitch(
+                    dimension=self._voxel_dim, class_id=int(class_id[i]),
+                )
+            if origin[i] is None:
+                center_i = objslampp.extra.cupy.median(points[i], axis=0)
+                origin[i] = center_i - pitch[i] * (self._voxel_dim / 2. - 0.5)
             voxelized_i, count_i = objslampp.functions.average_voxelization_3d(
                 values=values[i],
                 points=points[i],
@@ -136,8 +149,16 @@ class Model(chainer.Chain):
             )
             voxelized.append(voxelized_i)
             count.append(count_i)
+        pitch = xp.asarray(pitch, dtype=np.float32)
+        origin = xp.stack(origin).astype(np.float32)
         voxelized = F.stack(voxelized)
         count = xp.stack(count)
+
+        if grid_nontarget_empty is not None:
+            grid_nontarget_empty = grid_nontarget_empty.astype(np.float32)
+            voxelized = F.concat(
+                [voxelized, grid_nontarget_empty[:, None, :, :, :]], axis=1
+            )
 
         return pitch, origin, voxelized, count
 
@@ -198,6 +219,9 @@ class Model(chainer.Chain):
         pcd,
         quaternion_true,
         translation_true,
+        pitch=None,
+        origin=None,
+        grid_nontarget_empty=None,
     ):
         B = class_id.shape[0]
         xp = self.xp
@@ -206,6 +230,9 @@ class Model(chainer.Chain):
             class_id=class_id,
             rgb=rgb,
             pcd=pcd,
+            pitch=pitch,
+            origin=origin,
+            grid_nontarget_empty=grid_nontarget_empty,
         )
 
         indices = F.argmax(confidence_pred, axis=1).array
@@ -332,7 +359,7 @@ class VoxelFeatureExtractor(chainer.Chain):
         self._n_point = n_point
         super().__init__()
         with self.init_scope():
-            C = [32 + 3, 32, 64, 128, 256, 512]
+            C = [None, 32, 64, 128, 256, 512]
             self.conv1_1 = L.Convolution3D(C[0], C[1], 3, 1, pad=1)  # 32
             self.conv1_2 = L.Convolution3D(C[1], C[1], 1, 1, pad=0)
             self.conv2_1 = L.Convolution3D(C[1], C[2], 4, 2, pad=1)  # 32 -> 16

@@ -24,13 +24,62 @@ home = path.Path('~').expanduser()
 here = path.Path(__file__).abspath().parent
 
 
-def transform(in_data):
-    in_data.pop('pitch')
-    in_data.pop('origin')
-    in_data.pop('grid_target')
-    in_data.pop('grid_nontarget')
-    in_data.pop('grid_empty')
-    return in_data
+class Transform:
+
+    def __init__(self, train, with_occupancy):
+        assert train in [True, False]
+        assert with_occupancy in [True, False]
+        self._train = train
+        self._with_occupancy = with_occupancy
+        self._random_state = np.random.mtrand._rand
+
+    def __call__(self, in_data):
+        assert in_data['class_id'].dtype == np.int32
+        assert in_data['rgb'].dtype == np.uint8
+        in_data['pcd'] = in_data['pcd'].astype(np.float32)
+        in_data['quaternion_true'] = in_data['quaternion_true'].astype(
+            np.float32
+        )
+        in_data['translation_true'] = in_data['translation_true'].astype(
+            np.float32
+        )
+
+        if self._with_occupancy:
+            in_data['origin'] = in_data['origin'].astype(np.float32)
+            in_data['pitch'] = in_data['pitch'].astype(np.float32)
+
+            grid_target = in_data.pop('grid_target') > 0.5
+            grid_nontarget = in_data.pop('grid_nontarget') > 0.5
+            grid_empty = in_data.pop('grid_empty') > 0.5
+
+            if self._train:
+                cases = ['none', 'nontarget', 'empty', 'nontarget+empty']
+                case = self._random_state.choice(cases)
+            else:
+                case = 'nontarget+empty'
+
+            if case == 'none':
+                grid_nontarget_empty = np.zeros_like(grid_target)
+            elif case == 'nontarget':
+                grid_nontarget_empty = grid_nontarget ^ grid_target
+            elif case == 'empty':
+                grid_nontarget_empty = grid_empty ^ grid_target
+            elif case == 'nontarget+empty':
+                grid_nontarget_empty = \
+                    (grid_nontarget | grid_empty) ^ grid_target
+            else:
+                raise ValueError
+
+            in_data['grid_nontarget_empty'] = grid_nontarget_empty
+            assert in_data['grid_nontarget_empty'].dtype == bool
+        else:
+            in_data.pop('pitch')
+            in_data.pop('origin')
+
+            in_data.pop('grid_target')
+            in_data.pop('grid_nontarget')
+            in_data.pop('grid_empty')
+        return in_data
 
 
 def main():
@@ -78,6 +127,11 @@ def main():
     parser.add_argument(
         '--pretrained-model',
         help='pretrained model',
+    )
+    parser.add_argument(
+        '--with-occupancy',
+        action='store_true',
+        help='with occupancy',
     )
     args = parser.parse_args()
 
@@ -136,8 +190,14 @@ def main():
                 class_ids=args.class_ids,
             )
 
-        data_train = chainer.datasets.TransformDataset(data_train, transform)
-        data_valid = chainer.datasets.TransformDataset(data_valid, transform)
+        data_train = chainer.datasets.TransformDataset(
+            data_train,
+            Transform(train=True, with_occupancy=args.with_occupancy),
+        )
+        data_valid = chainer.datasets.TransformDataset(
+            data_valid,
+            Transform(train=False, with_occupancy=args.with_occupancy),
+        )
 
         termcolor.cprint('==> Dataset size', attrs={'bold': True})
         print(f'train={len(data_train)}, val={len(data_valid)}')
