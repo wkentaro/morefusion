@@ -9,7 +9,7 @@ class Images:
 
     def __init__(self):
         self._dataset = objslampp.datasets.YCBVideoRGBDPoseEstimationDataset(
-            split='train', sampling=24
+            split='train'
         )
 
     def __len__(self):

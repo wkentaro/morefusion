@@ -9,7 +9,7 @@ class Images:
 
     def __init__(self):
         self._dataset = objslampp.datasets.YCBVideoRGBDPoseEstimationDatasetReIndexed(  # NOQA
-            'train', sampling=24
+            'train'
         )
 
     def __len__(self):
