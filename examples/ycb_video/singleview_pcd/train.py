@@ -75,6 +75,10 @@ def main():
         default=objslampp.datasets.ycb_video.class_ids_asymmetric.tolist(),
         help='class id',
     )
+    parser.add_argument(
+        '--note',
+        help='note',
+    )
     args = parser.parse_args()
 
     chainer.global_config.debug = args.debug

@@ -133,6 +133,10 @@ def main():
         action='store_true',
         help='with occupancy',
     )
+    parser.add_argument(
+        '--note',
+        help='note',
+    )
     args = parser.parse_args()
 
     chainer.global_config.debug = args.debug
