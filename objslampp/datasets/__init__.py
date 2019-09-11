@@ -11,6 +11,7 @@ from .rgbd_pose_estimation import MyRealRGBDPoseEstimationDataset
 from .rgbd_pose_estimation import MySyntheticRGBDPoseEstimationDataset
 from .rgbd_pose_estimation import YCBVideoRGBDPoseEstimationDataset
 from .rgbd_pose_estimation import YCBVideoRGBDPoseEstimationDatasetReIndexed
+from .rgbd_pose_estimation import YCBVideoPoseCNNResultsRGBDPoseEstimationDataset
 
 from .ycb_video import YCBVideoDataset
 from .ycb_video import YCBVideoModels

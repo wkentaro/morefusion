@@ -6,3 +6,5 @@ from .my_synthetic import MySyntheticRGBDPoseEstimationDataset
 
 from .ycb_video import YCBVideoRGBDPoseEstimationDataset
 from .ycb_video import YCBVideoRGBDPoseEstimationDatasetReIndexed
+
+from .ycb_video_posecnn_results import YCBVideoPoseCNNResultsRGBDPoseEstimationDataset
