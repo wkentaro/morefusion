@@ -14,4 +14,5 @@ from .rgbd_pose_estimation import YCBVideoRGBDPoseEstimationDatasetReIndexed
 
 from .ycb_video import YCBVideoDataset
 from .ycb_video import YCBVideoModels
+from .ycb_video import YCBVideoPoseCNNResultsDataset
 from .ycb_video import YCBVideoSyntheticDataset

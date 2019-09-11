@@ -8,4 +8,6 @@ from .dataset import YCBVideoDataset
 
 from .models import YCBVideoModels
 
+from .posecnn_results import YCBVideoPoseCNNResultsDataset
+
 from .synthetic_dataset import YCBVideoSyntheticDataset
