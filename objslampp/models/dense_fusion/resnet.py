@@ -3,7 +3,7 @@ import chainer
 import chainer.functions as F
 import chainer.links as L
 import chainercv
-from chainercv.links.model.resnet.resnet import _imagenet_mean
+import numpy as np
 
 
 class ResNet(chainercv.links.PickableSequentialChain):
@@ -12,6 +12,9 @@ class ResNet(chainercv.links.PickableSequentialChain):
         13: [2, 2, 2, 2],
         34: [3, 4, 6, 3],
     }
+
+    mean_rgb = (0.485, 0.456, 0.406)
+    std_rgb = (0.229, 0.224, 0.225)
 
     def __init__(self, n_layer):
         blocks = self._blocks[n_layer]
@@ -29,7 +32,15 @@ class ResNet(chainercv.links.PickableSequentialChain):
             self.res3 = ResBlock(blocks[1], 64, 128, 2, 1)
             self.res4 = ResBlock(blocks[2], 128, 256, 1, 2)
             self.res5 = ResBlock(blocks[3], 256, 512, 1, 4)
-        self.mean = _imagenet_mean
+
+        self.mean = np.array(self.mean_rgb, dtype=np.float32)[:, None, None]
+        self.std = np.array(self.std_rgb, dtype=np.float32)[:, None, None]
+
+    def __call__(self, x):
+        self.mean = self.xp.asarray(self.mean)
+        self.std = self.xp.asarray(self.std)
+        h = (x / 255. - self.mean[None]) / self.std[None]
+        return super().__call__(h)
 
 
 class ResNet18(ResNet):

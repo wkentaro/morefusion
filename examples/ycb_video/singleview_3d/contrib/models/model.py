@@ -18,6 +18,7 @@ class Model(chainer.Chain):
         self,
         *,
         n_fg_class,
+        pretrained_resnet18=False
     ):
         super().__init__()
 
@@ -25,7 +26,11 @@ class Model(chainer.Chain):
 
         with self.init_scope():
             # extractor
-            self.resnet_extractor = objslampp.models.dense_fusion.ResNet18()
+            if pretrained_resnet18:
+                self.resnet_extractor = objslampp.models.ResNet18Extractor()
+            else:
+                self.resnet_extractor = \
+                    objslampp.models.dense_fusion.ResNet18()
             self.pspnet_extractor = \
                 objslampp.models.dense_fusion.PSPNetExtractor()
             self.voxel_extractor = VoxelFeatureExtractor(self._n_point)
@@ -94,8 +99,7 @@ class Model(chainer.Chain):
         pcd = pcd.transpose(0, 3, 1, 2).astype(np.float32)  # BHW3 -> B3HW
 
         # feature extraction
-        mean = xp.asarray(self.resnet_extractor.mean)
-        h_rgb = self.resnet_extractor(rgb - mean[None])  # 1/8
+        h_rgb = self.resnet_extractor(rgb)  # 1/8
         h_rgb = self.pspnet_extractor(h_rgb)  # 1/1
 
         mask = ~xp.isnan(pcd).any(axis=1)  # BHW

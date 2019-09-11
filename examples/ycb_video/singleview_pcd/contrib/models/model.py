@@ -17,11 +17,16 @@ class Model(chainer.Chain):
         self,
         *,
         n_fg_class,
+        pretrained_resnet18=False
     ):
         super().__init__()
         with self.init_scope():
             # extractor
-            self.resnet_extractor = objslampp.models.dense_fusion.ResNet18()
+            if pretrained_resnet18:
+                self.resnet_extractor = objslampp.models.ResNet18Extractor()
+            else:
+                self.resnet_extractor = \
+                    objslampp.models.dense_fusion.ResNet18()
             self.pspnet_extractor = \
                 objslampp.models.dense_fusion.PSPNetExtractor()
             self.posenet_extractor = PoseNetExtractor()

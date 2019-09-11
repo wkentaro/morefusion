@@ -193,6 +193,11 @@ def main():
         '--note',
         help='note',
     )
+    parser.add_argument(
+        '--pretrained-resnet18',
+        action='store_true',
+        help='pretrained resnet18',
+    )
     args = parser.parse_args()
 
     chainer.global_config.debug = args.debug
@@ -270,6 +275,7 @@ def main():
     # model initialization
     model = contrib.models.Model(
         n_fg_class=len(args.class_names[1:]),
+        pretrained_resnet18=args.pretrained_resnet18,
     )
     if args.pretrained_model is not None:
         chainer.serializers.load_npz(args.pretrained_model, model)
@@ -281,6 +287,10 @@ def main():
     if args.multi_node:
         optimizer = chainermn.create_multi_node_optimizer(optimizer, comm)
     optimizer.setup(model)
+
+    if args.pretrained_resnet18:
+        model.resnet_extractor.init_block.disable_update()
+        model.resnet_extractor.res2.disable_update()
 
     if not args.multi_node or comm.rank == 0:
         termcolor.cprint('==> Link update rules', attrs={'bold': True})
