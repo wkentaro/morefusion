@@ -25,7 +25,7 @@ class Model(chainer.Chain):
 
         with self.init_scope():
             # extractor
-            self.resnet_extractor = objslampp.models.ResNet18()
+            self.resnet_extractor = objslampp.models.dense_fusion.ResNet18()
             self.pspnet_extractor = \
                 objslampp.models.dense_fusion.PSPNetExtractor()
             self.voxel_extractor = VoxelFeatureExtractor(self._n_point)
