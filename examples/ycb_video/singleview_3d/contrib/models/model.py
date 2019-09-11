@@ -365,15 +365,15 @@ class VoxelFeatureExtractor(chainer.Chain):
         with self.init_scope():
             C = [None, 32, 64, 128, 256, 512]
             self.conv1_1 = L.Convolution3D(C[0], C[1], 3, 1, pad=1)  # 32
-            self.conv1_2 = L.Convolution3D(C[1], C[1], 1, 1, pad=0)
+            # self.conv1_2 = L.Convolution3D(C[1], C[1], 1, 1, pad=0)
             self.conv2_1 = L.Convolution3D(C[1], C[2], 4, 2, pad=1)  # 32 -> 16
-            self.conv2_2 = L.Convolution3D(C[2], C[2], 1, 1, pad=0)
+            # self.conv2_2 = L.Convolution3D(C[2], C[2], 1, 1, pad=0)
             self.conv3_1 = L.Convolution3D(C[2], C[3], 4, 2, pad=1)  # 16 -> 8
-            self.conv3_2 = L.Convolution3D(C[3], C[3], 1, 1, pad=0)
+            # self.conv3_2 = L.Convolution3D(C[3], C[3], 1, 1, pad=0)
             self.conv4_1 = L.Convolution3D(C[3], C[4], 4, 2, pad=1)  # 8 -> 4
-            self.conv4_2 = L.Convolution3D(C[4], C[4], 1, 1, pad=0)
+            # self.conv4_2 = L.Convolution3D(C[4], C[4], 1, 1, pad=0)
             self.conv5_1 = L.Convolution3D(C[4], C[5], 4, 1, pad=0)  # 4 -> 1
-            self.conv5_2 = L.Convolution3D(C[5], C[5], 1, 1, pad=0)
+            # self.conv5_2 = L.Convolution3D(C[5], C[5], 1, 1, pad=0)
 
     def __call__(self, h, count):
         B, _, X, Y, Z = h.shape
@@ -389,27 +389,27 @@ class VoxelFeatureExtractor(chainer.Chain):
 
         # conv1
         h = F.relu(self.conv1_1(h))
-        h = F.relu(self.conv1_2(h))
+        # h = F.relu(self.conv1_2(h))
         h_conv1 = h
         assert h_conv1.shape == (B, 32, 32, 32, 32)
         # conv2
         h = F.relu(self.conv2_1(h))
-        h = F.relu(self.conv2_2(h))
+        # h = F.relu(self.conv2_2(h))
         h_conv2 = h
         assert h_conv2.shape == (B, 64, 16, 16, 16)
         # conv3
         h = F.relu(self.conv3_1(h))
-        h = F.relu(self.conv3_2(h))
+        # h = F.relu(self.conv3_2(h))
         h_conv3 = h
         assert h_conv3.shape == (B, 128, 8, 8, 8)
         # conv4
         h = F.relu(self.conv4_1(h))
-        h = F.relu(self.conv4_2(h))
+        # h = F.relu(self.conv4_2(h))
         h_conv4 = h
         assert h_conv4.shape == (B, 256, 4, 4, 4)
         # conv5
         h = F.relu(self.conv5_1(h))
-        h = F.relu(self.conv5_2(h))
+        # h = F.relu(self.conv5_2(h))
         h_conv5 = h
         assert h_conv5.shape == (B, 512, 1, 1, 1)
 
@@ -430,15 +430,18 @@ class VoxelFeatureExtractor(chainer.Chain):
             indices = xp.column_stack((I, J, K)).astype(np.float32)
             values_i = F.concat([
                 h_conv1[i, :, I, J, K],
-                objslampp.functions.interpolate_voxel_grid(
-                    h_conv2[i], indices / 2.
-                ),
-                objslampp.functions.interpolate_voxel_grid(
-                    h_conv3[i], indices / 4.
-                ),
-                objslampp.functions.interpolate_voxel_grid(
-                    h_conv4[i], indices / 8.
-                ),
+                h_conv2[i, :, I // 2, J // 2, K // 2],
+                h_conv3[i, :, I // 4, J // 4, K // 4],
+                h_conv4[i, :, I // 8, J // 8, K // 8],
+                # objslampp.functions.interpolate_voxel_grid(
+                #     h_conv2[i], indices / 2.
+                # ),
+                # objslampp.functions.interpolate_voxel_grid(
+                #     h_conv3[i], indices / 4.
+                # ),
+                # objslampp.functions.interpolate_voxel_grid(
+                #     h_conv4[i], indices / 8.
+                # ),
                 F.repeat(h_conv5[i, :, 0, 0, 0][None], self._n_point, axis=0),
             ], axis=1)
             values.append(values_i)
