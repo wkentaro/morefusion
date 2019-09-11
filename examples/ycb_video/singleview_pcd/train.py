@@ -31,6 +31,9 @@ def transform(in_data):
     in_data.pop('grid_target')
     in_data.pop('grid_nontarget')
     in_data.pop('grid_empty')
+
+    in_data.pop('grid_target_full')
+    in_data.pop('grid_nontarget_full')
     return in_data
 
 

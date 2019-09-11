@@ -51,24 +51,77 @@ class Transform:
             grid_target = in_data.pop('grid_target') > 0.5
             grid_nontarget = in_data.pop('grid_nontarget') > 0.5
             grid_empty = in_data.pop('grid_empty') > 0.5
+            grid_nontarget = grid_nontarget ^ grid_target
+            grid_empty = grid_empty ^ grid_target
+
+            grid_target_full = in_data.pop('grid_target_full')
+            assert np.isin(grid_target_full, [0, 1]).all()
+            grid_target_full = grid_target_full.astype(bool)
+
+            grid_nontarget_full = in_data.pop('grid_nontarget_full')
+            nontarget_ids = np.unique(grid_nontarget_full)
+            nontarget_ids = nontarget_ids[nontarget_ids > 0]
+            if len(nontarget_ids) > 0:
+                if len(nontarget_ids) > 1:
+                    nontarget_ids = self._random_state.choice(
+                        nontarget_ids,
+                        size=self._random_state.randint(
+                            1, len(nontarget_ids) + 1
+                        ),
+                        replace=False,
+                    )
+                grid_nontarget_full = np.isin(
+                    grid_nontarget_full, nontarget_ids
+                )
+            else:
+                grid_nontarget_full = np.zeros_like(grid_target)
+            grid_nontarget_full = grid_nontarget_full ^ grid_target_full
 
             if self._train:
-                cases = ['none', 'nontarget', 'empty', 'nontarget+empty']
+                cases = [
+                    'none',
+                    'empty',
+                    'nontarget',
+                    'empty+nontarget',
+                    'nontarget_full',
+                    'empty+nontarget_full',
+                    'other_full',
+                    'nontarget_full+other_full',
+                    'empty+nontarget_full+other_full',
+                ]
                 case = self._random_state.choice(cases)
             else:
-                case = 'nontarget+empty'
+                case = 'empty+nontarget'
 
             if case == 'none':
                 grid_nontarget_empty = np.zeros_like(grid_target)
-            elif case == 'nontarget':
-                grid_nontarget_empty = grid_nontarget ^ grid_target
-            elif case == 'empty':
-                grid_nontarget_empty = grid_empty ^ grid_target
-            elif case == 'nontarget+empty':
-                grid_nontarget_empty = \
-                    (grid_nontarget | grid_empty) ^ grid_target
+            elif case == 'empty+nontarget_full+other_full':
+                grid_nontarget_empty = ~grid_target_full
             else:
-                raise ValueError
+                if case == 'empty':
+                    grid_nontarget_empty = grid_empty
+                elif case == 'nontarget':
+                    grid_nontarget_empty = grid_nontarget
+                elif case == 'empty+nontarget':
+                    grid_nontarget_empty = grid_nontarget | grid_empty
+                elif case == 'nontarget_full':
+                    grid_nontarget_empty = grid_nontarget_full
+                elif case == 'empty+nontarget_full':
+                    grid_nontarget_empty = grid_empty | grid_nontarget_full
+                else:
+                    grid_other_full = (
+                        ~grid_target_full &
+                        ~grid_nontarget_full &
+                        ~grid_empty &
+                        ~grid_target &
+                        ~grid_nontarget
+                    )
+                    if case == 'other_full':
+                        grid_nontarget_empty = grid_other_full
+                    else:
+                        assert case == 'nontarget_full+other_full'
+                        grid_nontarget_empty = \
+                            grid_nontarget_full | grid_other_full
 
             in_data['grid_nontarget_empty'] = grid_nontarget_empty
             assert in_data['grid_nontarget_empty'].dtype == bool
@@ -79,6 +132,9 @@ class Transform:
             in_data.pop('grid_target')
             in_data.pop('grid_nontarget')
             in_data.pop('grid_empty')
+
+            in_data.pop('grid_target_full')
+            in_data.pop('grid_nontarget_full')
         return in_data
 
 

@@ -11,7 +11,7 @@ from ...ycb_video import YCBVideoSyntheticDataset
 
 class YCBVideoRGBDPoseEstimationDatasetReIndexed(DatasetBase):
 
-    _root_dir = YCBVideoDataset._root_dir + '.reindexed'
+    _root_dir = YCBVideoDataset._root_dir + '.reindexed.w_full_occupancy'
 
     def __init__(
         self,
