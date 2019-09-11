@@ -4,13 +4,18 @@ import yaml
 import trimesh.transformations as tf
 
 from .... import geometry as geometry_module
+from ...ycb_video import YCBVideoModels
 from ..base import RGBDPoseEstimationDatasetBase
 
 
 class MyRealRGBDPoseEstimationDataset(RGBDPoseEstimationDatasetBase):
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, root_dir=None, class_ids=None):
+        super().__init__(
+            models=YCBVideoModels(),
+            root_dir=root_dir,
+            class_ids=class_ids,
+        )
         self._ids = self._get_ids()
 
     def _get_ids(self):

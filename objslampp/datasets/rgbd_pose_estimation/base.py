@@ -36,6 +36,8 @@ class RGBDPoseEstimationDatasetBase(DatasetBase):
 
         # map foreground objects
         for instance_id, class_id in zip(instance_ids, class_ids):
+            if class_id <= 0:
+                continue
             mask = (instance_label == instance_id) & nonnan
             pitch = self._models.get_voxel_pitch(self._voxel_dim, class_id)
             mapping.initialize(instance_id, pitch=pitch)
