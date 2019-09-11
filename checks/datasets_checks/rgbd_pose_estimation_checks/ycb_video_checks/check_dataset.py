@@ -7,11 +7,7 @@ import numpy as np
 import trimesh
 
 
-def get_scene():
-    dataset = objslampp.datasets.YCBVideoRGBDPoseEstimationDataset(
-        split='train'
-    )
-
+def get_scene(dataset):
     camera = trimesh.scene.Camera(
         fov=(30, 22.5),
         transform=objslampp.extra.trimesh.to_opengl_transform()
@@ -56,12 +52,14 @@ def get_scene():
         ).as_boxes(colors=(0.5, 0.5, 0.5, 0.5))
         scenes[f'empty_{i:04d}'] = trimesh.Scene(geom, camera=camera)
 
-        geom = trimesh.voxel.Voxel(
-            example['grid_target_full'],
-            example['pitch'],
-            example['origin'],
-        ).as_boxes(colors=(1., 0, 0, 0.5))
-        scenes[f'full_occupied_{i:04d}'] = trimesh.Scene(geom, camera=camera)
+        scenes[f'full_occupied_{i:04d}'] = trimesh.Scene(camera=camera)
+        if (example['grid_target_full'] > 0).any():
+            geom = trimesh.voxel.Voxel(
+                example['grid_target_full'],
+                example['pitch'],
+                example['origin'],
+            ).as_boxes(colors=(1., 0, 0, 0.5))
+            scenes[f'full_occupied_{i:04d}'].add_geometry(geom)
 
         if (example['grid_nontarget_full'] > 0).any():
             colors = imgviz.label2rgb(
@@ -89,6 +87,10 @@ def get_scene():
     return scenes
 
 
-objslampp.extra.trimesh.display_scenes(
-    get_scene(), height=int(320 * 0.8), width=int(480 * 0.8)
-)
+if __name__ == '__main__':
+    dataset = objslampp.datasets.YCBVideoRGBDPoseEstimationDataset(
+        split='train'
+    )
+    objslampp.extra.trimesh.display_scenes(
+        get_scene(dataset), height=int(320 * 0.8), width=int(480 * 0.8)
+    )
