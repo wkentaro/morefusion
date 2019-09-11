@@ -32,6 +32,7 @@ class YCBVideoRGBDPoseEstimationDataset(RGBDPoseEstimationDatasetBase):
     def _get_ids(self):
         assert self.split in ['train', 'syn', 'val']
 
+        dataset = None
         if self.split == 'val':
             sampling = 1
             dataset = YCBVideoDataset(split='keyframe')
@@ -39,7 +40,9 @@ class YCBVideoRGBDPoseEstimationDataset(RGBDPoseEstimationDatasetBase):
             sampling = 8
             dataset = YCBVideoDataset(split='train')
 
-        ids = [(dataset, x) for x in dataset.get_ids(sampling=sampling)]
+        ids = []
+        if dataset:
+            ids = [(dataset, x) for x in dataset.get_ids(sampling=sampling)]
 
         if self.split in ['train', 'syn']:
             dataset = YCBVideoSyntheticDataset()
