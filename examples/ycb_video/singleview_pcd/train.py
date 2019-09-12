@@ -175,6 +175,9 @@ def main():
     if args.pretrained_resnet18:
         model.resnet_extractor.init_block.disable_update()
         model.resnet_extractor.res2.disable_update()
+        for link in model.links():
+            if isinstance(link, chainer.links.BatchNormalization):
+                link.disable_update()
 
     if not args.multi_node or comm.rank == 0:
         termcolor.cprint('==> Link update rules', attrs={'bold': True})
