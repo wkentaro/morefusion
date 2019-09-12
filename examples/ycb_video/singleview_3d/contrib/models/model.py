@@ -385,7 +385,9 @@ class VoxelFeatureExtractor(chainer.Chain):
         h_ind = (X / 2.0 - 0.5) - h_ind.astype(np.float32)
         assert h_ind.shape == (B, 3, X, Y, Z)
 
-        h = F.concat([h, h_ind], axis=1)
+        h_count = count.astype(np.float32)[:, None, :, :, :]
+
+        h = F.concat([h, h_ind, h_count], axis=1)
 
         # conv1
         h = F.relu(self.conv1_1(h))
