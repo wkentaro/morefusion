@@ -14,7 +14,7 @@ camera = trimesh.scene.Camera(resolution=(640, 480), fov=(60, 45))
 T_cam2cad = objslampp.geometry.look_at(
     eye=(0, 0.05, 0.3),
     target=(0, 0, 0),
-    up=(0, -1, 0),
+    up=(0, 0, -1),
 )
 T_cad2cam = np.linalg.inv(T_cam2cad)
 

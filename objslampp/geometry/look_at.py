@@ -45,7 +45,7 @@ def look_at(
         target = np.asarray(target, dtype=float)
 
     if up is None:
-        up = np.array([0, -1, 0], dtype=float)
+        up = np.array([0, 0, -1], dtype=float)
     else:
         up = np.asarray(up, dtype=float)
 
