@@ -15,7 +15,6 @@ class YCBVideoPoseCNNResultsRGBDPoseEstimationDatasetReIndexed(DatasetBase):
 
     def __init__(
         self,
-        split,
         class_ids=None,
     ):
         if not self.root_dir.exists():
@@ -29,9 +28,6 @@ class YCBVideoPoseCNNResultsRGBDPoseEstimationDatasetReIndexed(DatasetBase):
         if class_ids is not None:
             class_ids = tuple(class_ids)
         self._class_ids = class_ids
-
-        assert isinstance(split, str)
-        self._split = split
 
         self._ids = self._get_ids()
 
