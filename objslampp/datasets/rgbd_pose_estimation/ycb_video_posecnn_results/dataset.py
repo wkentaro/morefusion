@@ -9,6 +9,8 @@ class YCBVideoPoseCNNResultsRGBDPoseEstimationDataset(
     RGBDPoseEstimationDatasetBase
 ):
 
+    _root_dir = YCBVideoPoseCNNResultsDataset._root_dir
+
     def __init__(
         self,
         class_ids=None,
