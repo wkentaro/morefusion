@@ -79,6 +79,10 @@ def main():
         help='class id',
     )
     parser.add_argument(
+        '--pretrained-model',
+        help='pretrained model',
+    )
+    parser.add_argument(
         '--note',
         help='note',
     )
@@ -163,6 +167,8 @@ def main():
         n_fg_class=len(args.class_names) - 1,
         pretrained_resnet18=args.pretrained_resnet18,
     )
+    if args.pretrained_model is not None:
+        chainer.serializers.load_npz(args.pretrained_model, model)
     if device >= 0:
         model.to_gpu()
 
