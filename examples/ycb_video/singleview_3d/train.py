@@ -198,6 +198,10 @@ def main():
         action='store_true',
         help='pretrained resnet18',
     )
+    parser.add_argument(
+        '--resume',
+        help='resume',
+    )
     args = parser.parse_args()
 
     chainer.global_config.debug = args.debug
@@ -345,8 +349,7 @@ def main():
             call_before_training=True,
         )
 
-        log_interval = 1, 'iteration'
-        param_log_interval = 100, 'iteration'
+        log_interval = 10, 'iteration'
         eval_interval = 0.25, 'epoch'
 
         # evaluate
@@ -403,13 +406,6 @@ def main():
             call_before_training=True,
         )
         trainer.extend(
-            objslampp.training.extensions.ParameterTensorboardReport(
-                writer=writer
-            ),
-            call_before_training=True,
-            trigger=param_log_interval,
-        )
-        trainer.extend(
             E.PrintReport(
                 [
                     'epoch',
@@ -431,6 +427,9 @@ def main():
         )
 
     # -------------------------------------------------------------------------
+
+    if args.resume:
+        chainer.serializers.load_npz(args.resume, trainer)
 
     trainer.run()
 
