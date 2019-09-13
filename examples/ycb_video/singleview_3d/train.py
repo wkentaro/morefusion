@@ -190,6 +190,11 @@ def main():
         help='with occupancy',
     )
     parser.add_argument(
+        '--with-count',
+        action='store_true',
+        help='with count',
+    )
+    parser.add_argument(
         '--note',
         help='note',
     )
@@ -280,6 +285,7 @@ def main():
     model = contrib.models.Model(
         n_fg_class=len(args.class_names[1:]),
         pretrained_resnet18=args.pretrained_resnet18,
+        with_count=args.with_count,
     )
     if args.pretrained_model is not None:
         chainer.serializers.load_npz(args.pretrained_model, model)

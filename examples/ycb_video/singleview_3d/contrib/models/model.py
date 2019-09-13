@@ -18,7 +18,8 @@ class Model(chainer.Chain):
         self,
         *,
         n_fg_class,
-        pretrained_resnet18=False
+        pretrained_resnet18=False,
+        with_count=False,
     ):
         super().__init__()
 
@@ -33,7 +34,9 @@ class Model(chainer.Chain):
                     objslampp.models.dense_fusion.ResNet18()
             self.pspnet_extractor = \
                 objslampp.models.dense_fusion.PSPNetExtractor()
-            self.voxel_extractor = VoxelFeatureExtractor(self._n_point)
+            self.voxel_extractor = VoxelFeatureExtractor(
+                self._n_point, with_count
+            )
 
             # fc1
             self.conv1_rot = L.Convolution1D(992, 640, 1)
@@ -359,8 +362,9 @@ class Model(chainer.Chain):
 
 class VoxelFeatureExtractor(chainer.Chain):
 
-    def __init__(self, n_point):
+    def __init__(self, n_point, with_count):
         self._n_point = n_point
+        self._with_count = with_count
         super().__init__()
         with self.init_scope():
             C = [None, 32, 64, 128, 256, 512]
@@ -387,7 +391,10 @@ class VoxelFeatureExtractor(chainer.Chain):
 
         h_count = count.astype(np.float32)[:, None, :, :, :]
 
-        h = F.concat([h, h_ind, h_count], axis=1)
+        if self._with_count:
+            h = F.concat([h, h_ind, h_count], axis=1)
+        else:
+            h = F.concat([h, h_ind], axis=1)
 
         # conv1
         h = F.relu(self.conv1_1(h))
