@@ -8,6 +8,7 @@ import chainer
 from chainer import function
 from chainer.training.extensions import util
 import chainer.reporter as reporter_module
+import numpy as np
 
 from ... import metrics
 
@@ -79,6 +80,8 @@ class PoseEstimationEvaluator(chainer.training.extensions.Evaluator):
             # auc = metrics.auc_for_errors(values, max_threshold=0.1)
             auc = metrics.ycb_video_add_auc(values, max_value=0.1)
             result[f'validation/main/auc/{add_type_and_class_id}'] = auc
+            lt_2cm = (np.array(values) < 0.02).sum() / len(values)
+            result[f'validation/main/<2cm/{add_type_and_class_id}'] = lt_2cm
 
         # average child observations
         parent_keys = [
@@ -93,6 +96,10 @@ class PoseEstimationEvaluator(chainer.training.extensions.Evaluator):
             'validation/main/auc/add_s',
             'validation/main/auc/addr',
             'validation/main/auc/addr_s',
+            'validation/main/<2cm/add',
+            'validation/main/<2cm/add_s',
+            'validation/main/<2cm/addr',
+            'validation/main/<2cm/addr_s',
         ]
         summary = reporter_module.DictSummary()
         for parent_key in parent_keys:
