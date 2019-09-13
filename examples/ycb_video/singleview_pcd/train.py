@@ -91,6 +91,11 @@ def main():
         action='store_true',
         help='pretrained resnet18',
     )
+    parser.add_argument(
+        '--centerize-pcd',
+        action='store_true',
+        help='centerize pcd',
+    )
     args = parser.parse_args()
 
     chainer.global_config.debug = args.debug
@@ -165,6 +170,7 @@ def main():
     # model initialization
     model = contrib.models.Model(
         n_fg_class=len(args.class_names) - 1,
+        centerize_pcd=args.centerize_pcd,
         pretrained_resnet18=args.pretrained_resnet18,
     )
     if args.pretrained_model is not None:

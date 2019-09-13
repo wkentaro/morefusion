@@ -17,6 +17,7 @@ class Model(chainer.Chain):
         self,
         *,
         n_fg_class,
+        centerize_pcd=True,
         pretrained_resnet18=False
     ):
         super().__init__()
@@ -49,6 +50,7 @@ class Model(chainer.Chain):
             self.conv4_conf = L.Convolution1D(128, n_fg_class, 1)
 
         self._n_fg_class = n_fg_class
+        self._centerize_pcd = centerize_pcd
 
     def predict(self, *, class_id, rgb, pcd):
         xp = self.xp
@@ -98,7 +100,8 @@ class Model(chainer.Chain):
         pcd_masked = xp.concatenate(pcd_masked, axis=0)
         centroids = xp.concatenate(centroids, axis=0)
 
-        pcd_masked = pcd_masked - centroids[:, :, None]
+        if self._centerize_pcd:
+            pcd_masked = pcd_masked - centroids[:, :, None]
         h = self.posenet_extractor(h_rgb_masked, pcd_masked)
 
         # conv1
@@ -123,7 +126,8 @@ class Model(chainer.Chain):
         cls_trans = cls_trans.reshape((B, self._n_fg_class, 3, self._n_point))
         cls_conf = cls_conf.reshape((B, self._n_fg_class, self._n_point))
 
-        pcd_masked = pcd_masked + centroids[:, :, None]
+        if self._centerize_pcd:
+            pcd_masked = pcd_masked + centroids[:, :, None]
         cls_trans = pcd_masked[:, None, :, :] + cls_trans
         del pcd_masked
 
