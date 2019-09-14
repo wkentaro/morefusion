@@ -75,7 +75,7 @@ class Model(chainer.Chain):
         # extract indices
         h_rgb_masked = []
         pcd_masked = []
-        centroids = []
+        centers = []
         for i in range(B):
             n_point = int(mask[i].sum())
             if n_point >= self._n_point:
@@ -87,7 +87,7 @@ class Model(chainer.Chain):
                 ]
             assert keep.shape == (self._n_point,)
             iy, ix = xp.where(mask[i])
-            centroid = pcd[i, :, iy, ix].mean(axis=0)
+            center = objslampp.extra.cupy.median(pcd[i, :, iy, ix], axis=0)
             iy, ix = iy[keep], ix[keep]
             h_rgb_i = h_rgb[i, :, iy, ix]      # CHW -> MC, M = self._n_point
             pcd_i = pcd[i, :, iy, ix]          # CHW -> MC
@@ -95,13 +95,13 @@ class Model(chainer.Chain):
             pcd_i = pcd_i.transpose(1, 0)      # MC -> CM
             h_rgb_masked.append(h_rgb_i[None])
             pcd_masked.append(pcd_i[None])
-            centroids.append(centroid[None])
+            centers.append(center[None])
         h_rgb_masked = F.concat(h_rgb_masked, axis=0)
         pcd_masked = xp.concatenate(pcd_masked, axis=0)
-        centroids = xp.concatenate(centroids, axis=0)
+        centers = xp.concatenate(centers, axis=0)
 
         if self._centerize_pcd:
-            pcd_masked = pcd_masked - centroids[:, :, None]
+            pcd_masked = pcd_masked - centers[:, :, None]
         h = self.posenet_extractor(h_rgb_masked, pcd_masked)
 
         # conv1
@@ -127,7 +127,7 @@ class Model(chainer.Chain):
         cls_conf = cls_conf.reshape((B, self._n_fg_class, self._n_point))
 
         if self._centerize_pcd:
-            pcd_masked = pcd_masked + centroids[:, :, None]
+            pcd_masked = pcd_masked + centers[:, :, None]
         cls_trans = pcd_masked[:, None, :, :] + cls_trans
         del pcd_masked
 
