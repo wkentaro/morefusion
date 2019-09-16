@@ -20,26 +20,16 @@ def generate_a_video(out, random_state, connection_method=None):
     models = objslampp.datasets.YCBVideoModels()
 
     class_weight = np.zeros((models.n_class - 1,), dtype=float)
-    # option 1
-    # class_weight[[0, 1, 2, 3]] = 1
-    # option 2
-    class_weight[[1]] = 1
-    # option 3
-    # class_weight[...] = 1
+    class_weight[...] = 1
     class_weight /= class_weight.sum()
 
     generator = objslampp.simulation.BinTypeSceneGeneration(
-        # option 1,3
-        # extents=random_state.uniform((0.2, 0.2, 0.1), (0.4, 0.4, 0.3)),
-        # option 2
-        extents=random_state.uniform((0.3, 0.3, 0.2), (0.5, 0.5, 0.4)),
+        extents=random_state.uniform((0.2, 0.2, 0.2), (0.5, 0.5, 0.3)),
         models=models,
-        n_object=random_state.randint(4, 7),
-        # n_object=random_state.randint(10, 15),
+        n_object=random_state.randint(8, 14),
         random_state=random_state,
         class_weight=class_weight,
-        multi_instance=True,  # option 2
-        # multi_instance=False,  # option 1,3
+        multi_instance=True,
         connection_method=connection_method,
     )
     pybullet.resetDebugVisualizerCamera(
