@@ -56,11 +56,6 @@ class Model(chainer.Chain):
         xp = self.xp
 
         B, H, W, C = rgb.shape
-        assert H == W == 256
-        assert C == 3
-        assert rgb.dtype == np.uint8
-        assert pcd.shape == (B, H, W, 3)
-        assert pcd.dtype == np.float64
 
         mask = ~xp.isnan(pcd).any(axis=3)  # BHW
 

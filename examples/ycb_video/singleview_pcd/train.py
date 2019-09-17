@@ -25,6 +25,22 @@ here = path.Path(__file__).abspath().parent
 
 
 def transform(in_data):
+    assert in_data['class_id'].dtype == np.int32
+    assert in_data['rgb'].dtype == np.uint8
+    assert in_data['rgb'].shape == (256, 256, 3)
+
+    assert in_data['pcd'].dtype == np.float64
+    assert in_data['pcd'].shape == (256, 256, 3)
+    in_data['pcd'] = in_data['pcd'].astype(np.float32)
+
+    assert in_data['quaternion_true'].dtype == np.float64
+    in_data['quaternion_true'] = in_data['quaternion_true'].astype(np.float32)
+
+    assert in_data['translation_true'].dtype == np.float64
+    in_data['translation_true'] = in_data['translation_true'].astype(
+        np.float32
+    )
+
     in_data.pop('pitch')
     in_data.pop('origin')
 
