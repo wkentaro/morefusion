@@ -436,7 +436,7 @@ class VoxelFeatureExtractor(chainer.Chain):
                 ]
             assert keep.shape == (self._n_point,)
             I, J, K = I[keep], J[keep], K[keep]
-            indices = xp.column_stack((I, J, K)).astype(np.float32)
+            # indices = xp.column_stack((I, J, K)).astype(np.float32)
             values_i = F.concat([
                 h_conv1[i, :, I, J, K],
                 h_conv2[i, :, I // 2, J // 2, K // 2],
