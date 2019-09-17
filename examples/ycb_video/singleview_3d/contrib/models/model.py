@@ -42,9 +42,9 @@ class Model(chainer.Chain):
             self.conv4 = L.Convolution3D(512, 1024, 4, 2, pad=1)
 
             # conv1
-            self.conv1_rot = L.Convolution1D(1408, 640, 1)
-            self.conv1_trans = L.Convolution1D(1408, 640, 1)
-            self.conv1_conf = L.Convolution1D(1408, 640, 1)
+            self.conv1_rot = L.Convolution1D(1920, 640, 1)
+            self.conv1_trans = L.Convolution1D(1920, 640, 1)
+            self.conv1_conf = L.Convolution1D(1920, 640, 1)
             # conv2
             self.conv2_rot = L.Convolution1D(640, 256, 1)
             self.conv2_trans = L.Convolution1D(640, 256, 1)
@@ -76,11 +76,19 @@ class Model(chainer.Chain):
             points=points.transpose(0, 2, 1),  # BCM -> BMC
         )
         h = F.relu(self.conv3(voxelized))
+        feat3 = []
+        for i in range(B):
+            feat3_i = objslampp.functions.interpolate_voxel_grid(
+                h[i],
+                points[i].transpose(1, 0) / 2.0,
+            ).transpose(1, 0)
+            feat3.append(feat3_i)
+        feat3 = F.stack(feat3)
         h = F.relu(self.conv4(h))
         h = F.average_pooling_3d(h, ksize=8, stride=1, pad=0)
         h = h.reshape((B, 1024, 1))
-        feat3 = F.repeat(h, n_point, axis=2)
-        feat = F.concat((feat1, feat2, feat3), axis=1)
+        feat4 = F.repeat(h, n_point, axis=2)
+        feat = F.concat((feat1, feat2, feat3, feat4), axis=1)
         return feat
 
     def _voxelize(
