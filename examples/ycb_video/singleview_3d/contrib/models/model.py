@@ -60,11 +60,11 @@ class Model(chainer.Chain):
 
         self._n_fg_class = n_fg_class
 
-    def _extract(self, h_rgb, pcd):
-        B, _, n_point = h_rgb.shape
+    def _extract(self, values, points, pitch):
+        B, _, n_point = values.shape
         # conv1
-        h_rgb = F.relu(self.conv1_rgb(h_rgb))
-        h_pcd = F.relu(self.conv1_pcd(pcd))
+        h_rgb = F.relu(self.conv1_rgb(values))
+        h_pcd = F.relu(self.conv1_pcd(points))
         feat1 = F.concat((h_rgb, h_pcd), axis=1)
         # conv2
         h_rgb = F.relu(self.conv2_rgb(h_rgb))
@@ -117,27 +117,26 @@ class Model(chainer.Chain):
             assert keep.shape == (self._n_point,)
             iy, ix = iy[keep], ix[keep]
 
-            values_i = h_rgb[i, :, iy, ix]      # CHW -> MC, M = self._n_point
-            points_i = pcd[i, :, iy, ix]          # CHW -> MC
+            values_i = h_rgb[i, :, iy, ix]       # CHW -> MC, M = self._n_point
+            points_i = pcd[i, :, iy, ix]         # CHW -> MC
 
             values_i = values_i.transpose(1, 0)  # MC -> CM
-            points_i = points_i.transpose(1, 0)      # MC -> CM
+            points_i = points_i.transpose(1, 0)  # MC -> CM
 
             values.append(values_i)
             points.append(points_i)
         values = F.stack(values)
         points = xp.stack(points)
-        pitch = xp.array(pitch)
+        pitch = xp.array(pitch, dtype=np.float32)
         origin = xp.stack(origin)
 
-        points = points - origin[:, :, None]
-        h = self._extract(values, points)
+        points = (points - origin[:, :, None]) / pitch[:, None, None]
+        h = self._extract(values, points, pitch)
 
         # conv1
         h_rot = F.relu(self.conv1_rot(h))
         h_trans = F.relu(self.conv1_trans(h))
         h_conf = F.relu(self.conv1_conf(h))
-
         # conv2
         h_rot = F.relu(self.conv2_rot(h_rot))
         h_trans = F.relu(self.conv2_trans(h_trans))
@@ -155,7 +154,7 @@ class Model(chainer.Chain):
         cls_trans = cls_trans.reshape((B, self._n_fg_class, 3, self._n_point))
         cls_conf = cls_conf.reshape((B, self._n_fg_class, self._n_point))
 
-        points = points + origin[:, :, None]
+        points = points * pitch[:, None, None] + origin[:, :, None]
         cls_trans = points[:, None, :, :] + cls_trans
 
         fg_class_id = class_id - 1
