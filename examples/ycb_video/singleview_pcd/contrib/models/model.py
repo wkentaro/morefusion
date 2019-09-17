@@ -68,8 +68,7 @@ class Model(chainer.Chain):
         rgb = rgb.astype(np.float32).transpose(0, 3, 1, 2)  # BHWC -> BCHW
         pcd = pcd.astype(np.float32).transpose(0, 3, 1, 2)  # BHWC -> BCHW
 
-        mean = xp.asarray(self.resnet_extractor.mean)
-        h_rgb = self.resnet_extractor(rgb - mean[None])
+        h_rgb = self.resnet_extractor(rgb)
         h_rgb = self.pspnet_extractor(h_rgb)  # 1/1
 
         # extract indices
