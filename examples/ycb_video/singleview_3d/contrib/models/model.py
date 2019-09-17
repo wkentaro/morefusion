@@ -321,9 +321,10 @@ class Model(chainer.Chain):
                 symmetric=is_symmetric,
             )
 
+            keep = confidence_pred[i].array > 0
             loss_i = F.mean(
-                add * confidence_pred[i] -
-                self._lambda_confidence * F.log(confidence_pred[i])
+                add[keep] * confidence_pred[i][keep] -
+                self._lambda_confidence * F.log(confidence_pred[i][keep])
             )
             loss += loss_i
         loss /= B
