@@ -116,87 +116,101 @@ def _get_trilinear_interp_params(ix, iy, iz):
 class InterpolateVoxelGrid(chainer.Function):
 
     def check_type_forward(self, in_types):
-        chainer.utils.type_check.expect(in_types.size() == 2)
+        chainer.utils.type_check.expect(in_types.size() == 3)
 
-        voxelized_type, indices_type = in_types
+        voxelized_type, points_type, batch_indices_type = in_types
         chainer.utils.type_check.expect(
             voxelized_type.dtype == np.float32,
-            voxelized_type.ndim == 4,
-            indices_type.dtype == np.float32,
-            indices_type.ndim == 2,
-            indices_type.shape[1] == 3,
+            voxelized_type.ndim == 5,  # BCXYZ
+            points_type.dtype == np.float32,
+            points_type.ndim == 2,
+            points_type.shape[1] == 3,
+            batch_indices_type.dtype == np.int32,
+            batch_indices_type.ndim == 1,
+            batch_indices_type.shape[0] == points_type.shape[0],
         )
 
     def forward_cpu(self, x):
-        voxelized, indices = x
+        voxelized, points, batch_indices = x
 
-        P, _ = indices.shape
-        C, X, Y, Z = voxelized.shape
+        P, _ = points.shape
+        B, C, X, Y, Z = voxelized.shape
 
         values = np.zeros((P, C), dtype=np.float32)
-        for i, index in enumerate(indices):
-            ix, iy, iz = index
+        for i, point in enumerate(points):
+            b = batch_indices[i]
+            ix, iy, iz = point
             weight, ixyz = _get_trilinear_interp_params(ix, iy, iz)
             for j in range(8):
                 ix, iy, iz = ixyz[j]
                 if (ix >= 0 and ix < X and iy >= 0 and iy < Y and
                         iz >= 0 and iz < Z):
-                    values[i] += weight[j] * voxelized[:, ix, iy, iz]
+                    values[i] += weight[j] * voxelized[b, :, ix, iy, iz]
         return values,
 
     def backward_cpu(self, x, gy):
         raise NotImplementedError
 
     def forward_gpu(self, x):
-        self.retain_inputs((1,))
-        voxelized, indices = x
+        self.retain_inputs((1, 2))
+        voxelized, points, batch_indices = x
         self._shape = voxelized.shape
 
-        P, _ = indices.shape
-        C, X, Y, Z = voxelized.shape
+        P, _ = points.shape
+        B, C, X, Y, Z = voxelized.shape
 
         values = cuda.cupy.zeros((P, C), dtype=np.float32)
         shape = cuda.cupy.array(voxelized.shape, dtype=np.int32)
 
         cuda.elementwise(
             '''
-            raw float32 voxelized, raw float32 indices, raw int32 shape
+            raw float32 voxelized, raw float32 points,
+            raw int32 batch_indices, raw int32 shape
             ''',
             'float32 values',
             r'''
+            int C = shape[1];
+            int X = shape[2];
+            int Y = shape[3];
+            int Z = shape[4];
+
             // i: index of values
             // values: (P, C)
-            int c = i % shape[0];  // i = {0 ... shape[0]}
-            int n = i / shape[0];  // n = {0 ... N}
+            int c = i % C;  // c = {0 ... C}
+            int n = i / C;  // n = {0 ... P}
+            int b = batch_indices[n];
 
-            float ix = indices[n * 3];
-            float iy = indices[n * 3 + 1];
-            float iz = indices[n * 3 + 2];
+            float ix = points[n * 3];
+            float iy = points[n * 3 + 1];
+            float iz = points[n * 3 + 2];
 
             float weight[8];
             int ixyz[8][3];
             _get_trilinear_interp_params(ix, iy, iz, weight, ixyz);
 
             for (size_t j = 0; j < 8; j++) {
-                if (ixyz[j][0] >= 0 && ixyz[j][0] < shape[1] &&
-                    ixyz[j][1] >= 0 && ixyz[j][1] < shape[2] &&
-                    ixyz[j][2] >= 0 && ixyz[j][2] < shape[3])
+                if (ixyz[j][0] >= 0 && ixyz[j][0] < X &&
+                    ixyz[j][1] >= 0 && ixyz[j][1] < Y &&
+                    ixyz[j][2] >= 0 && ixyz[j][2] < Z)
                 {
-                    int index = (c * shape[1] * shape[2] * shape[3]) +
-                                (ixyz[j][0] * shape[2] * shape[3]) +
-                                (ixyz[j][1] * shape[3]) + ixyz[j][2];
+                    int index = (b * C * X * Y * Z) +
+                                (c * X * Y * Z) +
+                                (ixyz[j][0] * X * Y) +
+                                (ixyz[j][1] * Y) +
+                                ixyz[j][2];
                     atomicAdd(&values, weight[j] * voxelized[index]);
                 }
             }
             ''',
             'interpolate_voxel_grid_fwd',
             preamble=_GET_TRILINEAR_INTERP_KERNEL,
-        )(voxelized, indices, shape, values)
+        )(voxelized, points, batch_indices, shape, values)
 
         return values,
 
     def backward_gpu(self, x, gy):
-        indices = x[1]
+        points = x[1]
+        batch_indices = x[2]
         gvalues, = gy
 
         gvoxelized = cuda.cupy.zeros(self._shape, dtype=np.float32)
@@ -204,44 +218,53 @@ class InterpolateVoxelGrid(chainer.Function):
 
         cuda.elementwise(
             '''
-            float32 gvalues, raw float32 indices, raw int32 shape
+            float32 gvalues, raw float32 points,
+            raw int32 batch_indices, raw int32 shape
             ''',
             'raw float32 gvoxelized',
             r'''
+            int C = shape[1];
+            int X = shape[2];
+            int Y = shape[3];
+            int Z = shape[4];
+
             // i: index of gvalues
             // values: (P, C)
-            int c = i % shape[0];  // i = {0 ... shape[0]}
-            int n = i / shape[0];  // n = {0 ... N}
+            int c = i % C;  // c = {0 ... C}
+            int n = i / C;  // n = {0 ... P}
+            int b = batch_indices[n];
 
-            float ix = indices[n * 3];
-            float iy = indices[n * 3 + 1];
-            float iz = indices[n * 3 + 2];
+            float ix = points[n * 3];
+            float iy = points[n * 3 + 1];
+            float iz = points[n * 3 + 2];
 
             float weight[8];
             int ixyz[8][3];
             _get_trilinear_interp_params(ix, iy, iz, weight, ixyz);
 
             for (size_t j = 0; j < 8; j++) {
-                if (ixyz[j][0] >= 0 && ixyz[j][0] < shape[1] &&
-                    ixyz[j][1] >= 0 && ixyz[j][1] < shape[2] &&
-                    ixyz[j][2] >= 0 && ixyz[j][2] < shape[3])
+                if (ixyz[j][0] >= 0 && ixyz[j][0] < X &&
+                    ixyz[j][1] >= 0 && ixyz[j][1] < Y &&
+                    ixyz[j][2] >= 0 && ixyz[j][2] < Z)
                 {
-                    int index = (c * shape[1] * shape[2] * shape[3]) +
-                                (ixyz[j][0] * shape[2] * shape[3]) +
-                                (ixyz[j][1] * shape[3]) + ixyz[j][2];
+                    int index = (b * C * X * Y * Z) +
+                                (c * X * Y * Z) +
+                                (ixyz[j][0] * Y * Z) +
+                                (ixyz[j][1] * Z) +
+                                ixyz[j][2];
                     atomicAdd(&gvoxelized[index], weight[j] * gvalues);
                 }
             }
             ''',
             'interpolate_voxel_grid_bwd',
             preamble=_GET_TRILINEAR_INTERP_KERNEL,
-        )(gvalues, indices, shape, gvoxelized)
+        )(gvalues, points, batch_indices, shape, gvoxelized)
 
-        return gvoxelized, None
+        return gvoxelized, None, None
 
 
-def interpolate_voxel_grid(voxelized, indices):
-    return InterpolateVoxelGrid()(voxelized, indices)
+def interpolate_voxel_grid(voxelized, points, batch_indices):
+    return InterpolateVoxelGrid()(voxelized, points, batch_indices)
 
 
 def main():
@@ -276,7 +299,9 @@ def main():
     print(points[0], values[0])
 
     values = InterpolateVoxelGrid()(
-        cuda.to_gpu(voxelized), cuda.to_gpu(points)
+        cuda.to_gpu(voxelized[None]),
+        cuda.to_gpu(points),
+        cuda.cupy.zeros((points.shape[0],), dtype=np.int32),
     ).array
     print(points[0], values[0])
 

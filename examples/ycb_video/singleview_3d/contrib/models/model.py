@@ -62,7 +62,8 @@ class Model(chainer.Chain):
         self._n_fg_class = n_fg_class
 
     def _extract(self, values, points):
-        B, _, n_point = values.shape
+        B, _, P = values.shape
+        assert P == self._n_point
         # conv1
         h_rgb = F.relu(self.conv1_rgb(values))
         h_pcd = F.relu(self.conv1_pcd(points))
@@ -73,39 +74,30 @@ class Model(chainer.Chain):
         feat2 = F.concat((h_rgb, h_pcd), axis=1)
         # conv3, conv4
         voxelized, count = self._voxelize(
-            values=feat2.transpose(0, 2, 1),   # BCM -> BMC
-            points=points.transpose(0, 2, 1),  # BCM -> BMC
+            values=feat2.transpose(0, 2, 1),   # BCP -> BPC
+            points=points.transpose(0, 2, 1),  # BCP -> BPC
         )
 
+        batch_indices = self.xp.arange(B, dtype=np.int32).repeat(P)
+        points = points.transpose(0, 2, 1).reshape(B * P, 3)
+
         h = F.relu(self.conv3(voxelized))
-        feat3 = []
-        for i in range(B):
-            feat3_i = objslampp.functions.interpolate_voxel_grid(
-                h[i],
-                points[i].transpose(1, 0) / 2.0,
-            ).transpose(1, 0)
-            feat3.append(feat3_i)
-        feat3 = F.stack(feat3)
+        feat3 = objslampp.functions.interpolate_voxel_grid(
+            h, points / 2.0, batch_indices
+        )
+        feat3 = feat3.reshape(B, P, -1).transpose(0, 2, 1)
 
         h = F.relu(self.conv4(h))
-        feat4 = []
-        for i in range(B):
-            feat4_i = objslampp.functions.interpolate_voxel_grid(
-                h[i],
-                points[i].transpose(1, 0) / 4.0,
-            ).transpose(1, 0)
-            feat4.append(feat4_i)
-        feat4 = F.stack(feat4)
+        feat4 = objslampp.functions.interpolate_voxel_grid(
+            h, points / 4.0, batch_indices
+        )
+        feat4 = feat4.reshape(B, P, -1).transpose(0, 2, 1)
 
         h = F.relu(self.conv5(h))
-        feat5 = []
-        for i in range(B):
-            feat5_i = objslampp.functions.interpolate_voxel_grid(
-                h[i],
-                points[i].transpose(1, 0) / 8.0,
-            ).transpose(1, 0)
-            feat5.append(feat5_i)
-        feat5 = F.stack(feat5)
+        feat5 = objslampp.functions.interpolate_voxel_grid(
+            h, points / 8.0, batch_indices
+        )
+        feat5 = feat4.reshape(B, P, -1).transpose(0, 2, 1)
 
         feat = F.concat((feat1, feat2, feat3, feat4, feat5), axis=1)
         return feat
@@ -176,11 +168,11 @@ class Model(chainer.Chain):
             assert keep.shape == (self._n_point,)
             iy, ix = iy[keep], ix[keep]
 
-            values_i = h_rgb[i, :, iy, ix]       # CHW -> MC, M = self._n_point
-            points_i = pcd[i, :, iy, ix]         # CHW -> MC
+            values_i = h_rgb[i, :, iy, ix]       # CHW -> PC, P = self._n_point
+            points_i = pcd[i, :, iy, ix]         # CHW -> PC
 
-            values_i = values_i.transpose(1, 0)  # MC -> CM
-            points_i = points_i.transpose(1, 0)  # MC -> CM
+            values_i = values_i.transpose(1, 0)  # PC -> CP
+            points_i = points_i.transpose(1, 0)  # PC -> CP
 
             values.append(values_i)
             points.append(points_i)
@@ -222,8 +214,8 @@ class Model(chainer.Chain):
         conf = cls_conf[xp.arange(B), fg_class_id]
 
         rot = F.normalize(rot, axis=1)
-        rot = rot.transpose(0, 2, 1)    # B4M -> BM4
-        trans = trans.transpose(0, 2, 1)  # B3M -> BM3
+        rot = rot.transpose(0, 2, 1)    # B4P -> BP4
+        trans = trans.transpose(0, 2, 1)  # B3P -> BP3
 
         return rot, trans, conf
 
@@ -329,7 +321,7 @@ class Model(chainer.Chain):
 
             T_cad2cam_pred = objslampp.functions.transformation_matrix(
                 quaternion_pred[i], translation_pred[i]
-            )  # (M, 4, 4)
+            )  # (P, 4, 4)
 
             T_cad2cam_true = objslampp.functions.transformation_matrix(
                 quaternion_true[i], translation_true[i]

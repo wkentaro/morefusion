@@ -49,10 +49,18 @@ scenes['integer_indexing'] = trimesh.Scene(
 )
 
 voxelized = mapping.values.astype(np.float32).transpose(3, 0, 1, 2)
-values_extracted = objslampp.functions.interpolate_voxel_grid(
-    cuda.to_gpu(voxelized / 255.),
-    cuda.to_gpu(indices_extracted.astype(np.float32)),
-)
+if 0:
+    values_extracted = objslampp.functions.interpolate_voxel_grid(
+        voxelized[None] / 255.,
+        indices_extracted.astype(np.float32),
+        np.zeros((indices_extracted.shape[0],), dtype=np.int32),
+    )
+else:
+    values_extracted = objslampp.functions.interpolate_voxel_grid(
+        cuda.to_gpu(voxelized[None] / 255.),
+        cuda.to_gpu(indices_extracted.astype(np.float32)),
+        cuda.cupy.zeros((indices_extracted.shape[0],), dtype=np.int32),
+    )
 values_extracted = cuda.to_cpu(values_extracted.array)
 geom = trimesh.PointCloud(points_extracted, colors=values_extracted)
 scenes['float_indexing'] = trimesh.Scene(
