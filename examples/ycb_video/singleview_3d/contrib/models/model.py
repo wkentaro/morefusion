@@ -75,6 +75,7 @@ class Model(chainer.Chain):
             values=feat2.transpose(0, 2, 1),   # BCM -> BMC
             points=points.transpose(0, 2, 1),  # BCM -> BMC
         )
+
         h = F.relu(self.conv3(voxelized))
         feat3 = []
         for i in range(B):
@@ -84,10 +85,17 @@ class Model(chainer.Chain):
             ).transpose(1, 0)
             feat3.append(feat3_i)
         feat3 = F.stack(feat3)
+
         h = F.relu(self.conv4(h))
-        h = F.average_pooling_3d(h, ksize=8, stride=1, pad=0)
-        h = h.reshape((B, 1024, 1))
-        feat4 = F.repeat(h, n_point, axis=2)
+        feat4 = []
+        for i in range(B):
+            feat4_i = objslampp.functions.interpolate_voxel_grid(
+                h[i],
+                points[i].transpose(1, 0) / 4.0,
+            ).transpose(1, 0)
+            feat4.append(feat4_i)
+        feat4 = F.stack(feat4)
+
         feat = F.concat((feat1, feat2, feat3, feat4), axis=1)
         return feat
 
