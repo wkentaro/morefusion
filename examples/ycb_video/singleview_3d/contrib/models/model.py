@@ -40,11 +40,12 @@ class Model(chainer.Chain):
             # conv3, conv4
             self.conv3 = L.Convolution3D(256, 512, 4, 2, pad=1)
             self.conv4 = L.Convolution3D(512, 1024, 4, 2, pad=1)
+            self.conv5 = L.Convolution3D(1024, 2048, 4, 2, pad=1)
 
             # conv1
-            self.conv1_rot = L.Convolution1D(1920, 640, 1)
-            self.conv1_trans = L.Convolution1D(1920, 640, 1)
-            self.conv1_conf = L.Convolution1D(1920, 640, 1)
+            self.conv1_rot = L.Convolution1D(None, 640, 1)
+            self.conv1_trans = L.Convolution1D(None, 640, 1)
+            self.conv1_conf = L.Convolution1D(None, 640, 1)
             # conv2
             self.conv2_rot = L.Convolution1D(640, 256, 1)
             self.conv2_trans = L.Convolution1D(640, 256, 1)
@@ -96,7 +97,17 @@ class Model(chainer.Chain):
             feat4.append(feat4_i)
         feat4 = F.stack(feat4)
 
-        feat = F.concat((feat1, feat2, feat3, feat4), axis=1)
+        h = F.relu(self.conv5(h))
+        feat5 = []
+        for i in range(B):
+            feat5_i = objslampp.functions.interpolate_voxel_grid(
+                h[i],
+                points[i].transpose(1, 0) / 8.0,
+            ).transpose(1, 0)
+            feat5.append(feat5_i)
+        feat5 = F.stack(feat5)
+
+        feat = F.concat((feat1, feat2, feat3, feat4, feat5), axis=1)
         return feat
 
     def _voxelize(
