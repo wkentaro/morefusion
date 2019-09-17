@@ -1,3 +1,4 @@
+'''
 import unittest
 
 import numpy
@@ -103,3 +104,4 @@ class TestMaxVoxelization3D(unittest.TestCase):
 
 
 testing.run_module(__name__, __file__)
+'''

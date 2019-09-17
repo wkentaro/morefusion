@@ -107,26 +107,24 @@ class Model(chainer.Chain):
         values,
         points,
     ):
-        xp = self.xp
-
-        B = values.shape[0]
+        B, P, _ = values.shape
+        assert P == self._n_point
         dimensions = (self._voxel_dim,) * 3
 
-        voxelized = []
-        count = []
-        for i in range(B):
-            voxelized_i, count_i = objslampp.functions.average_voxelization_3d(
-                values=values[i],
-                points=points[i],
-                origin=(0, 0, 0),
-                pitch=1.0,
-                dimensions=dimensions,
-                return_counts=True,
-            )
-            voxelized.append(voxelized_i)
-            count.append(count_i)
-        voxelized = F.stack(voxelized)
-        count = xp.stack(count)
+        batch_indices = self.xp.arange(B, dtype=np.int32).repeat(P)
+        values = values.reshape(B * P, -1)
+        points = points.reshape(B * P, 3)
+
+        voxelized, count = objslampp.functions.average_voxelization_3d(
+            values,
+            points,
+            batch_indices,
+            batch_size=B,
+            origin=(0, 0, 0),
+            pitch=1.0,
+            dimensions=dimensions,
+            return_counts=True,
+        )
 
         return voxelized, count
 

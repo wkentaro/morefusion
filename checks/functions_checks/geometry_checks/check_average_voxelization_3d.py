@@ -12,18 +12,23 @@ import objslampp
 def check_average_voxelization_3d(
     origin, pitch, points, values, gpu, **kwargs
 ):
+    batch_indices = np.zeros((points.shape[0],), dtype=np.int32)
+
     if gpu >= 0:
         cuda.get_device_from_id(gpu).use()
         values = cuda.to_gpu(values)
         points = cuda.to_gpu(points)
+        batch_indices = cuda.to_gpu(batch_indices)
 
     y = objslampp.functions.average_voxelization_3d(
         values,
         points,
+        batch_indices,
+        batch_size=1,
         origin=origin,
         pitch=pitch,
         dimensions=(32, 32, 32),
-    )
+    )[0]
     y = y.transpose(1, 2, 3, 0)
 
     matrix_values = cuda.to_cpu(y.array)
