@@ -38,8 +38,8 @@ class Model(chainer.Chain):
             self.conv2_rgb = L.Convolution1D(64, 128, 1)
             self.conv2_pcd = L.Convolution1D(64, 128, 1)
             # conv3, conv4
-            self.conv3 = L.Convolution1D(256, 512, 1)
-            self.conv4 = L.Convolution1D(512, 1024, 1)
+            self.conv3 = L.Convolution3D(256, 512, 4, 2, pad=1)
+            self.conv4 = L.Convolution3D(512, 1024, 4, 2, pad=1)
 
             # conv1
             self.conv1_rot = L.Convolution1D(1408, 640, 1)
@@ -60,7 +60,7 @@ class Model(chainer.Chain):
 
         self._n_fg_class = n_fg_class
 
-    def _extract(self, values, points, pitch):
+    def _extract(self, values, points):
         B, _, n_point = values.shape
         # conv1
         h_rgb = F.relu(self.conv1_rgb(values))
@@ -71,13 +71,45 @@ class Model(chainer.Chain):
         h_pcd = F.relu(self.conv2_pcd(h_pcd))
         feat2 = F.concat((h_rgb, h_pcd), axis=1)
         # conv3, conv4
-        h = F.relu(self.conv3(feat2))
+        voxelized, count = self._voxelize(
+            values=feat2.transpose(0, 2, 1),   # BCM -> BMC
+            points=points.transpose(0, 2, 1),  # BCM -> BMC
+        )
+        h = F.relu(self.conv3(voxelized))
         h = F.relu(self.conv4(h))
-        h = F.average_pooling_1d(h, n_point)
+        h = F.average_pooling_3d(h, ksize=8, stride=1, pad=0)
         h = h.reshape((B, 1024, 1))
         feat3 = F.repeat(h, n_point, axis=2)
         feat = F.concat((feat1, feat2, feat3), axis=1)
         return feat
+
+    def _voxelize(
+        self,
+        values,
+        points,
+    ):
+        xp = self.xp
+
+        B = values.shape[0]
+        dimensions = (self._voxel_dim,) * 3
+
+        voxelized = []
+        count = []
+        for i in range(B):
+            voxelized_i, count_i = objslampp.functions.average_voxelization_3d(
+                values=values[i],
+                points=points[i],
+                origin=(0, 0, 0),
+                pitch=1.0,
+                dimensions=dimensions,
+                return_counts=True,
+            )
+            voxelized.append(voxelized_i)
+            count.append(count_i)
+        voxelized = F.stack(voxelized)
+        count = xp.stack(count)
+
+        return voxelized, count
 
     def predict(self, *, class_id, rgb, pcd):
         xp = self.xp
@@ -131,7 +163,7 @@ class Model(chainer.Chain):
         origin = xp.stack(origin)
 
         points = (points - origin[:, :, None]) / pitch[:, None, None]
-        h = self._extract(values, points, pitch)
+        h = self._extract(values, points)
 
         # conv1
         h_rot = F.relu(self.conv1_rot(h))
