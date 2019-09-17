@@ -13,7 +13,9 @@ class MaxVoxelization3D(Voxelization3D):
         if np.isnan(points).sum():
             raise ValueError('points include nan')
 
-        shape = (self.channels,) + self.dimensions
+        channels = values.shape[1]
+
+        shape = (channels,) + self.dimensions
         matrix = np.zeros(shape, dtype=np.float32)
         indices = np.full(shape, -1, dtype=np.int32)  # index of points
 
@@ -38,9 +40,11 @@ class MaxVoxelization3D(Voxelization3D):
     def backward_cpu(self, inputs, gy):
         gmatrix = gy[0]
 
-        gvalues = np.zeros((self.n_points, self.channels), dtype=np.float32)
+        channels = gmatrix.shape[0]
+
+        gvalues = np.zeros((self.n_points, channels), dtype=np.float32)
         for i in range(self.n_points):
-            for j in range(self.channels):
+            for j in range(channels):
                 mask = self.indices[j, :, :, :] == i
                 gvalues_i = gmatrix[j, mask]
                 assert gvalues_i.size in [0, 1]
@@ -56,7 +60,9 @@ class MaxVoxelization3D(Voxelization3D):
         if cuda.cupy.isnan(points).sum():
             raise ValueError('points include nan')
 
-        shape = (self.channels,) + self.dimensions
+        channels = values.shape[1]
+
+        shape = (channels,) + self.dimensions
         matrix = cuda.cupy.zeros(shape, dtype=np.float32)
         indices = cuda.cupy.full(shape, -1, dtype=np.int32)
         origin = cuda.cupy.asarray(self.origin, dtype=np.float32)
@@ -132,10 +138,10 @@ class MaxVoxelization3D(Voxelization3D):
         indices = self.indices
         gmatrix = gy[0]
 
-        shape = (self.channels,) + self.dimensions
-        gvalues = cuda.cupy.zeros(
-            (self.n_points, self.channels), dtype=np.float32
-        )
+        channels = gmatrix.shape[0]
+
+        shape = (channels,) + self.dimensions
+        gvalues = cuda.cupy.zeros((self.n_points, channels), dtype=np.float32)
         origin = cuda.cupy.asarray(self.origin, dtype=np.float32)
         shape = cuda.cupy.asarray(shape, dtype=np.int32)
 
@@ -171,11 +177,10 @@ def max_voxelization_3d(
     origin,
     pitch,
     dimensions,
-    channels,
     return_indices=False,
 ):
     func = MaxVoxelization3D(
-        origin=origin, pitch=pitch, dimensions=dimensions, channels=channels
+        origin=origin, pitch=pitch, dimensions=dimensions
     )
     vox = func(values, points)
     if return_indices:

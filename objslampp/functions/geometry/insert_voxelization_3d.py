@@ -14,7 +14,9 @@ class InsertVoxelization3D(Voxelization3D):
             raise ValueError('points include nan')
 
         n_points = points.shape[0]
-        shape = (self.channels,) + self.dimensions
+        channels = values.shape[1]
+
+        shape = (channels,) + self.dimensions
         matrix = np.zeros(shape, dtype=np.float32)
         indices = np.full(self.dimensions, -1, dtype=np.int32)
 
@@ -47,7 +49,9 @@ class InsertVoxelization3D(Voxelization3D):
         if cuda.cupy.isnan(points).sum():
             raise ValueError('points include nan')
 
-        shape = (self.channels,) + self.dimensions
+        channels = values.shape[1]
+
+        shape = (channels,) + self.dimensions
         matrix = cuda.cupy.zeros(shape, dtype=np.float32)
         indices = cuda.cupy.full(self.dimensions, -1, dtype=np.int32)
 
@@ -95,7 +99,7 @@ class InsertVoxelization3D(Voxelization3D):
             self.pitch,
             origin,
             dims,
-            self.channels,
+            channels,
             matrix,
             indices
         )
@@ -107,9 +111,11 @@ class InsertVoxelization3D(Voxelization3D):
     def backward_gpu(self, inputs, gy):
         gmatrix = gy[0]
 
+        channels = gmatrix.shape[0]
+
         dims = cuda.cupy.asarray(self.dimensions, dtype=np.int32)
         gvalues = cuda.cupy.zeros(
-            (self.n_points, self.channels), dtype=np.float32
+            (self.n_points, channels), dtype=np.float32
         )
 
         # cuda.elementwise(
@@ -130,7 +136,7 @@ class InsertVoxelization3D(Voxelization3D):
             ''',
             'voxelize_bwd',
         )(
-            gmatrix, self.indices, dims, self.channels,
+            gmatrix, self.indices, dims, channels,
             gvalues,
         )
 
@@ -146,10 +152,8 @@ def insert_voxelization_3d(
     dimensions,
     return_indices=False,
 ):
-    channels = values.shape[1]
     return InsertVoxelization3D(
         origin=origin,
         pitch=pitch,
         dimensions=dimensions,
-        channels=channels,
     )(values, points)

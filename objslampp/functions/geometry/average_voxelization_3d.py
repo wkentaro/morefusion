@@ -11,12 +11,13 @@ class AverageVoxelization3D(Voxelization3D):
         values, points = inputs
 
         n_points = points.shape[0]
+        channels = values.shape[1]
 
         # validation
         if np.isnan(points).sum():
             raise ValueError('points include nan')
 
-        shape = (self.channels,) + self.dimensions
+        shape = (channels,) + self.dimensions
         matrix = np.zeros(shape, dtype=np.float32)
         counts = np.zeros(self.dimensions, dtype=np.int32)
 
@@ -41,11 +42,13 @@ class AverageVoxelization3D(Voxelization3D):
         self.retain_inputs((1,))
         values, points = inputs
 
+        channels = values.shape[1]
+
         # validation
         if cuda.cupy.isnan(points).sum():
             raise ValueError('points include nan')
 
-        shape = (self.channels,) + self.dimensions
+        shape = (channels,) + self.dimensions
         matrix = cuda.cupy.zeros(shape, dtype=np.float32)
         counts = cuda.cupy.zeros(shape, dtype=np.int32)
         origin = cuda.cupy.asarray(self.origin, dtype=np.float32)
@@ -104,8 +107,9 @@ class AverageVoxelization3D(Voxelization3D):
         gmatrix = gy[0]
 
         n_points = points.shape[0]
+        channels = gmatrix.shape[0]
 
-        gvalues = np.zeros((n_points, self.channels), dtype=np.float32)
+        gvalues = np.zeros((n_points, channels), dtype=np.float32)
 
         for i in range(n_points):
             point = points[i]
@@ -124,9 +128,10 @@ class AverageVoxelization3D(Voxelization3D):
         gmatrix = gy[0]
 
         n_points = points.shape[0]
+        channels = gmatrix.shape[0]
 
-        shape = (self.channels,) + self.dimensions
-        gvalues = cuda.cupy.zeros((n_points, self.channels), dtype=np.float32)
+        shape = (channels,) + self.dimensions
+        gvalues = cuda.cupy.zeros((n_points, channels), dtype=np.float32)
         origin = cuda.cupy.asarray(self.origin, dtype=np.float32)
         shape = cuda.cupy.asarray(shape, dtype=np.int32)
 
@@ -182,9 +187,8 @@ def average_voxelization_3d(
     dimensions,
     return_counts=False,
 ):
-    channels = values.shape[1]
     func = AverageVoxelization3D(
-        origin=origin, pitch=pitch, dimensions=dimensions, channels=channels
+        origin=origin, pitch=pitch, dimensions=dimensions
     )
     voxel = func(values, points)
     if return_counts:

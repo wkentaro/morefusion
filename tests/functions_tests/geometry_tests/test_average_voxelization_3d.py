@@ -68,7 +68,6 @@ class TestAverageVoxelization3D(unittest.TestCase):
             origin=self.origin,
             pitch=self.pitch,
             dimensions=self.dimensions,
-            channels=self.channels,
         )
 
         # cpu
@@ -94,7 +93,6 @@ class TestAverageVoxelization3D(unittest.TestCase):
                 pitch=self.pitch,
                 origin=self.origin,
                 dimensions=self.dimensions,
-                channels=self.channels,
             ),
             (values_data, points_data), y_grad, no_grads=[False, True],
             **self.check_backward_options)
