@@ -1,5 +1,6 @@
 chainer
 chainercv
+chainercv2
 frozendict
 gdown>=3.7.0
 glooey
