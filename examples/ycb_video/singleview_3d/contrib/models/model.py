@@ -20,11 +20,24 @@ class Model(chainer.Chain):
         n_fg_class,
         pretrained_resnet18=False,
         with_occupancy=False,
+        loss=None,
+        loss_scale=None,
     ):
         super().__init__()
 
         self._n_fg_class = n_fg_class
         self._with_occupancy = with_occupancy
+
+        if loss is None:
+            loss = 'add/add_s'
+        assert loss in ['add/add_s', 'add/add_s+occupancy']
+        self._loss = loss
+
+        if loss_scale is None:
+            loss_scale = {
+                'occupancy': 1e-4
+            }
+        self._loss_scale = loss_scale
 
         with self.init_scope():
             # extractor
@@ -293,6 +306,9 @@ class Model(chainer.Chain):
             quaternion_pred=quaternion_pred,
             translation_pred=translation_pred,
             confidence_pred=confidence_pred,
+            pitch=pitch,
+            origin=origin,
+            grid_nontarget_empty=grid_nontarget_empty,
         )
         return loss
 
@@ -349,6 +365,9 @@ class Model(chainer.Chain):
         quaternion_pred,
         translation_pred,
         confidence_pred,
+        pitch=None,
+        origin=None,
+        grid_nontarget_empty=None,
     ):
         xp = self.xp
         B = class_id.shape[0]
@@ -356,6 +375,12 @@ class Model(chainer.Chain):
         # prepare
         quaternion_true = quaternion_true.astype(np.float32)
         translation_true = translation_true.astype(np.float32)
+        if pitch is not None:
+            pitch = pitch.astype(np.float32)
+        if origin is not None:
+            origin = origin.astype(np.float32)
+        if grid_nontarget_empty is not None:
+            grid_nontarget_empty = grid_nontarget_empty.astype(np.float32)
 
         loss = 0
         for i in range(B):
@@ -371,10 +396,11 @@ class Model(chainer.Chain):
             T_cad2cam_true = F.repeat(T_cad2cam_true[None], n_point, axis=0)
 
             class_id_i = int(class_id[i])
-            is_symmetric = class_id_i in \
-                objslampp.datasets.ycb_video.class_ids_symmetric
             cad_pcd = self._models.get_pcd(class_id=class_id_i)
             cad_pcd = xp.asarray(cad_pcd, dtype=np.float32)
+
+            is_symmetric = class_id_i in \
+                objslampp.datasets.ycb_video.class_ids_symmetric
             add = objslampp.functions.average_distance_l1(
                 cad_pcd,
                 T_cad2cam_true,
@@ -387,6 +413,29 @@ class Model(chainer.Chain):
                 add[keep] * confidence_pred[i][keep] -
                 self._lambda_confidence * F.log(confidence_pred[i][keep])
             )
+
+            if self._loss in ['add/add_s+occupancy']:
+                solid_pcd = self._models.get_solid_voxel(class_id=class_id_i)
+                solid_pcd = xp.asarray(solid_pcd.points, dtype=np.float32)
+                kwargs = dict(
+                    pitch=float(pitch[i]),
+                    origin=cuda.to_cpu(origin[i]),
+                    dims=(self._voxel_dim,) * 3,
+                    threshold=2.0,
+                )
+                grid_target_pred = \
+                    objslampp.functions.pseudo_occupancy_voxelization(
+                        points=objslampp.functions.transform_points(
+                            solid_pcd, T_cad2cam_pred[i]
+                        ), **kwargs
+                    )
+                # penalize intersection w/ nontarget voxels
+                intersection = F.sum(grid_target_pred * grid_nontarget_empty[i])
+                denominator = F.sum(grid_target_pred) + 1e-16
+                loss_i += (
+                    self._loss_scale['occupancy'] * intersection / denominator
+                )
+
             loss += loss_i
         loss /= B
 

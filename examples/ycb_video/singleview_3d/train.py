@@ -207,6 +207,11 @@ def main():
         '--resume',
         help='resume',
     )
+    parser.add_argument(
+        '--loss',
+        choices=['add/add_s', 'add/add_s+occupancy'],
+        help='loss',
+    )
     args = parser.parse_args()
 
     chainer.global_config.debug = args.debug
@@ -286,6 +291,7 @@ def main():
         n_fg_class=len(args.class_names[1:]),
         pretrained_resnet18=args.pretrained_resnet18,
         with_occupancy=args.with_occupancy,
+        loss=args.loss,
     )
     if args.pretrained_model is not None:
         chainer.serializers.load_npz(args.pretrained_model, model)
