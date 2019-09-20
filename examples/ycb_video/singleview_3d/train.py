@@ -285,6 +285,7 @@ def main():
     model = contrib.models.Model(
         n_fg_class=len(args.class_names[1:]),
         pretrained_resnet18=args.pretrained_resnet18,
+        with_occupancy=args.with_occupancy,
     )
     if args.pretrained_model is not None:
         chainer.serializers.load_npz(args.pretrained_model, model)

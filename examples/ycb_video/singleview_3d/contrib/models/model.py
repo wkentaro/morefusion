@@ -18,9 +18,14 @@ class Model(chainer.Chain):
         self,
         *,
         n_fg_class,
-        pretrained_resnet18=False
+        pretrained_resnet18=False,
+        with_occupancy=False,
     ):
         super().__init__()
+
+        self._n_fg_class = n_fg_class
+        self._with_occupancy = with_occupancy
+
         with self.init_scope():
             # extractor
             if pretrained_resnet18:
@@ -34,17 +39,21 @@ class Model(chainer.Chain):
             # conv1
             self.conv1_rgb = L.Convolution1D(32, 64, 1)
             self.conv1_pcd = L.Convolution1D(3, 64, 1)
+            if self._with_occupancy:
+                self.conv1_occ = L.Convolution3D(1, 8, 3, 1, pad=1)
             # conv2
             self.conv2_rgb = L.Convolution1D(64, 128, 1)
             self.conv2_pcd = L.Convolution1D(64, 128, 1)
+            if self._with_occupancy:
+                self.conv2_occ = L.Convolution3D(8, 16, 3, 1, pad=1)
             # conv3, conv4
-            self.conv3 = L.Convolution3D(256, 512, 4, 2, pad=1)
+            self.conv3 = L.Convolution3D(None, 512, 4, 2, pad=1)
             self.conv4 = L.Convolution3D(512, 1024, 4, 2, pad=1)
 
             # conv1
-            self.conv1_rot = L.Convolution1D(1920, 640, 1)
-            self.conv1_trans = L.Convolution1D(1920, 640, 1)
-            self.conv1_conf = L.Convolution1D(1920, 640, 1)
+            self.conv1_rot = L.Convolution1D(None, 640, 1)
+            self.conv1_trans = L.Convolution1D(None, 640, 1)
+            self.conv1_conf = L.Convolution1D(None, 640, 1)
             # conv2
             self.conv2_rot = L.Convolution1D(640, 256, 1)
             self.conv2_trans = L.Convolution1D(640, 256, 1)
@@ -58,39 +67,57 @@ class Model(chainer.Chain):
             self.conv4_trans = L.Convolution1D(128, n_fg_class * 3, 1)
             self.conv4_conf = L.Convolution1D(128, n_fg_class, 1)
 
-        self._n_fg_class = n_fg_class
-
-    def _extract(self, values, points):
+    def _extract(self, values, points, grid_nontarget_empty):
         B, _, P = values.shape
+
         # points (voxel grid frame ranging [0 - 32])
         to_center = (self._voxel_dim / 2.0 - 0.5) - points
+        batch_indices = self.xp.arange(B, dtype=np.int32).repeat(P)
+        indices = points.transpose(0, 2, 1).reshape(B * P, 3)
+        if self._with_occupancy:
+            grid_nontarget_empty = grid_nontarget_empty.astype(np.float32)
+            grid_nontarget_empty = grid_nontarget_empty[:, None, :, :, :]
         # conv1
         h_rgb = F.relu(self.conv1_rgb(values))
         h_pcd = F.relu(self.conv1_pcd(to_center))
-        feat1 = F.concat((h_rgb, h_pcd), axis=1)
+        if self._with_occupancy:
+            h_occ = F.relu(self.conv1_occ(grid_nontarget_empty))
+            h_occ_feat1 = objslampp.functions.interpolate_voxel_grid(
+                h_occ, indices, batch_indices
+            )
+            h_occ_feat1 = h_occ_feat1.reshape(B, P, -1).transpose(0, 2, 1)
+            feat1 = F.concat((h_rgb, h_pcd, h_occ_feat1), axis=1)
+        else:
+            feat1 = F.concat((h_rgb, h_pcd), axis=1)
         # conv2
         h_rgb = F.relu(self.conv2_rgb(h_rgb))
         h_pcd = F.relu(self.conv2_pcd(h_pcd))
-        feat2 = F.concat((h_rgb, h_pcd), axis=1)
+        if self._with_occupancy:
+            h_occ = F.relu(self.conv2_occ(h_occ))
+            h_occ_feat2 = objslampp.functions.interpolate_voxel_grid(
+                h_occ, indices, batch_indices
+            )
+            h_occ_feat2 = h_occ_feat2.reshape(B, P, -1).transpose(0, 2, 1)
+            feat2 = F.concat((h_rgb, h_pcd, h_occ_feat2), axis=1)
+        else:
+            feat2 = F.concat((h_rgb, h_pcd), axis=1)
         # conv3, conv4
         voxelized = self._voxelize(
             values=feat2.transpose(0, 2, 1),   # BCP -> BPC
             points=points.transpose(0, 2, 1),  # BCP -> BPC
         )
-        batch_indices = self.xp.arange(B, dtype=np.int32).repeat(P)
-        points = points.transpose(0, 2, 1).reshape(B * P, 3)
         h = F.relu(self.conv3(voxelized))
         assert h.shape == (B, 512, 16, 16, 16)
         feat3 = objslampp.functions.interpolate_voxel_grid(
-            h, points / 2.0, batch_indices
+            h, indices / 2.0, batch_indices
         )
-        feat3 = feat3.reshape(B, P, 512).transpose(0, 2, 1)
+        feat3 = feat3.reshape(B, P, h.shape[1]).transpose(0, 2, 1)
         h = F.relu(self.conv4(h))
         assert h.shape == (B, 1024, 8, 8, 8)
         feat4 = objslampp.functions.interpolate_voxel_grid(
-            h, points / 4.0, batch_indices
+            h, indices / 4.0, batch_indices
         )
-        feat4 = feat4.reshape(B, P, 1024).transpose(0, 2, 1)
+        feat4 = feat4.reshape(B, P, h.shape[1]).transpose(0, 2, 1)
         feat = F.concat((feat1, feat2, feat3, feat4), axis=1)
         return feat
 
@@ -119,7 +146,16 @@ class Model(chainer.Chain):
 
         return voxelized
 
-    def predict(self, *, class_id, rgb, pcd):
+    def predict(
+        self,
+        *,
+        class_id,
+        rgb,
+        pcd,
+        pitch=None,
+        origin=None,
+        grid_nontarget_empty=None,
+    ):
         xp = self.xp
         B, H, W, C = rgb.shape
         mask = ~xp.isnan(pcd).any(axis=3)  # BHW
@@ -131,20 +167,25 @@ class Model(chainer.Chain):
         h_rgb = self.resnet_extractor(rgb)
         h_rgb = self.pspnet_extractor(h_rgb)  # 1/1
 
+        if pitch is None:
+            pitch = [None] * B
+        if origin is None:
+            origin = [None] * B
+
         # extract indices
         values = []
         points = []
-        pitch = []
-        origin = []
         for i in range(B):
             iy, ix = xp.where(mask[i])
-            pitch_i = self._models.get_voxel_pitch(
-                dimension=self._voxel_dim, class_id=int(class_id[i])
-            )
-            center_i = objslampp.extra.cupy.median(pcd[i, :, iy, ix], axis=0)
-            origin_i = center_i - pitch_i * (self._voxel_dim / 2. - 0.5)
-            pitch.append(pitch_i)
-            origin.append(origin_i)
+            if pitch[i] is None:
+                pitch[i] = self._models.get_voxel_pitch(
+                    dimension=self._voxel_dim, class_id=int(class_id[i])
+                )
+            if origin[i] is None:
+                center_i = objslampp.extra.cupy.median(
+                    pcd[i, :, iy, ix], axis=0
+                )
+                origin[i] = center_i - pitch[i] * (self._voxel_dim / 2. - 0.5)
 
             n_point = int(mask[i].sum())
             if n_point >= self._n_point:
@@ -165,14 +206,14 @@ class Model(chainer.Chain):
 
             values.append(values_i)
             points.append(points_i)
+        pitch = xp.asarray(pitch, dtype=np.float32)
+        origin = xp.asarray(origin, dtype=np.float32)
         values = F.stack(values)
         points = xp.stack(points)
-        pitch = xp.array(pitch, dtype=np.float32)
-        origin = xp.stack(origin)
 
         # camera frame -> voxel grid frame
         points = (points - origin[:, :, None]) / pitch[:, None, None]
-        h = self._extract(values, points)
+        h = self._extract(values, points, grid_nontarget_empty)
 
         # conv1
         h_rot = F.relu(self.conv1_rot(h))
@@ -220,12 +261,20 @@ class Model(chainer.Chain):
         pcd,
         quaternion_true,
         translation_true,
+        pitch=None,
+        origin=None,
+        grid_nontarget_empty=None,
     ):
         B = class_id.shape[0]
         xp = self.xp
 
         quaternion_pred, translation_pred, confidence_pred = self.predict(
-            class_id=class_id, rgb=rgb, pcd=pcd
+            class_id=class_id,
+            rgb=rgb,
+            pcd=pcd,
+            pitch=pitch,
+            origin=origin,
+            grid_nontarget_empty=grid_nontarget_empty,
         )
 
         indices = F.argmax(confidence_pred, axis=1).array
