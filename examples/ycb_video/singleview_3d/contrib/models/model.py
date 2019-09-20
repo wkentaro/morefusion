@@ -430,7 +430,9 @@ class Model(chainer.Chain):
                         ), **kwargs
                     )
                 # penalize intersection w/ nontarget voxels
-                intersection = F.sum(grid_target_pred * grid_nontarget_empty[i])
+                intersection = F.sum(
+                    grid_target_pred * grid_nontarget_empty[i]
+                )
                 denominator = F.sum(grid_target_pred) + 1e-16
                 loss_i += (
                     self._loss_scale['occupancy'] * intersection / denominator
