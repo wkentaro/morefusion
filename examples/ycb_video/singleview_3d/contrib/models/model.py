@@ -35,7 +35,7 @@ class Model(chainer.Chain):
 
         if loss_scale is None:
             loss_scale = {
-                'occupancy': 1e-4
+                'occupancy': 1.0,
             }
         self._loss_scale = loss_scale
 

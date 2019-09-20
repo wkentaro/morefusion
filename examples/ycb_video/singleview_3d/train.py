@@ -2,6 +2,7 @@
 
 import argparse
 import datetime
+import json
 import os.path as osp
 import pprint
 import random
@@ -210,7 +211,16 @@ def main():
     parser.add_argument(
         '--loss',
         choices=['add/add_s', 'add/add_s+occupancy'],
+        default='add/add_s',
         help='loss',
+    )
+    parser.add_argument(
+        '--loss-scale',
+        type=json.loads,
+        default={
+            'occupancy': 1.0,
+        },
+        help='loss scale',
     )
     args = parser.parse_args()
 
@@ -292,6 +302,7 @@ def main():
         pretrained_resnet18=args.pretrained_resnet18,
         with_occupancy=args.with_occupancy,
         loss=args.loss,
+        loss_scale=args.loss_scale,
     )
     if args.pretrained_model is not None:
         chainer.serializers.load_npz(args.pretrained_model, model)
