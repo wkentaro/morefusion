@@ -9,7 +9,10 @@ class ResNet18Extractor(chainer.Chain):
     mean_rgb = (0.485, 0.456, 0.406)
     std_rgb = (0.229, 0.224, 0.225)
 
-    def __init__(self):
+    def __init__(self, unchain_at='res2'):
+        assert unchain_at == 'res2'
+        self._unchain_at = unchain_at
+
         super().__init__()
         with self.init_scope():
             model = get_model('resnet18', pretrained=True)
@@ -41,6 +44,8 @@ class ResNet18Extractor(chainer.Chain):
         with chainer.using_config('train', False):  # disable update bn
             h = self.init_block(h)
             h = self.res2(h)
+            if self._unchain_at == 'res2':
+                h.unchain()
             h = self.res3(h)
             h = self.res4(h)
             h = self.res5(h)
