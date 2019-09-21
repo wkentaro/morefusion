@@ -19,6 +19,10 @@ def task(reindexed_root_dir, dataset, index):
 
 
 def reindex(reindexed_root_dir: str, datasets: list):
+    print(f'Re-indexing following datasets to: {reindexed_root_dir}:')
+    for dataset in datasets:
+        print(f'  - {dataset}')
+
     id_to_class_id: dict = {}
 
     executor = concurrent.futures.ProcessPoolExecutor()
