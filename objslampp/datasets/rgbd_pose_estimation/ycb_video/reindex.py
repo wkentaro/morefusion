@@ -12,7 +12,7 @@ for split in ['val', 'train']:
     datasets[split] = YCBVideoRGBDPoseEstimationDataset(split=split)
     del split
 
-root_dir = datasets['train'].root_dir + 'reindexed.w_full_occupancy'
+root_dir = datasets['train'].root_dir + 'reindexed'
 
 
 def task(split, index):
