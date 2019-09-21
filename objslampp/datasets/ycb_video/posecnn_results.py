@@ -12,7 +12,8 @@ from .dataset import YCBVideoDataset
 class YCBVideoPoseCNNResultsDataset(DatasetBase):
 
     _root_dir = chainer.dataset.get_dataset_directory(
-        'ycb_video/YCB_Video_toolbox', create_directory=False
+        'ycb_video/YCB_Video_toolbox/results_PoseCNN_RSS2018',
+        create_directory=False,
     )
 
     def __init__(self):
@@ -30,7 +31,7 @@ class YCBVideoPoseCNNResultsDataset(DatasetBase):
     def get_example(self, i):
         image_id = self._ids[i]
         example = self._parent.get_frame(image_id)
-        result_file = self.root_dir / f'results_PoseCNN_RSS2018/{i:06d}.mat'
+        result_file = self.root_dir / f'{i:06d}.mat'
         result = scipy.io.loadmat(
             result_file, squeeze_me=True, struct_as_record=True
         )

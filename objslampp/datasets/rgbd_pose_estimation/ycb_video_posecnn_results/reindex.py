@@ -9,7 +9,7 @@ from .dataset import YCBVideoPoseCNNResultsRGBDPoseEstimationDataset
 
 dataset = YCBVideoPoseCNNResultsRGBDPoseEstimationDataset()
 
-root_dir = dataset.root_dir + '.reindexed.w_full_occupancy'
+root_dir = dataset.root_dir + '.reindexed'
 
 
 def task(index):

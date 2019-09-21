@@ -8,9 +8,7 @@ import objslampp
 class Images:
 
     def __init__(self):
-        self._dataset = objslampp.datasets.YCBVideoPoseCNNResultsRGBDPoseEstimationDatasetReIndexed(  # NOQA
-            'train'
-        )
+        self._dataset = objslampp.datasets.YCBVideoPoseCNNResultsRGBDPoseEstimationDatasetReIndexed()  # NOQA
 
     def __len__(self):
         return len(self._dataset)

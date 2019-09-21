@@ -11,7 +11,7 @@ from .dataset import YCBVideoPoseCNNResultsRGBDPoseEstimationDataset
 class YCBVideoPoseCNNResultsRGBDPoseEstimationDatasetReIndexed(DatasetBase):
 
     _root_dir = YCBVideoPoseCNNResultsRGBDPoseEstimationDataset._root_dir + \
-        '.reindexed.w_full_occupancy'
+        '.reindexed'
 
     def __init__(
         self,
