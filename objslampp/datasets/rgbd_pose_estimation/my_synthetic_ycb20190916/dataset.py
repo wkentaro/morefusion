@@ -20,6 +20,8 @@ class MySyntheticYCB20190916RGBDPoseEstimationDataset(
         assert split in ['train', 'val']
         if split == 'train':
             self._ids = [i for i in self._ids if int(i.split('/')[0]) <= 1000]
+            assert len(self._ids) == 15000
         else:
             assert split == 'val'
             self._ids = [i for i in self._ids if int(i.split('/')[0]) > 1000]
+            assert len(self._ids) == 3000

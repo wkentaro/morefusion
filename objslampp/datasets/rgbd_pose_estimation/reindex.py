@@ -6,15 +6,15 @@ import tqdm
 
 
 def task(reindexed_root_dir, dataset, index):
-    id = dataset._ids[index]
+    image_id = dataset._ids[index]
     examples = dataset.get_example(index)
     id_to_class_id = {}
-    for ind, example in enumerate(examples):
-        id = f'{id}/{ind:08d}'
-        npz_file = reindexed_root_dir / f'{id}.npz'
+    for i_example, example in enumerate(examples):
+        instance_id = f'{image_id}/{i_example:08d}'
+        npz_file = reindexed_root_dir / f'{instance_id}.npz'
         npz_file.parent.makedirs_p()
         np.savez_compressed(npz_file, **example)
-        id_to_class_id[id] = example['class_id']
+        id_to_class_id[instance_id] = example['class_id']
     return id_to_class_id
 
 
