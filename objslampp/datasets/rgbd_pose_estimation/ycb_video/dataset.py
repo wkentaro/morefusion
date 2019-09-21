@@ -8,6 +8,7 @@ from ..base import RGBDPoseEstimationDatasetBase
 
 class YCBVideoRGBDPoseEstimationDataset(RGBDPoseEstimationDatasetBase):
 
+    _root_dir = YCBVideoDataset._root_dir
     _bounded_rate_minimal = 0.5
 
     def __init__(
@@ -20,7 +21,6 @@ class YCBVideoRGBDPoseEstimationDataset(RGBDPoseEstimationDatasetBase):
 
         super().__init__(
             models=YCBVideoModels(),
-            root_dir=YCBVideoDataset._root_dir,
             class_ids=class_ids,
         )
 

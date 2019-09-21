@@ -11,9 +11,9 @@ from ..base import RGBDPoseEstimationDatasetBase
 class MyRealRGBDPoseEstimationDataset(RGBDPoseEstimationDatasetBase):
 
     def __init__(self, root_dir=None, class_ids=None):
+        self._root_dir = root_dir
         super().__init__(
             models=YCBVideoModels(),
-            root_dir=root_dir,
             class_ids=class_ids,
         )
         self._ids = self._get_ids()

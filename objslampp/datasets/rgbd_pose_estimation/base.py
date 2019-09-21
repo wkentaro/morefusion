@@ -17,11 +17,9 @@ class RGBDPoseEstimationDatasetBase(DatasetBase):
     def __init__(
         self,
         models,
-        root_dir=None,
         class_ids=None,
     ):
         self._models = models
-        self._root_dir = root_dir
         if class_ids is not None:
             class_ids = tuple(class_ids)
         self._class_ids = class_ids
