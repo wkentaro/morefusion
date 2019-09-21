@@ -16,7 +16,8 @@ class YCBVideoRGBDPoseEstimationDataset(RGBDPoseEstimationDatasetBase):
         split,
         class_ids=None,
     ):
-        if split != 'val':
+        assert split in ['train', 'val']
+        if split == 'train':
             self._n_points_minimal = 50
 
         super().__init__(
@@ -30,28 +31,32 @@ class YCBVideoRGBDPoseEstimationDataset(RGBDPoseEstimationDatasetBase):
         self._ids = self._get_ids()
 
     def _get_ids(self):
-        assert self.split in ['train', 'syn', 'val']
-
-        dataset = None
         if self.split == 'val':
             sampling = 1
             dataset = YCBVideoDataset(split='keyframe')
-        elif self.split == 'train':
+        else:
+            assert self.split == 'train'
             sampling = 8
             dataset = YCBVideoDataset(split='train')
+        self._dataset_real = dataset
 
-        ids = []
-        if dataset:
-            ids = [(dataset, x) for x in dataset.get_ids(sampling=sampling)]
+        ids = [f'data/{x}' for x in dataset.get_ids(sampling=sampling)]
 
-        if self.split in ['train', 'syn']:
+        if self.split == 'train':
             dataset = YCBVideoSyntheticDataset()
-            ids += [(dataset, x) for x in dataset.get_ids()]
+            ids += [f'data_syn/{x}' for x in dataset.get_ids()]
+        self._dataset_syn = dataset
 
         return tuple(ids)
 
     def get_frame(self, index):
-        dataset, image_id = self._ids[index]
+        domain_id, video_id, frame_id = self._ids[index].split('/')
+        image_id = f'{video_id}/{frame_id}'
+        if domain_id == 'data':
+            dataset = self._dataset_real
+        else:
+            assert domain_id == 'data_syn'
+            dataset = self._dataset_syn
         frame = dataset.get_frame(image_id)
         class_ids = frame['meta']['cls_indexes'].astype(np.int32)
         instance_ids = class_ids.copy()
