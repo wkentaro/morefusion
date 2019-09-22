@@ -52,13 +52,14 @@ class Model(chainer.Chain):
             # conv1
             self.conv1_rgb = L.Convolution1D(32, 64, 1)
             self.conv1_pcd = L.Convolution1D(3, 64, 1)
-            if self._with_occupancy:
-                self.conv1_occ = L.Convolution3D(1, 8, 3, 1, pad=1)
             # conv2
             self.conv2_rgb = L.Convolution1D(64, 128, 1)
             self.conv2_pcd = L.Convolution1D(64, 128, 1)
+
             if self._with_occupancy:
-                self.conv2_occ = L.Convolution3D(8, 16, 3, 1, pad=1)
+                self.conv1_occ = L.Convolution3D(1, 8, 3, 1, pad=1)
+                self.conv2_occ = L.Convolution3D(8, 16, 3, 1, pad=2, dilate=2)
+
             # conv3, conv4
             self.conv3 = L.Convolution3D(None, 512, 4, 2, pad=1)
             self.conv4 = L.Convolution3D(512, 1024, 4, 2, pad=1)
@@ -87,38 +88,28 @@ class Model(chainer.Chain):
         to_center = (self._voxel_dim / 2.0 - 0.5) - points
         batch_indices = self.xp.arange(B, dtype=np.int32).repeat(P)
         indices = points.transpose(0, 2, 1).reshape(B * P, 3)
-        if self._with_occupancy:
-            grid_nontarget_empty = grid_nontarget_empty.astype(np.float32)
-            grid_nontarget_empty = grid_nontarget_empty[:, None, :, :, :]
+
         # conv1
         h_rgb = F.relu(self.conv1_rgb(values))
         h_pcd = F.relu(self.conv1_pcd(to_center))
-        if self._with_occupancy:
-            h_occ = F.relu(self.conv1_occ(grid_nontarget_empty))
-            h_occ_feat1 = objslampp.functions.interpolate_voxel_grid(
-                h_occ, indices, batch_indices
-            )
-            h_occ_feat1 = h_occ_feat1.reshape(B, P, -1).transpose(0, 2, 1)
-            feat1 = F.concat((h_rgb, h_pcd, h_occ_feat1), axis=1)
-        else:
-            feat1 = F.concat((h_rgb, h_pcd), axis=1)
+        feat1 = F.concat((h_rgb, h_pcd), axis=1)
         # conv2
         h_rgb = F.relu(self.conv2_rgb(h_rgb))
         h_pcd = F.relu(self.conv2_pcd(h_pcd))
-        if self._with_occupancy:
-            h_occ = F.relu(self.conv2_occ(h_occ))
-            h_occ_feat2 = objslampp.functions.interpolate_voxel_grid(
-                h_occ, indices, batch_indices
-            )
-            h_occ_feat2 = h_occ_feat2.reshape(B, P, -1).transpose(0, 2, 1)
-            feat2 = F.concat((h_rgb, h_pcd, h_occ_feat2), axis=1)
-        else:
-            feat2 = F.concat((h_rgb, h_pcd), axis=1)
-        # conv3, conv4
+        feat2 = F.concat((h_rgb, h_pcd), axis=1)
         voxelized = self._voxelize(
             values=feat2.transpose(0, 2, 1),   # BCP -> BPC
             points=points.transpose(0, 2, 1),  # BCP -> BPC
         )
+
+        if self._with_occupancy:
+            grid_nontarget_empty = grid_nontarget_empty.astype(np.float32)
+            grid_nontarget_empty = grid_nontarget_empty[:, None, :, :, :]
+            h_occ = F.relu(self.conv1_occ(grid_nontarget_empty))
+            h_occ = F.relu(self.conv2_occ(h_occ))
+            voxelized = F.concat([voxelized, h_occ], axis=1)
+
+        # conv3, conv4
         h = F.relu(self.conv3(voxelized))
         assert h.shape == (B, 512, 16, 16, 16)
         feat3 = objslampp.functions.interpolate_voxel_grid(
