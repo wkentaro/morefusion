@@ -10,15 +10,13 @@ from .dataset import MySyntheticYCB20190916RGBDPoseEstimationDataset
 
 class MySyntheticYCB20190916RGBDPoseEstimationDatasetReIndexed(DatasetBase):
 
-    _root_dir = \
-        MySyntheticYCB20190916RGBDPoseEstimationDataset('train').root_dir + \
-        '.reindexed'
-
     def __init__(
         self,
         split,
         class_ids=None,
     ):
+        self._root_dir = MySyntheticYCB20190916RGBDPoseEstimationDataset('train').root_dir + '.reindexed'  # NOQA
+
         if not self.root_dir.exists():
             raise IOError(
                 f'{self.root_dir} does not exist. '
