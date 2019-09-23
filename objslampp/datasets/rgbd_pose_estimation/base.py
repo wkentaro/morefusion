@@ -4,6 +4,7 @@ import trimesh
 import trimesh.transformations as tf
 
 from ..base import DatasetBase
+from ... import extra as extra_module
 from ... import geometry as geometry_module
 from ...contrib import MultiInstanceOctreeMapping
 
@@ -94,6 +95,11 @@ class RGBDPoseEstimationDatasetBase(DatasetBase):
             pcd, instance_label, instance_ids, class_ids
         )
 
+        camera = trimesh.scene.Camera(
+            resolution=(rgb.shape[1], rgb.shape[0]),
+            focal=(K[0, 0], K[1, 1]),
+        )
+
         examples = []
         for instance_id, class_id, T_cad2cam in zip(
             instance_ids, class_ids, Ts_cad2cam
@@ -130,6 +136,16 @@ class RGBDPoseEstimationDatasetBase(DatasetBase):
                 rgb_ins, (self._image_size, self._image_size)
             )
 
+            cad_file = self._models.get_cad_file(class_id)
+            _, _, mask_rend = extra_module.pybullet.render_cad(
+                cad_file,
+                T_cad2cam,
+                fovy=camera.fov[1],
+                width=camera.resolution[0],
+                height=camera.resolution[1],
+            )
+            visibility = 1. * mask.sum() / mask_rend.sum()
+
             quaternion_true = tf.quaternion_from_matrix(T_cad2cam)
             translation_true = tf.translation_from_matrix(T_cad2cam)
 
@@ -150,6 +166,7 @@ class RGBDPoseEstimationDatasetBase(DatasetBase):
                 pcd=pcd_ins,
                 quaternion_true=quaternion_true,
                 translation_true=translation_true,
+                visibility=visibility,
                 origin=origin,
                 pitch=pitch,
                 grid_target=grid_target,
