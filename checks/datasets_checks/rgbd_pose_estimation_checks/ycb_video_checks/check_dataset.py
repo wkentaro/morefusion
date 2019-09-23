@@ -17,11 +17,10 @@ def get_scene(dataset):
     examples = dataset.get_example(index)
 
     scenes = {
-        'scene_rgb': frame['rgb'],
-        'object_rgb': None,
+        'rgb': None,
     }
 
-    vizs = []
+    vizs = [frame['rgb']]
     for i, example in enumerate(examples):
         viz = imgviz.tile([
             example['rgb'],
@@ -29,6 +28,14 @@ def get_scene(dataset):
             imgviz.depth2rgb(example['pcd'][:, :, 1]),
             imgviz.depth2rgb(example['pcd'][:, :, 2]),
         ], border=(255, 255, 255))
+        viz = imgviz.draw.text_in_rectangle(
+            viz,
+            'lt',
+            f"visibility: {example['visibility']:.0%}",
+            size=30,
+            background=(0, 255, 0),
+            color=(0, 0, 0),
+        )
         vizs.append(viz)
 
         geom = trimesh.voxel.Voxel(
@@ -82,7 +89,7 @@ def get_scene(dataset):
         scenes[f'empty_{i:04d}'].add_geometry(geom)
     viz = imgviz.tile(vizs)
 
-    scenes['object_rgb'] = viz
+    scenes['rgb'] = viz
 
     return scenes
 
