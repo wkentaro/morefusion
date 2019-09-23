@@ -7,5 +7,5 @@ if __name__ == '__main__':
         YCBVideoRGBDPoseEstimationDataset('val'),
         YCBVideoRGBDPoseEstimationDataset('train'),
     ]
-    reindexed_root_dir = datasets[0].root_dir + '.reindexed.test'
+    reindexed_root_dir = datasets[0].root_dir + '.reindexed.v2'
     reindex(reindexed_root_dir, datasets)
