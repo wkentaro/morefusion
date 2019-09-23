@@ -273,6 +273,7 @@ class Model(chainer.Chain):
         translation_true,
         pitch=None,
         origin=None,
+        grid_target=None,
         grid_nontarget_empty=None,
     ):
         B = class_id.shape[0]
@@ -305,6 +306,7 @@ class Model(chainer.Chain):
             confidence_pred=confidence_pred,
             pitch=pitch,
             origin=origin,
+            grid_target=grid_target,
             grid_nontarget_empty=grid_nontarget_empty,
         )
         return loss
@@ -364,6 +366,7 @@ class Model(chainer.Chain):
         confidence_pred,
         pitch=None,
         origin=None,
+        grid_target=None,
         grid_nontarget_empty=None,
     ):
         xp = self.xp
@@ -376,6 +379,8 @@ class Model(chainer.Chain):
             pitch = pitch.astype(np.float32)
         if origin is not None:
             origin = origin.astype(np.float32)
+        if grid_target is not None:
+            grid_target = grid_target.astype(np.float32)
         if grid_nontarget_empty is not None:
             grid_nontarget_empty = grid_nontarget_empty.astype(np.float32)
 
@@ -426,6 +431,12 @@ class Model(chainer.Chain):
                             solid_pcd, T_cad2cam_pred[i]
                         ), **kwargs
                     )
+                # give reward intersection w/ target voxels
+                intersection = F.sum(grid_target_pred * grid_target[i])
+                denominator = F.sum(grid_target[i]) + 1e-16
+                loss_i -= (
+                    self._loss_scale['occupancy'] * intersection / denominator
+                )
                 # penalize intersection w/ nontarget voxels
                 intersection = F.sum(
                     grid_target_pred * grid_nontarget_empty[i]

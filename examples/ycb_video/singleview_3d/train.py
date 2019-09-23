@@ -124,7 +124,9 @@ class Transform:
                         grid_nontarget_empty = \
                             grid_nontarget_full | grid_other_full
 
+            in_data['grid_target'] = grid_target
             in_data['grid_nontarget_empty'] = grid_nontarget_empty
+            assert in_data['grid_target'].dtype == bool
             assert in_data['grid_nontarget_empty'].dtype == bool
         else:
             in_data.pop('pitch')
