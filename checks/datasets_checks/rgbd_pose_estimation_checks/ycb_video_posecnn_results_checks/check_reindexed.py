@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import os.path as osp
+
 import imgviz
 
 import objslampp
@@ -8,24 +10,27 @@ import objslampp
 class Images:
 
     def __init__(self):
+        self._dataset_parent = objslampp.datasets.YCBVideoPoseCNNResultsRGBDPoseEstimationDataset()  # NOQA
         self._dataset = objslampp.datasets.YCBVideoPoseCNNResultsRGBDPoseEstimationDatasetReIndexed()  # NOQA
 
     def __len__(self):
         return len(self._dataset)
 
     def __getitem__(self, index):
-        dataset = self._dataset
-        example = dataset[index]
-        instance_id = dataset._ids[index]
+        example = self._dataset[index]
+        instance_id = self._dataset._ids[index]
+
         image_id = '/'.join(instance_id.split('/')[1:-1])
-        frame = objslampp.datasets.YCBVideoDataset.get_frame(image_id)
+        index_parent = self._dataset_parent._ids.index(image_id)
+        frame = self._dataset_parent.get_frame(index_parent)
+
         viz = imgviz.tile([
             example['rgb'],
             imgviz.depth2rgb(example['pcd'][:, :, 0]),
             imgviz.depth2rgb(example['pcd'][:, :, 1]),
             imgviz.depth2rgb(example['pcd'][:, :, 2]),
         ], border=(255, 255, 255))
-        viz = imgviz.tile([frame['color'], viz], (1, 2))
+        viz = imgviz.tile([frame['rgb'], viz], (1, 2))
         return viz
 
 

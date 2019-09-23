@@ -44,14 +44,8 @@ class MySyntheticYCB20190916RGBDPoseEstimationDatasetReIndexed(DatasetBase):
                 image_id_to_instance_ids[image_id].append(instance_id)
         image_id_to_instance_ids = dict(image_id_to_instance_ids)
 
-        dataset = MySyntheticYCB20190916RGBDPoseEstimationDataset(
-            split=self.split
-        )
-        image_ids = dataset._ids
-
         ids = []
-        for image_id in image_ids:
-            instance_ids = image_id_to_instance_ids[image_id]
+        for image_id, instance_ids in sorted(image_id_to_instance_ids.items()):
             for instance_id in instance_ids:
                 class_id = instance_id_to_class_id[instance_id]
                 if self._class_ids and class_id not in self._class_ids:

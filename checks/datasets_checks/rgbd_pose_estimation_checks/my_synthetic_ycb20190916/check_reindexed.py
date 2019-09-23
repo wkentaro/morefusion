@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import os.path as osp
+
 import imgviz
 
 import objslampp
@@ -8,6 +10,7 @@ import objslampp
 class Images:
 
     def __init__(self):
+        self._dataset_parent = objslampp.datasets.MySyntheticYCB20190916RGBDPoseEstimationDataset('train')
         self._dataset = objslampp.datasets.MySyntheticYCB20190916RGBDPoseEstimationDatasetReIndexed('train')  # NOQA
 
     def __len__(self):
@@ -16,6 +19,11 @@ class Images:
     def __getitem__(self, index):
         example = self._dataset[index]
         instance_id = self._dataset._ids[index]
+
+        image_id = osp.dirname(instance_id)
+        index_parent = self._dataset_parent._ids.index(image_id)
+        frame = self._dataset_parent.get_frame(index_parent)
+
         print(instance_id)
         viz = imgviz.tile([
             example['rgb'],
@@ -23,6 +31,7 @@ class Images:
             imgviz.depth2rgb(example['pcd'][:, :, 1]),
             imgviz.depth2rgb(example['pcd'][:, :, 2]),
         ], border=(255, 255, 255))
+        viz = imgviz.tile([frame['rgb'], viz], shape=(1, 2))
         return viz
 
 
