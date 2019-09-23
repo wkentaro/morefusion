@@ -106,7 +106,13 @@ class Model(chainer.Chain):
             grid_nontarget_empty = grid_nontarget_empty.astype(np.float32)
             grid_nontarget_empty = grid_nontarget_empty[:, None, :, :, :]
             h_occ = F.relu(self.conv1_occ(grid_nontarget_empty))
+            # h_occ_feat1 = objslampp.functions.interpolate_voxel_grid(
+            #     h_occ, indices, batch_indices,
+            # ).reshape(B, P, -1).transpose(0, 2, 1)
             h_occ = F.relu(self.conv2_occ(h_occ))
+            # h_occ_feat2 = objslampp.functions.interpolate_voxel_grid(
+            #     h_occ, indices, batch_indices,
+            # ).reshape(B, P, -1).transpose(0, 2, 1)
             voxelized = F.concat([voxelized, h_occ], axis=1)
 
         # conv3, conv4
