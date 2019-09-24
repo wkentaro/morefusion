@@ -50,8 +50,9 @@ class YCBVideoRGBDPoseEstimationDataset(RGBDPoseEstimationDatasetBase):
         return tuple(ids)
 
     def get_frame(self, index):
-        domain_id, video_id, frame_id = self._ids[index].split('/')
-        image_id = f'{video_id}/{frame_id}'
+        splits = self._ids[index].split('/')
+        domain_id = splits[0]
+        image_id = '/'.join(splits[1:])
         if domain_id == 'data':
             dataset = self._dataset_real
         else:
