@@ -234,8 +234,6 @@ class Model(chainer.Chain):
 
         loss = 0
         for i in range(B):
-            n_point = quaternion_pred[i].shape[0]
-
             T_cad2cam_pred = objslampp.functions.transformation_matrix(
                 quaternion_pred[i], translation_pred[i]
             )  # (M, 4, 4)
@@ -245,10 +243,12 @@ class Model(chainer.Chain):
             )  # (4, 4)
 
             class_id_i = int(class_id[i])
+            cad_pcd = self._models.get_pcd(class_id=class_id_i)
+            cad_pcd = cad_pcd[np.random.permutation(cad_pcd.shape[0])[:500]]
+            cad_pcd = xp.asarray(cad_pcd, dtype=np.float32)
+
             is_symmetric = class_id_i in \
                 objslampp.datasets.ycb_video.class_ids_symmetric
-            cad_pcd = self._models.get_pcd(class_id=class_id_i)
-            cad_pcd = xp.asarray(cad_pcd, dtype=np.float32)
             add = objslampp.functions.average_distance(
                 cad_pcd,
                 T_cad2cam_true,
