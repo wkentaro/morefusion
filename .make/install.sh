@@ -64,6 +64,10 @@ pip install -r requirements-dev.txt
 
 pip install -e .
 
+conda_check_installed cudatoolkit || conda install cudatoolkit=10.0 -c pytorch -y
+conda_check_installed pytorch || conda install pytorch -c pytorch -y
+(cd objslampp/extra/knn_cuda && python setup.py build)
+
 # ---------------------------------------------------------------------------------------
 
 echo_bold "\nAll is well! You can start using this!
