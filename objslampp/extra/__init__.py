@@ -9,3 +9,5 @@ from . import _pybullet as pybullet
 from . import _pyglet as pyglet
 
 from . import _trimesh as trimesh
+
+from . import knn_cuda
