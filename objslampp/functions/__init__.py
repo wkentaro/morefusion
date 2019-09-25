@@ -13,5 +13,4 @@ from .geometry import transformation_matrix
 from .geometry import translation_matrix
 from .geometry import truncated_distance_function
 
-from .loss import average_distance_l1
-from .loss import average_distance_l2
+from .loss import average_distance
