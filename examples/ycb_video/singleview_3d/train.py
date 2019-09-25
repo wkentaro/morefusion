@@ -391,12 +391,12 @@ def main():
         )
 
         # snapshot
-        trigger_best_add = chainer.training.triggers.MaxValueTrigger(
-            key='validation/main/auc/add',
+        trigger_best_add = chainer.training.triggers.MinValueTrigger(
+            key='validation/main/add_or_add_s',
             trigger=eval_interval,
         )
-        trigger_best_add_s = chainer.training.triggers.MaxValueTrigger(
-            key='validation/main/auc/add_s',
+        trigger_best_auc = chainer.training.triggers.MaxValueTrigger(
+            key='validation/main/auc/add_or_add_s',
             trigger=eval_interval,
         )
         trainer.extend(
@@ -411,15 +411,15 @@ def main():
         )
         trainer.extend(
             E.snapshot_object(
-                model, filename='snapshot_model_best_auc_add.npz'
+                model, filename='snapshot_model_best_add.npz'
             ),
             trigger=trigger_best_add,
         )
         trainer.extend(
             E.snapshot_object(
-                model, filename='snapshot_model_best_auc_add_s.npz'
+                model, filename='snapshot_model_best_auc.npz'
             ),
-            trigger=trigger_best_add_s,
+            trigger=trigger_best_auc,
         )
 
         # log
@@ -437,10 +437,8 @@ def main():
                     'iteration',
                     'elapsed_time',
                     'main/loss',
-                    'main/add',
-                    'main/add_s',
-                    'validation/main/auc/add',
-                    'validation/main/auc/add_s',
+                    'main/add_or_add_s',
+                    'validation/main/auc/add_or_add_s',
                 ],
                 log_report='LogTensorboardReport',
             ),
