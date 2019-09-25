@@ -395,7 +395,6 @@ class Model(chainer.Chain):
             T_cad2cam_true = objslampp.functions.transformation_matrix(
                 quaternion_true[i], translation_true[i]
             )  # (4, 4)
-            T_cad2cam_true = F.repeat(T_cad2cam_true[None], n_point, axis=0)
 
             class_id_i = int(class_id[i])
             cad_pcd = self._models.get_pcd(class_id=class_id_i)
@@ -403,7 +402,7 @@ class Model(chainer.Chain):
 
             is_symmetric = class_id_i in \
                 objslampp.datasets.ycb_video.class_ids_symmetric
-            add = objslampp.functions.average_distance_l1(
+            add = objslampp.functions.average_distance(
                 cad_pcd,
                 T_cad2cam_true,
                 T_cad2cam_pred,

@@ -38,7 +38,7 @@ def average_distance_l2(points, transform1, transform2):
     return F.mean(F.sum((points1 - points2) ** 2, axis=2), axis=1) / 2.
 
 
-def average_distance_l1(points, transform1, transform2, symmetric=False):
+def average_distance(points, transform_true, transforms_pred, symmetric=False):
     """Translation introduced pose_loss proposed in DenseFusion paper.
 
         Original pose_loss looks like below:
@@ -61,25 +61,31 @@ def average_distance_l1(points, transform1, transform2, symmetric=False):
                 1 / m \\sum_{x \\in M} | \\tilde{T}x - Tx |
 
     """
-    assert points.shape == (points.shape[0], 3)
-    batch_size = transform1.shape[0]
-    assert transform1.shape == (batch_size, 4, 4)
-    assert transform2.shape == (batch_size, 4, 4)
+    n_points = points.shape[0]
+    n_pred = transforms_pred.shape[0]
+    assert points.shape == (n_points, 3)
+    assert transform_true.shape == (4, 4)
+    assert transforms_pred.shape == (n_pred, 4, 4)
 
-    points1 = transform_points(points, transform1)
-    points2 = transform_points(points, transform2)
+    points_true = transform_points(points, transform_true)
+    points_pred = transform_points(points, transforms_pred)
+    assert points_true.shape == (n_points, 3)
+    assert points_pred.shape == (n_pred, n_points, 3)
 
     if symmetric:
-        points2_match = []
-        for i in range(batch_size):
-            points1_array = cuda.to_cpu(points1[i].array)
-            points2_array = cuda.to_cpu(points2[i].array)
-            kdtree = sklearn.neighbors.KDTree(points2_array)
-            dists, indices = kdtree.query(points1_array)
-            dists, indices = dists[:, 0], indices[:, 0]
-            points2_match.append(points2[i][indices])
-        points2_match = F.concat(points2_match, axis=0)
-        points2 = points2_match
+        points_true_array = cuda.to_cpu(points_true.array)
+        points_pred_array = cuda.to_cpu(points_pred.array)
 
-    distances = F.sqrt(F.sum((points1 - points2) ** 2, axis=2))
-    return F.mean(distances, axis=1)
+        kdtree = sklearn.neighbors.KDTree(points_true_array)
+
+        points_pred_array = points_pred_array.reshape(n_pred * n_points, 3)
+        indices = kdtree.query(points_pred_array, return_distance=False)[:, 0]
+
+        points_true = points_true[indices]
+        points_true = points_true.reshape(n_pred, n_points, 3)
+    else:
+        points_true = F.repeat(points_true[None], n_pred, axis=0)
+
+    return F.mean(
+        F.sqrt(F.sum((points_true - points_pred) ** 2, axis=2)), axis=1
+    )
