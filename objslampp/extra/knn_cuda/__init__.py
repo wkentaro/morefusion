@@ -28,7 +28,7 @@ def knn_cuda(k, ref, query):
     ref = torch.from_numpy(ref)      # batch, dim, n_points
     query = torch.from_numpy(query)  # batch, dim, n_points
     indices = knn(ref, query)
-    return indices.cpu().numpy()
+    return indices.cpu().numpy() - 1  # 1-base -> 0-base
 
 
 class TestKNearestNeighbor(unittest.TestCase):

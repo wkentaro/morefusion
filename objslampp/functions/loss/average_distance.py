@@ -3,6 +3,7 @@ import chainer.functions as F
 import sklearn.neighbors
 
 from ..geometry import transform_points
+from ... import extra as extra_module
 
 
 def average_distance_l2(points, transform1, transform2):
@@ -75,11 +76,11 @@ def average_distance(points, transform_true, transforms_pred, symmetric=False):
     if symmetric:
         points_true_array = cuda.to_cpu(points_true.array)
         points_pred_array = cuda.to_cpu(points_pred.array)
-
-        kdtree = sklearn.neighbors.KDTree(points_true_array)
-
         points_pred_array = points_pred_array.reshape(n_pred * n_points, 3)
-        indices = kdtree.query(points_pred_array, return_distance=False)[:, 0]
+
+        ref = points_true_array.transpose(1, 0)[None]
+        query = points_pred_array.transpose(1, 0)[None]
+        indices = extra_module.knn_cuda.knn_cuda(1, ref, query)[0, 0]
 
         points_true = points_true[indices]
         points_true = points_true.reshape(n_pred, n_points, 3)
