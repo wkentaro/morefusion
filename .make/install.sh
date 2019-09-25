@@ -66,7 +66,7 @@ pip install -e .
 
 conda_check_installed cudatoolkit || conda install cudatoolkit=10.0 -c pytorch -y
 conda_check_installed pytorch || conda install pytorch -c pytorch -y
-(cd objslampp/extra/knn_cuda && python setup.py build)
+(cd objslampp/extra/knn_cuda && CUDA_HOME=$ROOT/.anaconda3 python setup.py build && cp build/lib.*/knn_pytorch/*.so knn_pytorch)
 
 # ---------------------------------------------------------------------------------------
 

@@ -1,1 +1,2 @@
 /src/
+/objslampp/extra/knn_cuda/knn_pytorch/*.so
