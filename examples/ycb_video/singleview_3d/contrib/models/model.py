@@ -198,12 +198,16 @@ class Model(chainer.Chain):
                 origin[i] = center_i - pitch[i] * (self._voxel_dim / 2. - 0.5)
 
             n_point = int(mask[i].sum())
-            if n_point >= self._n_point:
-                keep = xp.random.permutation(n_point)[:self._n_point]
+            if chainer.config.train:
+                random_state = np.random.mtrand._rand
             else:
-                keep = xp.r_[
-                    xp.arange(n_point),
-                    xp.random.randint(0, n_point, self._n_point - n_point),
+                random_state = np.random.RandomState(1234)
+            if n_point >= self._n_point:
+                keep = random_state.permutation(n_point)[:self._n_point]
+            else:
+                keep = np.r_[
+                    np.arange(n_point),
+                    random_state.randint(0, n_point, self._n_point - n_point),
                 ]
             assert keep.shape == (self._n_point,)
             iy, ix = iy[keep], ix[keep]
