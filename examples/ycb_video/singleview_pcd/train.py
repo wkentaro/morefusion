@@ -183,7 +183,12 @@ def main():
         termcolor.cprint('==> Dataset size', attrs={'bold': True})
         print(f'train={len(data_train)}, val={len(data_valid)}')
     if args.multi_node:
-        data_train = chainermn.scatter_dataset(data_train, comm, shuffle=True)
+        data_train = chainermn.scatter_dataset(
+            data_train, comm, shuffle=True, seed=args.seed
+        )
+        data_valid = chainermn.scatter_dataset(
+            data_valid, comm, shuffle=False, seed=args.seed
+        )
 
     args.class_names = objslampp.datasets.ycb_video.class_names.tolist()
 
@@ -249,6 +254,24 @@ def main():
     )
     trainer.extend(E.FailOnNonNumber())
 
+    log_interval = 10, 'iteration'
+    eval_interval = 0.25, 'epoch'
+
+    # evaluate
+    evaluator = objslampp.training.extensions.PoseEstimationEvaluator(
+        iterator=iter_valid,
+        target=model,
+        device=device,
+        progress_bar=True,
+    )
+    if args.multi_node:
+        evaluator.comm = comm
+    trainer.extend(
+        evaluator,
+        trigger=eval_interval,
+        call_before_training=args.call_evaluation_before_training,
+    )
+
     if not args.multi_node or comm.rank == 0:
         # print arguments
         msg = pprint.pformat(args.__dict__)
@@ -259,22 +282,6 @@ def main():
         trainer.extend(
             objslampp.training.extensions.ArgsReport(args),
             call_before_training=True,
-        )
-
-        log_interval = 10, 'iteration'
-        eval_interval = 0.25, 'epoch'
-
-        # evaluate
-        evaluator = objslampp.training.extensions.PoseEstimationEvaluator(
-            iterator=iter_valid,
-            target=model,
-            device=device,
-            progress_bar=True,
-        )
-        trainer.extend(
-            evaluator,
-            trigger=eval_interval,
-            call_before_training=args.call_evaluation_before_training,
         )
 
         # snapshot

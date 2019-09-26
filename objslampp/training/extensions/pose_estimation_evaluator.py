@@ -9,11 +9,22 @@ from chainer import function
 from chainer.training.extensions import util
 import chainer.reporter as reporter_module
 import numpy as np
+import pandas
 
 from ... import metrics
 
 
 class PoseEstimationEvaluator(chainer.training.extensions.Evaluator):
+
+    @property
+    def comm(self):
+        if not hasattr(self, '_comm'):
+            self._comm = None
+        return self._comm
+
+    @comm.setter
+    def comm(self, value):
+        self._comm = value
 
     def evaluate(self):
         iterator = self._iterators['main']
@@ -33,12 +44,10 @@ class PoseEstimationEvaluator(chainer.training.extensions.Evaluator):
                 DeprecationWarning)
             it = copy.copy(iterator)
 
-        summary = reporter_module.DictSummary()
-
-        if self._progress_bar:
+        if self._progress_bar and self.comm is None or self.comm.rank == 0:
             pbar = util.IteratorProgressBar(iterator=it, title='validation ')
 
-        adds = collections.defaultdict(list)
+        observations = []
         for batch in it:
             observation = {}
             with reporter_module.report_scope(observation):
@@ -50,6 +59,35 @@ class PoseEstimationEvaluator(chainer.training.extensions.Evaluator):
                         eval_func(**in_arrays)
                     else:
                         eval_func(in_arrays)
+
+            for k, v in list(observation.items()):
+                if hasattr(v, 'array'):
+                    v = chainer.cuda.to_cpu(v.array)
+                if hasattr(v, 'item'):
+                    v = v.item()
+                observation[k] = v
+            observations.append(observation)
+
+            if self._progress_bar and self.comm is None or self.comm.rank == 0:
+                pbar.update()
+
+        if self._progress_bar and self.comm is None or self.comm.rank == 0:
+            pbar.close()
+
+        local_df = pandas.DataFrame(observations)
+        if self.comm:
+            dfs = self.comm.gather_obj(local_df)
+            if self.comm.rank == 0:
+                global_df = pandas.concat(dfs, sort=True)
+            else:
+                return {}
+        else:
+            global_df = local_df
+
+        summary = reporter_module.DictSummary()
+        adds = collections.defaultdict(list)
+        for _, row in global_df.iterrows():
+            observation = row.dropna().to_dict()
 
             observation_processed = {}
             add_types = ['add', 'add_s', 'add_or_add_s']
@@ -66,13 +104,6 @@ class PoseEstimationEvaluator(chainer.training.extensions.Evaluator):
                     break
                 observation_processed[key] = value
             summary.add(observation_processed)
-
-            if self._progress_bar:
-                pbar.update()
-
-        if self._progress_bar:
-            pbar.close()
-
         result = summary.compute_mean()
 
         # compute auc for adds
