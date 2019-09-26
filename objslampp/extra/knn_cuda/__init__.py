@@ -6,13 +6,13 @@ import torch
 from torch.autograd import Variable, Function
 from .knn_pytorch import knn_pytorch
 
-class KNearestNeighbor(Function):
+class KNearestNeighbor:
   """ Compute k nearest neighbors for each query point.
   """
   def __init__(self, k):
     self.k = k
 
-  def forward(self, ref, query):
+  def __call__(self, ref, query):
     ref = ref.float().cuda()
     query = query.float().cuda()
 
