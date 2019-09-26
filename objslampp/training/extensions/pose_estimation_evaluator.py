@@ -56,7 +56,7 @@ class PoseEstimationEvaluator(chainer.training.extensions.Evaluator):
             for key, value in observation.items():
                 for add_type in add_types:
                     # validation/main/{add_type}/{class_id}/{instance_id}
-                    pattern = f'validation/main/{add_type}/([0-9]+)/[0-9]+'
+                    pattern = f'validation/main/{add_type}/([0-9]+)/.+'
                     match = re.match(pattern, key)
                     if not match:
                         continue

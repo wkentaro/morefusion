@@ -1,3 +1,5 @@
+import uuid
+
 import chainer
 from chainer.backends import cuda
 import chainer.functions as F
@@ -218,10 +220,12 @@ class Model(chainer.Chain):
                     f'add_or_add_s': add_or_add_s,
                 })
             else:
+                instance_id_i = uuid.uuid1()
                 summary.add({
-                    f'add/{class_id_i:04d}/{i:04d}': add,
-                    f'add_s/{class_id_i:04d}/{i:04d}': add_s,
-                    f'add_or_add_s/{class_id_i:04d}/{i:04d}': add_or_add_s,
+                    f'add/{class_id_i:04d}/{instance_id_i}': add,
+                    f'add_s/{class_id_i:04d}/{instance_id_i}': add_s,
+                    f'add_or_add_s/{class_id_i:04d}/{instance_id_i}':
+                        add_or_add_s,
                 })
         chainer.report(summary.compute_mean(), self)
 
