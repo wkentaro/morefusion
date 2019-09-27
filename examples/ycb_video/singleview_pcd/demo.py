@@ -18,7 +18,8 @@ import objslampp
 
 import contrib
 
-from train import Transform
+# from train import Transform
+from train import transform
 
 
 def main():
@@ -41,9 +42,10 @@ def main():
     model = contrib.models.Model(
         n_fg_class=len(args_data['class_names'][1:]),
         pretrained_resnet18=args_data['pretrained_resnet18'],
-        with_occupancy=args_data['with_occupancy'],
-        loss=args_data['loss'],
-        loss_scale=args_data['loss_scale'],
+        centerize_pcd=args_data['centerize_pcd'],
+        # with_occupancy=args_data['with_occupancy'],
+        # loss=args_data['loss'],
+        # loss_scale=args_data['loss_scale'],
     )
     if args.gpu >= 0:
         model.to_gpu()
@@ -58,10 +60,10 @@ def main():
         split=split,
         class_ids=args_data['class_ids'],
     )
-    transform = Transform(
-        train=False,
-        with_occupancy=args_data['with_occupancy'],
-    )
+    # transform = Transform(
+    #     train=False,
+    #     with_occupancy=args_data['with_occupancy'],
+    # )
 
     pprint.pprint(args.__dict__)
 
@@ -86,9 +88,9 @@ def main():
                 class_id=inputs['class_id'],
                 rgb=inputs['rgb'],
                 pcd=inputs['pcd'],
-                pitch=inputs.get('pitch'),
-                origin=inputs.get('origin'),
-                grid_nontarget_empty=inputs.get('grid_nontarget_empty'),
+                # pitch=inputs.get('pitch'),
+                # origin=inputs.get('origin'),
+                # grid_nontarget_empty=inputs.get('grid_nontarget_empty'),
             )
 
             indices = model.xp.argmax(confidence_pred.array, axis=1)
@@ -211,7 +213,7 @@ def main():
                 viz = imgviz.draw.text_in_rectangle(
                     viz,
                     loc='rt',
-                    text='singleview_3d',
+                    text='singleview_pcd',
                     size=20,
                     background=(255, 0, 0),
                     color=(0, 0, 0),
