@@ -34,6 +34,15 @@ class YCBVideoRGBDPoseEstimationDatasetReIndexed(DatasetBase):
 
         self._ids = self._get_ids()
 
+    def get_indices_from_image_id(self, image_id):
+        indices = []
+        for id in self._image_id_to_instance_ids[image_id]:
+            try:
+                indices.append(self._ids.index(id))
+            except ValueError:
+                pass
+        return indices
+
     def _get_ids(self):
         assert self.split in ['train', 'syn', 'val']
 
@@ -66,6 +75,7 @@ class YCBVideoRGBDPoseEstimationDatasetReIndexed(DatasetBase):
                     continue
                 ids.append(instance_id)
 
+        self._image_id_to_instance_ids = image_id_to_instance_ids
         return ids
 
     def get_example(self, index):
