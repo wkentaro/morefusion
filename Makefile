@@ -12,7 +12,10 @@ install_v-hacd: install_anaconda3
 install_binvox: install_anaconda3
 	@.make/install_binvox.sh
 
-install: install_anaconda3 install_v-hacd install_binvox
+install_openni2:
+	@.make/install_openni2.sh
+
+install: install_anaconda3 install_v-hacd install_binvox install_openni2
 	@.make/install.sh
 
 lint:
