@@ -6,6 +6,7 @@ from topic_tools import LazyTransport
 from sensor_msgs.msg import Image
 
 from chainercv.links.model.fpn import MaskRCNNFPNResNet50
+import gdown
 import imgviz
 import numpy as np
 import objslampp
@@ -18,9 +19,13 @@ class MaskRCNNInstanceSegmentationNode(LazyTransport):
 
         self._class_names = objslampp.datasets.ycb_video.class_names
 
+        pretrained_model = gdown.cached_download(
+            url='https://drive.google.com/uc?id=1Ge2S9JudxC5ODdsrjOy5XoW7l7Zcz65E',  # NOQA
+            md5='fc06b1292a7e99f9c1deb063accbf7ea',
+        )
         self._model = MaskRCNNFPNResNet50(
             n_fg_class=len(self._class_names[1:]),
-            pretrained_model='/home/wkentaro/objslampp/examples/ycb_video/instance_segm/logs/20190518_071729/model_iter_best',  # NOQA
+            pretrained_model=pretrained_model,
         )
         self._model.to_gpu()
 
