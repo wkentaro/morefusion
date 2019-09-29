@@ -8,8 +8,8 @@ import rospy
 
 
 bag_file = gdown.cached_download(
-    url='https://drive.google.com/uc?id=1aEs_iacrwJovvR_Lf5i_g1tYp9o2-kuY',
-    md5='46dc287140f00d56e79509e192eddf15',
+    url='https://drive.google.com/uc?id=1UgiBF9QLKYFkqr6DsSbozHFjdWoUnWBK',
+    md5='a8f99e911d59deb235fcc1a56bef57e1',
 )
 print(bag_file)
 
