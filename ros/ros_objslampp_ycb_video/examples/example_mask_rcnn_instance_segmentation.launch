@@ -1,0 +1,21 @@
+<launch>
+
+  <include file="$(find ros_objslampp_ycb_video)/launch/rosbag_play_rs_rgbd.launch">
+  </include>
+
+  <group ns="/camera">
+    <node name="mask_rcnn_instance_segmentation"
+          pkg="ros_objslampp_ycb_video" type="mask_rcnn_instance_segmentation.py"
+          clear_params="true">
+      <remap from="~input" to="color/image_rect_color" />
+    </node>
+    <group ns="mask_rcnn_instance_segmentation">
+      <node name="image_view"
+            pkg="image_view" type="image_view"
+            clear_params="true">
+        <remap from="image" to="output" />
+      </node>
+    </group>
+  </group>
+
+</launch>
