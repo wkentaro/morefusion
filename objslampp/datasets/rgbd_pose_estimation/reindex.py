@@ -2,6 +2,7 @@ import json
 
 import concurrent.futures
 import numpy as np
+import path
 import pybullet  # NOQA
 import tqdm
 
@@ -41,5 +42,5 @@ def reindex(reindexed_root_dir: str, datasets: list):
             for id, meta in future.result().items():
                 id_to_meta[id] = meta
 
-    with open(reindexed_root_dir / 'meta.json', 'w') as f:
+    with open(path.Path(reindexed_root_dir) / 'meta.json', 'w') as f:
         json.dump(id_to_meta, f, indent=4)
