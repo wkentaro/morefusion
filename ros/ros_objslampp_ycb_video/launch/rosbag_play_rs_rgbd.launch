@@ -9,13 +9,13 @@
   </node>
 
   <group ns="/camera/color">
-    <node name="republish"
-          pkg="image_transport" type="republish"
-          clear_params="true"
-          args="compressed">
-      <remap from="in" to="image_rect_color" />
-      <remap from="out" to="image_rect_color" />
-    </node>
+    <!-- <node name="republish" -->
+    <!--       pkg="image_transport" type="republish" -->
+    <!--       clear_params="true" -->
+    <!--       args="compressed"> -->
+    <!--   <remap from="in" to="image_rect_color" /> -->
+    <!--   <remap from="out" to="image_rect_color" /> -->
+    <!-- </node> -->
     <node name="image_view"
           pkg="image_view" type="image_view"
           clear_params="true">
@@ -24,13 +24,13 @@
   </group>
 
   <group ns="/camera/aligned_depth_to_color">
-    <node name="republish"
-          pkg="image_transport" type="republish"
-          clear_params="true"
-          args="compressedDepth">
-      <remap from="in" to="image_raw" />
-      <remap from="out" to="image_raw" />
-    </node>
+    <!-- <node name="republish" -->
+    <!--       pkg="image_transport" type="republish" -->
+    <!--       clear_params="true" -->
+    <!--       args="compressedDepth"> -->
+    <!--   <remap from="in" to="image_raw" /> -->
+    <!--   <remap from="out" to="image_raw" /> -->
+    <!-- </node> -->
     <node name="image_view"
           pkg="image_view" type="image_view"
           clear_params="true">
