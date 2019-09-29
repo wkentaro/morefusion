@@ -29,7 +29,13 @@ class MaskRCNNInstanceSegmentationNode(LazyTransport):
         )
         self._model.to_gpu()
 
-        self._pub = self.advertise('~output', Image, queue_size=1)
+        self._pub_ins = self.advertise(
+            '~output/label_ins', Image, queue_size=1
+        )
+        self._pub_cls = self.advertise(
+            '~output/label_cls', Image, queue_size=1
+        )
+        self._pub_viz = self.advertise('~output/viz', Image, queue_size=1)
 
     def subscribe(self):
         self._sub = rospy.Subscriber('~input', Image, callback=self.callback,
@@ -57,21 +63,37 @@ class MaskRCNNInstanceSegmentationNode(LazyTransport):
 
         class_ids = labels + 1
 
-        captions = [
-            f'{self._class_names[cid]}: {conf:.1%}'
-            for cid, conf in zip(class_ids, confs)
-        ]
-        viz = imgviz.instances.instances2rgb(
-            image=rgb,
-            masks=masks,
-            labels=class_ids,
-            captions=captions,
-            font_size=15,
-        )
+        label_ins = np.full(rgb.shape[:2], -1, dtype=np.int32)
+        label_cls = np.zeros(rgb.shape[:2], dtype=np.int32)
+        sort = np.argsort(confs)
+        for ins_id, (cls_id, mask) in enumerate(
+            zip(class_ids[sort], masks[sort])
+        ):
+            label_ins[mask] = ins_id
+            label_cls[mask] = cls_id
 
-        outmsg = bridge.cv2_to_imgmsg(viz, encoding='rgb8')
+        outmsg = bridge.cv2_to_imgmsg(label_ins)
         outmsg.header = imgmsg.header
-        self._pub.publish(outmsg)
+        self._pub_ins.publish(outmsg)
+        outmsg = bridge.cv2_to_imgmsg(label_cls)
+        outmsg.header = imgmsg.header
+        self._pub_cls.publish(outmsg)
+
+        if self._pub_viz.get_num_connections() > 0:
+            captions = [
+                f'{self._class_names[cid]}: {conf:.1%}'
+                for cid, conf in zip(class_ids, confs)
+            ]
+            viz = imgviz.instances.instances2rgb(
+                image=rgb,
+                masks=masks,
+                labels=class_ids,
+                captions=captions,
+                font_size=15,
+            )
+            outmsg = bridge.cv2_to_imgmsg(viz, encoding='rgb8')
+            outmsg.header = imgmsg.header
+            self._pub_viz.publish(outmsg)
 
 
 if __name__ == '__main__':
