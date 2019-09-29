@@ -4,7 +4,6 @@ import glob
 import os
 
 import torch
-from setuptools import find_packages
 from setuptools import setup
 from torch.utils.cpp_extension import CUDA_HOME
 from torch.utils.cpp_extension import CppExtension

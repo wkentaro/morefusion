@@ -1,6 +1,5 @@
 from chainer.backends import cuda
 import chainer.functions as F
-import sklearn.neighbors
 
 from ..geometry import transform_points
 from ... import extra as extra_module
