@@ -8,7 +8,7 @@ import objslampp
 class Images:
 
     dataset = objslampp.datasets.MySyntheticYCB20190916InstanceSegmentationDataset(  # NOQA
-        'train'
+        'train', add_background=True
     )
 
     def __len__(self):
