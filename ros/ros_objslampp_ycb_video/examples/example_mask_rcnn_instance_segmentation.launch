@@ -1,6 +1,9 @@
 <launch>
 
+  <arg name="PLAY_ROSBAG" default="true" />
+
   <include file="$(find ros_objslampp_ycb_video)/launch/rosbag_play_rs_rgbd.launch">
+    <arg name="PLAY_ROSBAG" value="$(arg PLAY_ROSBAG)" />
   </include>
 
   <group ns="/camera">
