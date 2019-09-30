@@ -53,18 +53,18 @@ class Model(chainer.Chain):
 
             # conv1
             self.conv1_rgb = L.Convolution1D(32, 64, 1)
-            self.conv1_pcd = L.Convolution1D(3, 64, 1)
+            self.conv1_pcd = L.Convolution1D(3, 8, 1)
             # conv2
             self.conv2_rgb = L.Convolution1D(64, 128, 1)
-            self.conv2_pcd = L.Convolution1D(64, 128, 1)
+            self.conv2_pcd = L.Convolution1D(8, 16, 1)
 
             if self._with_occupancy:
                 self.conv1_occ = L.Convolution3D(1, 8, 3, 1, pad=1)
                 self.conv2_occ = L.Convolution3D(8, 16, 3, 1, pad=2, dilate=2)
 
             # conv3, conv4
-            self.conv3 = L.Convolution3D(None, 512, 4, 2, pad=1)
-            self.conv4 = L.Convolution3D(512, 1024, 4, 2, pad=1)
+            self.conv3 = L.Convolution3D(None, 256, 4, 2, pad=1)
+            self.conv4 = L.Convolution3D(256, 512, 4, 2, pad=1)
 
             # conv1
             self.conv1_rot = L.Convolution1D(None, 640, 1)
@@ -119,13 +119,13 @@ class Model(chainer.Chain):
 
         # conv3, conv4
         h = F.relu(self.conv3(voxelized))
-        assert h.shape == (B, 512, 16, 16, 16)
+        assert h.shape == (B, 256, 16, 16, 16)
         feat3 = objslampp.functions.interpolate_voxel_grid(
             h, indices / 2.0, batch_indices
         )
         feat3 = feat3.reshape(B, P, h.shape[1]).transpose(0, 2, 1)
         h = F.relu(self.conv4(h))
-        assert h.shape == (B, 1024, 8, 8, 8)
+        assert h.shape == (B, 512, 8, 8, 8)
         feat4 = objslampp.functions.interpolate_voxel_grid(
             h, indices / 4.0, batch_indices
         )
