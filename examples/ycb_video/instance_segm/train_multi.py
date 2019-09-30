@@ -18,7 +18,6 @@ import chainermn
 from chainercv.chainer_experimental.training.extensions import make_shift
 
 from chainercv.extensions import InstanceSegmentationCOCOEvaluator
-from chainercv.links import MaskRCNNFPNResNet101
 from chainercv.links import MaskRCNNFPNResNet50
 
 from chainercv.links.model.fpn import bbox_head_loss_post
@@ -45,6 +44,9 @@ try:
     cv2.setNumThreads(0)
 except ImportError:
     pass
+
+
+chainer.config.cv_resize_backend = 'cv2'
 
 
 class TrainChain(chainer.Chain):
@@ -166,15 +168,24 @@ def transform_dataset(dataset, model, train):
     return TransformDataset(dataset, transform)
 
 
+def _copyparams(dst, src):
+    if isinstance(dst, chainer.Chain):
+        for link in dst.children():
+            _copyparams(link, src[link.name])
+    elif isinstance(dst, chainer.ChainList):
+        for i, link in enumerate(dst):
+            _copyparams(link, src[i])
+    else:
+        try:
+            dst.copyparams(src)
+        except ValueError:
+            pass
+
+
 def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument(
-        '--model',
-        choices=('mask_rcnn_fpn_resnet50', 'mask_rcnn_fpn_resnet101'),
-        default='mask_rcnn_fpn_resnet50',
-        help='model')
     parser.add_argument('--batchsize', type=int, default=16, help='batch size')
     parser.add_argument('--out', default='logs', help='logs')
     parser.add_argument('--resume', help='resume')
@@ -192,14 +203,11 @@ def main():
 
     class_names = objslampp.datasets.ycb_video.class_names
     fg_class_names = class_names[1:]
-    if args.model == 'mask_rcnn_fpn_resnet50':
-        model = MaskRCNNFPNResNet50(
-            n_fg_class=len(fg_class_names),
-            pretrained_model='imagenet')
-    elif args.model == 'mask_rcnn_fpn_resnet101':
-        model = MaskRCNNFPNResNet101(
-            n_fg_class=len(fg_class_names),
-            pretrained_model='imagenet')
+    model = MaskRCNNFPNResNet50(
+        n_fg_class=len(fg_class_names),
+        pretrained_model='imagenet')
+    model_coco = MaskRCNNFPNResNet50(pretrained_model='coco')
+    _copyparams(model, model_coco)
 
     model.use_preset('evaluate')
     train_chain = TrainChain(model)
