@@ -1,6 +1,7 @@
 <launch>
 
   <arg name="PLAY_ROSBAG" default="true" />
+  <arg name="GUI" default="true" />
 
   <group if="$(arg PLAY_ROSBAG)">
     <param name="/use_sim_time" value="true" />
@@ -17,6 +18,9 @@
           pkg="image_view" type="image_view"
           clear_params="true">
       <remap from="image" to="image_rect_color" />
+      <rosparam subst_value="true">
+        gui: $(arg GUI)
+      </rosparam>
     </node>
   </group>
 
@@ -28,6 +32,7 @@
       <rosparam subst_value="true">
         colormap: 2
         do_dynamic_scaling: true
+        gui: $(arg GUI)
       </rosparam>
     </node>
   </group>

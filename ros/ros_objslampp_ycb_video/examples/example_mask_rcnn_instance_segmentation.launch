@@ -1,9 +1,11 @@
 <launch>
 
   <arg name="PLAY_ROSBAG" default="true" />
+  <arg name="GUI" default="true" />
 
   <include file="$(find ros_objslampp_ycb_video)/launch/rosbag_play_rs_rgbd.launch">
     <arg name="PLAY_ROSBAG" value="$(arg PLAY_ROSBAG)" />
+    <arg name="GUI" value="$(arg GUI)" />
   </include>
 
   <group ns="/camera">
@@ -17,6 +19,9 @@
             pkg="image_view" type="image_view"
             clear_params="true">
         <remap from="image" to="output/viz" />
+        <rosparam subst_value="true">
+          gui: $(arg GUI)
+        </rosparam>
       </node>
     </group>
   </group>
