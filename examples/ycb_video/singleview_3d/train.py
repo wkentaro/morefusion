@@ -153,11 +153,10 @@ def main():
     parser.add_argument('--gpu', type=int, default=0, help='gpu id')
     parser.add_argument('--seed', type=int, default=0, help='random seed')
     parser.add_argument(
-        '--augmentation',
-        nargs='*',
-        default=None,
-        choices=['rgb', 'depth'],
-        help='augmentation',
+        '--dataset',
+        choices=['ycb_video', 'ycb_video+my_syn+aug'],
+        default='ycb_video',
+        help='dataset',
     )
     parser.add_argument(
         '--lr',
@@ -192,11 +191,6 @@ def main():
         action='store_true',
         help='with occupancy',
     )
-    # parser.add_argument(
-    #     '--with-count',
-    #     action='store_true',
-    #     help='with count',
-    # )
     parser.add_argument(
         '--note',
         help='note',
@@ -270,15 +264,33 @@ def main():
     data_train = None
     data_valid = None
     if not args.multi_node or comm.rank == 0:
-        data_train = objslampp.datasets.YCBVideoRGBDPoseEstimationDatasetReIndexed(  # NOQA
-            'train',
-            class_ids=args.class_ids,
-        )
-
-        if data_valid is None:
+        if args.dataset == 'ycb_video':
+            data_train = objslampp.datasets.YCBVideoRGBDPoseEstimationDatasetReIndexed(  # NOQA
+                'train', class_ids=args.class_ids
+            )
             data_valid = objslampp.datasets.YCBVideoRGBDPoseEstimationDatasetReIndexed(  # NOQA
-                'val',
-                class_ids=args.class_ids,
+                'val', class_ids=args.class_ids
+            )
+        else:
+            assert args.dataset == 'ycb_video+my_syn+aug'
+            data_ycb_trainreal = objslampp.datasets.YCBVideoRGBDPoseEstimationDatasetReIndexed(  # NOQA
+                'trainreal', class_ids=args.class_ids, augmentation=True
+            )
+            data_ycb_syn = objslampp.datasets.YCBVideoRGBDPoseEstimationDatasetReIndexed(  # NOQA
+                'syn', class_ids=args.class_ids, augmentation=True
+            )
+            data_ycb_syn, _ = chainer.datasets.split_dataset(
+                data_ycb_syn, len(data_ycb_trainreal)
+            )
+            data_train = chainer.datasets.ConcatenatedDataset(
+                data_ycb_trainreal,
+                data_ycb_syn,
+                objslampp.datasets.MySyntheticYCB20190916RGBDPoseEstimationDatasetReIndexed(  # NOQA
+                    'train', class_ids=args.class_ids, augmentation=True
+                ),
+            )
+            data_valid = objslampp.datasets.YCBVideoRGBDPoseEstimationDatasetReIndexed(  # NOQA
+                'val', class_ids=args.class_ids
             )
 
         data_train = chainer.datasets.TransformDataset(
