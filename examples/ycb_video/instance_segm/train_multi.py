@@ -3,7 +3,6 @@ from __future__ import division
 import argparse
 import multiprocessing
 import numpy as np
-import PIL
 
 import chainer
 from chainer.datasets import TransformDataset
@@ -17,8 +16,6 @@ from chainer.training import extensions
 import chainermn
 
 from chainercv.chainer_experimental.training.extensions import make_shift
-from chainercv.links.model.fpn.misc import scale_img
-from chainercv import transforms
 
 from chainercv.extensions import InstanceSegmentationCOCOEvaluator
 from chainercv.links import MaskRCNNFPNResNet101
@@ -32,11 +29,13 @@ from chainercv.links.model.fpn import rpn_loss
 
 import objslampp
 
+from transforms import Affine
 from transforms import AsType
 from transforms import ClassIds2FGClassIds
 from transforms import Compose
 from transforms import Dict2Tuple
 from transforms import HWC2CHW
+from transforms import MaskRCNNTransform
 from transforms import RGBAugmentation
 
 
@@ -135,58 +134,56 @@ class TrainChain(chainer.Chain):
         return loss
 
 
-class Transform(object):
-
-    def __init__(self, min_size, max_size, mean):
-        self.min_size = min_size
-        self.max_size = max_size
-        self.mean = mean
-
-    def __call__(self, in_data):
-        if len(in_data) == 4:
-            img, mask, label, bbox = in_data
-        else:
-            img, bbox, label = in_data
-        # Flipping
-        img, params = transforms.random_flip(
-            img, x_random=True, return_param=True)
-        x_flip = params['x_flip']
-        bbox = transforms.flip_bbox(
-            bbox, img.shape[1:], x_flip=x_flip)
-
-        # Scaling and mean subtraction
-        img, scale = scale_img(
-            img, self.min_size, self.max_size)
-        img -= self.mean
-        bbox = bbox * scale
-
-        if len(in_data) == 4:
-            mask = transforms.flip(mask, x_flip=x_flip)
-            mask = transforms.resize(
-                mask.astype(np.float32),
-                img.shape[1:],
-                interpolation=PIL.Image.NEAREST).astype(np.bool)
-            return img, bbox, label, mask
-        else:
-            return img, bbox, label
-
-
 def converter(batch, device=None):
     # do not send data to gpu (device is ignored)
     return tuple(list(v) for v in zip(*batch))
 
 
+def transform_dataset(dataset, model, train):
+    if train:
+        transform = Compose(
+            RGBAugmentation(['rgb']),
+            Affine(
+                rgb_indices=['rgb'],
+                mask_indices=['masks'],
+                bbox_indices=['bboxes'],
+            ),
+            ClassIds2FGClassIds(['labels']),
+            AsType(['rgb', 'labels', 'bboxes'],
+                   [np.float32, np.int32, np.float32]),
+            HWC2CHW(['rgb']),
+            Dict2Tuple(['rgb', 'masks', 'labels', 'bboxes']),
+            MaskRCNNTransform(800, 1333, model.extractor.mean),
+        )
+    else:
+        transform = Compose(
+            ClassIds2FGClassIds(['labels']),
+            AsType(['rgb', 'labels', 'bboxes'],
+                   [np.float32, np.int32, np.float32]),
+            HWC2CHW(['rgb']),
+            Dict2Tuple(['rgb', 'masks', 'labels']),
+        )
+    return TransformDataset(dataset, transform)
+
+
 def main():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
     parser.add_argument(
         '--model',
         choices=('mask_rcnn_fpn_resnet50', 'mask_rcnn_fpn_resnet101'),
-        default='mask_rcnn_fpn_resnet50')
-    parser.add_argument('--batchsize', type=int, default=16)
-    parser.add_argument('--iteration', type=int, default=90000)
-    parser.add_argument('--step', type=int, nargs='*', default=[60000, 80000])
-    parser.add_argument('--out', default='result')
-    parser.add_argument('--resume')
+        default='mask_rcnn_fpn_resnet50',
+        help='model')
+    parser.add_argument('--batchsize', type=int, default=16, help='batch size')
+    parser.add_argument(
+        '--iteration', type=int, default=90000, help='iteration'
+    )
+    parser.add_argument(
+        '--step', type=int, nargs='*', default=[60000, 80000], help='step'
+    )
+    parser.add_argument('--out', default='logs', help='logs')
+    parser.add_argument('--resume', help='resume')
     args = parser.parse_args()
 
     # https://docs.chainer.org/en/stable/chainermn/tutorial/tips_faqs.html#using-multiprocessiterator
@@ -222,27 +219,11 @@ def main():
             ),
             objslampp.datasets.YCBVideoSyntheticInstanceSegmentationDataset(),
         )
-        transform = Compose(
-            RGBAugmentation(['rgb']),
-            ClassIds2FGClassIds(['labels']),
-            AsType(['rgb', 'labels', 'bboxes'],
-                   [np.float32, np.int32, np.float32]),
-            HWC2CHW(['rgb']),
-            Dict2Tuple(['rgb', 'masks', 'labels', 'bboxes']),
-            Transform(800, 1333, model.extractor.mean),
-        )
-        train = TransformDataset(train, transform)
+        train = transform_dataset(train, model, train=True)
         val = objslampp.datasets.YCBVideoInstanceSegmentationDataset(
-            split='val', sampling=15
+            split='keyframe', sampling=1
         )
-        transform = Compose(
-            ClassIds2FGClassIds(['labels']),
-            AsType(['rgb', 'labels', 'bboxes'],
-                   [np.float32, np.int32, np.float32]),
-            HWC2CHW(['rgb']),
-            Dict2Tuple(['rgb', 'masks', 'labels']),
-        )
-        val = TransformDataset(val, transform)
+        val = transform_dataset(val, model, train=False)
     else:
         train = None
         val = None

@@ -1,6 +1,10 @@
 import abc
 
+import chainercv
+import imgaug
 import imgaug.augmenters as iaa
+import numpy as np
+import PIL.Image
 
 
 class InDataMutatingTransform(abc.ABC):
@@ -75,6 +79,44 @@ class Compose:
         return in_data
 
 
+class Affine(InDataMutatingTransform):
+
+    def __init__(self, rgb_indices, mask_indices, bbox_indices):
+        self._rgb_indices = rgb_indices
+        self._mask_indices = mask_indices
+        self._bbox_indices = bbox_indices
+
+    def transform(self, in_data):
+        augmenter = iaa.AffineCv2(
+            translate_percent=(-0.4, 0.4),
+            rotate=(-180, 180),
+            shear=(-15, 15),
+        )
+
+        augmenter = augmenter.to_deterministic()
+        shape = None
+        for index in self._rgb_indices:
+            if shape is None:
+                shape = in_data[index].shape[:2]
+            assert shape == in_data[index].shape[:2]
+            in_data[index] = augmenter.augment_image(in_data[index])
+        for index in self._mask_indices:
+            masks = in_data[index].astype(np.uint8)
+            masks = np.array([augmenter.augment_image(m) for m in masks])
+            in_data[index] = masks.astype(bool)
+        for index in self._bbox_indices:
+            bbox_on_img = imgaug.BoundingBoxesOnImage([
+                imgaug.BoundingBox(x1, y1, x2, y2)
+                for y1, x1, y2, x2 in in_data[index]
+            ], shape)
+            bbox_on_img = augmenter.augment_bounding_boxes(bbox_on_img)
+            bboxes = []
+            for bbox in bbox_on_img.bounding_boxes:
+                bboxes.append([bbox.y1, bbox.x1, bbox.y2, bbox.x2])
+            bboxes = np.array(bboxes, dtype=in_data[index].dtype)
+            in_data[index] = bboxes
+
+
 class RGBAugmentation(InDataMutatingTransform):
 
     def __init__(self, indices):
@@ -103,5 +145,28 @@ class RGBAugmentation(InDataMutatingTransform):
             iaa.KeepSizeByResize(children=iaa.Resize((0.25, 1.0))),
         ])
 
+        augmenter = augmenter.to_deterministic()
         for index in self._indices:
             in_data[index] = augmenter.augment_image(in_data[index])
+
+
+class MaskRCNNTransform(object):
+
+    def __init__(self, min_size, max_size, mean):
+        self.min_size = min_size
+        self.max_size = max_size
+        self.mean = mean
+
+    def __call__(self, in_data):
+        img, mask, label, bbox = in_data
+
+        # Scaling and mean subtraction
+        img, scale = chainercv.links.model.fpn.misc.scale_img(
+            img, self.min_size, self.max_size)
+        img -= self.mean
+        bbox = bbox * scale
+        mask = chainercv.transforms.resize(
+            mask.astype(np.float32),
+            img.shape[1:],
+            interpolation=PIL.Image.NEAREST).astype(np.bool)
+        return img, bbox, label, mask
