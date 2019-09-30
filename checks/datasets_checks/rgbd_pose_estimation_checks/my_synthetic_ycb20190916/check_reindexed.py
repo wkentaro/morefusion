@@ -11,7 +11,7 @@ class Images:
 
     def __init__(self):
         self._dataset_parent = objslampp.datasets.MySyntheticYCB20190916RGBDPoseEstimationDataset('train')  # NOQA
-        self._dataset = objslampp.datasets.MySyntheticYCB20190916RGBDPoseEstimationDatasetReIndexed('train')  # NOQA
+        self._dataset = objslampp.datasets.MySyntheticYCB20190916RGBDPoseEstimationDatasetReIndexed('train', augmentation=True)  # NOQA
 
     def __len__(self):
         return len(self._dataset)
