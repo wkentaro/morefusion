@@ -176,12 +176,6 @@ def main():
         default='mask_rcnn_fpn_resnet50',
         help='model')
     parser.add_argument('--batchsize', type=int, default=16, help='batch size')
-    parser.add_argument(
-        '--iteration', type=int, default=90000, help='iteration'
-    )
-    parser.add_argument(
-        '--step', type=int, nargs='*', default=[60000, 80000], help='step'
-    )
     parser.add_argument('--out', default='logs', help='logs')
     parser.add_argument('--resume', help='resume')
     args = parser.parse_args()
@@ -256,11 +250,11 @@ def main():
         if isinstance(link, L.BatchNormalization):
             link.disable_update()
 
-    n_iteration = args.iteration * 16 / args.batchsize
     updater = training.updaters.StandardUpdater(
         train_iter, optimizer, converter=converter, device=device)
+    max_epoch = (180e3 * 8) / 118287
     trainer = training.Trainer(
-        updater, (n_iteration, 'iteration'), args.out)
+        updater, (max_epoch, 'epoch'), args.out)
 
     @make_shift('lr')
     def lr_schedule(trainer):
@@ -274,8 +268,8 @@ def main():
                 + (1 - warm_up_rate) * iteration / warm_up_duration
         else:
             rate = 1
-            for step in args.step:
-                if iteration >= step * 16 / args.batchsize:
+            for step in [120e3 / 180e3 * max_epoch, 160e3 / 180e3 * max_epoch]:
+                if trainer.updater.epoch_detail >= step:
                     rate *= 0.1
 
         return base_lr * rate
@@ -309,7 +303,7 @@ def main():
         trainer.extend(
             extensions.snapshot_object(
                 model, 'model_iter_{.updater.iteration}'),
-            trigger=(n_iteration, 'iteration'))
+            trigger=(max_epoch, 'epoch'))
 
     if args.resume:
         serializers.load_npz(args.resume, trainer, strict=False)
