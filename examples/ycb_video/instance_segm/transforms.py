@@ -124,7 +124,7 @@ class RGBAugmentation(InDataMutatingTransform):
 
     def transform(self, in_data):
         augmenter = iaa.Sequential([
-            iaa.ContrastNormalization(alpha=(0.8, 1.2)),
+            iaa.LinearContrast(alpha=(0.8, 1.2)),
             iaa.WithColorspace(
                 to_colorspace='HSV',
                 from_colorspace='RGB',
