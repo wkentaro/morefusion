@@ -43,7 +43,7 @@ model = chainercv.links.model.fpn.MaskRCNNFPNResNet50(
     n_fg_class=1, pretrained_model='imagenet'
 )
 dataset = objslampp.datasets.MySyntheticYCB20190916InstanceSegmentationDataset(
-    split='train'
+    split='train', bg_composite=True
 )
 # dataset = objslampp.datasets.YCBVideoInstanceSegmentationDataset(
 #     split='train', sampling=15

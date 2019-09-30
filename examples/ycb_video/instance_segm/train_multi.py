@@ -217,7 +217,12 @@ def main():
             objslampp.datasets.YCBVideoInstanceSegmentationDataset(
                 split='train', sampling=15
             ),
-            objslampp.datasets.YCBVideoSyntheticInstanceSegmentationDataset(),
+            objslampp.datasets.YCBVideoSyntheticInstanceSegmentationDataset(
+                bg_composite=True
+            ),
+            objslampp.datasets.MySyntheticYCB20190916InstanceSegmentationDataset(  # NOQA
+                'train', bg_composite=True
+            ),
         )
         train = transform_dataset(train, model, train=True)
         val = objslampp.datasets.YCBVideoInstanceSegmentationDataset(

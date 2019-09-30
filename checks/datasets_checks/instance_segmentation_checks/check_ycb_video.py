@@ -7,7 +7,9 @@ import objslampp
 
 class Images:
 
-    dataset = objslampp.datasets.YCBVideoSyntheticInstanceSegmentationDataset()
+    dataset = objslampp.datasets.YCBVideoSyntheticInstanceSegmentationDataset(
+        bg_composite=True
+    )
     # dataset = objslampp.datasets.YCBVideoInstanceSegmentationDataset(
     #     split='train', sampling=15
     # )

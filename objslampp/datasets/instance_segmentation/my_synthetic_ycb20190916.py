@@ -1,54 +1,31 @@
-import chainercv
 import numpy as np
-import imgviz
 
 from ... import geometry as geometry_module
-
 from ..rgbd_pose_estimation import MySyntheticYCB20190916RGBDPoseEstimationDataset  # NOQA
+from .voc_background_composite import VOCBackgroundComposite
 
 
 class MySyntheticYCB20190916InstanceSegmentationDataset(
     MySyntheticYCB20190916RGBDPoseEstimationDataset
 ):
 
-    def __init__(self, split, class_ids=None, add_background=False):
+    def __init__(self, split, class_ids=None, bg_composite=False):
         super().__init__(split=split, class_ids=class_ids)
         self._random_state = np.random.mtrand._rand
-        self._add_background = add_background
-        if self._add_background:
-            self._voc_dataset = chainercv.datasets.VOCBboxDataset()
+        self._bg_composite = None
+        if bg_composite:
+            self._bg_composite = VOCBackgroundComposite(bg_instance_ids=[0])
 
     def get_frame(self, index):
         raise NotImplementedError
 
-    def add_background(self, frame):
-        index = self._random_state.randint(0, len(self._voc_dataset))
-        bg = self._voc_dataset.get_example_by_keys(index, [0])[0]
-        bg = bg.transpose(1, 2, 0)
-
-        H_fg, W_fg = frame['rgb'].shape[:2]
-        H_bg, W_bg = bg.shape[:2]
-
-        H = max(H_fg, H_bg)
-        W = max(W_fg, W_bg)
-
-        scale = max(H / H_bg, W / W_bg)
-        H = int(round(scale * H_bg))
-        W = int(round(scale * W_bg))
-        bg = imgviz.resize(bg, height=H, width=W, backend='opencv')
-
-        y1 = self._random_state.randint(0, H - H_fg + 1)
-        y2 = y1 + H_fg
-        x1 = self._random_state.randint(0, W - W_fg + 1)
-        x2 = x1 + W_fg
-        bg_mask = frame['instance_label'] == 0
-        frame['rgb'][bg_mask] = bg[y1:y2, x1:x2][bg_mask]
-
     def get_example(self, index):
         frame = super().get_frame(index)
 
-        if self._add_background:
-            self.add_background(frame)
+        if self._bg_composite:
+            frame['rgb'] = self._bg_composite(
+                frame['rgb'], frame['instance_label']
+            )
 
         rgb = frame['rgb']
         labels = frame['class_ids']

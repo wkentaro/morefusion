@@ -3,6 +3,7 @@ import numpy as np
 from ... import geometry as geometry_module
 from ..ycb_video import YCBVideoDataset
 from ..ycb_video import YCBVideoSyntheticDataset
+from .voc_background_composite import VOCBackgroundComposite
 
 
 def _ycb_video_to_instance_segmentation(example):
@@ -38,8 +39,20 @@ class YCBVideoSyntheticInstanceSegmentationDataset(YCBVideoSyntheticDataset):
 
     """
 
+    def __init__(self, bg_composite=False):
+        self._bg_composite = None
+        if bg_composite:
+            self._bg_composite = VOCBackgroundComposite(bg_instance_ids=[0])
+        super().__init__()
+
     def get_example(self, i):
         example = super().get_example(i)
+
+        if self._bg_composite:
+            example['color'] = self._bg_composite(
+                example['color'], example['label']
+            )
+
         return _ycb_video_to_instance_segmentation(example)
 
 

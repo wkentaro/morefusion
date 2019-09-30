@@ -88,7 +88,7 @@ class Affine(InDataMutatingTransform):
 
     def transform(self, in_data):
         augmenter = iaa.AffineCv2(
-            translate_percent=(-0.4, 0.4),
+            translate_percent=(-0.25, 0.25),
             rotate=(-180, 180),
             shear=(-15, 15),
         )
