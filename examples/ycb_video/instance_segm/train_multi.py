@@ -209,8 +209,8 @@ def main():
     model = MaskRCNNFPNResNet50(
         n_fg_class=len(fg_class_names),
         pretrained_model='imagenet')
-    model_coco = MaskRCNNFPNResNet50(pretrained_model='coco')
-    _copyparams(model, model_coco)
+    # model_coco = MaskRCNNFPNResNet50(pretrained_model='coco')
+    # _copyparams(model, model_coco)
 
     model.use_preset('evaluate')
     train_chain = TrainChain(model)
