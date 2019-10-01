@@ -1,16 +1,20 @@
 <launch>
 
   <arg name="PLAY_ROSBAG" default="true" />
+  <arg name="GUI" default="true" />
+  <arg name="PUBLISH_TF" default="true" />
 
   <include file="$(find ros_objslampp_ycb_video)/examples/example_mask_rcnn_instance_segmentation.launch">
     <arg name="PLAY_ROSBAG" value="$(arg PLAY_ROSBAG)" />
     <arg name="GUI" value="false" />
   </include>
 
-  <node name="staitc_transform_publisher"
-        pkg="tf" type="static_transform_publisher"
-        args="0 0 0.5 0 3.14 0 base camera_color_optical_frame 100">
-  </node>
+  <group if="$(arg PUBLISH_TF)">
+    <node name="staitc_transform_publisher"
+          pkg="tf" type="static_transform_publisher"
+          args="0 0 0.5 0 3.14 0 base camera_color_optical_frame 100">
+    </node>
+  </group>
 
   <group ns="/camera">
     <node name="singleview_3d_pose_estimation"
@@ -29,6 +33,14 @@
           clear_params="true">
       <remap from="~input/camera_info" to="color/camera_info" />
       <remap from="~input/markers" to="singleview_3d_pose_estimation/output/markers" />
+    </node>
+  </group>
+
+  <group if="$(arg GUI)">
+    <node name="rviz"
+          pkg="rviz" type="rviz"
+          clear_params="true"
+      args="-d $(find ros_objslampp_ycb_video)/examples/rvizconfig/example_singleview_3d_pose_estimation.rviz">
     </node>
   </group>
 
