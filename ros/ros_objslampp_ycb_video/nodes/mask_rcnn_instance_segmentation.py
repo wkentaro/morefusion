@@ -36,6 +36,7 @@ class MaskRCNNInstanceSegmentationNode(LazyTransport):
             '~output/label_cls', Image, queue_size=1
         )
         self._pub_viz = self.advertise('~output/viz', Image, queue_size=1)
+        self._post_init()
 
     def subscribe(self):
         self._sub = rospy.Subscriber('~input', Image, callback=self.callback,
