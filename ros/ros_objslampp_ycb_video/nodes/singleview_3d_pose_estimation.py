@@ -6,6 +6,7 @@ import chainer
 import numpy as np
 import path
 import imgviz
+import trimesh.transformations as tf
 
 import objslampp
 import objslampp.contrib.singleview_3d as contrib
@@ -16,6 +17,10 @@ from topic_tools import LazyTransport
 import message_filters
 from sensor_msgs.msg import Image, CameraInfo
 from visualization_msgs.msg import Marker, MarkerArray
+
+import sys
+sys.path.insert(0, '/home/wkentaro/objslampp/examples/ycb_video/preliminary')  # NOQA
+from preliminary import ICPRegistration
 
 
 class SingleViewPoseEstimation3D(LazyTransport):
@@ -129,9 +134,24 @@ class SingleViewPoseEstimation3D(LazyTransport):
         quaternion = chainer.cuda.to_cpu(quaternion.array)
         translation = chainer.cuda.to_cpu(translation.array)
 
-        markers = MarkerArray()
+        transforms = objslampp.functions.transformation_matrix(
+            quaternion, translation
+        ).array
         for i in range(B):
             cls_id = examples[i]['class_id']
+            pcd_cad = self._models.get_pcd(examples[i]['class_id'])
+            pcd_depth = examples[i]['pcd']
+            pcd_depth = pcd_depth[~np.isnan(pcd_depth).any(axis=2)]
+            icp = ICPRegistration(
+                pcd_depth=pcd_depth,
+                pcd_cad=pcd_cad,
+                transform_init=transforms[i],
+            )
+            transform = icp.register()
+            quaternion[i] = tf.quaternion_from_matrix(transform)
+            translation[i] = tf.translation_from_matrix(transform)
+        del transforms
+
             marker = Marker()
             marker.header = rgb_msg.header
             marker.ns = '/singleview_3d_pose_estimation'
