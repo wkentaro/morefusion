@@ -5,8 +5,9 @@ import re
 import warnings
 
 import chainer
+from chainer.dataset import convert as convert_module
 from chainer import function
-from chainer.training.extensions import util
+from chainer.training.extensions.evaluator import _IteratorProgressBar
 import chainer.reporter as reporter_module
 import numpy as np
 import pandas
@@ -45,13 +46,14 @@ class PoseEstimationEvaluator(chainer.training.extensions.Evaluator):
             it = copy.copy(iterator)
 
         if self._progress_bar and self.comm is None or self.comm.rank == 0:
-            pbar = util.IteratorProgressBar(iterator=it, title='validation ')
+            pbar = _IteratorProgressBar(iterator=it)
 
         observations = []
         for batch in it:
             observation = {}
             with reporter_module.report_scope(observation):
-                in_arrays = self._call_converter(batch, self.device)
+                in_arrays = convert_module._call_converter(
+                    self.converter, batch, self.device)
                 with function.no_backprop_mode():
                     if isinstance(in_arrays, tuple):
                         eval_func(*in_arrays)
