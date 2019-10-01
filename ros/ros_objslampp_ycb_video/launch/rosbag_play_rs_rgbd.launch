@@ -48,16 +48,6 @@
         <remap from="depth_registered/points"     to="depth_registered/points" />
       </node>
     </group>
-    <node name="bilateral_filter"
-          pkg="nodelet" type="nodelet"
-          args="standalone jsk_pcl/BilateralFilter">
-      <remap from="~input" to="depth_registered/points" />
-    </node>
-    <node name="pointcloud_to_depth_image"
-          pkg="nodelet" type="nodelet"
-          args="standalone jsk_pcl_utils/PointCloudToDepthImage">
-      <remap from="~input" to="bilateral_filter/output" />
-    </node>
   </group>
 
 
