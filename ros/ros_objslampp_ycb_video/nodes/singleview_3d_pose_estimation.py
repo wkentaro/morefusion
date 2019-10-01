@@ -100,9 +100,10 @@ class SingleViewPoseEstimation3D(LazyTransport):
         instance_ids = instance_ids[instance_ids >= 0]
 
         examples = []
+        nanmask = np.isnan(pcd).any(axis=2)
         for ins_id in instance_ids:
             mask = ins == ins_id
-            if mask.sum() < 50:
+            if (~nanmask & mask).sum() < 50:
                 continue
             unique, counts = np.unique(cls[mask], return_counts=True)
             cls_id = unique[np.argmax(counts)]
@@ -138,7 +139,6 @@ class SingleViewPoseEstimation3D(LazyTransport):
             quaternion, translation
         ).array
         for i in range(B):
-            cls_id = examples[i]['class_id']
             pcd_cad = self._models.get_pcd(examples[i]['class_id'])
             pcd_depth = examples[i]['pcd']
             pcd_depth = pcd_depth[~np.isnan(pcd_depth).any(axis=2)]
@@ -152,26 +152,32 @@ class SingleViewPoseEstimation3D(LazyTransport):
             translation[i] = tf.translation_from_matrix(transform)
         del transforms
 
+        markers = MarkerArray()
+        max_n_objects = 16
+        for i in range(max_n_objects):
             marker = Marker()
             marker.header = rgb_msg.header
             marker.ns = '/singleview_3d_pose_estimation'
             marker.id = i
-            marker.lifetime.nsecs = 1
-            marker.action = Marker.ADD
-            marker.type = Marker.MESH_RESOURCE
-            marker.pose.position.x = translation[i][0]
-            marker.pose.position.y = translation[i][1]
-            marker.pose.position.z = translation[i][2]
-            marker.pose.orientation.x = quaternion[i][1]
-            marker.pose.orientation.y = quaternion[i][2]
-            marker.pose.orientation.z = quaternion[i][3]
-            marker.pose.orientation.w = quaternion[i][0]
-            marker.scale.x = 1
-            marker.scale.y = 1
-            marker.scale.z = 1
-            cad_file = self._models.get_cad_file(cls_id)
-            marker.mesh_resource = f'file://{cad_file}'
-            marker.mesh_use_embedded_materials = True
+            if i >= B:
+                marker.action = Marker.DELETE
+            else:
+                cls_id = examples[i]['class_id']
+                marker.action = Marker.ADD
+                marker.type = Marker.MESH_RESOURCE
+                marker.pose.position.x = translation[i][0]
+                marker.pose.position.y = translation[i][1]
+                marker.pose.position.z = translation[i][2]
+                marker.pose.orientation.x = quaternion[i][1]
+                marker.pose.orientation.y = quaternion[i][2]
+                marker.pose.orientation.z = quaternion[i][3]
+                marker.pose.orientation.w = quaternion[i][0]
+                marker.scale.x = 1
+                marker.scale.y = 1
+                marker.scale.z = 1
+                cad_file = self._models.get_cad_file(cls_id)
+                marker.mesh_resource = f'file://{cad_file}'
+                marker.mesh_use_embedded_materials = True
             markers.markers.append(marker)
         self._pub_markers.publish(markers)
 
