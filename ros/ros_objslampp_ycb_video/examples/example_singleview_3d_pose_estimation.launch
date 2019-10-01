@@ -20,6 +20,7 @@
       <remap from="~input/camera_info" to="color/camera_info" />
       <remap from="~input/rgb" to="color/image_rect_color" />
       <remap from="~input/depth" to="aligned_depth_to_color/image_raw" />
+      <!-- <remap from="~input/depth" to="pointcloud_to_depth_image/output" /> -->
       <remap from="~input/label_ins" to="mask_rcnn_instance_segmentation/output/label_ins" />
       <remap from="~input/label_cls" to="mask_rcnn_instance_segmentation/output/label_cls" />
     </node>

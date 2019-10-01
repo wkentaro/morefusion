@@ -38,18 +38,25 @@
   </group>
 
   <group ns="camera">
-    <node pkg="nodelet" type="nodelet" name="points_xyzrgb_aligned_depth_to_color"
-          args="standalone depth_image_proc/point_cloud_xyzrgb">
-      <!-- Explicit topic remappings, shouldn't need all of these -->
-      <remap from="rgb/image_rect_color"        to="color/image_rect_color" />
-      <remap from="rgb/camera_info"             to="color/camera_info" />
-      <remap from="depth_registered/image_rect" to="aligned_depth_to_color/image_raw" />
-      <remap from="depth_registered/points"     to="aligned_depth_to_color/points" />
-    </node>
+    <group if="$(arg PLAY_ROSBAG)">
+      <node pkg="nodelet" type="nodelet" name="points_xyzrgb_aligned_depth_to_color"
+            args="standalone depth_image_proc/point_cloud_xyzrgb">
+        <!-- Explicit topic remappings, shouldn't need all of these -->
+        <remap from="rgb/image_rect_color"        to="color/image_rect_color" />
+        <remap from="rgb/camera_info"             to="color/camera_info" />
+        <remap from="depth_registered/image_rect" to="aligned_depth_to_color/image_raw" />
+        <remap from="depth_registered/points"     to="depth_registered/points" />
+      </node>
+    </group>
     <node name="bilateral_filter"
           pkg="nodelet" type="nodelet"
           args="standalone jsk_pcl/BilateralFilter">
-      <remap from="~input" to="aligned_depth_to_color/points" />
+      <remap from="~input" to="depth_registered/points" />
+    </node>
+    <node name="pointcloud_to_depth_image"
+          pkg="nodelet" type="nodelet"
+          args="standalone jsk_pcl_utils/PointCloudToDepthImage">
+      <remap from="~input" to="bilateral_filter/output" />
     </node>
   </group>
 
