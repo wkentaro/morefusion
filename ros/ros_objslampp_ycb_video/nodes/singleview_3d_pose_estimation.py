@@ -23,7 +23,7 @@ class SingleViewPoseEstimation3D(LazyTransport):
     _models = objslampp.datasets.YCBVideoModels()
 
     def __init__(self):
-        pretrained_model = '/home/wkentaro/objslampp/examples/ycb_video/singleview_3d/logs.20190920.all_class/20190927_101303.421589569/snapshot_model_best_add.npz'  # NOQA
+        pretrained_model = '/home/wkentaro/objslampp/examples/ycb_video/singleview_3d/logs.20190930.all_data/20191001_093434.926883190/snapshot_model_best_add.npz'  # NOQA
         args_file = path.Path(pretrained_model).parent / 'args'
 
         with open(args_file) as f:
