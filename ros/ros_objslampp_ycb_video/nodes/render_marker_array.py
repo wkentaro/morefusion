@@ -11,7 +11,7 @@ import message_filters
 import rospy
 from sensor_msgs.msg import Image, CameraInfo
 from topic_tools import LazyTransport
-from visualization_msgs.msg import MarkerArray
+from visualization_msgs.msg import Marker, MarkerArray
 
 
 class RenderMarkerArray(LazyTransport):
@@ -42,6 +42,9 @@ class RenderMarkerArray(LazyTransport):
         pybullet.connect(pybullet.DIRECT)
 
         for marker in markers_msg.markers:
+            if marker.type != Marker.MESH_RESOURCE:
+                continue
+
             mesh_file = marker.mesh_resource[len('file://'):]
             position = [
                 marker.pose.position.x,
