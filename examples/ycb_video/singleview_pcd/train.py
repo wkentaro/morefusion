@@ -65,12 +65,6 @@ def main():
     parser.add_argument('--gpu', type=int, default=0, help='gpu id')
     parser.add_argument('--seed', type=int, default=0, help='random seed')
     parser.add_argument(
-        '--dataset',
-        choices=['ycb_video'],
-        default='ycb_video',
-        help='dataset',
-    )
-    parser.add_argument(
         '--lr',
         type=float,
         default=0.0001,
@@ -162,16 +156,31 @@ def main():
     data_train = None
     data_valid = None
     if not args.multi_node or comm.rank == 0:
-        data_train = objslampp.datasets.YCBVideoRGBDPoseEstimationDatasetReIndexed(  # NOQA
-            'train',
-            class_ids=args.class_ids,
+        data_ycb_trainreal = objslampp.datasets.YCBVideoRGBDPoseEstimationDatasetReIndexed(  # NOQA
+            'trainreal', class_ids=args.class_ids, augmentation=True
         )
-
-        if data_valid is None:
-            data_valid = objslampp.datasets.YCBVideoRGBDPoseEstimationDatasetReIndexed(  # NOQA
-                'val',
-                class_ids=args.class_ids,
-            )
+        data_ycb_syn = objslampp.datasets.YCBVideoRGBDPoseEstimationDatasetReIndexed(  # NOQA
+            'syn', class_ids=args.class_ids, augmentation=True
+        )
+        data_ycb_syn, _ = chainer.datasets.split_dataset_random(
+            data_ycb_syn, len(data_ycb_trainreal), seed=0
+        )
+        data_train = chainer.datasets.ConcatenatedDataset(
+            data_ycb_trainreal,
+            data_ycb_syn,
+            objslampp.datasets.MySyntheticYCB20190916RGBDPoseEstimationDatasetReIndexed(  # NOQA
+                'train', class_ids=args.class_ids, augmentation=True
+            ),
+        )
+        del data_ycb_trainreal, data_ycb_syn
+        data_valid = chainer.datasets.ConcatenatedDataset(
+            objslampp.datasets.YCBVideoRGBDPoseEstimationDatasetReIndexed(
+                'val', class_ids=args.class_ids
+            ),
+            objslampp.datasets.MySyntheticYCB20190916RGBDPoseEstimationDatasetReIndexed(  # NOQA
+                'val', class_ids=args.class_ids
+            ),
+        )
 
         data_train = chainer.datasets.TransformDataset(
             data_train, transform
@@ -181,7 +190,7 @@ def main():
         )
 
         termcolor.cprint('==> Dataset size', attrs={'bold': True})
-        print(f'train={len(data_train)}, val={len(data_valid)}')
+        print(f'train={len(data_train)}, valid={len(data_valid)}')
     if args.multi_node:
         data_train = chainermn.scatter_dataset(
             data_train, comm, shuffle=True, seed=args.seed
