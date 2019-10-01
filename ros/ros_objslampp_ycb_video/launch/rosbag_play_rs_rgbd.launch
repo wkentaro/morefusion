@@ -46,6 +46,11 @@
       <remap from="depth_registered/image_rect" to="aligned_depth_to_color/image_raw" />
       <remap from="depth_registered/points"     to="aligned_depth_to_color/points" />
     </node>
+    <node name="bilateral_filter"
+          pkg="nodelet" type="nodelet"
+          args="standalone jsk_pcl/BilateralFilter">
+      <remap from="~input" to="aligned_depth_to_color/points" />
+    </node>
   </group>
 
 
