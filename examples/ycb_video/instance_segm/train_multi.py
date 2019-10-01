@@ -263,7 +263,7 @@ def main():
 
     updater = training.updaters.StandardUpdater(
         train_iter, optimizer, converter=converter, device=device)
-    max_epoch = (180e3 * 8) / 118287
+    max_epoch = (180e3 * 8) / 118287 * 3  # x3 training
     trainer = training.Trainer(
         updater, (max_epoch, 'epoch'), args.out)
 
@@ -304,7 +304,7 @@ def main():
         trainer.extend(extensions.PrintReport(keys), trigger=log_interval)
         trainer.extend(extensions.ProgressBar(update_interval=10))
 
-        trainer.extend(extensions.snapshot(), trigger=(10000, 'iteration'))
+        # trainer.extend(extensions.snapshot(), trigger=(10000, 'iteration'))
         trainer.extend(
             extensions.snapshot_object(
                 model, 'model_iter_best'),
