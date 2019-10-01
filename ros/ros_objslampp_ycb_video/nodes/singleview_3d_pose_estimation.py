@@ -48,20 +48,20 @@ class SingleViewPoseEstimation3D(LazyTransport):
         )
 
     def subscribe(self):
-        self._sub_cam = message_filters.Subscriber(
-            '~input/camera_info', CameraInfo
+        sub_cam = message_filters.Subscriber('~input/camera_info', CameraInfo)
+        sub_rgb = message_filters.Subscriber(
+            '~input/rgb', Image, queue_size=1, buff_size=2 ** 24
         )
-        self._sub_rgb = message_filters.Subscriber('~input/rgb', Image)
-        self._sub_depth = message_filters.Subscriber('~input/depth', Image)
-        self._sub_ins = message_filters.Subscriber('~input/label_ins', Image)
-        self._sub_cls = message_filters.Subscriber('~input/label_cls', Image)
-        self._subscribers = [
-            self._sub_cam,
-            self._sub_rgb,
-            self._sub_depth,
-            self._sub_ins,
-            self._sub_cls,
-        ]
+        sub_depth = message_filters.Subscriber(
+            '~input/depth', Image, queue_size=1, buff_size=2 ** 24
+        )
+        sub_ins = message_filters.Subscriber(
+            '~input/label_ins', Image, queue_size=1, buff_size=2 ** 24
+        )
+        sub_cls = message_filters.Subscriber(
+            '~input/label_cls', Image, queue_size=1, buff_size=2 ** 24
+        )
+        self._subscribers = [sub_cam, sub_rgb, sub_depth, sub_ins, sub_cls]
         sync = message_filters.TimeSynchronizer(
             self._subscribers, queue_size=100
         )
