@@ -2,17 +2,6 @@
 
   <arg name="GUI" default="true" />
 
-  <group ns="/camera/color">
-    <node name="image_view"
-          pkg="image_view" type="image_view"
-          clear_params="true">
-      <remap from="image" to="image_rect_color" />
-      <rosparam subst_value="true">
-        gui: $(arg GUI)
-      </rosparam>
-    </node>
-  </group>
-
   <group ns="/camera/aligned_depth_to_color">
     <node name="image_view"
           pkg="image_view" type="image_view"
@@ -21,8 +10,25 @@
       <rosparam subst_value="true">
         colormap: 2
         do_dynamic_scaling: true
-        gui: $(arg GUI)
+        gui: false
       </rosparam>
+    </node>
+  </group>
+
+  <group ns="visualize_rs_rgbd">
+    <node name="tile_image"
+          pkg="jsk_perception" type="tile_image.py"
+          clear_params="true">
+      <rosparam subst_value="true">
+        input_topics:
+          - /camera/color/image_rect_color
+          - /camera/aligned_depth_to_color/image_view/output
+      </rosparam>
+    </node>
+    <node name="image_view"
+          pkg="image_view" type="image_view"
+          clear_params="true">
+      <remap from="image" to="tile_image/output" />
     </node>
   </group>
 
