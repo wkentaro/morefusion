@@ -7,7 +7,7 @@ Panels:
         - /Global Options1
         - /Status1
         - /MarkerArray1
-      Splitter Ratio: 0.405295312
+      Splitter Ratio: 0.513888896
     Tree Height: 973
   - Class: rviz/Selection
     Name: Selection
@@ -93,29 +93,29 @@ Visualization Manager:
       Enabled: true
       Frame Timeout: 15
       Frames:
-        All Enabled: true
+        All Enabled: false
         camera_aligned_depth_to_color_frame:
-          Value: true
+          Value: false
         camera_aligned_depth_to_infra1_frame:
-          Value: true
+          Value: false
         camera_color_frame:
-          Value: true
+          Value: false
         camera_color_optical_frame:
           Value: true
         camera_depth_frame:
-          Value: true
+          Value: false
         camera_depth_optical_frame:
-          Value: true
+          Value: false
         camera_infra1_frame:
-          Value: true
+          Value: false
         camera_infra1_optical_frame:
-          Value: true
+          Value: false
         camera_infra2_frame:
-          Value: true
+          Value: false
         camera_infra2_optical_frame:
-          Value: true
+          Value: false
         camera_link:
-          Value: true
+          Value: false
         map:
           Value: true
       Marker Scale: 0.400000006
@@ -152,8 +152,8 @@ Visualization Manager:
       alpha: 1
       height: 128
       keep aspect ratio: true
-      left: 10
-      top: 10
+      left: 0
+      top: 0
       width: 300
     - Class: jsk_rviz_plugin/OverlayImage
       Enabled: true
@@ -163,8 +163,8 @@ Visualization Manager:
       alpha: 1
       height: 128
       keep aspect ratio: true
-      left: 320
-      top: 10
+      left: 300
+      top: 0
       width: 300
     - Class: jsk_rviz_plugin/OverlayImage
       Enabled: true
@@ -174,8 +174,19 @@ Visualization Manager:
       alpha: 1
       height: 128
       keep aspect ratio: true
-      left: 630
-      top: 10
+      left: 600
+      top: 0
+      width: 300
+    - Class: jsk_rviz_plugin/OverlayImage
+      Enabled: true
+      Name: PoseNetInput
+      Topic: /camera/singleview_3d_pose_estimation/output/debug/rgbd
+      Value: true
+      alpha: 1
+      height: 128
+      keep aspect ratio: true
+      left: 900
+      top: 0
       width: 300
     - Class: jsk_rviz_plugin/OverlayImage
       Enabled: true
@@ -185,8 +196,8 @@ Visualization Manager:
       alpha: 1
       height: 128
       keep aspect ratio: true
-      left: 940
-      top: 10
+      left: 1200
+      top: 0
       width: 300
     - Alpha: 0.300000012
       Autocompute Intensity Bounds: true
@@ -218,6 +229,21 @@ Visualization Manager:
       Use Fixed Frame: true
       Use rainbow: true
       Value: false
+    - Class: jsk_rviz_plugin/CameraInfo
+      Enabled: true
+      Image Topic: ""
+      Name: CameraInfo
+      Topic: /camera/color/camera_info
+      Unreliable: false
+      Value: true
+      alpha: 0.5
+      color: 85; 255; 255
+      edge color: 85; 255; 255
+      far clip: 0.100000001
+      not show side polygons: true
+      show edges: true
+      show polygons: false
+      use image: false
   Enabled: true
   Global Options:
     Background Color: 230; 230; 230
@@ -250,18 +276,18 @@ Visualization Manager:
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -0.00249360455
-        Y: -0.0389054716
-        Z: 0.405053318
+        X: 0.00451527257
+        Y: -0.0272607133
+        Z: 0.268882334
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.0500000007
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.019796446
+      Pitch: -0.105203569
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 2.87039685
+      Yaw: 3.0053966
     Saved: ~
 Window Geometry:
   Displays:

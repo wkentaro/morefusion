@@ -45,8 +45,8 @@ class SingleViewPoseEstimation3D(LazyTransport):
         self._model.to_gpu()
 
         super().__init__()
-        self._pub_ins = self.advertise(
-            '~output/label_ins_viz', Image, queue_size=1
+        self._pub_debug_rgbd = self.advertise(
+            '~output/debug/rgbd', Image, queue_size=1
         )
         self._pub_markers = self.advertise(
             '~output/markers', MarkerArray, queue_size=1
@@ -91,11 +91,6 @@ class SingleViewPoseEstimation3D(LazyTransport):
         ins = bridge.imgmsg_to_cv2(ins_msg)
         cls = bridge.imgmsg_to_cv2(cls_msg)
 
-        ins_viz = imgviz.label2rgb(ins + 1, rgb)
-        ins_viz_msg = bridge.cv2_to_imgmsg(ins_viz, encoding='rgb8')
-        ins_viz_msg.header = rgb_msg.header
-        self._pub_ins.publish(ins_viz_msg)
-
         instance_ids = np.unique(ins)
         instance_ids = instance_ids[instance_ids >= 0]
 
@@ -125,6 +120,19 @@ class SingleViewPoseEstimation3D(LazyTransport):
         if not examples:
             return
         inputs = chainer.dataset.concat_examples(examples, device=0)
+
+        if self._pub_debug_rgbd.get_num_connections() > 0:
+            debug_rgbd = [
+                imgviz.tile(
+                    [e['rgb'], imgviz.depth2rgb(e['pcd'][:, :, 2])],
+                    (1, 2)
+                )
+                for e in examples
+            ]
+            debug_rgbd = imgviz.tile(debug_rgbd, border=(255, 255, 255))
+            debug_rgbd_msg = bridge.cv2_to_imgmsg(debug_rgbd, encoding='rgb8')
+            debug_rgbd_msg.header = rgb_msg.header
+            self._pub_debug_rgbd.publish(debug_rgbd_msg)
 
         with chainer.no_backprop_mode(), chainer.using_config('train', False):
             quaternion, translation, confidence = self._model.predict(**inputs)
