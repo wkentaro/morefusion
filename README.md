@@ -25,27 +25,17 @@ make install
 ### ROS Project
 
 ```bash
-OBJSLAMPP_PREFIX=~/objslampp
+mkdir -p ~/ros_objslampp/src
+cd ~/ros_objslampp/src
 
-cd ~
-mkdir -p ros_objslampp_py2 && cd ros_objslampp_py2
-mkdir src
-catkin init
-cd src
-ln -s ~/objslampp/ros/ros_objslampp_py2
-
-cd ~
-mkdir -p ros_objslampp && cd ros_objslampp
-mkdir src
-catkin init
-catkin config -DPYTHON_EXECUTABLE=$OBJSLAMPP_PREFIX/.anaconda3/bin/python \
-              -DPYTHON_INCLUDE_DIR=$OBJSLAMPP_PREFIX/.anaconda3/include/python3.7m \
-              -DPYTHON_LIBRARY=$OBJSLAMPP_PREFIX/.anaconda3/lib/libpython3.7m.so
-ln -s ~/objslampp/ros/ros_objslampp_ycb_video
+git clone https://github.com/wkentaro/objslampp.git
+cd objslampp
+make install
 
 cd ~/ros_objslampp
-catkin build
-ln -s ~/objslampp/.anaconda3/lib/python3.7/site-packages/cv2 devel/lib/python3/dist-packages/cv2
+ln -s src/objslampp/ros/catkin_init.sh
+
+./catkin_init.sh
 ```
 
 
