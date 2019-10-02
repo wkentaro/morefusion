@@ -1,6 +1,6 @@
 <launch>
 
-  <arg name="GUI" default="false" />
+  <arg name="GUI" default="true" />
 
   <group ns="/camera/color">
     <node name="image_view"
