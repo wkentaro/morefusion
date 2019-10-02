@@ -94,6 +94,8 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: false
+        base:
+          Value: true
         camera_aligned_depth_to_color_frame:
           Value: false
         camera_aligned_depth_to_infra1_frame:
@@ -128,7 +130,8 @@ Visualization Manager:
           camera_link:
             camera_aligned_depth_to_color_frame:
               camera_color_optical_frame:
-                {}
+                base:
+                  {}
             camera_aligned_depth_to_infra1_frame:
               camera_infra1_optical_frame:
                 {}
@@ -196,8 +199,8 @@ Visualization Manager:
       alpha: 1
       height: 128
       keep aspect ratio: true
-      left: 1200
-      top: 0
+      left: 0
+      top: 220
       width: 300
     - Class: jsk_rviz_plugin/CameraInfo
       Enabled: true

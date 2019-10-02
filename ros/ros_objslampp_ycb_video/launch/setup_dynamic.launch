@@ -1,9 +1,6 @@
 <launch>
 
-  <include file="$(find ros_objslampp_ycb_video)/examples/example_singleview_3d_pose_estimation.launch">
-    <arg name="PLAY_ROSBAG" value="false" />
-    <arg name="GUI" value="false" />
-    <arg name="PUBLISH_TF" value="false" />
+  <include file="$(find ros_objslampp_ycb_video)/launch/singleview_3d_pose_estimation.launch">
   </include>
 
   <include file="$(find ros_objslampp_ycb_video)/launch/orb_slam2_d435_rgbd.launch">

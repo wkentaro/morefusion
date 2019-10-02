@@ -68,7 +68,7 @@ class SingleViewPoseEstimation3D(LazyTransport):
         )
         self._subscribers = [sub_cam, sub_rgb, sub_depth, sub_ins, sub_cls]
         sync = message_filters.TimeSynchronizer(
-            self._subscribers, queue_size=100
+            self._subscribers, queue_size=200
         )
         sync.registerCallback(self._callback)
 
