@@ -175,11 +175,13 @@ def main():
             n_class = len(objslampp.datasets.ycb_video.class_names)
             class_ids = np.arange(n_class)[1:].tolist()
         elif string == 'asymmetric':
-            class_ids = objslampp.datasets.ycb_video.class_ids_asymmetric
+            class_ids = objslampp.datasets.ycb_video.class_ids_asymmetric\
+                .tolist()
         elif string == 'symmetric':
-            class_ids = objslampp.datasets.ycb_video.class_ids_symmetric
+            class_ids = objslampp.datasets.ycb_video.class_ids_symmetric\
+                .tolist()
         else:
-            class_ids = tuple([int(x) for x in string.split(',')])
+            class_ids = [int(x) for x in string.split(',')]
         return class_ids
 
     parser.add_argument(
@@ -367,7 +369,7 @@ def main():
     )
     iter_valid = chainer.iterators.MultiprocessIterator(
         data_valid,
-        batch_size=16,
+        batch_size=48,
         repeat=False,
         shuffle=False,
     )
