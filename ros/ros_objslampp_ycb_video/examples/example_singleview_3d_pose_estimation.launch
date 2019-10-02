@@ -1,16 +1,14 @@
 <launch>
 
   <include file="$(find ros_objslampp_ycb_video)/launch/rosbag_play_rs_rgbd.launch">
+  </include>
+
+  <include file="$(find ros_objslampp_ycb_video)/launch/visualize_rs_rgbd.launch">
     <arg name="GUI" value="false" />
   </include>
 
   <include file="$(find ros_objslampp_ycb_video)/launch/singleview_3d_pose_estimation.launch">
   </include>
-
-  <node name="staitc_transform_publisher"
-        pkg="tf" type="static_transform_publisher"
-        args="0 0 0.5 0 3.14 0 base camera_color_optical_frame 100">
-  </node>
 
   <node name="rviz"
         pkg="rviz" type="rviz"
