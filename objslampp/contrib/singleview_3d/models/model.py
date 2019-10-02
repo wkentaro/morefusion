@@ -32,7 +32,12 @@ class Model(chainer.Chain):
 
         if loss is None:
             loss = 'add/add_s'
-        assert loss in ['add', 'add/add_s', 'add/add_s+occupancy']
+        assert loss in [
+            'add',
+            'add/add_s',
+            'add+occupancy',
+            'add/add_s+occupancy',
+        ]
         self._loss = loss
 
         if loss_scale is None:
@@ -414,7 +419,7 @@ class Model(chainer.Chain):
 
             is_symmetric = class_id_i in \
                 objslampp.datasets.ycb_video.class_ids_symmetric
-            if self._loss == 'add':
+            if self._loss in ['add', 'add+occupancy']:
                 is_symmetric = False
             else:
                 assert self._loss in ['add/add_s', 'add/add_s+occupancy']
@@ -432,7 +437,7 @@ class Model(chainer.Chain):
                 self._lambda_confidence * F.log(confidence_pred[i][keep])
             )
 
-            if self._loss in ['add/add_s+occupancy']:
+            if self._loss in ['add+occupancy', 'add/add_s+occupancy']:
                 solid_pcd = self._models.get_solid_voxel(class_id=class_id_i)
                 solid_pcd = xp.asarray(solid_pcd.points, dtype=np.float32)
                 kwargs = dict(

@@ -214,7 +214,12 @@ def main():
     )
     parser.add_argument(
         '--loss',
-        choices=['add/add_s', 'add->add/add_s|1', 'add/add_s+occupancy'],
+        choices=[
+            'add/add_s',
+            'add/add_s+occupancy',
+            'add->add/add_s|1',
+            'add->add/add_s|1+occupancy',
+        ],
         default='add->add/add_s|1',
         help='loss',
     )
@@ -328,6 +333,8 @@ def main():
     loss = args.loss
     if loss == 'add->add/add_s|1':
         loss = 'add'
+    elif loss == 'add->add/add_s|1+occupancy':
+        loss = 'add+occupancy'
 
     # model initialization
     model = contrib.models.Model(
@@ -405,6 +412,11 @@ def main():
                 assert target._loss == 'add'
             else:
                 target._loss = 'add/add_s'
+        elif args.loss == 'add->add/add_s|1+occupancy':
+            if updater.epoch_detail < 1:
+                assert target._loss == 'add+occupancy'
+            else:
+                target._loss = 'add/add_s+occupancy'
         else:
             assert args.loss in ['add/add_s', 'add/add_s+occupancy']
             return

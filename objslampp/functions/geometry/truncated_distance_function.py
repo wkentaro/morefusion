@@ -82,19 +82,19 @@ class TruncatedDistanceFunction(chainer.Function):
             }
             ''',
             'truncated_distance_function_fwd',
-            preamble='''
-            __device__ static float atomicMin(float* address, float val)
-            {
-                int* address_as_i = (int*) address;
-                int old = *address_as_i, assumed;
-                do {
-                    assumed = old;
-                    old = ::atomicCAS(address_as_i, assumed,
-                        __float_as_int(::fminf(val, __int_as_float(assumed))));
-                } while (assumed != old);
-                return __int_as_float(old);
-            }
-            ''',
+            # preamble='''
+            # __device__ static float atomicMin(float* address, float val)
+            # {
+            #     int* address_as_i = (int*) address;
+            #     int old = *address_as_i, assumed;
+            #     do {
+            #         assumed = old;
+            #         old = ::atomicCAS(address_as_i, assumed,
+            #             __float_as_int(::fminf(val, __int_as_float(assumed))));
+            #     } while (assumed != old);
+            #     return __int_as_float(old);
+            # }
+            # ''',
         )(
             indexer,
             points,
