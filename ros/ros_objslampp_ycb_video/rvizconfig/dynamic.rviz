@@ -199,36 +199,6 @@ Visualization Manager:
       left: 1200
       top: 0
       width: 300
-    - Alpha: 0.300000012
-      Autocompute Intensity Bounds: true
-      Autocompute Value Bounds:
-        Max Value: 10
-        Min Value: -10
-        Value: true
-      Axis: Z
-      Channel Name: intensity
-      Class: rviz/PointCloud2
-      Color: 255; 255; 255
-      Color Transformer: RGB8
-      Decay Time: 0
-      Enabled: false
-      Invert Rainbow: false
-      Max Color: 255; 255; 255
-      Max Intensity: 4096
-      Min Color: 0; 0; 0
-      Min Intensity: 0
-      Name: Filtered
-      Position Transformer: XYZ
-      Queue Size: 10
-      Selectable: true
-      Size (Pixels): 2
-      Size (m): 0.00999999978
-      Style: Points
-      Topic: /camera/bilateral_filter/output
-      Unreliable: false
-      Use Fixed Frame: true
-      Use rainbow: true
-      Value: false
     - Class: jsk_rviz_plugin/CameraInfo
       Enabled: true
       Image Topic: ""
@@ -276,18 +246,18 @@ Visualization Manager:
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.00451527257
-        Y: -0.0272607133
-        Z: 0.268882334
+        X: 0.301609159
+        Y: 0.120190792
+        Z: 0.0901486054
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.0500000007
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: -0.105203569
+      Pitch: 0.409796357
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 3.0053966
+      Yaw: 2.21039629
     Saved: ~
 Window Geometry:
   Displays:
