@@ -1,0 +1,45 @@
+<launch>
+
+  <include file="$(find ros_objslampp_ycb_video)/examples/example_singleview_3d_pose_estimation.launch">
+    <arg name="PLAY_ROSBAG" value="false" />
+    <arg name="GUI" value="false" />
+    <arg name="PUBLISH_TF" value="false" />
+  </include>
+
+  <group ns="camera">
+    <node name="label_to_mask"
+          pkg="nodelet" type="nodelet"
+          args="standalone jsk_perception/LabelToMaskImage">
+      <remap from="~input" to="mask_rcnn_instance_segmentation/output/label_ins" />
+      <rosparam subst_value="true">
+        label_value: -1
+      </rosparam>
+    </node>
+    <node name="mask_to_indices"
+          pkg="nodelet" type="nodelet"
+          args="standalone jsk_pcl_utils/MaskImageToPointIndices">
+      <remap from="~input" to="label_to_mask/output" />
+    </node>
+    <node name="extract_indices"
+          pkg="nodelet" type="nodelet"
+          args="standalone jsk_pcl/ExtractIndices">
+      <remap from="~input" to="depth_registered/points" />
+      <remap from="~indices" to="mask_to_indices/output" />
+      <rosparam subst_value="true">
+        keep_organized: true
+      </rosparam>
+    </node>
+    <node name="octomap_server"
+          pkg="octomap_server" type="octomap_server_node"
+          clear_params="true">
+      <remap from="cloud_in" to="extract_indices/output" />
+      <rosparam subst_value="true">
+        resolution: 0.01
+      </rosparam>
+    </node>
+  </group>
+
+  <include file="$(find ros_objslampp_ycb_video)/launch/orb_slam2_d435_rgbd.launch">
+  </include>
+
+</launch>
