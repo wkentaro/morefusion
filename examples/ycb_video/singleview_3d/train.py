@@ -270,31 +270,38 @@ def main():
     data_train = None
     data_valid = None
     if not args.multi_node or comm.rank == 0:
+        termcolor.cprint('==> Dataset size', attrs={'bold': True})
+
         data_ycb_trainreal = objslampp.datasets.YCBVideoRGBDPoseEstimationDatasetReIndexed(  # NOQA
             'trainreal', class_ids=args.class_ids, augmentation=True
         )
         data_ycb_syn = objslampp.datasets.YCBVideoRGBDPoseEstimationDatasetReIndexed(  # NOQA
             'syn', class_ids=args.class_ids, augmentation=True
         )
-        data_ycb_syn, _ = chainer.datasets.split_dataset_random(
-            data_ycb_syn, len(data_ycb_trainreal), seed=0
+        data_ycb_syn = objslampp.datasets.RandomSamplingDataset(
+            data_ycb_syn, len(data_ycb_trainreal)
+        )
+        data_my_train = objslampp.datasets.MySyntheticYCB20190916RGBDPoseEstimationDatasetReIndexed(  # NOQA
+            'train', class_ids=args.class_ids, augmentation=True
         )
         data_train = chainer.datasets.ConcatenatedDataset(
-            data_ycb_trainreal,
-            data_ycb_syn,
-            objslampp.datasets.MySyntheticYCB20190916RGBDPoseEstimationDatasetReIndexed(  # NOQA
-                'train', class_ids=args.class_ids, augmentation=True
-            ),
+            data_ycb_trainreal, data_ycb_syn, data_my_train
         )
-        del data_ycb_trainreal, data_ycb_syn
+        print(f'ycb_trainreal={len(data_ycb_trainreal)}, '
+              f'ycb_syn={len(data_ycb_syn)}, my_train={len(data_my_train)}')
+        del data_ycb_trainreal, data_ycb_syn, data_my_train
+
+        data_ycb_val = objslampp.datasets.YCBVideoRGBDPoseEstimationDatasetReIndexed(  # NOQA
+            'val', class_ids=args.class_ids
+        )
+        data_my_val = objslampp.datasets.MySyntheticYCB20190916RGBDPoseEstimationDatasetReIndexed(  # NOQA
+            'val', class_ids=args.class_ids
+        )
         data_valid = chainer.datasets.ConcatenatedDataset(
-            objslampp.datasets.YCBVideoRGBDPoseEstimationDatasetReIndexed(
-                'val', class_ids=args.class_ids
-            ),
-            objslampp.datasets.MySyntheticYCB20190916RGBDPoseEstimationDatasetReIndexed(  # NOQA
-                'val', class_ids=args.class_ids
-            ),
+            data_ycb_val, data_my_val,
         )
+        print(f'ycb_val={len(data_ycb_val)}, my_val={len(data_my_val)}')
+        del data_ycb_val, data_my_val
 
         data_train = chainer.datasets.TransformDataset(
             data_train,
@@ -304,8 +311,6 @@ def main():
             data_valid,
             Transform(train=False, with_occupancy=args.with_occupancy),
         )
-
-        termcolor.cprint('==> Dataset size', attrs={'bold': True})
         print(f'train={len(data_train)}, valid={len(data_valid)}')
 
     if args.multi_node:

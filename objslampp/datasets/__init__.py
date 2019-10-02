@@ -4,6 +4,8 @@ from . import ycb_video
 
 from .base import DatasetBase
 
+from .random_sampling import RandomSamplingDataset
+
 from .instance_segmentation import MySyntheticYCB20190916InstanceSegmentationDataset
 from .instance_segmentation import YCBVideoInstanceSegmentationDataset
 from .instance_segmentation import YCBVideoSyntheticInstanceSegmentationDataset
