@@ -169,12 +169,24 @@ def main():
         action='store_true',
         help='call evaluation before training',
     )
+
+    def argparse_type_class_ids(string):
+        if string == 'all':
+            n_class = len(objslampp.datasets.ycb_video.class_names)
+            class_ids = np.arange(n_class)[1:].tolist()
+        elif string == 'asymmetric':
+            class_ids = objslampp.datasets.ycb_video.class_ids_asymmetric
+        elif string == 'symmetric':
+            class_ids = objslampp.datasets.ycb_video.class_ids_symmetric
+        else:
+            class_ids = tuple([int(x) for x in string.split(',')])
+        return class_ids
+
     parser.add_argument(
         '--class-ids',
-        type=int,
-        nargs='*',
-        default=objslampp.datasets.ycb_video.class_ids_asymmetric.tolist(),
-        help='class id',
+        type=argparse_type_class_ids,
+        default='all',
+        help="class id (e.g., 'all', 'asymmetric', 'symmetric', '1,6,9')",
     )
     parser.add_argument(
         '--pretrained-model',
