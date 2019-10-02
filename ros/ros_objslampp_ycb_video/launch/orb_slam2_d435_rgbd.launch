@@ -3,7 +3,7 @@
       type="orb_slam2_ros_rgbd" output="screen">
 
        <remap from="/camera/rgb/image_raw" to="/camera/color/image_rect_color" />
-       <remap from="/camera/depth_registered/image_raw" to="/camera/depth/image_rect_raw" />
+       <remap from="/camera/depth_registered/image_raw" to="/camera/aligned_depth_to_color/image_raw" />
 
        <param name="publish_pointcloud" type="bool" value="true" />
        <param name="publish_pose" type="bool" value="true" />
