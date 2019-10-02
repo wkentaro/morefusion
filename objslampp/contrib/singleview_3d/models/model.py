@@ -32,7 +32,7 @@ class Model(chainer.Chain):
 
         if loss is None:
             loss = 'add/add_s'
-        assert loss in ['add/add_s', 'add/add_s+occupancy']
+        assert loss in ['add', 'add/add_s', 'add/add_s+occupancy']
         self._loss = loss
 
         if loss_scale is None:
@@ -414,12 +414,17 @@ class Model(chainer.Chain):
 
             is_symmetric = class_id_i in \
                 objslampp.datasets.ycb_video.class_ids_symmetric
+            if self._loss == 'add':
+                is_symmetric = False
+            else:
+                assert self._loss in ['add/add_s', 'add/add_s+occupancy']
             add = objslampp.functions.average_distance(
                 cad_pcd,
                 T_cad2cam_true,
                 T_cad2cam_pred,
                 symmetric=is_symmetric,
             )
+            del cad_pcd, T_cad2cam_true, is_symmetric
 
             keep = confidence_pred[i].array > 0
             loss_i = F.mean(

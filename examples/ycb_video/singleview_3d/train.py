@@ -200,8 +200,8 @@ def main():
     )
     parser.add_argument(
         '--loss',
-        choices=['add/add_s', 'add/add_s+occupancy'],
-        default='add/add_s',
+        choices=['add/add_s', 'add->add/add_s|1', 'add/add_s+occupancy'],
+        default='add->add/add_s|1',
         help='loss',
     )
     parser.add_argument(
@@ -306,12 +306,16 @@ def main():
 
     args.class_names = objslampp.datasets.ycb_video.class_names.tolist()
 
+    loss = args.loss
+    if loss == 'add->add/add_s|1':
+        loss = 'add'
+
     # model initialization
     model = contrib.models.Model(
         n_fg_class=len(args.class_names[1:]),
         pretrained_resnet18=args.pretrained_resnet18,
         with_occupancy=args.with_occupancy,
-        loss=args.loss,
+        loss=loss,
         loss_scale=args.loss_scale,
     )
     if args.pretrained_model is not None:
@@ -369,6 +373,24 @@ def main():
         updater, (args.max_epoch, 'epoch'), out=args.out
     )
     trainer.extend(E.FailOnNonNumber())
+
+    @chainer.training.make_extension(trigger=(1, 'iteration'))
+    def update_loss(trainer):
+        updater = trainer.updater
+        optimizer = updater.get_optimizer('main')
+        target = optimizer.target
+        assert trainer.stop_trigger.unit == 'epoch'
+
+        if args.loss == 'add->add/add_s|1':
+            if updater.epoch_detail < 1:
+                assert target._loss == 'add'
+            else:
+                target._loss = 'add/add_s'
+        else:
+            assert args.loss in ['add/add_s', 'add/add_s+occupancy']
+            return
+
+    trainer.extend(update_loss)
 
     log_interval = 10, 'iteration'
     eval_interval = 0.25, 'epoch'
