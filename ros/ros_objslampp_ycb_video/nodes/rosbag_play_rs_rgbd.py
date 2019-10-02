@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import subprocess
+import time
 
 # import gdown
 
@@ -12,6 +13,9 @@ import rospy
 #     md5='93f0bfd3b7e0a4e3ca00fbe39bbbc587',
 # )
 bag_file = '/home/wkentaro/Gdrive/objslampp/ros_objslampp/rs_rgbd_2019-10-02-13-08-40.bag'  # NOQA
+
+# wait for some nodes launched
+time.sleep(10)
 
 cmd = f"rosbag play {bag_file} {' '.join(rospy.myargv()[1:])}"
 print(f'+ {cmd}')
