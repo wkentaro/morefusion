@@ -1,8 +1,7 @@
-from chainer.backends import cuda
 import chainer.functions as F
 
 from ..geometry import transform_points
-from ... import extra as extra_module
+from ... import geometry as geometry_module
 
 
 # def average_distance_l2(points, transform1, transform2):
@@ -73,14 +72,9 @@ def average_distance(points, transform_true, transforms_pred, symmetric=False):
     assert points_pred.shape == (n_pred, n_points, 3)
 
     if symmetric:
-        points_true_array = cuda.to_cpu(points_true.array)
-        points_pred_array = cuda.to_cpu(points_pred.array)
-        points_pred_array = points_pred_array.reshape(n_pred * n_points, 3)
-
-        ref = points_true_array.transpose(1, 0)[None]
-        query = points_pred_array.transpose(1, 0)[None]
-        indices = extra_module.knn_cuda.knn_cuda(1, ref, query)[0, 0]
-
+        ref = points_true.array
+        query = points_pred.array.reshape(n_pred * n_points, 3)
+        indices = geometry_module.nn(ref, query)
         points_true = points_true[indices]
         points_true = points_true.reshape(n_pred, n_points, 3)
     else:

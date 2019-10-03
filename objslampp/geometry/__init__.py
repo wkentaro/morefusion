@@ -14,6 +14,8 @@ from .look_at import look_at
 
 from .masks_to_bboxes import masks_to_bboxes
 
+from .knn import nn
+
 from .pointcloud_from_depth import pointcloud_from_depth
 
 from .points_from_angles import points_from_angles
