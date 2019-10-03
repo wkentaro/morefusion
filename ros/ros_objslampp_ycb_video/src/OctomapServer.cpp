@@ -318,10 +318,6 @@ void OctomapServer::insertScan(const tf::Point& sensorOriginTf, const PCLPointCl
     ROS_ERROR_STREAM("Could not generate Key for origin "<<sensorOrigin);
   }
 
-#ifdef COLOR_OCTOMAP_SERVER
-  unsigned char* colors = new unsigned char[3];
-#endif
-
   // instead of direct scan insertion, compute update to filter ground:
   KeySet free_cells, occupied_cells;
   // insert ground points only as free:
@@ -363,10 +359,6 @@ void OctomapServer::insertScan(const tf::Point& sensorOriginTf, const PCLPointCl
 
         updateMinKey(key, m_updateBBXMin);
         updateMaxKey(key, m_updateBBXMax);
-
-#ifdef COLOR_OCTOMAP_SERVER // NB: Only read and interpret color if it's an occupied node
-        m_octree->averageNodeColor(it->x, it->y, it->z, /*r=*/it->r, /*g=*/it->g, /*b=*/it->b);
-#endif
       }
     } else {// ray longer than maxrange:;
       point3d new_end = sensorOrigin + (point - sensorOrigin).normalized() * m_maxRange;
@@ -425,14 +417,6 @@ void OctomapServer::insertScan(const tf::Point& sensorOriginTf, const PCLPointCl
 
   if (m_compressMap)
     m_octree->prune();
-
-#ifdef COLOR_OCTOMAP_SERVER
-  if (colors)
-  {
-    delete[] colors;
-    colors = NULL;
-  }
-#endif
 }
 
 
@@ -490,11 +474,6 @@ void OctomapServer::publishAll(const ros::Time& rostime){
         double size = it.getSize();
         double x = it.getX();
         double y = it.getY();
-#ifdef COLOR_OCTOMAP_SERVER
-        int r = it->getColor().r;
-        int g = it->getColor().g;
-        int b = it->getColor().b;
-#endif
 
         // Ignore speckles in the map:
         if (m_filterSpeckles && (it.getDepth() == m_treeDepth +1) && isSpeckleNode(it.getKey())){
