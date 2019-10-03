@@ -19,7 +19,6 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_maxRange(-1.0),
   m_worldFrameId("/map"),
   m_baseFrameId("base_footprint"),
-  m_useHeightMap(true),
   m_colorFactor(0.8),
   m_latchedTopics(true),
   m_publishFreeSpace(false),
@@ -46,7 +45,6 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   ros::NodeHandle private_nh(private_nh_);
   private_nh.param("frame_id", m_worldFrameId, m_worldFrameId);
   private_nh.param("base_frame_id", m_baseFrameId, m_baseFrameId);
-  private_nh.param("height_map", m_useHeightMap, m_useHeightMap);
   private_nh.param("color_factor", m_colorFactor, m_colorFactor);
 
   private_nh.param("pointcloud_min_x", m_pointcloudMinX,m_pointcloudMinX);
@@ -523,14 +521,6 @@ void OctomapServer::publishAll(const ros::Time& rostime){
           cubeCenter.z = z;
 
           occupiedNodesVis.markers[idx].points.push_back(cubeCenter);
-          if (m_useHeightMap){
-            double minX, minY, minZ, maxX, maxY, maxZ;
-            m_octree->getMetricMin(minX, minY, minZ);
-            m_octree->getMetricMax(maxX, maxY, maxZ);
-
-            double h = (1.0 - std::min(std::max((cubeCenter.z-minZ)/ (maxZ - minZ), 0.0), 1.0)) *m_colorFactor;
-            occupiedNodesVis.markers[idx].colors.push_back(heightMapColor(h));
-          }
         }
 
         // insert into pointcloud:
