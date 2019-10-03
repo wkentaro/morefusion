@@ -188,7 +188,6 @@ protected:
   std::string m_baseFrameId; // base of the robot for ground plane filtering
   std_msgs::ColorRGBA m_color;
   std_msgs::ColorRGBA m_colorFree;
-  double m_colorFactor;
 
   bool m_latchedTopics;
   bool m_publishFreeSpace;
