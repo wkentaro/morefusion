@@ -36,7 +36,6 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_filterSpeckles(false), m_filterGroundPlane(false),
   m_groundFilterDistance(0.04), m_groundFilterAngle(0.15), m_groundFilterPlaneDistance(0.07),
   m_compressMap(true),
-  m_incrementalUpdate(false),
   m_initConfig(true)
 {
   double probHit, probMiss, thresMin, thresMax;
@@ -73,7 +72,6 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   private_nh.param("sensor_model/min", thresMin, 0.12);
   private_nh.param("sensor_model/max", thresMax, 0.97);
   private_nh.param("compress_map", m_compressMap, m_compressMap);
-  private_nh.param("incremental_2D_projection", m_incrementalUpdate, m_incrementalUpdate);
 
   if (m_filterGroundPlane && (m_pointcloudMinZ > 0.0 || m_pointcloudMaxZ < 0.0)){
     ROS_WARN_STREAM("You enabled ground filtering but incoming pointclouds will be pre-filtered in ["
@@ -89,7 +87,6 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_octree->setClampingThresMax(thresMax);
   m_treeDepth = m_octree->getTreeDepth();
   m_maxTreeDepth = m_treeDepth;
-  m_gridmap.info.resolution = m_res;
 
   double r, g, b, a;
   private_nh.param("color/r", r, 0.0);
@@ -193,7 +190,6 @@ bool OctomapServer::openFile(const std::string& filename){
   m_treeDepth = m_octree->getTreeDepth();
   m_maxTreeDepth = m_treeDepth;
   m_res = m_octree->getResolution();
-  m_gridmap.info.resolution = m_res;
   double minX, minY, minZ;
   double maxX, maxY, maxZ;
   m_octree->getMetricMin(minX, minY, minZ);
@@ -452,19 +448,11 @@ void OctomapServer::publishAll(const ros::Time& rostime){
   // init pointcloud:
   pcl::PointCloud<PCLPoint> pclCloud;
 
-  // call pre-traversal hook:
-  handlePreNodeTraversal(rostime);
-
   // now, traverse all leafs in the tree:
   for (OcTreeT::iterator it = m_octree->begin(m_maxTreeDepth),
       end = m_octree->end(); it != end; ++it)
   {
     bool inUpdateBBX = isInUpdateBBX(it);
-
-    // call general hook:
-    handleNode(it);
-    if (inUpdateBBX)
-      handleNodeInBBX(it);
 
     if (m_octree->isNodeOccupied(*it)){
       double z = it.getZ();
@@ -480,11 +468,6 @@ void OctomapServer::publishAll(const ros::Time& rostime){
           ROS_DEBUG("Ignoring single speckle at (%f,%f,%f)", x, y, z);
           continue;
         } // else: current octree node is no speckle, send it out
-
-        handleOccupiedNode(it);
-        if (inUpdateBBX)
-          handleOccupiedNodeInBBX(it);
-
 
         //create marker:
         if (publishMarkerArray){
@@ -510,10 +493,6 @@ void OctomapServer::publishAll(const ros::Time& rostime){
       double half_size = it.getSize() / 2.0;
       if (z + half_size > m_occupancyMinZ && z - half_size < m_occupancyMaxZ)
       {
-        handleFreeNode(it);
-        if (inUpdateBBX)
-          handleFreeNodeInBBX(it);
-
         if (m_publishFreeSpace){
           double x = it.getX();
           double y = it.getY();
@@ -535,9 +514,6 @@ void OctomapServer::publishAll(const ros::Time& rostime){
       }
     }
   }
-
-  // call post-traversal hook:
-  handlePostNodeTraversal(rostime);
 
   // finish MarkerArray:
   if (publishMarkerArray){
@@ -665,13 +641,6 @@ bool OctomapServer::resetSrv(std_srvs::Empty::Request& req, std_srvs::Empty::Res
   occupiedNodesVis.markers.resize(m_treeDepth +1);
   ros::Time rostime = ros::Time::now();
   m_octree->clear();
-  // clear 2D map:
-  m_gridmap.data.clear();
-  m_gridmap.info.height = 0.0;
-  m_gridmap.info.width = 0.0;
-  m_gridmap.info.resolution = 0.0;
-  m_gridmap.info.origin.position.x = 0.0;
-  m_gridmap.info.origin.position.y = 0.0;
 
   ROS_INFO("Cleared octomap");
   publishAll(rostime);
@@ -841,57 +810,6 @@ void OctomapServer::filterGroundPlane(const PCLPointCloud& pc, PCLPointCloud& gr
 
 }
 
-void OctomapServer::handlePreNodeTraversal(const ros::Time& rostime) {
-}
-
-void OctomapServer::handlePostNodeTraversal(const ros::Time& rostime) {
-}
-
-void OctomapServer::handleOccupiedNode(const OcTreeT::iterator& it) {
-}
-
-void OctomapServer::handleFreeNode(const OcTreeT::iterator& it) {
-}
-
-void OctomapServer::handleOccupiedNodeInBBX(const OcTreeT::iterator& it) {
-}
-
-void OctomapServer::handleFreeNodeInBBX(const OcTreeT::iterator& it){
-}
-
-void OctomapServer::update2DMap(const OcTreeT::iterator& it, bool occupied){
-
-  // update 2D map (occupied always overrides):
-
-  if (it.getDepth() == m_maxTreeDepth){
-    unsigned idx = mapIdx(it.getKey());
-    if (occupied)
-      m_gridmap.data[mapIdx(it.getKey())] = 100;
-    else if (m_gridmap.data[idx] == -1){
-      m_gridmap.data[idx] = 0;
-    }
-
-  } else{
-    int intSize = 1 << (m_maxTreeDepth - it.getDepth());
-    octomap::OcTreeKey minKey=it.getIndexKey();
-    for(int dx=0; dx < intSize; dx++){
-      int i = (minKey[0]+dx - m_paddedMinKey[0])/m_multires2DScale;
-      for(int dy=0; dy < intSize; dy++){
-        unsigned idx = mapIdx(i, (minKey[1]+dy - m_paddedMinKey[1])/m_multires2DScale);
-        if (occupied)
-          m_gridmap.data[idx] = 100;
-        else if (m_gridmap.data[idx] == -1){
-          m_gridmap.data[idx] = 0;
-        }
-      }
-    }
-  }
-
-
-}
-
-
-
 bool OctomapServer::isSpeckleNode(const OcTreeKey&nKey) const {
   OcTreeKey key;
   bool neighborFound = false;
@@ -923,7 +841,6 @@ void OctomapServer::reconfigureCallback(ros_objslampp_ycb_video::OctomapServerCo
     m_filterSpeckles            = config.filter_speckles;
     m_filterGroundPlane         = config.filter_ground;
     m_compressMap               = config.compress_map;
-    m_incrementalUpdate         = config.incremental_2D_projection;
 
     // Parameters with a namespace require an special treatment at the beginning, as dynamic reconfigure
     // will overwrite them because the server is not able to match parameters' names.
@@ -968,45 +885,6 @@ void OctomapServer::reconfigureCallback(ros_objslampp_ycb_video::OctomapServerCo
 	}
   }
   publishAll();
-}
-
-void OctomapServer::adjustMapData(nav_msgs::OccupancyGrid& map, const nav_msgs::MapMetaData& oldMapInfo) const{
-  if (map.info.resolution != oldMapInfo.resolution){
-    ROS_ERROR("Resolution of map changed, cannot be adjusted");
-    return;
-  }
-
-  int i_off = int((oldMapInfo.origin.position.x - map.info.origin.position.x)/map.info.resolution +0.5);
-  int j_off = int((oldMapInfo.origin.position.y - map.info.origin.position.y)/map.info.resolution +0.5);
-
-  if (i_off < 0 || j_off < 0
-      || oldMapInfo.width  + i_off > map.info.width
-      || oldMapInfo.height + j_off > map.info.height)
-  {
-    ROS_ERROR("New 2D map does not contain old map area, this case is not implemented");
-    return;
-  }
-
-  nav_msgs::OccupancyGrid::_data_type oldMapData = map.data;
-
-  map.data.clear();
-  // init to unknown:
-  map.data.resize(map.info.width * map.info.height, -1);
-
-  nav_msgs::OccupancyGrid::_data_type::iterator fromStart, fromEnd, toStart;
-
-  for (int j =0; j < int(oldMapInfo.height); ++j ){
-    // copy chunks, row by row:
-    fromStart = oldMapData.begin() + j*oldMapInfo.width;
-    fromEnd = fromStart + oldMapInfo.width;
-    toStart = map.data.begin() + ((j+j_off)*m_gridmap.info.width + i_off);
-    copy(fromStart, fromEnd, toStart);
-
-//    for (int i =0; i < int(oldMapInfo.width); ++i){
-//      map.data[m_gridmap.info.width*(j+j_off) +i+i_off] = oldMapData[oldMapInfo.width*j +i];
-//    }
-
-  }
 }
 
 }  // namespace ros_objslampp_ycb_video

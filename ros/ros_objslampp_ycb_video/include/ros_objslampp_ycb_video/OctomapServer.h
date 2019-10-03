@@ -116,58 +116,6 @@ protected:
   */
   bool isSpeckleNode(const octomap::OcTreeKey& key) const;
 
-  /// hook that is called before traversing all nodes
-  virtual void handlePreNodeTraversal(const ros::Time& rostime);
-
-  /// hook that is called when traversing all nodes of the updated Octree (does nothing here)
-  virtual void handleNode(const OcTreeT::iterator& it) {};
-
-  /// hook that is called when traversing all nodes of the updated Octree in the updated area (does nothing here)
-  virtual void handleNodeInBBX(const OcTreeT::iterator& it) {};
-
-  /// hook that is called when traversing occupied nodes of the updated Octree
-  virtual void handleOccupiedNode(const OcTreeT::iterator& it);
-
-  /// hook that is called when traversing occupied nodes in the updated area (updates 2D map projection here)
-  virtual void handleOccupiedNodeInBBX(const OcTreeT::iterator& it);
-
-  /// hook that is called when traversing free nodes of the updated Octree
-  virtual void handleFreeNode(const OcTreeT::iterator& it);
-
-  /// hook that is called when traversing free nodes in the updated area (updates 2D map projection here)
-  virtual void handleFreeNodeInBBX(const OcTreeT::iterator& it);
-
-  /// hook that is called after traversing all nodes
-  virtual void handlePostNodeTraversal(const ros::Time& rostime);
-
-  /// updates the downprojected 2D map as either occupied or free
-  virtual void update2DMap(const OcTreeT::iterator& it, bool occupied);
-
-  inline unsigned mapIdx(int i, int j) const {
-    return m_gridmap.info.width * j + i;
-  }
-
-  inline unsigned mapIdx(const octomap::OcTreeKey& key) const {
-    return mapIdx((key[0] - m_paddedMinKey[0]) / m_multires2DScale,
-                  (key[1] - m_paddedMinKey[1]) / m_multires2DScale);
-
-  }
-
-  /**
-   * Adjust data of map due to a change in its info properties (origin or size,
-   * resolution needs to stay fixed). map already contains the new map info,
-   * but the data is stored according to oldMapInfo.
-   */
-
-  void adjustMapData(nav_msgs::OccupancyGrid& map, const nav_msgs::MapMetaData& oldMapInfo) const;
-
-  inline bool mapChanged(const nav_msgs::MapMetaData& oldMapInfo, const nav_msgs::MapMetaData& newMapInfo) {
-    return (    oldMapInfo.height != newMapInfo.height
-                || oldMapInfo.width != newMapInfo.width
-                || oldMapInfo.origin.position.x != newMapInfo.origin.position.x
-                || oldMapInfo.origin.position.y != newMapInfo.origin.position.y);
-  }
-
   ros::NodeHandle m_nh;
   ros::Publisher  m_markerPub, m_binaryMapPub, m_fullMapPub, m_pointCloudPub, m_collisionObjectPub, m_mapPub, m_cmapPub, m_fmapPub, m_fmarkerPub;
   message_filters::Subscriber<sensor_msgs::PointCloud2>* m_pointCloudSub;
@@ -215,14 +163,6 @@ protected:
   bool m_compressMap;
 
   bool m_initConfig;
-
-  // downprojected 2D map:
-  bool m_incrementalUpdate;
-  nav_msgs::OccupancyGrid m_gridmap;
-  bool m_mapOriginChanged;
-  octomap::OcTreeKey m_paddedMinKey;
-  unsigned m_multires2DScale;
-  bool m_projectCompleteMap;
 };
 }
 
