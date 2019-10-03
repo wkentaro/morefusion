@@ -209,8 +209,8 @@ def main():
     model = MaskRCNNFPNResNet50(
         n_fg_class=len(fg_class_names),
         pretrained_model='imagenet')
-    # model_coco = MaskRCNNFPNResNet50(pretrained_model='coco')
-    # _copyparams(model, model_coco)
+    model_coco = MaskRCNNFPNResNet50(pretrained_model='coco')
+    _copyparams(model, model_coco)
 
     model.use_preset('evaluate')
     train_chain = TrainChain(model)
@@ -255,11 +255,14 @@ def main():
     optimizer.setup(train_chain)
     optimizer.add_hook(WeightDecay(0.0001))
 
-    model.extractor.base.conv1.disable_update()
-    model.extractor.base.res2.disable_update()
     for link in model.links():
         if isinstance(link, L.BatchNormalization):
             link.disable_update()
+    model.extractor.disable_update()
+    model.rpn.disable_update()
+
+    for name, link in model.namedlinks():
+        print(name, link.update_enabled)
 
     updater = training.updaters.StandardUpdater(
         train_iter, optimizer, converter=converter, device=device)
