@@ -220,7 +220,6 @@ protected:
   // downprojected 2D map:
   bool m_incrementalUpdate;
   nav_msgs::OccupancyGrid m_gridmap;
-  bool m_publish2DMap;
   bool m_mapOriginChanged;
   octomap::OcTreeKey m_paddedMinKey;
   unsigned m_multires2DScale;
