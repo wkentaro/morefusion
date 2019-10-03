@@ -1,0 +1,24 @@
+- git:
+    local-name: appliedAI-Initiative/orb_slam_2_ros
+    uri: https://github.com/appliedAI-Initiative/orb_slam_2_ros.git
+    version: master
+- git:
+    local-name: jsk-ros-pkg/jsk_common
+    uri: https://github.com/wkentaro/jsk_common.git
+    version: objslampp
+- git:
+    local-name: jsk-ros-pkg/jsk_recognition
+    uri: https://github.com/wkentaro/jsk_recognition.git
+    version: objslampp
+- git:
+    local-name: objslampp
+    uri: https://github.com/wkentaro/objslampp.git
+    version: master
+- git:
+    local-name: realsense-ros
+    uri: https://github.com/IntelRealSense/realsense-ros.git
+    version: 2.2.3
+- git:
+    local-name: ros-perception/vision_opencv
+    uri: https://github.com/wkentaro/vision_opencv.git
+    version: kinetic-xenial

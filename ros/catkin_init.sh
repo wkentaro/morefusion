@@ -25,6 +25,10 @@ mkdir -p $ROSOBJSLAMPP_PREFIX/src
 cd $ROSOBJSLAMPP_PREFIX
 catkin init
 
+if [ ! -e $ROSOBJSLAMPP_PREFIX/src/.rosinstall ]; then
+  ln -s $ROSOBJSLAMPP_PREFIX/src/objslampp/ros/rosinstall $ROSOBJSLAMPP_PREFIX/src/.rosinstall
+fi
+
 if [ ! -e $ROSOBJSLAMPP_PREFIX/.autoenv.zsh ]; then
   cp $OBJSLAMPP_PREFIX/ros/template.autoenv.zsh $ROSOBJSLAMPP_PREFIX/.autoenv.zsh
 fi
