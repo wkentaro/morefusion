@@ -1007,59 +1007,9 @@ void OctomapServer::adjustMapData(nav_msgs::OccupancyGrid& map, const nav_msgs::
 //    }
 
   }
-
 }
 
-
-std_msgs::ColorRGBA OctomapServer::heightMapColor(double h) {
-
-  std_msgs::ColorRGBA color;
-  color.a = 1.0;
-  // blend over HSV-values (more colors)
-
-  double s = 1.0;
-  double v = 1.0;
-
-  h -= floor(h);
-  h *= 6;
-  int i;
-  double m, n, f;
-
-  i = floor(h);
-  f = h - i;
-  if (!(i & 1))
-    f = 1 - f; // if i is even
-  m = v * (1 - s);
-  n = v * (1 - s * f);
-
-  switch (i) {
-    case 6:
-    case 0:
-      color.r = v; color.g = n; color.b = m;
-      break;
-    case 1:
-      color.r = n; color.g = v; color.b = m;
-      break;
-    case 2:
-      color.r = m; color.g = v; color.b = n;
-      break;
-    case 3:
-      color.r = m; color.g = n; color.b = v;
-      break;
-    case 4:
-      color.r = n; color.g = m; color.b = v;
-      break;
-    case 5:
-      color.r = v; color.g = m; color.b = n;
-      break;
-    default:
-      color.r = 1; color.g = 0.5; color.b = 0.5;
-      break;
-  }
-
-  return color;
-}
-}
+}  // namespace ros_objslampp_ycb_video
 
 int main(int argc, char** argv){
   ros::init(argc, argv, "octomap_server");
