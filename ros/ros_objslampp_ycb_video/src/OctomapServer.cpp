@@ -1,3 +1,4 @@
+#include "ros_objslampp_ycb_video/color_utils.h"
 #include "ros_objslampp_ycb_video/OctomapServer.h"
 #include "ros_objslampp_ycb_video/log_utils.h"
 
@@ -13,6 +14,7 @@ namespace ros_objslampp_ycb_video {
 
 OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
 : m_nh(),
+  m_octrees(),
   m_pointCloudSub(NULL),
   m_labelInsSub(NULL),
   m_tfPointCloudSub(NULL),
@@ -61,26 +63,10 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_treeDepth = octree_bg->getTreeDepth();
   m_maxTreeDepth = m_treeDepth;
 
-  double r, g, b, a;
-  private_nh.param("color/r", r, 0.0);
-  private_nh.param("color/g", g, 0.0);
-  private_nh.param("color/b", b, 1.0);
-  private_nh.param("color/a", a, 1.0);
-  m_color.r = r;
-  m_color.g = g;
-  m_color.b = b;
-  m_color.a = a;
-
-  private_nh.param("color_free/r", r, 0.0);
-  private_nh.param("color_free/g", g, 1.0);
-  private_nh.param("color_free/b", b, 0.0);
-  private_nh.param("color_free/a", a, 1.0);
-  m_colorFree.r = r;
-  m_colorFree.g = g;
-  m_colorFree.b = b;
-  m_colorFree.a = a;
-
-  private_nh.param("publish_free_space", m_publishFreeSpace, m_publishFreeSpace);
+  m_colorFree.r = 0.5;
+  m_colorFree.g = 0.5;
+  m_colorFree.b = 0.5;
+  m_colorFree.a = 0.5;
 
   private_nh.param("latch", m_latchedTopics, m_latchedTopics);
   if (m_latchedTopics){
@@ -382,7 +368,7 @@ void OctomapServer::publishAll(const ros::Time& rostime){
       occupiedNodesVis.markers[i].scale.x = size;
       occupiedNodesVis.markers[i].scale.y = size;
       occupiedNodesVis.markers[i].scale.z = size;
-      occupiedNodesVis.markers[i].color = m_color;
+      occupiedNodesVis.markers[i].color = colorCategory40(-1 + 1);
 
       if (occupiedNodesVis.markers[i].points.size() > 0)
         occupiedNodesVis.markers[i].action = visualization_msgs::Marker::ADD;
