@@ -137,7 +137,6 @@ protected:
   std_msgs::ColorRGBA m_colorFree;
 
   bool m_latchedTopics;
-  bool m_publishFreeSpace;
 
   double m_res;
   unsigned m_treeDepth;

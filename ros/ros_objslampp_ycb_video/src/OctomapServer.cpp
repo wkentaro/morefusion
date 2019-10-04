@@ -20,7 +20,6 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_worldFrameId("/map"),
   m_baseFrameId("base_footprint"),
   m_latchedTopics(true),
-  m_publishFreeSpace(false),
   m_res(0.05),
   m_treeDepth(0),
   m_maxTreeDepth(0),
@@ -284,7 +283,7 @@ void OctomapServer::publishAll(const ros::Time& rostime){
     return;
   }
 
-  bool publishFreeMarkerArray = m_publishFreeSpace && (m_latchedTopics || m_fmarkerPub.getNumSubscribers() > 0);
+  bool publishFreeMarkerArray = (m_latchedTopics || m_fmarkerPub.getNumSubscribers() > 0);
   bool publishMarkerArray = (m_latchedTopics || m_markerPub.getNumSubscribers() > 0);
   bool publishPointCloud = (m_latchedTopics || m_pointCloudPub.getNumSubscribers() > 0);
   bool publishBinaryMap = (m_latchedTopics || m_binaryMapPub.getNumSubscribers() > 0);
@@ -351,24 +350,21 @@ void OctomapServer::publishAll(const ros::Time& rostime){
       double half_size = it.getSize() / 2.0;
       if (z + half_size > m_occupancyMinZ && z - half_size < m_occupancyMaxZ)
       {
-        if (m_publishFreeSpace){
+        if (publishFreeMarkerArray){
           double x = it.getX();
           double y = it.getY();
 
           //create marker for free space:
-          if (publishFreeMarkerArray){
-            unsigned idx = it.getDepth();
-            assert(idx < freeNodesVis.markers.size());
+          unsigned idx = it.getDepth();
+          assert(idx < freeNodesVis.markers.size());
 
-            geometry_msgs::Point cubeCenter;
-            cubeCenter.x = x;
-            cubeCenter.y = y;
-            cubeCenter.z = z;
+          geometry_msgs::Point cubeCenter;
+          cubeCenter.x = x;
+          cubeCenter.y = y;
+          cubeCenter.z = z;
 
-            freeNodesVis.markers[idx].points.push_back(cubeCenter);
-          }
+          freeNodesVis.markers[idx].points.push_back(cubeCenter);
         }
-
       }
     }
   }
