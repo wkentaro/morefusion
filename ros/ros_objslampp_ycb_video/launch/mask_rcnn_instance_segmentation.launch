@@ -8,11 +8,18 @@
           clear_params="true">
       <remap from="~input" to="color/image_rect_color" />
     </node>
-    <group ns="mask_rcnn_instance_segmentation">
+    <node name="draw_instance_segmentation"
+          pkg="ros_objslampp_ycb_video" type="draw_instance_segmentation.py"
+          clear_params="true">
+      <remap from="~input/rgb" to="color/image_rect_color" />
+      <remap from="~input/label_ins" to="mask_rcnn_instance_segmentation/output/label_ins" />
+      <remap from="~input/class" to="mask_rcnn_instance_segmentation/output/class" />
+    </node>
+    <group ns="draw_instance_segmentation">
       <node name="image_view"
             pkg="image_view" type="image_view"
             clear_params="true">
-        <remap from="image" to="output/viz" />
+        <remap from="image" to="output" />
         <rosparam subst_value="true">
           gui: $(arg GUI)
         </rosparam>
