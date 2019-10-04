@@ -30,6 +30,7 @@
           pkg="ros_objslampp_ycb_video" type="octomap_server"
           clear_params="true">
       <remap from="cloud_in" to="extract_indices/output" />
+      <remap from="label_ins_in" to="mask_rcnn_instance_segmentation/output/label_ins" />
       <rosparam subst_value="true">
         resolution: 0.01
       </rosparam>

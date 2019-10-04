@@ -13,6 +13,7 @@ namespace ros_objslampp_ycb_video {
 OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
 : m_nh(),
   m_pointCloudSub(NULL),
+  m_labelInsSub(NULL),
   m_tfPointCloudSub(NULL),
   m_reconfigureServer(m_config_mutex),
   m_octree(NULL),
@@ -109,8 +110,10 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_fmarkerPub = m_nh.advertise<visualization_msgs::MarkerArray>("free_cells_vis_array", 1, m_latchedTopics);
 
   m_pointCloudSub = new message_filters::Subscriber<sensor_msgs::PointCloud2> (m_nh, "cloud_in", 5);
-  m_tfPointCloudSub = new tf::MessageFilter<sensor_msgs::PointCloud2> (*m_pointCloudSub, m_tfListener, m_worldFrameId, 5);
-  m_tfPointCloudSub->registerCallback(boost::bind(&OctomapServer::insertCloudCallback, this, _1));
+  m_labelInsSub = new message_filters::Subscriber<sensor_msgs::Image> (m_nh, "label_ins_in", 5);
+  m_sync = new message_filters::Synchronizer<ExactSyncPolicy>(100);
+  m_sync->connectInput(*m_pointCloudSub, *m_labelInsSub);
+  m_sync->registerCallback(boost::bind(&OctomapServer::insertCloudCallback, this, _1, _2));
 
   m_octomapBinaryService = m_nh.advertiseService("octomap_binary", &OctomapServer::octomapBinarySrv, this);
   m_octomapFullService = m_nh.advertiseService("octomap_full", &OctomapServer::octomapFullSrv, this);
@@ -135,6 +138,10 @@ OctomapServer::~OctomapServer(){
     m_pointCloudSub = NULL;
   }
 
+  if (m_labelInsSub){
+    delete m_labelInsSub;
+    m_labelInsSub = NULL;
+  }
 
   if (m_octree){
     delete m_octree;
@@ -195,11 +202,10 @@ bool OctomapServer::openFile(const std::string& filename){
 
 }
 
-void OctomapServer::insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud){
+void OctomapServer::insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud, const sensor_msgs::ImageConstPtr& ins_msg) {
   ROS_ERROR("called");
 
   ros::WallTime startTime = ros::WallTime::now();
-
 
   //
   // ground filtering in base frame
@@ -237,6 +243,14 @@ void OctomapServer::insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr
   // directly transform to map frame:
   pcl::transformPointCloud(pc, pc, sensorToWorld);
 
+  cv::Mat label_ins = cv_bridge::toCvCopy(ins_msg, ins_msg->encoding)->image;
+  if (!((cloud->height == ins_msg->height) && (cloud->width == ins_msg->width))) {
+    ROS_ERROR("Point cloud and instance label must be same size!");
+    ROS_ERROR("point cloud: (%d, %d), label instance: (%d, %d)",
+              cloud->height, cloud->width, ins_msg->height, ins_msg->width);
+    return;
+  }
+
   // just filter height range:
   pass_x.setInputCloud(pc.makeShared());
   pass_x.filter(pc);
@@ -250,7 +264,7 @@ void OctomapServer::insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr
   pc_ground.header = pc.header;
   pc_nonground.header = pc.header;
 
-  insertScan(sensorToWorldTf.getOrigin(), pc_ground, pc_nonground);
+  insertScan(sensorToWorldTf.getOrigin(), pc_ground, pc_nonground, label_ins);
 
   double total_elapsed = (ros::WallTime::now() - startTime).toSec();
   ROS_DEBUG("Pointcloud insertion in OctomapServer done (%zu+%zu pts (ground/nonground), %f sec)", pc_ground.size(), pc_nonground.size(), total_elapsed);
@@ -258,7 +272,12 @@ void OctomapServer::insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr
   publishAll(cloud->header.stamp);
 }
 
-void OctomapServer::insertScan(const tf::Point& sensorOriginTf, const PCLPointCloud& ground, const PCLPointCloud& nonground){
+void OctomapServer::insertScan(
+  const tf::Point& sensorOriginTf,
+  const PCLPointCloud& ground,
+  const PCLPointCloud& nonground,
+  const cv::Mat& label_ins)
+{
   point3d sensorOrigin = pointTfToOctomap(sensorOriginTf);
 
   if (!m_octree->coordToKeyChecked(sensorOrigin, m_updateBBXMin)
@@ -292,8 +311,18 @@ void OctomapServer::insertScan(const tf::Point& sensorOriginTf, const PCLPointCl
   }
 
   // all other points: free on ray, occupied on endpoint:
-  for (PCLPointCloud::const_iterator it = nonground.begin(); it != nonground.end(); ++it){
-    point3d point(it->x, it->y, it->z);
+  for (size_t index = 0 ; index < nonground.points.size(); index++)
+  {
+    size_t width_index = index % nonground.width;
+    size_t height_index = index / nonground.width;
+    if (isnan(nonground.points[index].x) || isnan(nonground.points[index].y) || isnan(nonground.points[index].z))
+    {
+      // Skip NaN points
+      continue;
+    }
+
+    octomap::point3d point(nonground.points[index].x, nonground.points[index].y, nonground.points[index].z);
+    int instance_id = label_ins.at<uint32_t>(height_index, width_index);
     // maxrange check
     if ((m_maxRange < 0.0) || ((point - sensorOrigin).norm() <= m_maxRange) ) {
 
