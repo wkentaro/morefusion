@@ -27,7 +27,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: BG
+    SyncSource: Raw
 Toolbars:
   toolButtonStyle: 2
 Visualization Manager:
@@ -56,7 +56,7 @@ Visualization Manager:
       Marker Topic: /camera/singleview_3d_pose_estimation/output/markers
       Name: MarkerArray
       Namespaces:
-        {}
+        map: true
       Queue Size: 1
       Value: true
     - Alpha: 0.300000012
@@ -71,7 +71,7 @@ Visualization Manager:
       Color: 255; 255; 255
       Color Transformer: RGB8
       Decay Time: 0
-      Enabled: false
+      Enabled: true
       Invert Rainbow: false
       Max Color: 255; 255; 255
       Max Intensity: 4096
@@ -88,7 +88,7 @@ Visualization Manager:
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
-      Value: false
+      Value: true
     - Class: rviz/TF
       Enabled: true
       Frame Timeout: 15
@@ -217,41 +217,11 @@ Visualization Manager:
       show edges: true
       show polygons: false
       use image: false
-    - Alpha: 0.300000012
-      Autocompute Intensity Bounds: true
-      Autocompute Value Bounds:
-        Max Value: 10
-        Min Value: -10
-        Value: true
-      Axis: Z
-      Channel Name: intensity
-      Class: rviz/PointCloud2
-      Color: 255; 255; 255
-      Color Transformer: RGB8
-      Decay Time: 0
-      Enabled: true
-      Invert Rainbow: false
-      Max Color: 255; 255; 255
-      Max Intensity: 4096
-      Min Color: 0; 0; 0
-      Min Intensity: 0
-      Name: BG
-      Position Transformer: XYZ
-      Queue Size: 10
-      Selectable: true
-      Size (Pixels): 2
-      Size (m): 0.00999999978
-      Style: Points
-      Topic: /camera/extract_indices/output
-      Unreliable: false
-      Use Fixed Frame: true
-      Use rainbow: true
-      Value: true
     - Class: octomap_rviz_plugin/OccupancyGrid
       Enabled: true
-      Max. Height Display: inf
+      Max. Height Display: 3.40282347e+38
       Max. Octree Depth: 16
-      Min. Height Display: -inf
+      Min. Height Display: -3.40282347e+38
       Name: OccupancyGrid
       Octomap Topic: /camera/octomap_full
       Queue Size: 5

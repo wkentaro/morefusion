@@ -249,6 +249,11 @@ void OctomapServer::insertScan(
 
     octomap::point3d point(pc.points[index].x, pc.points[index].y, pc.points[index].z);
     int instance_id = label_ins.at<uint32_t>(height_index, width_index);
+    if (instance_id != -1)
+    {
+      continue;
+    }
+
     // maxrange check
     if ((m_maxRange < 0.0) || ((point - sensorOrigin).norm() <= m_maxRange) ) {
 

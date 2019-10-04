@@ -4,32 +4,10 @@
   </include>
 
   <group ns="camera">
-    <node name="label_to_mask"
-          pkg="nodelet" type="nodelet"
-          args="standalone jsk_perception/LabelToMaskImage">
-      <remap from="~input" to="mask_rcnn_instance_segmentation/output/label_ins" />
-      <rosparam subst_value="true">
-        label_value: -1
-      </rosparam>
-    </node>
-    <node name="mask_to_indices"
-          pkg="nodelet" type="nodelet"
-          args="standalone jsk_pcl_utils/MaskImageToPointIndices">
-      <remap from="~input" to="label_to_mask/output" />
-    </node>
-    <node name="extract_indices"
-          pkg="nodelet" type="nodelet"
-          args="standalone jsk_pcl/ExtractIndices">
-      <remap from="~input" to="depth_registered/points" />
-      <remap from="~indices" to="mask_to_indices/output" />
-      <rosparam subst_value="true">
-        keep_organized: true
-      </rosparam>
-    </node>
     <node name="octomap_server"
           pkg="ros_objslampp_ycb_video" type="octomap_server"
           clear_params="true">
-      <remap from="cloud_in" to="extract_indices/output" />
+      <remap from="cloud_in" to="depth_registered/points" />
       <remap from="label_ins_in" to="mask_rcnn_instance_segmentation/output/label_ins" />
       <rosparam subst_value="true">
         resolution: 0.01
