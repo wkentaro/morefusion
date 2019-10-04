@@ -73,7 +73,6 @@ public:
   bool resetSrv(std_srvs::Empty::Request& req, std_srvs::Empty::Response& resp);
 
   virtual void insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud, const sensor_msgs::ImageConstPtr& ins_msg);
-  virtual bool openFile(const std::string& filename);
 
 protected:
   inline static void updateMinKey(const octomap::OcTreeKey& in, octomap::OcTreeKey& min) {

@@ -138,58 +138,6 @@ OctomapServer::~OctomapServer(){
 
 }
 
-bool OctomapServer::openFile(const std::string& filename){
-  if (filename.length() <= 3)
-    return false;
-
-  std::string suffix = filename.substr(filename.length()-3, 3);
-  if (suffix== ".bt"){
-    if (!m_octree->readBinary(filename)){
-      return false;
-    }
-  } else if (suffix == ".ot"){
-    AbstractOcTree* tree = AbstractOcTree::read(filename);
-    if (!tree){
-      return false;
-    }
-    if (m_octree){
-      delete m_octree;
-      m_octree = NULL;
-    }
-    m_octree = dynamic_cast<OcTreeT*>(tree);
-    if (!m_octree){
-      ROS_ERROR("Could not read OcTree in file, currently there are no other types supported in .ot");
-      return false;
-    }
-
-  } else{
-    return false;
-  }
-
-  ROS_INFO("Octomap file %s loaded (%zu nodes).", filename.c_str(),m_octree->size());
-
-  m_treeDepth = m_octree->getTreeDepth();
-  m_maxTreeDepth = m_treeDepth;
-  m_res = m_octree->getResolution();
-  double minX, minY, minZ;
-  double maxX, maxY, maxZ;
-  m_octree->getMetricMin(minX, minY, minZ);
-  m_octree->getMetricMax(maxX, maxY, maxZ);
-
-  m_updateBBXMin[0] = m_octree->coordToKey(minX);
-  m_updateBBXMin[1] = m_octree->coordToKey(minY);
-  m_updateBBXMin[2] = m_octree->coordToKey(minZ);
-
-  m_updateBBXMax[0] = m_octree->coordToKey(maxX);
-  m_updateBBXMax[1] = m_octree->coordToKey(maxY);
-  m_updateBBXMax[2] = m_octree->coordToKey(maxZ);
-
-  publishAll();
-
-  return true;
-
-}
-
 void OctomapServer::insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud, const sensor_msgs::ImageConstPtr& ins_msg) {
   ROS_ERROR("called");
 
