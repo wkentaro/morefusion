@@ -27,7 +27,7 @@
       </rosparam>
     </node>
     <node name="octomap_server"
-          pkg="octomap_server" type="octomap_server_node"
+          pkg="ros_objslampp_ycb_video" type="octomap_server"
           clear_params="true">
       <remap from="cloud_in" to="extract_indices/output" />
       <rosparam subst_value="true">
