@@ -10,8 +10,6 @@
 // #include <moveit_msgs/CollisionMap.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <std_srvs/Empty.h>
-#include <dynamic_reconfigure/server.h>
-#include <ros_objslampp_ycb_video/OctomapServerConfig.h>
 
 #include <pcl/point_types.h>
 #include <pcl/conversions.h>
@@ -96,7 +94,6 @@ protected:
             && key[1] <= m_updateBBXMax[1]);
   }
 
-  void reconfigureCallback(ros_objslampp_ycb_video::OctomapServerConfig& config, uint32_t level);
   void publishBinaryOctoMap(const ros::Time& rostime = ros::Time::now()) const;
   void publishFullOctoMap(const ros::Time& rostime = ros::Time::now()) const;
   virtual void publishAll(const ros::Time& rostime = ros::Time::now());
@@ -127,7 +124,6 @@ protected:
   ros::ServiceServer m_octomapBinaryService, m_octomapFullService, m_clearBBXService, m_resetService;
   tf::TransformListener m_tfListener;
   boost::recursive_mutex m_config_mutex;
-  dynamic_reconfigure::Server<OctomapServerConfig> m_reconfigureServer;
 
   OcTreeT* m_octree;
   octomap::KeyRay m_keyRay;  // temp storage for ray casting
@@ -154,8 +150,6 @@ protected:
   bool m_filterSpeckles;
 
   bool m_compressMap;
-
-  bool m_initConfig;
 };
 }
 

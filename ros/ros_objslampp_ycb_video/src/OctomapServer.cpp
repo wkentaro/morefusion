@@ -15,7 +15,6 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_pointCloudSub(NULL),
   m_labelInsSub(NULL),
   m_tfPointCloudSub(NULL),
-  m_reconfigureServer(m_config_mutex),
   m_octree(NULL),
   m_maxRange(-1.0),
   m_worldFrameId("/map"),
@@ -29,8 +28,7 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_occupancyMaxZ(std::numeric_limits<double>::max()),
   m_minSizeX(0.0), m_minSizeY(0.0),
   m_filterSpeckles(false),
-  m_compressMap(true),
-  m_initConfig(true)
+  m_compressMap(true)
 {
   double probHit, probMiss, thresMin, thresMax;
 
@@ -107,10 +105,6 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_octomapFullService = m_nh.advertiseService("octomap_full", &OctomapServer::octomapFullSrv, this);
   m_clearBBXService = private_nh.advertiseService("clear_bbx", &OctomapServer::clearBBXSrv, this);
   m_resetService = private_nh.advertiseService("reset", &OctomapServer::resetSrv, this);
-
-  dynamic_reconfigure::Server<OctomapServerConfig>::CallbackType f;
-  f = boost::bind(&OctomapServer::reconfigureCallback, this, _1, _2);
-  m_reconfigureServer.setCallback(f);
 
   ROS_ERROR("called");
 }
@@ -579,51 +573,6 @@ bool OctomapServer::isSpeckleNode(const OcTreeKey&nKey) const {
   }
 
   return neighborFound;
-}
-
-void OctomapServer::reconfigureCallback(ros_objslampp_ycb_video::OctomapServerConfig& config, uint32_t level){
-  if (m_maxTreeDepth != unsigned(config.max_depth))
-    m_maxTreeDepth = unsigned(config.max_depth);
-  else{
-    m_occupancyMinZ             = config.occupancy_min_z;
-    m_occupancyMaxZ             = config.occupancy_max_z;
-    m_filterSpeckles            = config.filter_speckles;
-    m_compressMap               = config.compress_map;
-
-    // Parameters with a namespace require an special treatment at the beginning, as dynamic reconfigure
-    // will overwrite them because the server is not able to match parameters' names.
-    if (m_initConfig){
-      // If parameters do not have the default value, dynamic reconfigure server should be updated.
-      if(!is_equal(m_maxRange, -1.0))
-        config.sensor_model_max_range = m_maxRange;
-      if(!is_equal(m_octree->getProbHit(), 0.7))
-        config.sensor_model_hit = m_octree->getProbHit();
-      if(!is_equal(m_octree->getProbMiss(), 0.4))
-        config.sensor_model_miss = m_octree->getProbMiss();
-      if(!is_equal(m_octree->getClampingThresMin(), 0.12))
-        config.sensor_model_min = m_octree->getClampingThresMin();
-      if(!is_equal(m_octree->getClampingThresMax(), 0.97))
-        config.sensor_model_max = m_octree->getClampingThresMax();
-      m_initConfig = false;
-
-      boost::recursive_mutex::scoped_lock reconf_lock(m_config_mutex);
-      m_reconfigureServer.updateConfig(config);
-    }
-    else{
-      m_maxRange                  = config.sensor_model_max_range;
-      m_octree->setClampingThresMin(config.sensor_model_min);
-      m_octree->setClampingThresMax(config.sensor_model_max);
-
-      // Checking values that might create unexpected behaviors.
-      if (is_equal(config.sensor_model_hit, 1.0))
-        config.sensor_model_hit -= 1.0e-6;
-      m_octree->setProbHit(config.sensor_model_hit);
-      if (is_equal(config.sensor_model_miss, 0.0))
-        config.sensor_model_miss += 1.0e-6;
-      m_octree->setProbMiss(config.sensor_model_miss);
-    }
-  }
-  publishAll();
 }
 
 }  // namespace ros_objslampp_ycb_video
