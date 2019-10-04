@@ -133,8 +133,6 @@ protected:
   double m_maxRange;
   std::string m_worldFrameId; // the map frame
   std::string m_baseFrameId; // base of the robot for ground plane filtering
-  std_msgs::ColorRGBA m_color;
-  std_msgs::ColorRGBA m_colorFree;
 
   bool m_latchedTopics;
 

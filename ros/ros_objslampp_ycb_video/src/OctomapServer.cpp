@@ -63,11 +63,6 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_treeDepth = octree_bg->getTreeDepth();
   m_maxTreeDepth = m_treeDepth;
 
-  m_colorFree.r = 0.5;
-  m_colorFree.g = 0.5;
-  m_colorFree.b = 0.5;
-  m_colorFree.a = 0.5;
-
   private_nh.param("latch", m_latchedTopics, m_latchedTopics);
   if (m_latchedTopics){
     ROS_INFO("Publishing latched (single publish will take longer, all topics are prepared)");
@@ -393,7 +388,10 @@ void OctomapServer::publishAll(const ros::Time& rostime){
       freeNodesVis.markers[i].scale.x = size;
       freeNodesVis.markers[i].scale.y = size;
       freeNodesVis.markers[i].scale.z = size;
-      freeNodesVis.markers[i].color = m_colorFree;
+      freeNodesVis.markers[i].color.r = 0.5;
+      freeNodesVis.markers[i].color.g = 0.5;
+      freeNodesVis.markers[i].color.b = 0.5;
+      freeNodesVis.markers[i].color.a = 1.0;
 
 
       if (freeNodesVis.markers[i].points.size() > 0)
