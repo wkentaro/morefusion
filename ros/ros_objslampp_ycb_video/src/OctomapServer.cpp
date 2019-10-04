@@ -250,6 +250,9 @@ void OctomapServer::insertScan(
 
   if (m_compressMap)
     octree_bg->prune();
+  ROS_INFO_MAGENTA("Unsubscribing topics for not to use multi-view");
+  m_pointCloudSub->unsubscribe();
+  m_labelInsSub->unsubscribe();
 }
 
 
