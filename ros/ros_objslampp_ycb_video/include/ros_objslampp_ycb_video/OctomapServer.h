@@ -106,9 +106,6 @@ protected:
   */
   virtual void insertScan(const tf::Point& sensorOrigin, const PCLPointCloud& ground, const PCLPointCloud& nonground);
 
-  /// label the input cloud "pc" into ground and nonground. Should be in the robot's fixed frame (not world!)
-  void filterGroundPlane(const PCLPointCloud& pc, PCLPointCloud& ground, PCLPointCloud& nonground) const;
-
   /**
   * @brief Find speckle nodes (single occupied voxels with no neighbors). Only works on lowest resolution!
   * @param key
@@ -154,11 +151,6 @@ protected:
   double m_minSizeX;
   double m_minSizeY;
   bool m_filterSpeckles;
-
-  bool m_filterGroundPlane;
-  double m_groundFilterDistance;
-  double m_groundFilterAngle;
-  double m_groundFilterPlaneDistance;
 
   bool m_compressMap;
 
