@@ -12,6 +12,7 @@ import objslampp
 import objslampp.contrib.singleview_3d as contrib
 
 import cv_bridge
+from jsk_recognition_msgs.msg import ClassificationResult
 import rospy
 from topic_tools import LazyTransport
 import message_filters
@@ -64,7 +65,7 @@ class SingleViewPoseEstimation3D(LazyTransport):
             '~input/label_ins', Image, queue_size=1, buff_size=2 ** 24
         )
         sub_cls = message_filters.Subscriber(
-            '~input/label_cls', Image, queue_size=1, buff_size=2 ** 24
+            '~input/class', ClassificationResult, queue_size=1,
         )
         self._subscribers = [sub_cam, sub_rgb, sub_depth, sub_ins, sub_cls]
         sync = message_filters.TimeSynchronizer(
@@ -89,19 +90,16 @@ class SingleViewPoseEstimation3D(LazyTransport):
             depth, K[0, 0], K[1, 1], K[0, 2], K[1, 2]
         )
         ins = bridge.imgmsg_to_cv2(ins_msg)
-        cls = bridge.imgmsg_to_cv2(cls_msg)
 
-        instance_ids = np.unique(ins)
-        instance_ids = instance_ids[instance_ids >= 0]
+        class_ids = cls_msg.labels
+        instance_ids = np.arange(0, len(class_ids))
 
         examples = []
         nanmask = np.isnan(pcd).any(axis=2)
-        for ins_id in instance_ids:
+        for ins_id, cls_id in zip(instance_ids, class_ids):
             mask = ins == ins_id
             if (~nanmask & mask).sum() < 50:
                 continue
-            unique, counts = np.unique(cls[mask], return_counts=True)
-            cls_id = unique[np.argmax(counts)]
             bbox = objslampp.geometry.masks_to_bboxes([mask])[0]
             y1, x1, y2, x2 = bbox.round().astype(int)
             rgb_ins = rgb[y1:y2, x1:x2].copy()
@@ -165,7 +163,7 @@ class SingleViewPoseEstimation3D(LazyTransport):
         for i in range(max_n_objects):
             marker = Marker()
             marker.header = rgb_msg.header
-            marker.ns = '/singleview_3d_pose_estimation'
+            marker.ns = 'map'
             marker.id = i
             if i >= B:
                 marker.action = Marker.DELETE
