@@ -125,7 +125,7 @@ protected:
   tf::TransformListener m_tfListener;
   boost::recursive_mutex m_config_mutex;
 
-  OcTreeT* m_octree;
+  std::map<int, OcTreeT*> m_octrees;
   octomap::KeyRay m_keyRay;  // temp storage for ray casting
   octomap::OcTreeKey m_updateBBXMin;
   octomap::OcTreeKey m_updateBBXMax;
