@@ -1,4 +1,5 @@
-#include <ros_objslampp_ycb_video/OctomapServer.h>
+#include "ros_objslampp_ycb_video/OctomapServer.h"
+#include "ros_objslampp_ycb_video/log_utils.h"
 
 using namespace octomap;
 using octomap_msgs::Octomap;
@@ -106,7 +107,7 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_clearBBXService = private_nh.advertiseService("clear_bbx", &OctomapServer::clearBBXSrv, this);
   m_resetService = private_nh.advertiseService("reset", &OctomapServer::resetSrv, this);
 
-  ROS_ERROR("called");
+  ROS_INFO_BLUE("Initialized");
 }
 
 OctomapServer::~OctomapServer(){
@@ -132,7 +133,7 @@ OctomapServer::~OctomapServer(){
 }
 
 void OctomapServer::insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud, const sensor_msgs::ImageConstPtr& ins_msg) {
-  ROS_ERROR("called");
+  ROS_INFO_BLUE("insertCloudCallback");
 
   PCLPointCloud pc;
   pcl::fromROSMsg(*cloud, pc);
@@ -485,7 +486,7 @@ bool OctomapServer::clearBBXSrv(BBXSrv::Request& req, BBXSrv::Response& resp){
       end=octree_bg->end_leafs_bbx(); it!= end; ++it){
 
     it->setLogOdds(octomap::logodds(thresMin));
-    //			octree_bg->updateNode(it.getKey(), -6.0f);
+    // octree_bg->updateNode(it.getKey(), -6.0f);
   }
   // TODO: eval which is faster (setLogOdds+updateInner or updateNode)
   octree_bg->updateInnerOccupancy();

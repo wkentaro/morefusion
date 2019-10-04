@@ -6,7 +6,8 @@
   <group ns="camera">
     <node name="octomap_server"
           pkg="ros_objslampp_ycb_video" type="octomap_server"
-          clear_params="true">
+          clear_params="true"
+          output="screen">
       <remap from="cloud_in" to="depth_registered/points" />
       <remap from="label_ins_in" to="mask_rcnn_instance_segmentation/output/label_ins" />
       <rosparam subst_value="true">
