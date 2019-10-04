@@ -36,13 +36,19 @@ if [ ! -e $ROSOBJSLAMPP_PREFIX/.autoenv_leave.zsh ]; then
   cp $OBJSLAMPP_PREFIX/ros/template.autoenv_leave.zsh $ROSOBJSLAMPP_PREFIX/.autoenv_leave.zsh
 fi
 
-catkin config -DPYTHON_EXECUTABLE=$OBJSLAMPP_PREFIX/.anaconda3/bin/python \
+catkin config --merge-devel \
+              -DPYTHON_EXECUTABLE=$OBJSLAMPP_PREFIX/.anaconda3/bin/python \
               -DPYTHON_INCLUDE_DIR=$OBJSLAMPP_PREFIX/.anaconda3/include/python3.7m \
-              -DPYTHON_LIBRARY=$OBJSLAMPP_PREFIX/.anaconda3/lib/libpython3.7m.so
+              -DPYTHON_LIBRARY=$OBJSLAMPP_PREFIX/.anaconda3/lib/libpython3.7m.so \
+              --cmake-args -DCMAKE_BUILD_TYPE=Release
 mkdir -p $ROSOBJSLAMPP_PREFIX/devel/lib/python3/dist-packages
 ln -fs $OBJSLAMPP_PREFIX/.anaconda3/lib/python3.7/site-packages/cv2 $ROSOBJSLAMPP_PREFIX/devel/lib/python3/dist-packages
 
 catkin build cv_bridge
+
+set +x
+source $ROSOBJSLAMPP_PREFIX/devel/setup.bash
+set -x
 
 python -c 'import cv2'
 python -c 'from cv_bridge.boost.cv_bridge_boost import getCvType'
