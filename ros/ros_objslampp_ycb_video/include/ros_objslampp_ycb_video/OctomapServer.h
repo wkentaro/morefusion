@@ -137,6 +137,11 @@ protected:
   bool m_latchedTopics;
 
   double m_res;
+  double m_probHit;
+  double m_probMiss;
+  double m_thresMin;
+  double m_thresMax;
+
   unsigned m_treeDepth;
   unsigned m_maxTreeDepth;
 
