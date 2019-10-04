@@ -152,6 +152,8 @@ protected:
   bool m_filterSpeckles;
 
   bool m_compressMap;
+
+  bool m_stopUpdate;
 };
 }
 

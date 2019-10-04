@@ -33,7 +33,8 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_occupancyMaxZ(std::numeric_limits<double>::max()),
   m_minSizeX(0.0), m_minSizeY(0.0),
   m_filterSpeckles(false),
-  m_compressMap(true)
+  m_compressMap(true),
+  m_stopUpdate(false)
 {
   double probHit, probMiss, thresMin, thresMax;
 
@@ -131,7 +132,9 @@ void OctomapServer::insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr
     return;
   }
 
-  insertScan(sensorToWorldTf.getOrigin(), pc, label_ins);
+  if (!m_stopUpdate) {
+    insertScan(sensorToWorldTf.getOrigin(), pc, label_ins);
+  }
 
   publishAll(cloud->header.stamp);
 }
@@ -240,9 +243,8 @@ void OctomapServer::insertScan(
     }
   }
 
-  ROS_INFO_MAGENTA("Unsubscribing topics for not to use multi-view");
-  m_pointCloudSub->unsubscribe();
-  m_labelInsSub->unsubscribe();
+  ROS_INFO_MAGENTA("Stop updating for single-view dev");
+  m_stopUpdate = true;
 }
 
 
