@@ -25,12 +25,6 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_res(0.05),
   m_treeDepth(0),
   m_maxTreeDepth(0),
-  m_pointcloudMinX(-std::numeric_limits<double>::max()),
-  m_pointcloudMaxX(std::numeric_limits<double>::max()),
-  m_pointcloudMinY(-std::numeric_limits<double>::max()),
-  m_pointcloudMaxY(std::numeric_limits<double>::max()),
-  m_pointcloudMinZ(-std::numeric_limits<double>::max()),
-  m_pointcloudMaxZ(std::numeric_limits<double>::max()),
   m_occupancyMinZ(-std::numeric_limits<double>::max()),
   m_occupancyMaxZ(std::numeric_limits<double>::max()),
   m_minSizeX(0.0), m_minSizeY(0.0),
@@ -44,12 +38,6 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   private_nh.param("frame_id", m_worldFrameId, m_worldFrameId);
   private_nh.param("base_frame_id", m_baseFrameId, m_baseFrameId);
 
-  private_nh.param("pointcloud_min_x", m_pointcloudMinX,m_pointcloudMinX);
-  private_nh.param("pointcloud_max_x", m_pointcloudMaxX,m_pointcloudMaxX);
-  private_nh.param("pointcloud_min_y", m_pointcloudMinY,m_pointcloudMinY);
-  private_nh.param("pointcloud_max_y", m_pointcloudMaxY,m_pointcloudMaxY);
-  private_nh.param("pointcloud_min_z", m_pointcloudMinZ,m_pointcloudMinZ);
-  private_nh.param("pointcloud_max_z", m_pointcloudMaxZ,m_pointcloudMaxZ);
   private_nh.param("occupancy_min_z", m_occupancyMinZ,m_occupancyMinZ);
   private_nh.param("occupancy_max_z", m_occupancyMaxZ,m_occupancyMaxZ);
   private_nh.param("min_x_size", m_minSizeX,m_minSizeX);
@@ -205,12 +193,7 @@ bool OctomapServer::openFile(const std::string& filename){
 void OctomapServer::insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud, const sensor_msgs::ImageConstPtr& ins_msg) {
   ROS_ERROR("called");
 
-  ros::WallTime startTime = ros::WallTime::now();
-
-  //
-  // ground filtering in base frame
-  //
-  PCLPointCloud pc; // input cloud for filtering and ground-detection
+  PCLPointCloud pc;
   pcl::fromROSMsg(*cloud, pc);
 
   tf::StampedTransform sensorToWorldTf;
@@ -223,24 +206,6 @@ void OctomapServer::insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr
 
   Eigen::Matrix4f sensorToWorld;
   pcl_ros::transformAsMatrix(sensorToWorldTf, sensorToWorld);
-
-  // XXX: ground plane filtering is removed
-
-  // set up filter for height range, also removes NANs:
-  pcl::PassThrough<PCLPoint> pass_x;
-  pass_x.setFilterFieldName("x");
-  pass_x.setFilterLimits(m_pointcloudMinX, m_pointcloudMaxX);
-  pcl::PassThrough<PCLPoint> pass_y;
-  pass_y.setFilterFieldName("y");
-  pass_y.setFilterLimits(m_pointcloudMinY, m_pointcloudMaxY);
-  pcl::PassThrough<PCLPoint> pass_z;
-  pass_z.setFilterFieldName("z");
-  pass_z.setFilterLimits(m_pointcloudMinZ, m_pointcloudMaxZ);
-
-  PCLPointCloud pc_ground; // segmented ground plane
-  PCLPointCloud pc_nonground; // everything else
-
-  // directly transform to map frame:
   pcl::transformPointCloud(pc, pc, sensorToWorld);
 
   cv::Mat label_ins = cv_bridge::toCvCopy(ins_msg, ins_msg->encoding)->image;
@@ -251,31 +216,14 @@ void OctomapServer::insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr
     return;
   }
 
-  // just filter height range:
-  pass_x.setInputCloud(pc.makeShared());
-  pass_x.filter(pc);
-  pass_y.setInputCloud(pc.makeShared());
-  pass_y.filter(pc);
-  pass_z.setInputCloud(pc.makeShared());
-  pass_z.filter(pc);
-
-  pc_nonground = pc;
-  // pc_nonground is empty without ground segmentation
-  pc_ground.header = pc.header;
-  pc_nonground.header = pc.header;
-
-  insertScan(sensorToWorldTf.getOrigin(), pc_ground, pc_nonground, label_ins);
-
-  double total_elapsed = (ros::WallTime::now() - startTime).toSec();
-  ROS_DEBUG("Pointcloud insertion in OctomapServer done (%zu+%zu pts (ground/nonground), %f sec)", pc_ground.size(), pc_nonground.size(), total_elapsed);
+  insertScan(sensorToWorldTf.getOrigin(), pc, label_ins);
 
   publishAll(cloud->header.stamp);
 }
 
 void OctomapServer::insertScan(
   const tf::Point& sensorOriginTf,
-  const PCLPointCloud& ground,
-  const PCLPointCloud& nonground,
+  const PCLPointCloud& pc,
   const cv::Mat& label_ins)
 {
   point3d sensorOrigin = pointTfToOctomap(sensorOriginTf);
@@ -288,40 +236,18 @@ void OctomapServer::insertScan(
 
   // instead of direct scan insertion, compute update to filter ground:
   KeySet free_cells, occupied_cells;
-  // insert ground points only as free:
-  for (PCLPointCloud::const_iterator it = ground.begin(); it != ground.end(); ++it){
-    point3d point(it->x, it->y, it->z);
-    // maxrange check
-    if ((m_maxRange > 0.0) && ((point - sensorOrigin).norm() > m_maxRange) ) {
-      point = sensorOrigin + (point - sensorOrigin).normalized() * m_maxRange;
-    }
-
-    // only clear space (ground points)
-    if (m_octree->computeRayKeys(sensorOrigin, point, m_keyRay)){
-      free_cells.insert(m_keyRay.begin(), m_keyRay.end());
-    }
-
-    octomap::OcTreeKey endKey;
-    if (m_octree->coordToKeyChecked(point, endKey)){
-      updateMinKey(endKey, m_updateBBXMin);
-      updateMaxKey(endKey, m_updateBBXMax);
-    } else{
-      ROS_ERROR_STREAM("Could not generate Key for endpoint "<<point);
-    }
-  }
-
   // all other points: free on ray, occupied on endpoint:
-  for (size_t index = 0 ; index < nonground.points.size(); index++)
+  for (size_t index = 0 ; index < pc.points.size(); index++)
   {
-    size_t width_index = index % nonground.width;
-    size_t height_index = index / nonground.width;
-    if (isnan(nonground.points[index].x) || isnan(nonground.points[index].y) || isnan(nonground.points[index].z))
+    size_t width_index = index % pc.width;
+    size_t height_index = index / pc.width;
+    if (isnan(pc.points[index].x) || isnan(pc.points[index].y) || isnan(pc.points[index].z))
     {
       // Skip NaN points
       continue;
     }
 
-    octomap::point3d point(nonground.points[index].x, nonground.points[index].y, nonground.points[index].z);
+    octomap::point3d point(pc.points[index].x, pc.points[index].y, pc.points[index].z);
     int instance_id = label_ins.at<uint32_t>(height_index, width_index);
     // maxrange check
     if ((m_maxRange < 0.0) || ((point - sensorOrigin).norm() <= m_maxRange) ) {
@@ -706,8 +632,6 @@ void OctomapServer::reconfigureCallback(ros_objslampp_ycb_video::OctomapServerCo
   if (m_maxTreeDepth != unsigned(config.max_depth))
     m_maxTreeDepth = unsigned(config.max_depth);
   else{
-    m_pointcloudMinZ            = config.pointcloud_min_z;
-    m_pointcloudMaxZ            = config.pointcloud_max_z;
     m_occupancyMinZ             = config.occupancy_min_z;
     m_occupancyMaxZ             = config.occupancy_max_z;
     m_filterSpeckles            = config.filter_speckles;

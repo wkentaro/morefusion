@@ -110,7 +110,7 @@ protected:
   * @param ground scan endpoints on the ground plane (only clear space)
   * @param nonground all other endpoints (clear up to occupied endpoint)
   */
-  virtual void insertScan(const tf::Point& sensorOrigin, const PCLPointCloud& ground, const PCLPointCloud& nonground, const cv::Mat& label_ins);
+  virtual void insertScan(const tf::Point& sensorOrigin, const PCLPointCloud& pc, const cv::Mat& label_ins);
 
   /**
   * @brief Find speckle nodes (single occupied voxels with no neighbors). Only works on lowest resolution!
@@ -148,12 +148,6 @@ protected:
   unsigned m_treeDepth;
   unsigned m_maxTreeDepth;
 
-  double m_pointcloudMinX;
-  double m_pointcloudMaxX;
-  double m_pointcloudMinY;
-  double m_pointcloudMaxY;
-  double m_pointcloudMinZ;
-  double m_pointcloudMaxZ;
   double m_occupancyMinZ;
   double m_occupancyMaxZ;
   double m_minSizeX;
