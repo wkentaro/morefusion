@@ -13,4 +13,8 @@
   <build_depend>dynamic_reconfigure</build_depend>
   <build_depend>octomap_server</build_depend>
   <build_depend>roscpp</build_depend>
+
+  <exec_depend>cv_bridge</exec_depend>
+  <exec_depend>jsk_perception</exec_depend>
+  <exec_depend>orb_slam2_ros</exec_depend>
 </package>
