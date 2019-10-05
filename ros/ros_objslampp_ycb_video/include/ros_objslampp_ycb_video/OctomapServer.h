@@ -6,8 +6,6 @@
 #include <nav_msgs/OccupancyGrid.h>
 #include <std_msgs/ColorRGBA.h>
 
-// #include <moveit_msgs/CollisionObject.h>
-// #include <moveit_msgs/CollisionMap.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <std_srvs/Empty.h>
 
@@ -39,25 +37,14 @@
 #include <octomap/octomap.h>
 #include <octomap/OcTreeKey.h>
 
-//#define COLOR_OCTOMAP_SERVER // switch color here - easier maintenance, only maintain OctomapServer. Two targets are defined in the cmake, octomap_server_color and octomap_server. One has this defined, and the other doesn't
-
-#ifdef COLOR_OCTOMAP_SERVER
-#include <octomap/ColorOcTree.h>
-#endif
-
 namespace ros_objslampp_ycb_video {
 class OctomapServer {
 
 public:
-#ifdef COLOR_OCTOMAP_SERVER
-  typedef pcl::PointXYZRGB PCLPoint;
-  typedef pcl::PointCloud<pcl::PointXYZRGB> PCLPointCloud;
-  typedef octomap::ColorOcTree OcTreeT;
-#else
   typedef pcl::PointXYZ PCLPoint;
   typedef pcl::PointCloud<pcl::PointXYZ> PCLPointCloud;
   typedef octomap::OcTree OcTreeT;
-#endif
+
   typedef octomap_msgs::GetOctomap OctomapSrv;
   typedef octomap_msgs::BoundingBoxQuery BBXSrv;
 
