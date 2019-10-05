@@ -11,10 +11,6 @@ find_package(catkin REQUIRED COMPONENTS
 
 find_package(PCL REQUIRED io)
 
-generate_dynamic_reconfigure_options(
-  cfg/OctomapServer.cfg
-)
-
 catkin_package(
   DEPENDS PCL
   INCLUDE_DIRS include
