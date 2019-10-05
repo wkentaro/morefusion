@@ -1,4 +1,6 @@
 geometry_msgs/Vector3 origin
 float32 pitch
-geometry_msgs/Vector3 dims
-float32[] value
+ros_objslampp_msgs/VoxelDimensions dims
+float32[] values
+uint32[] indices
+int32 label

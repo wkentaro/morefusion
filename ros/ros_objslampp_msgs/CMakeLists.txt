@@ -9,7 +9,9 @@ find_package(catkin REQUIRED COMPONENTS
 
 add_message_files(
   FILES
+  VoxelDimensions.msg
   VoxelGrid.msg
+  VoxelGridArray.msg
 )
 
 generate_messages(
