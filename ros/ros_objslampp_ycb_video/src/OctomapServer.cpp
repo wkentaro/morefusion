@@ -1,5 +1,3 @@
-#include <boost/lexical_cast.hpp>
-
 #include "ros_objslampp_ycb_video/color_utils.h"
 #include "ros_objslampp_ycb_video/OctomapServer.h"
 #include "ros_objslampp_ycb_video/log_utils.h"
@@ -71,6 +69,8 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_pointCloudPub = m_nh.advertise<sensor_msgs::PointCloud2>("octomap_point_cloud_centers", 1, m_latchedTopics);
   m_mapPub = m_nh.advertise<nav_msgs::OccupancyGrid>("projected_map", 5, m_latchedTopics);
   m_fmarkerPub = m_nh.advertise<visualization_msgs::MarkerArray>("free_cells_vis_array", 1, m_latchedTopics);
+  m_bboxesPub = private_nh.advertise<jsk_recognition_msgs::BoundingBoxArray>(
+    "output/bboxes", 1, m_latchedTopics);
 
   m_pointCloudSub = new message_filters::Subscriber<sensor_msgs::PointCloud2> (m_nh, "cloud_in", 5);
   m_labelInsSub = new message_filters::Subscriber<sensor_msgs::Image> (m_nh, "label_ins_in", 5);
@@ -274,6 +274,43 @@ void OctomapServer::publishAll(const ros::Time& rostime){
 
   // init pointcloud:
   pcl::PointCloud<PCLPoint> pclCloud;
+
+  jsk_recognition_msgs::BoundingBoxArray bboxes;
+  bboxes.header.frame_id = m_worldFrameId;
+  bboxes.header.stamp = rostime;
+  for (std::map<int, OcTreeT*>::iterator it_octree = m_octrees.begin(); it_octree != m_octrees.end(); it_octree++)
+  {
+    int instance_id = it_octree->first;
+    OcTreeT* octree = it_octree->second;
+
+    if (instance_id == -1)
+    {
+      continue;
+    }
+
+    double min_x, min_y, min_z;
+    double max_x, max_y, max_z;
+    double dim_x, dim_y, dim_z;
+    ROS_INFO_STREAM_GREEN("InstanceId: " << instance_id);
+    octree->getMetricMax(max_x, max_y, max_z);
+    ROS_INFO_GREEN("MetricMax: (%f, %f, %f)", max_x, max_y, max_z);
+    octree->getMetricMin(min_x, min_y, min_z);
+    ROS_INFO_GREEN("MetricMin: (%f, %f, %f)", min_x, min_y, min_z);
+    octree->getMetricSize(dim_x, dim_y, dim_z);
+    ROS_INFO_GREEN("MetricSize: (%f, %f, %f)", dim_x, dim_y, dim_z);
+
+    jsk_recognition_msgs::BoundingBox bbox;
+    bbox.header.frame_id = m_worldFrameId;
+    bbox.header.stamp = rostime;
+    bbox.pose.position.x = (min_x + max_x) / 2;
+    bbox.pose.position.y = (min_y + max_y) / 2;
+    bbox.pose.position.z = (min_z + max_z) / 2;
+    bbox.dimensions.x = dim_x;
+    bbox.dimensions.y = dim_y;
+    bbox.dimensions.z = dim_z;
+    bboxes.boxes.push_back(bbox);
+  }
+  m_bboxesPub.publish(bboxes);
 
   // now, traverse all leafs in the tree:
   for (std::map<int, OcTreeT*>::iterator it_octree = m_octrees.begin(); it_octree != m_octrees.end(); it_octree++)

@@ -234,7 +234,10 @@ Visualization Manager:
       Marker Topic: /camera/occupied_cells_vis_array
       Name: Occupied
       Namespaces:
-        map: true
+        -1: true
+        0: true
+        1: true
+        2: true
       Queue Size: 1
       Value: true
     - Class: rviz/MarkerArray
@@ -245,6 +248,18 @@ Visualization Manager:
         {}
       Queue Size: 1
       Value: false
+    - Class: jsk_rviz_plugin/BoundingBoxArray
+      Enabled: true
+      Name: Objects
+      Topic: /camera/octomap_server/output/bboxes
+      Unreliable: false
+      Value: true
+      alpha: 0.800000012
+      color: 25; 255; 0
+      coloring: Auto
+      line width: 0.00499999989
+      only edge: true
+      show coords: false
   Enabled: true
   Global Options:
     Background Color: 230; 230; 230
@@ -270,7 +285,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 1.89790618
+      Distance: 1.46973848
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
@@ -285,10 +300,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.245398283
+      Pitch: -0.07960172
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 2.65539837
+      Yaw: 2.29039764
     Saved: ~
 Window Geometry:
   Displays:

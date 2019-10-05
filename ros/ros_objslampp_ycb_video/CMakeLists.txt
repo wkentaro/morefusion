@@ -4,6 +4,7 @@ project(ros_objslampp_ycb_video)
 find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   dynamic_reconfigure
+  jsk_recognition_msgs
   octomap_server
   roscpp
 )

@@ -1,10 +1,13 @@
 #ifndef ROS_OBJSLAMPP_YCB_VIDEO_OCTOMAPSERVER_H
 #define ROS_OBJSLAMPP_YCB_VIDEO_OCTOMAPSERVER_H
 
+#include <boost/lexical_cast.hpp>
+
 #include <ros/ros.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <nav_msgs/OccupancyGrid.h>
 #include <std_msgs/ColorRGBA.h>
+#include <jsk_recognition_msgs/BoundingBoxArray.h>
 
 #include <sensor_msgs/PointCloud2.h>
 #include <std_srvs/Empty.h>
@@ -92,7 +95,7 @@ protected:
   bool isSpeckleNode(const octomap::OcTreeKey& key) const;
 
   ros::NodeHandle m_nh;
-  ros::Publisher  m_markerPub, m_binaryMapPub, m_fullMapPub, m_pointCloudPub, m_collisionObjectPub, m_mapPub, m_cmapPub, m_fmapPub, m_fmarkerPub;
+  ros::Publisher  m_markerPub, m_binaryMapPub, m_fullMapPub, m_pointCloudPub, m_collisionObjectPub, m_mapPub, m_cmapPub, m_fmapPub, m_fmarkerPub, m_bboxesPub;
   message_filters::Subscriber<sensor_msgs::PointCloud2>* m_pointCloudSub;
   message_filters::Subscriber<sensor_msgs::Image>* m_labelInsSub;
   tf::MessageFilter<sensor_msgs::PointCloud2>* m_tfPointCloudSub;
