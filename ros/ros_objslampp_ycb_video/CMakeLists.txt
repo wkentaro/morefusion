@@ -3,7 +3,6 @@ project(ros_objslampp_ycb_video)
 
 find_package(catkin REQUIRED COMPONENTS
   cv_bridge
-  dynamic_reconfigure
   jsk_recognition_msgs
   octomap_server
   roscpp
@@ -22,7 +21,6 @@ catkin_package(
 include_directories(include ${catkin_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS})
 
 add_executable(octomap_server src/OctomapServer.cpp)
-add_dependencies(octomap_server ${PROJECT_NAME}_gencfg)
 target_link_libraries(octomap_server ${catkin_LIBRARIES} ${PCL_LIBRARIES})
 
 # ---------------------------------------------------------------------
