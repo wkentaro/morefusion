@@ -6,7 +6,9 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
-        - /MarkerArray1
+        - /Partial1
+        - /Partial1/OctreeOccupied1
+        - /Partial1/OctreeOccupied1/Namespaces1
       Splitter Ratio: 0.513888896
     Tree Height: 973
   - Class: rviz/Selection
@@ -52,13 +54,13 @@ Visualization Manager:
       Reference Frame: <Fixed Frame>
       Value: true
     - Class: rviz/MarkerArray
-      Enabled: true
+      Enabled: false
       Marker Topic: /camera/singleview_3d_pose_estimation/output/markers
-      Name: MarkerArray
+      Name: Full
       Namespaces:
-        map: true
+        {}
       Queue Size: 1
-      Value: true
+      Value: false
     - Alpha: 0.300000012
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
@@ -229,25 +231,6 @@ Visualization Manager:
       Voxel Alpha: 1
       Voxel Coloring: Z-Axis
       Voxel Rendering: Occupied Voxels
-    - Class: rviz/MarkerArray
-      Enabled: true
-      Marker Topic: /camera/occupied_cells_vis_array
-      Name: Occupied
-      Namespaces:
-        -1: true
-        0: true
-        1: true
-        2: true
-      Queue Size: 1
-      Value: true
-    - Class: rviz/MarkerArray
-      Enabled: false
-      Marker Topic: /camera/free_cells_vis_array
-      Name: Free
-      Namespaces:
-        {}
-      Queue Size: 1
-      Value: false
     - Class: jsk_rviz_plugin/BoundingBoxArray
       Enabled: true
       Name: Objects
@@ -260,6 +243,37 @@ Visualization Manager:
       line width: 0.00499999989
       only edge: true
       show coords: false
+    - Class: rviz/Group
+      Displays:
+        - Class: rviz/MarkerArray
+          Enabled: true
+          Marker Topic: /camera/voxel_grids_to_mesh_markers/output
+          Name: PartialMesh
+          Namespaces:
+            "": true
+          Queue Size: 1
+          Value: true
+        - Class: rviz/MarkerArray
+          Enabled: true
+          Marker Topic: /camera/occupied_cells_vis_array
+          Name: OctreeOccupied
+          Namespaces:
+            -1: true
+            0: false
+            1: false
+            2: false
+          Queue Size: 1
+          Value: true
+        - Class: rviz/MarkerArray
+          Enabled: false
+          Marker Topic: /camera/free_cells_vis_array
+          Name: OctreeFree
+          Namespaces:
+            {}
+          Queue Size: 1
+          Value: false
+      Enabled: true
+      Name: Partial
   Enabled: true
   Global Options:
     Background Color: 230; 230; 230
@@ -300,10 +314,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: -0.07960172
+      Pitch: 0.125398323
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 2.29039764
+      Yaw: 3.5603981
     Saved: ~
 Window Geometry:
   Displays:

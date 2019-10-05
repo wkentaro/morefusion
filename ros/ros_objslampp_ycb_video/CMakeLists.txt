@@ -5,6 +5,7 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   jsk_recognition_msgs
   octomap_server
+  ros_objslampp_msgs
   roscpp
 )
 

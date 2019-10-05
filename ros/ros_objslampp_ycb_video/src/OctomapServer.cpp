@@ -1,6 +1,7 @@
 #include "ros_objslampp_ycb_video/color_utils.h"
 #include "ros_objslampp_ycb_video/OctomapServer.h"
 #include "ros_objslampp_ycb_video/log_utils.h"
+#include <ros_objslampp_msgs/VoxelGridArray.h>
 
 using namespace octomap;
 using octomap_msgs::Octomap;
@@ -71,6 +72,8 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_fmarkerPub = m_nh.advertise<visualization_msgs::MarkerArray>("free_cells_vis_array", 1, m_latchedTopics);
   m_bboxesPub = private_nh.advertise<jsk_recognition_msgs::BoundingBoxArray>(
     "output/bboxes", 1, m_latchedTopics);
+  m_gridsPub = private_nh.advertise<ros_objslampp_msgs::VoxelGridArray>(
+    "output/grids", 1, m_latchedTopics);
 
   m_pointCloudSub = new message_filters::Subscriber<sensor_msgs::PointCloud2> (m_nh, "cloud_in", 5);
   m_labelInsSub = new message_filters::Subscriber<sensor_msgs::Image> (m_nh, "label_ins_in", 5);
@@ -174,8 +177,8 @@ void OctomapServer::insertScan(
     OcTreeT* octree = m_octrees.find(instance_id)->second;
 
     // maxrange check
-    if ((m_maxRange < 0.0) || ((point - sensorOrigin).norm() <= m_maxRange) ) {
-
+    if ((m_maxRange < 0.0) || ((point - sensorOrigin).norm() <= m_maxRange))
+    {
       // free cells
       if (octree->computeRayKeys(sensorOrigin, point, m_keyRay))
       {
@@ -278,6 +281,8 @@ void OctomapServer::publishAll(const ros::Time& rostime){
   jsk_recognition_msgs::BoundingBoxArray bboxes;
   bboxes.header.frame_id = m_worldFrameId;
   bboxes.header.stamp = rostime;
+  ros_objslampp_msgs::VoxelGridArray grids;
+  grids.header = bboxes.header;
   for (std::map<int, OcTreeT*>::iterator it_octree = m_octrees.begin(); it_octree != m_octrees.end(); it_octree++)
   {
     int instance_id = it_octree->first;
@@ -291,13 +296,9 @@ void OctomapServer::publishAll(const ros::Time& rostime){
     double min_x, min_y, min_z;
     double max_x, max_y, max_z;
     double dim_x, dim_y, dim_z;
-    ROS_INFO_STREAM_GREEN("InstanceId: " << instance_id);
     octree->getMetricMax(max_x, max_y, max_z);
-    ROS_INFO_GREEN("MetricMax: (%f, %f, %f)", max_x, max_y, max_z);
     octree->getMetricMin(min_x, min_y, min_z);
-    ROS_INFO_GREEN("MetricMin: (%f, %f, %f)", min_x, min_y, min_z);
     octree->getMetricSize(dim_x, dim_y, dim_z);
-    ROS_INFO_GREEN("MetricSize: (%f, %f, %f)", dim_x, dim_y, dim_z);
 
     jsk_recognition_msgs::BoundingBox bbox;
     bbox.header.frame_id = m_worldFrameId;
@@ -309,10 +310,39 @@ void OctomapServer::publishAll(const ros::Time& rostime){
     bbox.dimensions.y = dim_y;
     bbox.dimensions.z = dim_z;
     bboxes.boxes.push_back(bbox);
+
+    ros_objslampp_msgs::VoxelGrid grid;
+    grid.pitch = m_res;
+    grid.dims.x = 32;
+    grid.dims.y = 32;
+    grid.dims.z = 32;
+    grid.origin.x = bbox.pose.position.x - (grid.dims.x / 2.0 - 0.5) * grid.pitch;
+    grid.origin.y = bbox.pose.position.y - (grid.dims.y / 2.0 - 0.5) * grid.pitch;
+    grid.origin.z = bbox.pose.position.z - (grid.dims.z / 2.0 - 0.5) * grid.pitch;
+    grid.label = instance_id;
+    for (size_t i = 0; i < grid.dims.x; i++) {
+      for (size_t j = 0; j < grid.dims.y; j++) {
+        for (size_t k = 0; k < grid.dims.z; k++) {
+          double x, y, z;
+          x = grid.origin.x + grid.pitch * i;
+          y = grid.origin.y + grid.pitch * j;
+          z = grid.origin.z + grid.pitch * k;
+          octomap::OcTreeNode* node = octree->search(x, y, z, /*depth=*/0);
+          if (node != NULL) {
+            size_t index = i * grid.dims.y * grid.dims.z + j * grid.dims.z + k;
+            grid.indices.push_back(index);
+            grid.values.push_back(node->getOccupancy());
+          }
+        }
+      }
+    }
+    grids.grids.push_back(grid);
   }
   m_bboxesPub.publish(bboxes);
+  m_gridsPub.publish(grids);
 
   // now, traverse all leafs in the tree:
+  std::vector<visualization_msgs::MarkerArray> occupiedNodesVisAll;
   for (std::map<int, OcTreeT*>::iterator it_octree = m_octrees.begin(); it_octree != m_octrees.end(); it_octree++)
   {
     // init markers:
@@ -409,9 +439,19 @@ void OctomapServer::publishAll(const ros::Time& rostime){
         else
           occupiedNodesVis.markers[i].action = visualization_msgs::Marker::DELETE;
       }
-
-      m_markerPub.publish(occupiedNodesVis);
     }
+    occupiedNodesVisAll.push_back(occupiedNodesVis);
+  }
+
+  if (publishMarkerArray)
+  {
+    visualization_msgs::MarkerArray occupiedNodesVis;
+    for (size_t i = 0; i < occupiedNodesVisAll.size(); i++) {
+      for (size_t j = 0; j < occupiedNodesVisAll[i].markers.size(); j++) {
+        occupiedNodesVis.markers.push_back(occupiedNodesVisAll[i].markers[j]);
+      }
+    }
+    m_markerPub.publish(occupiedNodesVis);
   }
 
   // finish FreeMarkerArray:

@@ -14,6 +14,11 @@
         resolution: 0.01
       </rosparam>
     </node>
+    <node name="voxel_grids_to_mesh_markers"
+          pkg="ros_objslampp_ycb_video" type="voxel_grids_to_mesh_markers.py"
+          clear_params="true">
+      <remap from="~input" to="octomap_server/output/grids" />
+    </node>
   </group>
 
   <include file="$(find ros_objslampp_ycb_video)/launch/orb_slam2_d435_rgbd.launch">
