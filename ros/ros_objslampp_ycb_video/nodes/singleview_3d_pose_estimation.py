@@ -159,31 +159,36 @@ class SingleViewPoseEstimation3D(LazyTransport):
         del transforms
 
         markers = MarkerArray()
-        max_n_objects = 16
-        for i in range(max_n_objects):
+
+        marker = Marker(
+            header=rgb_msg.header,
+            ns='map',
+            id=0,
+            action=Marker.DELETEALL,
+        )
+        markers.markers.append(marker)
+
+        for i, example in enumerate(examples):
             marker = Marker()
             marker.header = rgb_msg.header
             marker.ns = 'map'
-            marker.id = i
-            if i >= B:
-                marker.action = Marker.DELETE
-            else:
-                cls_id = examples[i]['class_id']
-                marker.action = Marker.ADD
-                marker.type = Marker.MESH_RESOURCE
-                marker.pose.position.x = translation[i][0]
-                marker.pose.position.y = translation[i][1]
-                marker.pose.position.z = translation[i][2]
-                marker.pose.orientation.x = quaternion[i][1]
-                marker.pose.orientation.y = quaternion[i][2]
-                marker.pose.orientation.z = quaternion[i][3]
-                marker.pose.orientation.w = quaternion[i][0]
-                marker.scale.x = 1
-                marker.scale.y = 1
-                marker.scale.z = 1
-                cad_file = self._models.get_cad_file(cls_id)
-                marker.mesh_resource = f'file://{cad_file}'
-                marker.mesh_use_embedded_materials = True
+            marker.id = len(markers.markers)
+
+            marker.action = Marker.ADD
+            marker.type = Marker.MESH_RESOURCE
+            marker.pose.position.x = translation[i][0]
+            marker.pose.position.y = translation[i][1]
+            marker.pose.position.z = translation[i][2]
+            marker.pose.orientation.x = quaternion[i][1]
+            marker.pose.orientation.y = quaternion[i][2]
+            marker.pose.orientation.z = quaternion[i][3]
+            marker.pose.orientation.w = quaternion[i][0]
+            marker.scale.x = 1
+            marker.scale.y = 1
+            marker.scale.z = 1
+            cad_file = self._models.get_cad_file(example['class_id'])
+            marker.mesh_resource = f'file://{cad_file}'
+            marker.mesh_use_embedded_materials = True
             markers.markers.append(marker)
         self._pub_markers.publish(markers)
 
