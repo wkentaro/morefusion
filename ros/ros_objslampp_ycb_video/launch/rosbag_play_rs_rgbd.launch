@@ -23,7 +23,7 @@
 
   <node name="static_transform_publisher"
         pkg="tf" type="static_transform_publisher"
-        args="0 0 0.5 0 3.14 0 camera_color_optical_frame base 100">
+        args="0 0 0.67 0 3.2 -0.17 camera_color_optical_frame base 100">
   </node>
 
   <group ns="camera">

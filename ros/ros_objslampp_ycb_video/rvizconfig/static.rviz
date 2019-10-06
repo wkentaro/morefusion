@@ -33,7 +33,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: Raw
+    SyncSource: ""
 Toolbars:
   toolButtonStyle: 2
 Visualization Manager:
@@ -102,29 +102,7 @@ Visualization Manager:
         All Enabled: false
         base:
           Value: true
-        camera_aligned_depth_to_color_frame:
-          Value: true
-        camera_aligned_depth_to_infra1_frame:
-          Value: true
-        camera_color_frame:
-          Value: true
         camera_color_optical_frame:
-          Value: true
-        camera_depth_frame:
-          Value: true
-        camera_depth_optical_frame:
-          Value: true
-        camera_infra1_frame:
-          Value: true
-        camera_infra1_optical_frame:
-          Value: true
-        camera_infra2_frame:
-          Value: true
-        camera_infra2_optical_frame:
-          Value: true
-        camera_link:
-          Value: true
-        map:
           Value: true
       Marker Scale: 0.400000006
       Name: TF
@@ -132,25 +110,9 @@ Visualization Manager:
       Show Axes: true
       Show Names: false
       Tree:
-        map:
-          camera_link:
-            camera_aligned_depth_to_color_frame:
-              camera_color_optical_frame:
-                base:
-                  {}
-            camera_aligned_depth_to_infra1_frame:
-              camera_infra1_optical_frame:
-                {}
-            camera_color_frame:
-              {}
-            camera_depth_frame:
-              camera_depth_optical_frame:
-                {}
-            camera_infra1_frame:
-              {}
-            camera_infra2_frame:
-              camera_infra2_optical_frame:
-                {}
+        camera_color_optical_frame:
+          base:
+            {}
       Update Interval: 0
       Value: true
     - Class: jsk_rviz_plugin/OverlayImage
@@ -242,7 +204,7 @@ Visualization Manager:
           Marker Topic: /camera/grids_to_mesh_markers/output
           Name: PartialMesh
           Namespaces:
-            "": true
+            {}
           Queue Size: 1
           Value: true
         - Class: rviz/MarkerArray
@@ -250,10 +212,7 @@ Visualization Manager:
           Marker Topic: /camera/occupied_cells_vis_array
           Name: OctreeOccupied
           Namespaces:
-            -1: true
-            0: false
-            1: false
-            2: false
+            {}
           Queue Size: 1
           Value: true
         - Class: rviz/MarkerArray
@@ -276,7 +235,7 @@ Visualization Manager:
           line width: 0.00499999989
           only edge: true
           show coords: false
-      Enabled: true
+      Enabled: false
       Name: Partial
     - Class: rviz/MarkerArray
       Enabled: false
@@ -287,20 +246,18 @@ Visualization Manager:
       Queue Size: 1
       Value: false
     - Class: rviz/MarkerArray
-      Enabled: true
+      Enabled: false
       Marker Topic: /camera/grids_noentry_to_markers/output
       Name: GridsNoEntry
       Namespaces:
-        0: true
-        1: true
-        2: true
+        {}
       Queue Size: 1
-      Value: true
+      Value: false
   Enabled: true
   Global Options:
     Background Color: 230; 230; 230
     Default Light: true
-    Fixed Frame: map
+    Fixed Frame: base
     Frame Rate: 30
   Name: root
   Tools:
@@ -336,10 +293,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.00539861899
+      Pitch: 0.0353985056
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 2.69539666
+      Yaw: 0.695396543
     Saved: ~
 Window Geometry:
   Displays:

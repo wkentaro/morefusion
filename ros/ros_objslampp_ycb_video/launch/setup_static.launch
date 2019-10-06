@@ -12,6 +12,7 @@
       <remap from="label_ins_in" to="mask_rcnn_instance_segmentation/output/label_ins" />
       <remap from="class_in" to="mask_rcnn_instance_segmentation/output/class" />
       <rosparam subst_value="true">
+        frame_id: base
         resolution: 0.01
       </rosparam>
     </node>
@@ -31,8 +32,5 @@
       <remap from="~input" to="octomap_server/output/grids_noentry" />
     </node>
   </group>
-
-  <include file="$(find ros_objslampp_ycb_video)/launch/orb_slam2_d435_rgbd.launch">
-  </include>
 
 </launch>
