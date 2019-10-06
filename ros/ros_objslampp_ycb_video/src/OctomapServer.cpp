@@ -74,6 +74,8 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
     "output/bboxes", 1, m_latchedTopics);
   m_gridsPub = private_nh.advertise<ros_objslampp_msgs::VoxelGridArray>(
     "output/grids", 1, m_latchedTopics);
+  m_gridsNoEntryPub = private_nh.advertise<ros_objslampp_msgs::VoxelGridArray>(
+    "output/grids_noentry", 1, m_latchedTopics);
 
   m_pointCloudSub = new message_filters::Subscriber<sensor_msgs::PointCloud2> (m_nh, "cloud_in", 5);
   m_labelInsSub = new message_filters::Subscriber<sensor_msgs::Image> (m_nh, "label_ins_in", 5);
@@ -283,6 +285,8 @@ void OctomapServer::publishAll(const ros::Time& rostime){
   bboxes.header.stamp = rostime;
   ros_objslampp_msgs::VoxelGridArray grids;
   grids.header = bboxes.header;
+  ros_objslampp_msgs::VoxelGridArray grids_noentry;
+  grids_noentry.header = bboxes.header;
   for (std::map<int, OcTreeT*>::iterator it_octree = m_octrees.begin(); it_octree != m_octrees.end(); it_octree++)
   {
     int instance_id = it_octree->first;
@@ -320,6 +324,12 @@ void OctomapServer::publishAll(const ros::Time& rostime){
     grid.origin.y = bbox.pose.position.y - (grid.dims.y / 2.0 - 0.5) * grid.pitch;
     grid.origin.z = bbox.pose.position.z - (grid.dims.z / 2.0 - 0.5) * grid.pitch;
     grid.label = instance_id;
+
+    ros_objslampp_msgs::VoxelGrid grid_noentry;
+    grid_noentry.pitch = grid.pitch;
+    grid_noentry.dims = grid.dims;
+    grid_noentry.origin = grid.origin;
+    grid_noentry.label = grid.label;
     for (size_t i = 0; i < grid.dims.x; i++) {
       for (size_t j = 0; j < grid.dims.y; j++) {
         for (size_t k = 0; k < grid.dims.z; k++) {
@@ -328,18 +338,33 @@ void OctomapServer::publishAll(const ros::Time& rostime){
           y = grid.origin.y + grid.pitch * j;
           z = grid.origin.z + grid.pitch * k;
           octomap::OcTreeNode* node = octree->search(x, y, z, /*depth=*/0);
+          size_t index = i * grid.dims.y * grid.dims.z + j * grid.dims.z + k;
           if (node != NULL) {
-            size_t index = i * grid.dims.y * grid.dims.z + j * grid.dims.z + k;
             grid.indices.push_back(index);
             grid.values.push_back(node->getOccupancy());
+          } else {
+            for (std::map<int, OcTreeT*>::iterator it_octree_other = m_octrees.begin(); it_octree_other != m_octrees.end(); it_octree_other++)
+            {
+              if (it_octree_other->first == instance_id)
+              {
+                continue;
+              }
+              OcTreeT* octree_other = it_octree_other->second;
+              node = octree_other->search(x, y, z, /*depth=*/0);
+              if (node != NULL) {
+                grid_noentry.indices.push_back(index);
+              }
+            }
           }
         }
       }
     }
     grids.grids.push_back(grid);
+    grids_noentry.grids.push_back(grid_noentry);
   }
   m_bboxesPub.publish(bboxes);
   m_gridsPub.publish(grids);
+  m_gridsNoEntryPub.publish(grids_noentry);
 
   // now, traverse all leafs in the tree:
   std::vector<visualization_msgs::MarkerArray> occupiedNodesVisAll;

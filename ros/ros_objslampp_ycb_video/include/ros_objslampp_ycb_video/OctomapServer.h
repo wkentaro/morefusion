@@ -95,7 +95,7 @@ protected:
   bool isSpeckleNode(const octomap::OcTreeKey& key) const;
 
   ros::NodeHandle m_nh;
-  ros::Publisher  m_markerPub, m_binaryMapPub, m_fullMapPub, m_pointCloudPub, m_collisionObjectPub, m_mapPub, m_cmapPub, m_fmapPub, m_fmarkerPub, m_bboxesPub, m_gridsPub;
+  ros::Publisher  m_markerPub, m_binaryMapPub, m_fullMapPub, m_pointCloudPub, m_collisionObjectPub, m_mapPub, m_cmapPub, m_fmapPub, m_fmarkerPub, m_bboxesPub, m_gridsPub, m_gridsNoEntryPub;
   message_filters::Subscriber<sensor_msgs::PointCloud2>* m_pointCloudSub;
   message_filters::Subscriber<sensor_msgs::Image>* m_labelInsSub;
   tf::MessageFilter<sensor_msgs::PointCloud2>* m_tfPointCloudSub;
