@@ -9,6 +9,9 @@ Panels:
         - /Partial1
         - /Partial1/OctreeOccupied1
         - /Partial1/OctreeOccupied1/Namespaces1
+        - /Grids1
+        - /Grids1/Namespaces1
+        - /GridsNoEntry1
       Splitter Ratio: 0.513888896
     Tree Height: 973
   - Class: rviz/Selection
@@ -231,23 +234,11 @@ Visualization Manager:
       Voxel Alpha: 1
       Voxel Coloring: Z-Axis
       Voxel Rendering: Occupied Voxels
-    - Class: jsk_rviz_plugin/BoundingBoxArray
-      Enabled: true
-      Name: Objects
-      Topic: /camera/octomap_server/output/bboxes
-      Unreliable: false
-      Value: true
-      alpha: 0.800000012
-      color: 25; 255; 0
-      coloring: Auto
-      line width: 0.00499999989
-      only edge: true
-      show coords: false
     - Class: rviz/Group
       Displays:
         - Class: rviz/MarkerArray
           Enabled: true
-          Marker Topic: /camera/voxel_grids_to_mesh_markers/output
+          Marker Topic: /camera/grids_to_mesh_markers/output
           Name: PartialMesh
           Namespaces:
             "": true
@@ -272,8 +263,36 @@ Visualization Manager:
             {}
           Queue Size: 1
           Value: false
+        - Class: jsk_rviz_plugin/BoundingBoxArray
+          Enabled: false
+          Name: Objects
+          Topic: /camera/octomap_server/output/bboxes
+          Unreliable: false
+          Value: false
+          alpha: 0.800000012
+          color: 25; 255; 0
+          coloring: Auto
+          line width: 0.00499999989
+          only edge: true
+          show coords: false
       Enabled: true
       Name: Partial
+    - Class: rviz/MarkerArray
+      Enabled: false
+      Marker Topic: /camera/grids_to_markers/output
+      Name: Grids
+      Namespaces:
+        {}
+      Queue Size: 1
+      Value: false
+    - Class: rviz/MarkerArray
+      Enabled: false
+      Marker Topic: /camera/grids_noentry_to_markers/output
+      Name: GridsNoEntry
+      Namespaces:
+        {}
+      Queue Size: 1
+      Value: false
   Enabled: true
   Global Options:
     Background Color: 230; 230; 230
@@ -314,10 +333,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.125398323
+      Pitch: 0.21039854
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 3.5603981
+      Yaw: 2.23039699
     Saved: ~
 Window Geometry:
   Displays:

@@ -14,10 +14,20 @@
         resolution: 0.01
       </rosparam>
     </node>
-    <node name="voxel_grids_to_mesh_markers"
+    <node name="grids_to_mesh_markers"
           pkg="ros_objslampp_ycb_video" type="voxel_grids_to_mesh_markers.py"
           clear_params="true">
       <remap from="~input" to="octomap_server/output/grids" />
+    </node>
+    <node name="grids_to_markers"
+          pkg="ros_objslampp_ycb_video" type="voxel_grids_to_markers.py"
+          clear_params="true">
+      <remap from="~input" to="octomap_server/output/grids" />
+    </node>
+    <node name="grids_noentry_to_markers"
+          pkg="ros_objslampp_ycb_video" type="voxel_grids_to_markers.py"
+          clear_params="true">
+      <remap from="~input" to="octomap_server/output/grids_noentry" />
     </node>
   </group>
 
