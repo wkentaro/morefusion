@@ -22,7 +22,13 @@ class VoxelGridsToMarkers(topic_tools.LazyTransport):
         self._post_init()
 
     def subscribe(self):
-        self._sub = rospy.Subscriber('~input', VoxelGridArray, self._callback)
+        self._sub = rospy.Subscriber(
+            '~input',
+            VoxelGridArray,
+            self._callback,
+            queue_size=1,
+            buff_size=2 ** 24,
+        )
 
     def unsubscribe(self):
         self._sub.unsubscribe()
