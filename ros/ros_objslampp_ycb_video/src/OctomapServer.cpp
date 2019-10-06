@@ -91,6 +91,10 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_clearBBXService = private_nh.advertiseService("clear_bbx", &OctomapServer::clearBBXSrv, this);
   m_resetService = private_nh.advertiseService("reset", &OctomapServer::resetSrv, this);
 
+  dynamic_reconfigure::Server<ros_objslampp_ycb_video::OctomapServerConfig>::CallbackType f =
+    boost::bind(&OctomapServer::configCallback, this, _1, _2);
+  m_reconfigSrv.setCallback(f);
+
   ROS_INFO_BLUE("Initialized");
 }
 
@@ -119,6 +123,13 @@ OctomapServer::~OctomapServer(){
     delete &m_classIds;
     m_classIds.clear();
   }
+}
+
+void OctomapServer::configCallback(ros_objslampp_ycb_video::OctomapServerConfig &config, uint32_t level)
+{
+  ROS_INFO_BLUE("configCallback");
+  m_groundAsNoEntry = config.ground_as_noentry;
+  m_freeAsNoEntry = config.free_as_noentry;
 }
 
 void OctomapServer::insertCloudCallback(
@@ -252,10 +263,12 @@ void OctomapServer::insertScan(
 
 
 
-void OctomapServer::publishAll(const ros::Time& rostime){
+void OctomapServer::publishAll(const ros::Time& rostime)
+{
   if (m_octrees.size() == 0) {
     return;
   }
+  ROS_INFO_BLUE("publishAll");
 
   ros::WallTime startTime = ros::WallTime::now();
 
@@ -335,8 +348,15 @@ void OctomapServer::publishAll(const ros::Time& rostime){
           x = grid.origin.x + grid.pitch * i;
           y = grid.origin.y + grid.pitch * j;
           z = grid.origin.z + grid.pitch * k;
-          octomap::OcTreeNode* node = octree->search(x, y, z, /*depth=*/0);
+
           size_t index = i * grid.dims.y * grid.dims.z + j * grid.dims.z + k;
+          if (m_groundAsNoEntry && (z < 0))
+          {
+            grid_noentry.indices.push_back(index);
+            continue;
+          }
+
+          octomap::OcTreeNode* node = octree->search(x, y, z, /*depth=*/0);
           if (node != NULL) {
             grid.indices.push_back(index);
             grid.values.push_back(node->getOccupancy());
@@ -350,7 +370,12 @@ void OctomapServer::publishAll(const ros::Time& rostime){
               OcTreeT* octree_other = it_octree_other->second;
               node = octree_other->search(x, y, z, /*depth=*/0);
               if (node != NULL) {
-                grid_noentry.indices.push_back(index);
+                double occupancy = node->getOccupancy();
+                if ((m_freeAsNoEntry && (occupancy < 0.5)) ||
+                    (occupancy >= m_thresMax))
+                {
+                  grid_noentry.indices.push_back(index);
+                }
               }
             }
           }

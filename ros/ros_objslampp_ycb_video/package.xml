@@ -10,6 +10,7 @@
   <buildtool_depend>catkin</buildtool_depend>
 
   <build_depend>cv_bridge</build_depend>
+  <build_depend>dynamic_reconfigure</build_depend>
   <build_depend>jsk_recognition_msgs</build_depend>
   <build_depend>octomap_server</build_depend>
   <build_depend>ros_objslampp_msgs</build_depend>

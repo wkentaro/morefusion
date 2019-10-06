@@ -4,6 +4,7 @@
 #include <boost/lexical_cast.hpp>
 
 #include <ros/ros.h>
+#include <dynamic_reconfigure/server.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <nav_msgs/OccupancyGrid.h>
 #include <std_msgs/ColorRGBA.h>
@@ -40,6 +41,8 @@
 #include <octomap_ros/conversions.h>
 #include <octomap/octomap.h>
 #include <octomap/OcTreeKey.h>
+
+#include "ros_objslampp_ycb_video/OctomapServerConfig.h"
 
 namespace ros_objslampp_ycb_video {
 class OctomapServer {
@@ -95,8 +98,11 @@ protected:
   */
   bool isSpeckleNode(const octomap::OcTreeKey& key) const;
 
+  void configCallback(ros_objslampp_ycb_video::OctomapServerConfig &config, uint32_t level);
+
   ros::NodeHandle m_nh;
   ros::Publisher  m_markerPub, m_binaryMapPub, m_fullMapPub, m_pointCloudPub, m_collisionObjectPub, m_mapPub, m_cmapPub, m_fmapPub, m_fmarkerPub, m_bboxesPub, m_gridsPub, m_gridsNoEntryPub;
+  dynamic_reconfigure::Server<ros_objslampp_ycb_video::OctomapServerConfig> m_reconfigSrv;
   message_filters::Subscriber<sensor_msgs::PointCloud2>* m_pointCloudSub;
   message_filters::Subscriber<sensor_msgs::Image>* m_labelInsSub;
   message_filters::Subscriber<jsk_recognition_msgs::ClassificationResult>* m_classSub;
@@ -104,7 +110,6 @@ protected:
   message_filters::Synchronizer<ExactSyncPolicy>* m_sync;
   ros::ServiceServer m_octomapBinaryService, m_octomapFullService, m_clearBBXService, m_resetService;
   tf::TransformListener m_tfListener;
-  boost::recursive_mutex m_config_mutex;
 
   std::map<int, OcTreeT*> m_octrees;
   std::map<int, unsigned> m_classIds;
@@ -136,6 +141,9 @@ protected:
   bool m_compressMap;
 
   bool m_stopUpdate;
+
+  bool m_groundAsNoEntry;
+  bool m_freeAsNoEntry;
 };
 }
 
