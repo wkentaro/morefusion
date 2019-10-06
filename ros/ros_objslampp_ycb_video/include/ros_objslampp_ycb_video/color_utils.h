@@ -1,7 +1,11 @@
+// Copyright (c) 2018 Kentaro Wada
+
+#ifndef ROS_ROS_OBJSLAMPP_YCB_VIDEO_INCLUDE_ROS_OBJSLAMPP_YCB_VIDEO_COLOR_UTILS_H_
+#define ROS_ROS_OBJSLAMPP_YCB_VIDEO_INCLUDE_ROS_OBJSLAMPP_YCB_VIDEO_COLOR_UTILS_H_
+
 #include <std_msgs/ColorRGBA.h>
 
-std_msgs::ColorRGBA colorCategory40(int i)
-{
+std_msgs::ColorRGBA colorCategory40(int i) {
   std_msgs::ColorRGBA c;
   c.a = 1.0;
   switch (i % 40) {
@@ -288,3 +292,5 @@ std_msgs::ColorRGBA colorCategory40(int i)
   }
   return c;
 }
+
+#endif  // ROS_ROS_OBJSLAMPP_YCB_VIDEO_INCLUDE_ROS_OBJSLAMPP_YCB_VIDEO_COLOR_UTILS_H_
