@@ -1,6 +1,7 @@
 #include "ros_objslampp_ycb_video/color_utils.h"
 #include "ros_objslampp_ycb_video/OctomapServer.h"
 #include "ros_objslampp_ycb_video/log_utils.h"
+#include "ros_objslampp_ycb_video/class_id_to_voxel_pitch.h"
 #include <ros_objslampp_msgs/VoxelGridArray.h>
 
 using namespace octomap;
@@ -16,6 +17,7 @@ namespace ros_objslampp_ycb_video {
 OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
 : m_nh(),
   m_octrees(),
+  m_classIds(),
   m_pointCloudSub(NULL),
   m_labelInsSub(NULL),
   m_tfPointCloudSub(NULL),
@@ -79,9 +81,10 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
 
   m_pointCloudSub = new message_filters::Subscriber<sensor_msgs::PointCloud2> (m_nh, "cloud_in", 5);
   m_labelInsSub = new message_filters::Subscriber<sensor_msgs::Image> (m_nh, "label_ins_in", 5);
+  m_classSub = new message_filters::Subscriber<jsk_recognition_msgs::ClassificationResult> (m_nh, "class_in", 5);
   m_sync = new message_filters::Synchronizer<ExactSyncPolicy>(100);
-  m_sync->connectInput(*m_pointCloudSub, *m_labelInsSub);
-  m_sync->registerCallback(boost::bind(&OctomapServer::insertCloudCallback, this, _1, _2));
+  m_sync->connectInput(*m_pointCloudSub, *m_labelInsSub, *m_classSub);
+  m_sync->registerCallback(boost::bind(&OctomapServer::insertCloudCallback, this, _1, _2, _3));
 
   m_octomapBinaryService = m_nh.advertiseService("octomap_binary", &OctomapServer::octomapBinarySrv, this);
   m_octomapFullService = m_nh.advertiseService("octomap_full", &OctomapServer::octomapFullSrv, this);
@@ -111,9 +114,18 @@ OctomapServer::~OctomapServer(){
     delete &m_octrees;
     m_octrees.clear();
   }
+
+  if (m_classIds.size()) {
+    delete &m_classIds;
+    m_classIds.clear();
+  }
 }
 
-void OctomapServer::insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud, const sensor_msgs::ImageConstPtr& ins_msg) {
+void OctomapServer::insertCloudCallback(
+  const sensor_msgs::PointCloud2::ConstPtr& cloud,
+  const sensor_msgs::ImageConstPtr& ins_msg,
+  const jsk_recognition_msgs::ClassificationResultConstPtr& class_msg)
+{
   ROS_INFO_BLUE("insertCloudCallback");
 
   PCLPointCloud pc;
@@ -140,7 +152,7 @@ void OctomapServer::insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr
   }
 
   if (!m_stopUpdate) {
-    insertScan(sensorToWorldTf.getOrigin(), pc, label_ins);
+    insertScan(sensorToWorldTf.getOrigin(), pc, label_ins, class_msg);
   }
 
   publishAll(cloud->header.stamp);
@@ -149,7 +161,8 @@ void OctomapServer::insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr
 void OctomapServer::insertScan(
   const tf::Point& sensorOriginTf,
   const PCLPointCloud& pc,
-  const cv::Mat& label_ins)
+  const cv::Mat& label_ins,
+  const jsk_recognition_msgs::ClassificationResultConstPtr& class_msg)
 {
   point3d sensorOrigin = pointTfToOctomap(sensorOriginTf);
 
@@ -167,14 +180,21 @@ void OctomapServer::insertScan(
 
     octomap::point3d point(pc.points[index].x, pc.points[index].y, pc.points[index].z);
     int instance_id = label_ins.at<uint32_t>(height_index, width_index);
+    unsigned class_id = 0;
+    double pitch = m_res;
+    if (instance_id >= 0) {
+      class_id = class_msg->labels[instance_id];
+      pitch = ros_objslampp_ycb_video::class_id_to_voxel_pitch(class_id);
+    }
     if (m_octrees.find(instance_id) == m_octrees.end())
     {
-      OcTreeT* octree = new OcTreeT(m_res);
+      OcTreeT* octree = new OcTreeT(pitch);
       octree->setProbHit(m_probHit);
       octree->setProbMiss(m_probMiss);
       octree->setClampingThresMin(m_thresMin);
       octree->setClampingThresMax(m_thresMax);
       m_octrees.insert(std::make_pair(instance_id, octree));
+      m_classIds.insert(std::make_pair(instance_id, class_id));
     }
     OcTreeT* octree = m_octrees.find(instance_id)->second;
 
@@ -296,6 +316,8 @@ void OctomapServer::publishAll(const ros::Time& rostime){
     {
       continue;
     }
+    unsigned class_id = m_classIds.find(instance_id)->second;
+    double pitch = ros_objslampp_ycb_video::class_id_to_voxel_pitch(class_id);
 
     double min_x, min_y, min_z;
     double max_x, max_y, max_z;
@@ -316,7 +338,7 @@ void OctomapServer::publishAll(const ros::Time& rostime){
     bboxes.boxes.push_back(bbox);
 
     ros_objslampp_msgs::VoxelGrid grid;
-    grid.pitch = m_res;
+    grid.pitch = pitch;
     grid.dims.x = 32;
     grid.dims.y = 32;
     grid.dims.z = 32;

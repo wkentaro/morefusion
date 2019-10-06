@@ -8,6 +8,7 @@
 #include <nav_msgs/OccupancyGrid.h>
 #include <std_msgs/ColorRGBA.h>
 #include <jsk_recognition_msgs/BoundingBoxArray.h>
+#include <jsk_recognition_msgs/ClassificationResult.h>
 
 #include <sensor_msgs/PointCloud2.h>
 #include <std_srvs/Empty.h>
@@ -51,7 +52,7 @@ public:
   typedef octomap_msgs::GetOctomap OctomapSrv;
   typedef octomap_msgs::BoundingBoxQuery BBXSrv;
 
-  typedef message_filters::sync_policies::ExactTime <sensor_msgs::PointCloud2, sensor_msgs::Image> ExactSyncPolicy;
+  typedef message_filters::sync_policies::ExactTime <sensor_msgs::PointCloud2, sensor_msgs::Image, jsk_recognition_msgs::ClassificationResult> ExactSyncPolicy;
 
   OctomapServer(ros::NodeHandle private_nh_ = ros::NodeHandle("~"));
   virtual ~OctomapServer();
@@ -60,7 +61,7 @@ public:
   bool clearBBXSrv(BBXSrv::Request& req, BBXSrv::Response& resp);
   bool resetSrv(std_srvs::Empty::Request& req, std_srvs::Empty::Response& resp);
 
-  virtual void insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud, const sensor_msgs::ImageConstPtr& ins_msg);
+  virtual void insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud, const sensor_msgs::ImageConstPtr& ins_msg, const jsk_recognition_msgs::ClassificationResultConstPtr& class_msg);
 
 protected:
   inline static void updateMinKey(const octomap::OcTreeKey& in, octomap::OcTreeKey& min) {
@@ -85,7 +86,7 @@ protected:
   * @param ground scan endpoints on the ground plane (only clear space)
   * @param nonground all other endpoints (clear up to occupied endpoint)
   */
-  virtual void insertScan(const tf::Point& sensorOrigin, const PCLPointCloud& pc, const cv::Mat& label_ins);
+  virtual void insertScan(const tf::Point& sensorOrigin, const PCLPointCloud& pc, const cv::Mat& label_ins, const jsk_recognition_msgs::ClassificationResultConstPtr& class_msg);
 
   /**
   * @brief Find speckle nodes (single occupied voxels with no neighbors). Only works on lowest resolution!
@@ -98,6 +99,7 @@ protected:
   ros::Publisher  m_markerPub, m_binaryMapPub, m_fullMapPub, m_pointCloudPub, m_collisionObjectPub, m_mapPub, m_cmapPub, m_fmapPub, m_fmarkerPub, m_bboxesPub, m_gridsPub, m_gridsNoEntryPub;
   message_filters::Subscriber<sensor_msgs::PointCloud2>* m_pointCloudSub;
   message_filters::Subscriber<sensor_msgs::Image>* m_labelInsSub;
+  message_filters::Subscriber<jsk_recognition_msgs::ClassificationResult>* m_classSub;
   tf::MessageFilter<sensor_msgs::PointCloud2>* m_tfPointCloudSub;
   message_filters::Synchronizer<ExactSyncPolicy>* m_sync;
   ros::ServiceServer m_octomapBinaryService, m_octomapFullService, m_clearBBXService, m_resetService;
@@ -105,6 +107,7 @@ protected:
   boost::recursive_mutex m_config_mutex;
 
   std::map<int, OcTreeT*> m_octrees;
+  std::map<int, unsigned> m_classIds;
   octomap::KeyRay m_keyRay;  // temp storage for ray casting
   octomap::OcTreeKey m_updateBBXMin;
   octomap::OcTreeKey m_updateBBXMax;

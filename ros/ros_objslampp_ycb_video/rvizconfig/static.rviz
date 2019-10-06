@@ -12,6 +12,7 @@ Panels:
         - /Grids1
         - /Grids1/Namespaces1
         - /GridsNoEntry1
+        - /GridsNoEntry1/Namespaces1
       Splitter Ratio: 0.513888896
     Tree Height: 973
   - Class: rviz/Selection
@@ -286,13 +287,15 @@ Visualization Manager:
       Queue Size: 1
       Value: false
     - Class: rviz/MarkerArray
-      Enabled: false
+      Enabled: true
       Marker Topic: /camera/grids_noentry_to_markers/output
       Name: GridsNoEntry
       Namespaces:
-        {}
+        0: true
+        1: true
+        2: true
       Queue Size: 1
-      Value: false
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 230; 230; 230
@@ -333,10 +336,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.21039854
+      Pitch: 0.00539861899
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 2.23039699
+      Yaw: 2.69539666
     Saved: ~
 Window Geometry:
   Displays:

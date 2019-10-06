@@ -10,6 +10,7 @@
           output="screen">
       <remap from="cloud_in" to="depth_registered/points" />
       <remap from="label_ins_in" to="mask_rcnn_instance_segmentation/output/label_ins" />
+      <remap from="class_in" to="mask_rcnn_instance_segmentation/output/class" />
       <rosparam subst_value="true">
         resolution: 0.01
       </rosparam>
