@@ -239,30 +239,6 @@ void OctomapServer::insertScan(
     }
   }
 
-  // TODO: eval lazy+updateInner vs. proper insertion
-  // non-lazy by default (updateInnerOccupancy() too slow for large maps)
-  //octree->updateInnerOccupancy();
-  // octomap::point3d minPt, maxPt;
-  // ROS_DEBUG_STREAM("Bounding box keys (before): " << m_updateBBXMin[0] << " " <<m_updateBBXMin[1] << " " << m_updateBBXMin[2] << " / " <<m_updateBBXMax[0] << " "<<m_updateBBXMax[1] << " "<< m_updateBBXMax[2]);
-
-  // TODO: snap max / min keys to larger voxels by m_maxTreeDepth
-//   if (m_maxTreeDepth < 16)
-//   {
-//      OcTreeKey tmpMin = getIndexKey(m_updateBBXMin, m_maxTreeDepth); // this should give us the first key at depth m_maxTreeDepth that is smaller or equal to m_updateBBXMin (i.e. lower left in 2D grid coordinates)
-//      OcTreeKey tmpMax = getIndexKey(m_updateBBXMax, m_maxTreeDepth); // see above, now add something to find upper right
-//      tmpMax[0]+= octree->getNodeSize( m_maxTreeDepth ) - 1;
-//      tmpMax[1]+= octree->getNodeSize( m_maxTreeDepth ) - 1;
-//      tmpMax[2]+= octree->getNodeSize( m_maxTreeDepth ) - 1;
-//      m_updateBBXMin = tmpMin;
-//      m_updateBBXMax = tmpMax;
-//   }
-
-  // TODO: we could also limit the bbx to be within the map bounds here (see publishing check)
-  // minPt = octree->keyToCoord(m_updateBBXMin);
-  // maxPt = octree->keyToCoord(m_updateBBXMax);
-  // ROS_DEBUG_STREAM("Updated area bounding box: "<< minPt << " - "<<maxPt);
-  // ROS_DEBUG_STREAM("Bounding box keys (after): " << m_updateBBXMin[0] << " " <<m_updateBBXMin[1] << " " << m_updateBBXMin[2] << " / " <<m_updateBBXMax[0] << " "<<m_updateBBXMax[1] << " "<< m_updateBBXMax[2]);
-
   if (m_compressMap) {
     for (std::map<int, OcTreeT*>::iterator it = m_octrees.begin(); it != m_octrees.end(); it++)
     {
