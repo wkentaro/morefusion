@@ -33,7 +33,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: ""
+    SyncSource: Raw
 Toolbars:
   toolButtonStyle: 2
 Visualization Manager:
@@ -102,7 +102,27 @@ Visualization Manager:
         All Enabled: false
         base:
           Value: true
+        camera_aligned_depth_to_color_frame:
+          Value: true
+        camera_aligned_depth_to_infra1_frame:
+          Value: true
+        camera_color_frame:
+          Value: true
         camera_color_optical_frame:
+          Value: true
+        camera_depth_frame:
+          Value: true
+        camera_depth_optical_frame:
+          Value: true
+        camera_infra1_frame:
+          Value: true
+        camera_infra1_optical_frame:
+          Value: true
+        camera_infra2_frame:
+          Value: true
+        camera_infra2_optical_frame:
+          Value: true
+        camera_link:
           Value: true
       Marker Scale: 0.400000006
       Name: TF
@@ -110,9 +130,24 @@ Visualization Manager:
       Show Axes: true
       Show Names: false
       Tree:
-        camera_color_optical_frame:
-          base:
+        camera_link:
+          camera_aligned_depth_to_color_frame:
+            camera_color_optical_frame:
+              base:
+                {}
+          camera_aligned_depth_to_infra1_frame:
+            camera_infra1_optical_frame:
+              {}
+          camera_color_frame:
             {}
+          camera_depth_frame:
+            camera_depth_optical_frame:
+              {}
+          camera_infra1_frame:
+            {}
+          camera_infra2_frame:
+            camera_infra2_optical_frame:
+              {}
       Update Interval: 0
       Value: true
     - Class: jsk_rviz_plugin/OverlayImage
@@ -246,13 +281,15 @@ Visualization Manager:
       Queue Size: 1
       Value: false
     - Class: rviz/MarkerArray
-      Enabled: false
+      Enabled: true
       Marker Topic: /camera/grids_noentry_to_markers/output
       Name: GridsNoEntry
       Namespaces:
-        {}
+        0: true
+        1: true
+        2: true
       Queue Size: 1
-      Value: false
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 230; 230; 230
@@ -285,18 +322,18 @@ Visualization Manager:
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.323364258
-        Y: 0.0132244397
-        Z: 0.286252439
+        X: -0.109199002
+        Y: -0.00269355159
+        Z: 0.31215468
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.0500000007
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.0353985056
+      Pitch: 0.390398294
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 0.695396543
+      Yaw: 1.57539737
     Saved: ~
 Window Geometry:
   Displays:
