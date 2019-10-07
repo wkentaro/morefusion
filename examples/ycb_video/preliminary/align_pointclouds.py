@@ -8,8 +8,6 @@ import trimesh.transformations as tf
 
 import objslampp
 
-import preliminary
-
 
 class MultiInstanceICPRegistration:
 
