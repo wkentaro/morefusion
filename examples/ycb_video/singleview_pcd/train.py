@@ -81,12 +81,26 @@ def main():
         action='store_true',
         help='call evaluation before training',
     )
+
+    def argparse_type_class_ids(string):
+        if string == 'all':
+            n_class = len(objslampp.datasets.ycb_video.class_names)
+            class_ids = np.arange(n_class)[1:].tolist()
+        elif string == 'asymmetric':
+            class_ids = objslampp.datasets.ycb_video.class_ids_asymmetric\
+                .tolist()
+        elif string == 'symmetric':
+            class_ids = objslampp.datasets.ycb_video.class_ids_symmetric\
+                .tolist()
+        else:
+            class_ids = [int(x) for x in string.split(',')]
+        return class_ids
+
     parser.add_argument(
         '--class-ids',
-        type=int,
-        nargs='*',
-        default=objslampp.datasets.ycb_video.class_ids_asymmetric.tolist(),
-        help='class id',
+        type=argparse_type_class_ids,
+        default='all',
+        help="class id (e.g., 'all', 'asymmetric', 'symmetric', '1,6,9')",
     )
     parser.add_argument(
         '--pretrained-model',
@@ -110,6 +124,15 @@ def main():
         '--resume',
         help='resume',
     )
+    parser.add_argument(
+        '--loss',
+        choices=[
+            'add/add_s',
+            'add->add/add_s|1',
+        ],
+        default='add->add/add_s|1',
+        help='loss',
+    )
     args = parser.parse_args()
 
     chainer.global_config.debug = args.debug
@@ -120,7 +143,7 @@ def main():
     if args.multi_node:
         import chainermn
 
-        comm = chainermn.create_communicator('hierarchical')
+        comm = chainermn.create_communicator('pure_nccl')
         device = comm.intra_rank
         n_gpu = comm.size
     else:
@@ -156,31 +179,38 @@ def main():
     data_train = None
     data_valid = None
     if not args.multi_node or comm.rank == 0:
+        termcolor.cprint('==> Dataset size', attrs={'bold': True})
+
         data_ycb_trainreal = objslampp.datasets.YCBVideoRGBDPoseEstimationDatasetReIndexed(  # NOQA
             'trainreal', class_ids=args.class_ids, augmentation=True
         )
         data_ycb_syn = objslampp.datasets.YCBVideoRGBDPoseEstimationDatasetReIndexed(  # NOQA
             'syn', class_ids=args.class_ids, augmentation=True
         )
-        data_ycb_syn, _ = chainer.datasets.split_dataset_random(
-            data_ycb_syn, len(data_ycb_trainreal), seed=0
+        data_ycb_syn = objslampp.datasets.RandomSamplingDataset(
+            data_ycb_syn, len(data_ycb_trainreal)
+        )
+        data_my_train = objslampp.datasets.MySyntheticYCB20190916RGBDPoseEstimationDatasetReIndexed(  # NOQA
+            'train', class_ids=args.class_ids, augmentation=True
         )
         data_train = chainer.datasets.ConcatenatedDataset(
-            data_ycb_trainreal,
-            data_ycb_syn,
-            objslampp.datasets.MySyntheticYCB20190916RGBDPoseEstimationDatasetReIndexed(  # NOQA
-                'train', class_ids=args.class_ids, augmentation=True
-            ),
+            data_ycb_trainreal, data_ycb_syn, data_my_train
         )
-        del data_ycb_trainreal, data_ycb_syn
+        print(f'ycb_trainreal={len(data_ycb_trainreal)}, '
+              f'ycb_syn={len(data_ycb_syn)}, my_train={len(data_my_train)}')
+        del data_ycb_trainreal, data_ycb_syn, data_my_train
+
+        data_ycb_val = objslampp.datasets.YCBVideoRGBDPoseEstimationDatasetReIndexed(  # NOQA
+            'val', class_ids=args.class_ids
+        )
+        data_my_val = objslampp.datasets.MySyntheticYCB20190916RGBDPoseEstimationDatasetReIndexed(  # NOQA
+            'val', class_ids=args.class_ids
+        )
         data_valid = chainer.datasets.ConcatenatedDataset(
-            objslampp.datasets.YCBVideoRGBDPoseEstimationDatasetReIndexed(
-                'val', class_ids=args.class_ids
-            ),
-            objslampp.datasets.MySyntheticYCB20190916RGBDPoseEstimationDatasetReIndexed(  # NOQA
-                'val', class_ids=args.class_ids
-            ),
+            data_ycb_val, data_my_val,
         )
+        print(f'ycb_val={len(data_ycb_val)}, my_val={len(data_my_val)}')
+        del data_ycb_val, data_my_val
 
         data_train = chainer.datasets.TransformDataset(
             data_train, transform
@@ -189,8 +219,6 @@ def main():
             data_valid, transform
         )
 
-        termcolor.cprint('==> Dataset size', attrs={'bold': True})
-        print(f'train={len(data_train)}, valid={len(data_valid)}')
     if args.multi_node:
         data_train = chainermn.scatter_dataset(
             data_train, comm, shuffle=True, seed=args.seed
@@ -201,11 +229,16 @@ def main():
 
     args.class_names = objslampp.datasets.ycb_video.class_names.tolist()
 
+    loss = args.loss
+    if loss == 'add->add/add_s|1':
+        loss = 'add'
+
     # model initialization
     model = contrib.models.Model(
         n_fg_class=len(args.class_names) - 1,
         centerize_pcd=args.centerize_pcd,
         pretrained_resnet18=args.pretrained_resnet18,
+        loss=loss,
     )
     if args.pretrained_model is not None:
         chainer.serializers.load_npz(args.pretrained_model, model)
@@ -262,6 +295,24 @@ def main():
         updater, (args.max_epoch, 'epoch'), out=args.out
     )
     trainer.extend(E.FailOnNonNumber())
+
+    @chainer.training.make_extension(trigger=(1, 'iteration'))
+    def update_loss(trainer):
+        updater = trainer.updater
+        optimizer = updater.get_optimizer('main')
+        target = optimizer.target
+        assert trainer.stop_trigger.unit == 'epoch'
+
+        if args.loss == 'add->add/add_s|1':
+            if updater.epoch_detail < 1:
+                assert target._loss == 'add'
+            else:
+                target._loss = 'add/add_s'
+        else:
+            assert args.loss in ['add/add_s']
+            return
+
+    trainer.extend(update_loss)
 
     log_interval = 10, 'iteration'
     eval_interval = 0.25, 'epoch'

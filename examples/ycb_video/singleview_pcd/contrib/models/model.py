@@ -20,9 +20,22 @@ class Model(chainer.Chain):
         *,
         n_fg_class,
         centerize_pcd=True,
-        pretrained_resnet18=False
+        pretrained_resnet18=False,
+        loss=None,
     ):
         super().__init__()
+
+        self._n_fg_class = n_fg_class
+        self._centerize_pcd = centerize_pcd
+
+        if loss is None:
+            loss = 'add/add_s'
+        assert loss in [
+            'add',
+            'add/add_s',
+        ]
+        self._loss = loss
+
         with self.init_scope():
             # extractor
             if pretrained_resnet18:
@@ -50,9 +63,6 @@ class Model(chainer.Chain):
             self.conv4_rot = L.Convolution1D(128, n_fg_class * 4, 1)
             self.conv4_trans = L.Convolution1D(128, n_fg_class * 3, 1)
             self.conv4_conf = L.Convolution1D(128, n_fg_class, 1)
-
-        self._n_fg_class = n_fg_class
-        self._centerize_pcd = centerize_pcd
 
     def predict(self, *, class_id, rgb, pcd):
         xp = self.xp
@@ -262,12 +272,17 @@ class Model(chainer.Chain):
 
             is_symmetric = class_id_i in \
                 objslampp.datasets.ycb_video.class_ids_symmetric
+            if self._loss in ['add']:
+                is_symmetric = False
+            else:
+                assert self._loss in ['add/add_s']
             add = objslampp.functions.average_distance(
                 cad_pcd,
                 T_cad2cam_true,
                 T_cad2cam_pred,
                 symmetric=is_symmetric,
             )
+            del cad_pcd, T_cad2cam_true, is_symmetric
 
             keep = confidence_pred[i].array > 0
             loss_i = F.mean(
