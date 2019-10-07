@@ -51,13 +51,16 @@ class DrawInstanceSegmentation(LazyTransport):
         instance_ids = np.arange(0, len(class_ids))
         masks = np.array([ins == i for i in instance_ids])
 
-        viz = imgviz.instances.instances2rgb(
-            image=rgb,
-            masks=masks,
-            labels=class_ids,
-            captions=captions,
-            font_size=15,
-        )
+        if masks.size:
+            viz = imgviz.instances.instances2rgb(
+                image=rgb,
+                masks=masks,
+                labels=class_ids,
+                captions=captions,
+                font_size=15,
+            )
+        else:
+            viz = rgb
         viz_msg = bridge.cv2_to_imgmsg(viz, encoding='rgb8')
         viz_msg.header = rgb_msg.header
         self._pub.publish(viz_msg)
