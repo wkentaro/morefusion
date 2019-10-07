@@ -16,8 +16,8 @@ fi
 unset PYTHONPATH
 unset CMAKE_PREFIX_PATH
 
-source /opt/ros/kinetic/setup.bash
 source $OBJSLAMPP_PREFIX/.anaconda3/bin/activate
+source /opt/ros/kinetic/setup.bash
 
 set -x
 
