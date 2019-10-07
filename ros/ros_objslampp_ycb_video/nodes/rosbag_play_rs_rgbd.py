@@ -3,16 +3,15 @@
 import subprocess
 import time
 
-# import gdown
+import gdown
 
 import rospy
 
 
-# bag_file = gdown.cached_download(
-#     url='https://drive.google.com/uc?id=12Aa_DWauLHeKokNi5byPwpTeIaRIs8YF',
-#     md5='93f0bfd3b7e0a4e3ca00fbe39bbbc587',
-# )
-bag_file = '/home/wkentaro/Gdrive/objslampp/ros_objslampp/rs_rgbd_2019-10-02-13-08-40.bag'  # NOQA
+bag_file = gdown.cached_download(
+    url='https://drive.google.com/uc?id=1UxUg4IozQvQNrCALXkzk23v3fBjpFCqZ',
+    md5='3625c11cd130a06557f38b8ff390882e',
+)
 
 # wait for some nodes launched
 time.sleep(10)
