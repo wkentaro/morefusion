@@ -74,7 +74,7 @@ class MultiInstanceICPRegistration:
                 pcd_depth, pcd_cad, self._Ts_cad2cam_pred[instance_id]
             )
         else:
-            registration = preliminary.ICPRegistration(
+            registration = objslampp.contrib.ICPRegistration(
                 pcd_depth, pcd_cad, self._Ts_cad2cam_pred[instance_id]
             )
         with chainer.using_config('debug', True):
