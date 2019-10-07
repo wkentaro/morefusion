@@ -19,10 +19,6 @@ import message_filters
 from sensor_msgs.msg import Image, CameraInfo
 from visualization_msgs.msg import Marker, MarkerArray
 
-import sys
-sys.path.insert(0, '/home/wkentaro/objslampp/examples/ycb_video/preliminary')  # NOQA
-from preliminary import ICPRegistration
-
 
 class SingleViewPoseEstimation3D(LazyTransport):
 
@@ -69,7 +65,7 @@ class SingleViewPoseEstimation3D(LazyTransport):
         )
         self._subscribers = [sub_cam, sub_rgb, sub_depth, sub_ins, sub_cls]
         sync = message_filters.TimeSynchronizer(
-            self._subscribers, queue_size=200
+            self._subscribers, queue_size=100
         )
         sync.registerCallback(self._callback)
 
@@ -148,7 +144,7 @@ class SingleViewPoseEstimation3D(LazyTransport):
             pcd_cad = self._models.get_pcd(examples[i]['class_id'])
             pcd_depth = examples[i]['pcd']
             pcd_depth = pcd_depth[~np.isnan(pcd_depth).any(axis=2)]
-            icp = ICPRegistration(
+            icp = objslampp.contrib.ICPRegistration(
                 pcd_depth=pcd_depth,
                 pcd_cad=pcd_cad,
                 transform_init=transforms[i],
