@@ -23,7 +23,7 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_tfPointCloudSub(NULL),
   m_maxRange(-1.0),
   m_worldFrameId("/map"),
-  m_baseFrameId("base_footprint"),
+  m_sensorFrameId("camera_color_optical_frame"),
   m_latchedTopics(true),
   m_res(0.05),
   m_probHit(0.7),
@@ -43,7 +43,7 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
 
   ros::NodeHandle private_nh(private_nh_);
   private_nh.param("frame_id", m_worldFrameId, m_worldFrameId);
-  private_nh.param("base_frame_id", m_baseFrameId, m_baseFrameId);
+  private_nh.param("sensor_frame_id", m_sensorFrameId, m_sensorFrameId);
 
   private_nh.param("occupancy_min_z", m_occupancyMinZ,m_occupancyMinZ);
   private_nh.param("occupancy_max_z", m_occupancyMaxZ,m_occupancyMaxZ);
@@ -286,11 +286,21 @@ void OctomapServer::publishAll(const ros::Time& rostime)
   geometry_msgs::Pose pose;
   pose.orientation = tf::createQuaternionMsgFromYaw(0.0);
 
+  tf::StampedTransform worldToSensorTf;
+  try {
+    m_tfListener.lookupTransform(m_sensorFrameId, m_worldFrameId, rostime, worldToSensorTf);
+  } catch(tf::TransformException& ex) {
+    ROS_ERROR_STREAM( "Transform error of sensor data: " << ex.what() << ", quitting callback");
+    return;
+  }
+  Eigen::Matrix4f worldToSensor;
+  pcl_ros::transformAsMatrix(worldToSensorTf, worldToSensor);
+
   // init pointcloud:
   pcl::PointCloud<PCLPoint> pclCloud;
 
   jsk_recognition_msgs::BoundingBoxArray bboxes;
-  bboxes.header.frame_id = m_worldFrameId;
+  bboxes.header.frame_id = m_sensorFrameId;
   bboxes.header.stamp = rostime;
   ros_objslampp_msgs::VoxelGridArray grids;
   grids.header = bboxes.header;
@@ -326,14 +336,19 @@ void OctomapServer::publishAll(const ros::Time& rostime)
     bbox.dimensions.z = dim_z;
     bboxes.boxes.push_back(bbox);
 
+    PCLPointCloud center_sensor;
+    center_sensor.push_back(PCLPoint(
+        bbox.pose.position.x, bbox.pose.position.y, bbox.pose.position.z));
+    pcl::transformPointCloud(center_sensor, center_sensor, worldToSensor);
+
     ros_objslampp_msgs::VoxelGrid grid;
     grid.pitch = pitch;
     grid.dims.x = 32;
     grid.dims.y = 32;
     grid.dims.z = 32;
-    grid.origin.x = bbox.pose.position.x - (grid.dims.x / 2.0 - 0.5) * grid.pitch;
-    grid.origin.y = bbox.pose.position.y - (grid.dims.y / 2.0 - 0.5) * grid.pitch;
-    grid.origin.z = bbox.pose.position.z - (grid.dims.z / 2.0 - 0.5) * grid.pitch;
+    grid.origin.x = center_sensor.points[0].x - (grid.dims.x / 2.0 - 0.5) * grid.pitch;
+    grid.origin.y = center_sensor.points[0].y - (grid.dims.y / 2.0 - 0.5) * grid.pitch;
+    grid.origin.z = center_sensor.points[0].z - (grid.dims.z / 2.0 - 0.5) * grid.pitch;
     grid.label = instance_id;
 
     ros_objslampp_msgs::VoxelGrid grid_noentry;
@@ -345,9 +360,18 @@ void OctomapServer::publishAll(const ros::Time& rostime)
       for (size_t j = 0; j < grid.dims.y; j++) {
         for (size_t k = 0; k < grid.dims.z; k++) {
           double x, y, z;
+          // in sensor
           x = grid.origin.x + grid.pitch * i;
           y = grid.origin.y + grid.pitch * j;
           z = grid.origin.z + grid.pitch * k;
+
+          // in world
+          PCLPointCloud p_world;
+          p_world.push_back(PCLPoint(x, y, z)); // sensor
+          pcl::transformPointCloud(p_world, p_world, worldToSensor.inverse());
+          x = p_world.points[0].x;
+          y = p_world.points[0].y;
+          z = p_world.points[0].z;
 
           size_t index = i * grid.dims.y * grid.dims.z + j * grid.dims.z + k;
           if (m_groundAsNoEntry && (z < 0))

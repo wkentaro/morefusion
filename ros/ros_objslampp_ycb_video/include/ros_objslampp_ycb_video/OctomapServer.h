@@ -119,7 +119,7 @@ protected:
 
   double m_maxRange;
   std::string m_worldFrameId; // the map frame
-  std::string m_baseFrameId; // base of the robot for ground plane filtering
+  std::string m_sensorFrameId; // base of the robot for ground plane filtering
 
   bool m_latchedTopics;
 
