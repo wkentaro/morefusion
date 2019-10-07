@@ -13,6 +13,10 @@ if [ ! -e $OBJSLAMPP_PREFIX/.anaconda3/bin/activate ]; then
   exit 1
 fi
 
+unset PYTHONPATH
+unset CMAKE_PREFIX_PATH
+
+source /opt/ros/kinetic/setup.bash
 source $OBJSLAMPP_PREFIX/.anaconda3/bin/activate
 
 set -x
@@ -41,13 +45,15 @@ catkin config --merge-devel \
               -DPYTHON_INCLUDE_DIR=$OBJSLAMPP_PREFIX/.anaconda3/include/python3.7m \
               -DPYTHON_LIBRARY=$OBJSLAMPP_PREFIX/.anaconda3/lib/libpython3.7m.so \
               --cmake-args -DCMAKE_BUILD_TYPE=Release
-catkin config --blacklist jsk_pcl_ros jsk_pcl_ros_utils
+catkin config --blacklist jsk_pcl_ros jsk_pcl_ros_utils roscpp rosout rosbag rosbag_storage
 mkdir -p $ROSOBJSLAMPP_PREFIX/devel/lib/python3/dist-packages
 ln -fs $OBJSLAMPP_PREFIX/.anaconda3/lib/python3.7/site-packages/cv2 $ROSOBJSLAMPP_PREFIX/devel/lib/python3/dist-packages
 
 catkin build cv_bridge
 
 set +x
+source $OBJSLAMPP_PREFIX/.anaconda3/bin/activate
+source /opt/ros/kinetic/setup.bash
 source $ROSOBJSLAMPP_PREFIX/devel/setup.bash
 set -x
 
