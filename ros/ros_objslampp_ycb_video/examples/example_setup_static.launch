@@ -11,6 +11,7 @@
   </include>
 
   <include file="$(find ros_objslampp_ycb_video)/launch/setup_static.launch">
+    <arg name="CONTEXT" value="[2, 3, 9]" />
   </include>
 
 </launch>

@@ -1,6 +1,9 @@
 <launch>
 
+  <arg name="CONTEXT" default="[]" />
+
   <include file="$(find ros_objslampp_ycb_video)/launch/singleview_3d_pose_estimation.launch">
+    <arg name="CONTEXT" value="$(arg CONTEXT)" />
   </include>
 
   <group ns="camera">

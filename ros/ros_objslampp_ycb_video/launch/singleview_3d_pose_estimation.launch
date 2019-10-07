@@ -1,7 +1,10 @@
 <launch>
 
+  <arg name="CONTEXT" default="[]" />
+
   <include file="$(find ros_objslampp_ycb_video)/launch/mask_rcnn_instance_segmentation.launch">
     <arg name="GUI" value="false" />
+    <arg name="CONTEXT" value="$(arg CONTEXT)" />
   </include>
 
   <group ns="/camera">

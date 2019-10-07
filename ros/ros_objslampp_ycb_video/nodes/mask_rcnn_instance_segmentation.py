@@ -19,6 +19,7 @@ class MaskRCNNInstanceSegmentationNode(LazyTransport):
         super().__init__()
 
         self._class_names = objslampp.datasets.ycb_video.class_names
+        self._context = rospy.get_param('~context')
 
         pretrained_model = gdown.cached_download(
             url='https://drive.google.com/uc?id=1Ge2S9JudxC5ODdsrjOy5XoW7l7Zcz65E',  # NOQA
@@ -64,6 +65,13 @@ class MaskRCNNInstanceSegmentationNode(LazyTransport):
 
         class_ids = labels + 1
         class_names = objslampp.datasets.ycb_video.class_names
+        del labels
+
+        if self._context:
+            keep = np.isin(class_ids, self._context)
+            masks = masks[keep]
+            class_ids = class_ids[keep]
+            confs = confs[keep]
 
         label_ins = np.full(rgb.shape[:2], -1, dtype=np.int32)
         sort = np.argsort(confs)
