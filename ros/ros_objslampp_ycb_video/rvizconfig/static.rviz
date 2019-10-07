@@ -239,7 +239,7 @@ Visualization Manager:
           Marker Topic: /camera/grids_to_mesh_markers/output
           Name: PartialMesh
           Namespaces:
-            {}
+            "": true
           Queue Size: 1
           Value: true
         - Class: rviz/MarkerArray
@@ -247,7 +247,10 @@ Visualization Manager:
           Marker Topic: /camera/occupied_cells_vis_array
           Name: OctreeOccupied
           Namespaces:
-            {}
+            -1: true
+            0: false
+            1: false
+            2: false
           Queue Size: 1
           Value: true
         - Class: rviz/MarkerArray
@@ -270,7 +273,7 @@ Visualization Manager:
           line width: 0.00499999989
           only edge: true
           show coords: false
-      Enabled: false
+      Enabled: true
       Name: Partial
     - Class: rviz/MarkerArray
       Enabled: false
@@ -281,13 +284,13 @@ Visualization Manager:
       Queue Size: 1
       Value: false
     - Class: rviz/MarkerArray
-      Enabled: true
+      Enabled: false
       Marker Topic: /camera/grids_noentry_to_markers/output
       Name: GridsNoEntry
       Namespaces:
         {}
       Queue Size: 1
-      Value: true
+      Value: false
   Enabled: true
   Global Options:
     Background Color: 230; 230; 230
@@ -313,25 +316,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 1.46973848
+      Distance: 1.29336989
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -0.109199002
-        Y: -0.00269355159
-        Z: 0.31215468
+        X: -0.124799587
+        Y: -0.247280106
+        Z: 0.323280424
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.0500000007
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.390398294
+      Pitch: 1.52539849
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 1.57539737
+      Yaw: 1.54539728
     Saved: ~
 Window Geometry:
   Displays:

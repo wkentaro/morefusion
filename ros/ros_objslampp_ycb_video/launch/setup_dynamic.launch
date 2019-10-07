@@ -1,6 +1,7 @@
 <launch>
 
   <include file="$(find ros_objslampp_ycb_video)/launch/singleview_3d_pose_estimation.launch">
+    <arg name="OCCUPANCY" value="false" />
   </include>
 
   <include file="$(find ros_objslampp_ycb_video)/launch/orb_slam2_d435_rgbd.launch">

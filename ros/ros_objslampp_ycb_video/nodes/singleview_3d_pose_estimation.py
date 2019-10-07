@@ -6,7 +6,7 @@ import chainer
 import numpy as np
 import path
 import imgviz
-import trimesh.transformations as tf
+import trimesh.transformations as ttf
 
 import objslampp
 import objslampp.contrib.singleview_3d as contrib
@@ -18,6 +18,7 @@ from topic_tools import LazyTransport
 import message_filters
 from sensor_msgs.msg import Image, CameraInfo
 from visualization_msgs.msg import Marker, MarkerArray
+from ros_objslampp_msgs.msg import VoxelGridArray
 
 
 class SingleViewPoseEstimation3D(LazyTransport):
@@ -25,7 +26,12 @@ class SingleViewPoseEstimation3D(LazyTransport):
     _models = objslampp.datasets.YCBVideoModels()
 
     def __init__(self):
-        pretrained_model = '/home/wkentaro/objslampp/examples/ycb_video/singleview_3d/logs.20190930.all_data/20191001_093434.926883190/snapshot_model_best_add.npz'  # NOQA
+        self._with_occupancy = rospy.get_param('~with_occupancy')
+        if self._with_occupancy:
+            pretrained_model = '/home/wkentaro/objslampp/examples/ycb_video/singleview_3d/logs.20190930.all_data/20191006_033716.282726576/snapshot_model_best_add.npz'  # NOQA
+        else:
+            pretrained_model = '/home/wkentaro/objslampp/examples/ycb_video/singleview_3d/logs.20190930.all_data/20191006_033841.435435745/snapshot_model_best_add.npz'  # NOQA
+
         args_file = path.Path(pretrained_model).parent / 'args'
 
         with open(args_file) as f:
@@ -35,11 +41,15 @@ class SingleViewPoseEstimation3D(LazyTransport):
             n_fg_class=len(args_data['class_names'][1:]),
             pretrained_resnet18=args_data['pretrained_resnet18'],
             with_occupancy=args_data['with_occupancy'],
-            loss=args_data['loss'],
-            loss_scale=args_data['loss_scale'],
+            # loss=args_data['loss'],
+            # loss_scale=args_data['loss_scale'],
         )
         chainer.serializers.load_npz(pretrained_model, self._model)
         self._model.to_gpu()
+
+        self._rgb = None
+        self._depth = None
+        self._ins = None
 
         super().__init__()
         self._pub_debug_rgbd = self.advertise(
@@ -63,7 +73,18 @@ class SingleViewPoseEstimation3D(LazyTransport):
         sub_cls = message_filters.Subscriber(
             '~input/class', ClassificationResult, queue_size=1,
         )
-        self._subscribers = [sub_cam, sub_rgb, sub_depth, sub_ins, sub_cls]
+        self._subscribers = [
+            sub_cam,
+            sub_rgb,
+            sub_depth,
+            sub_ins,
+            sub_cls,
+        ]
+        if self._with_occupancy:
+            sub_noentry = message_filters.Subscriber(
+                '~input/grids_noentry', VoxelGridArray, queue_size=1,
+            )
+            self._subscribers.append(sub_noentry)
         sync = message_filters.TimeSynchronizer(
             self._subscribers, queue_size=100
         )
@@ -73,10 +94,20 @@ class SingleViewPoseEstimation3D(LazyTransport):
         for sub in self._subscribers:
             sub.unregister()
 
-    def _callback(self, cam_msg, rgb_msg, depth_msg, ins_msg, cls_msg):
+    def _callback(
+        self, cam_msg, rgb_msg, depth_msg, ins_msg, cls_msg, noentry_msg=None
+    ):
         bridge = cv_bridge.CvBridge()
-        rgb = bridge.imgmsg_to_cv2(rgb_msg, desired_encoding='rgb8')
-        depth = bridge.imgmsg_to_cv2(depth_msg)
+        if self._rgb is None:
+            rgb = bridge.imgmsg_to_cv2(rgb_msg, desired_encoding='rgb8')
+            # self._rgb = rgb
+        else:
+            rgb = self._rgb
+        if self._depth is None:
+            depth = bridge.imgmsg_to_cv2(depth_msg)
+            # self._depth = depth
+        else:
+            depth = self._depth
         if depth.dtype == np.uint16:
             depth = depth.astype(np.float32) / 1000
             depth[depth == 0] = np.nan
@@ -85,7 +116,32 @@ class SingleViewPoseEstimation3D(LazyTransport):
         pcd = objslampp.geometry.pointcloud_from_depth(
             depth, K[0, 0], K[1, 1], K[0, 2], K[1, 2]
         )
-        ins = bridge.imgmsg_to_cv2(ins_msg)
+        if self._ins is None:
+            ins = bridge.imgmsg_to_cv2(ins_msg)
+            # self._ins = ins
+        else:
+            ins = self._ins
+
+        grids_noentry = {}
+        if noentry_msg:
+            for grid in noentry_msg.grids:
+                instance_id = grid.label
+                dims = (grid.dims.x, grid.dims.y, grid.dims.z)
+                indices = np.array(grid.indices)
+                k = indices % grid.dims.z
+                j = indices // grid.dims.z % grid.dims.y
+                i = indices // grid.dims.z // grid.dims.y
+                grid_nontarget_empty = np.zeros(dims, dtype=bool)
+                grid_nontarget_empty[i, j, k] = True
+                origin = np.array(
+                    [grid.origin.x, grid.origin.y, grid.origin.z],
+                    dtype=np.float32,
+                )
+                grids_noentry[instance_id] = dict(
+                    origin=origin,
+                    pitch=grid.pitch,
+                    matrix=grid_nontarget_empty,
+                )
 
         class_ids = cls_msg.labels
         instance_ids = np.arange(0, len(class_ids))
@@ -106,11 +162,18 @@ class SingleViewPoseEstimation3D(LazyTransport):
             pcd_ins = imgviz.centerize(
                 pcd_ins, (256, 256), cval=np.nan, interpolation='nearest'
             )
-            examples.append(dict(
+
+            example = dict(
                 class_id=cls_id,
                 rgb=rgb_ins,
                 pcd=pcd_ins,
-            ))
+            )
+            if grids_noentry:
+                example['origin'] = grids_noentry[ins_id]['origin']
+                example['pitch'] = grids_noentry[ins_id]['pitch']
+                example['grid_nontarget_empty'] = \
+                    grids_noentry[ins_id]['matrix']
+            examples.append(example)
         if not examples:
             return
         inputs = chainer.dataset.concat_examples(examples, device=0)
@@ -150,8 +213,8 @@ class SingleViewPoseEstimation3D(LazyTransport):
                 transform_init=transforms[i],
             )
             transform = icp.register()
-            quaternion[i] = tf.quaternion_from_matrix(transform)
-            translation[i] = tf.translation_from_matrix(transform)
+            quaternion[i] = ttf.quaternion_from_matrix(transform)
+            translation[i] = ttf.translation_from_matrix(transform)
         del transforms
 
         markers = MarkerArray()

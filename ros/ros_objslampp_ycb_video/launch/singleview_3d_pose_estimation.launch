@@ -1,6 +1,7 @@
 <launch>
 
   <arg name="CONTEXT" default="[]" />
+  <arg name="OCCUPANCY" default="false" />
 
   <include file="$(find ros_objslampp_ycb_video)/launch/mask_rcnn_instance_segmentation.launch">
     <arg name="GUI" value="false" />
@@ -17,6 +18,10 @@
       <remap from="~input/depth" to="aligned_depth_to_color/image_raw" />
       <remap from="~input/label_ins" to="mask_rcnn_instance_segmentation/output/label_ins" />
       <remap from="~input/class" to="mask_rcnn_instance_segmentation/output/class" />
+      <remap from="~input/grids_noentry" to="octomap_server/output/grids_noentry" />
+      <rosparam subst_value="true">
+        with_occupancy: $(arg OCCUPANCY)
+      </rosparam>
     </node>
     <node name="render_marker_array"
           pkg="ros_objslampp_ycb_video" type="render_marker_array.py"
