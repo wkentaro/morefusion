@@ -6,8 +6,6 @@ import trimesh.transformations as tf
 
 import objslampp
 
-import preliminary
-
 
 def visualize_grids(
     camera,
@@ -95,7 +93,7 @@ def main():
     )
     instance_label = frame['label']
 
-    mapping = preliminary.MultiInstanceOctreeMapping()
+    mapping = objslampp.contrib.MultiInstanceOctreeMapping()
 
     # background
     ins_id = 0

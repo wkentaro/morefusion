@@ -39,7 +39,7 @@ class MultiInstanceOccupancyRegistration:
         self._rgb = rgb
         self._pcd = pcd
         self._instance_label = instance_label
-        self._mapping = preliminary.MultiInstanceOctreeMapping()
+        self._mapping = objslampp.contrib.MultiInstanceOctreeMapping()
 
         pitch = 0.01
         nonnan = ~np.isnan(pcd).any(axis=2)

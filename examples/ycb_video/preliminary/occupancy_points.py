@@ -33,7 +33,7 @@ def algorithm():
 
     # build octrees
     pitch = 0.005
-    mapping = preliminary.MultiInstanceOctreeMapping()
+    mapping = objslampp.contrib.MultiInstanceOctreeMapping()
     for ins_id in instance_ids_all:
         mask = instance_label == ins_id
         mapping.initialize(ins_id, pitch=pitch)
