@@ -23,10 +23,10 @@ class RenderMarkerArray(LazyTransport):
 
     def subscribe(self):
         sub_cam = message_filters.Subscriber(
-            '~input/camera_info', CameraInfo
+            '~input/camera_info', CameraInfo, queue_size=1
         )
         sub_markers = message_filters.Subscriber(
-            '~input/markers', MarkerArray
+            '~input/markers', MarkerArray, queue_size=1
         )
         self._subscribers = [sub_cam, sub_markers]
         sync = message_filters.ApproximateTimeSynchronizer(
