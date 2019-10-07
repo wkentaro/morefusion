@@ -197,14 +197,14 @@ Visualization Manager:
     - Class: jsk_rviz_plugin/OverlayImage
       Enabled: true
       Name: Rendered
-      Topic: /camera/render_marker_array/output
+      Topic: /camera/render_marker_array/tile_image/output
       Value: true
       alpha: 1
       height: 128
       keep aspect ratio: true
       left: 0
       top: 220
-      width: 300
+      width: 600
     - Class: jsk_rviz_plugin/CameraInfo
       Enabled: true
       Image Topic: ""
@@ -285,9 +285,7 @@ Visualization Manager:
       Marker Topic: /camera/grids_noentry_to_markers/output
       Name: GridsNoEntry
       Namespaces:
-        0: true
-        1: true
-        2: true
+        {}
       Queue Size: 1
       Value: true
   Enabled: true
