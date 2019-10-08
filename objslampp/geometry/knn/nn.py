@@ -1,6 +1,5 @@
 import math
 
-import cupy
 import path
 
 
@@ -9,6 +8,8 @@ cu_file = here / 'cuComputeDistanceGlobal.cu'
 
 
 def nn(ref, query):
+    import cupy
+
     with open(cu_file) as f:
         kernel = cupy.RawKernel(f.read(), 'cuComputeDistanceGlobal')
 
@@ -41,6 +42,7 @@ def nn(ref, query):
 
 
 if __name__ == '__main__':
+    import cupy
 
     def nn_naive(ref, query):
         dist = ((ref[None, :, :] - query[:, None, :]) ** 2).sum(axis=2)
