@@ -34,13 +34,19 @@ class SingleViewPoseEstimation3D(LazyTransport):
                 url='https://drive.google.com/uc?id=1gNfkP7vY2LwnuaoV55He0fKdVdLFD5iR',  # NOQA
                 md5='e516bd08791d892bab5374e575f82de4',
             )
+            args_file = gdown.cached_download(
+                url='https://drive.google.com/uc?id=1RcW0jGzmr3jp5SuEKaopd8aR9vknoqI3',  # NOQA
+                md5='a495652fc2d9c1c951076c6e40e22815',
+            )
         else:
             pretrained_model = gdown.cached_download(
                 url='https://drive.google.com/uc?id=1Dv03xveUV3p3oFvlx1zwX6pWK56y_b-K',  # NOQA
                 md5='94a988d4b9af9647f9e94a249212a40c',
             )
-
-        args_file = path.Path(pretrained_model).parent / 'args'
+            args_file = gdown.cached_download(
+                url='https://drive.google.com/uc?id=1z3CSQoYeUfg4KOUgtce4hAKkPuyZ161r',  # NOQA
+                md5='67472da00c9687671b8e1af43b397071',
+            )
 
         with open(args_file) as f:
             args_data = json.load(f)
