@@ -153,6 +153,8 @@ class RGBDPoseEstimationDatasetReIndexedBase(DatasetBase):
         id = self._ids[index]
         npz_file = self.root_dir / f'{id}.npz'
         example = dict(np.load(npz_file))
+        if 'visibility' in example:
+            example.pop('visibility')
         if self._augmentation:
             example['rgb'], example['pcd'] = self._augment_rgbd(
                 example['rgb'], example['pcd'],
