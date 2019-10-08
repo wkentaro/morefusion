@@ -53,10 +53,10 @@ Visualization Manager:
       Value: true
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /camera/object_poses_to_markers/output
+      Marker Topic: /camera/without_occupancy/object_poses_to_markers/output
       Name: MarkerArray
       Namespaces:
-        "": true
+        {}
       Queue Size: 1
       Value: true
     - Alpha: 0.300000012
@@ -152,8 +152,8 @@ Visualization Manager:
       alpha: 1
       height: 128
       keep aspect ratio: true
-      left: 10
-      top: 10
+      left: 0
+      top: 0
       width: 300
     - Class: jsk_rviz_plugin/OverlayImage
       Enabled: true
@@ -163,8 +163,8 @@ Visualization Manager:
       alpha: 1
       height: 128
       keep aspect ratio: true
-      left: 320
-      top: 10
+      left: 300
+      top: 0
       width: 300
     - Class: jsk_rviz_plugin/OverlayImage
       Enabled: true
@@ -174,20 +174,20 @@ Visualization Manager:
       alpha: 1
       height: 128
       keep aspect ratio: true
-      left: 630
-      top: 10
+      left: 600
+      top: 0
       width: 300
     - Class: jsk_rviz_plugin/OverlayImage
       Enabled: true
       Name: Rendered
-      Topic: /camera/render_marker_array/output
+      Topic: /camera/without_occupancy/render_marker_array/tile_image/output
       Value: true
       alpha: 1
       height: 128
       keep aspect ratio: true
-      left: 940
-      top: 10
-      width: 300
+      left: 0
+      top: 220
+      width: 600
     - Alpha: 0.300000012
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:

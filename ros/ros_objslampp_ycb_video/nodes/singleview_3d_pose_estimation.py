@@ -48,6 +48,7 @@ class SingleViewPoseEstimation3D(LazyTransport):
         chainer.serializers.load_npz(pretrained_model, self._model)
         self._model.to_gpu()
 
+        self._static = rospy.get_param('~static', False)
         self._rgb = None
         self._depth = None
         self._ins = None
@@ -101,12 +102,14 @@ class SingleViewPoseEstimation3D(LazyTransport):
         bridge = cv_bridge.CvBridge()
         if self._rgb is None:
             rgb = bridge.imgmsg_to_cv2(rgb_msg, desired_encoding='rgb8')
-            # self._rgb = rgb
+            if self._static:
+                self._rgb = rgb
         else:
             rgb = self._rgb
         if self._depth is None:
             depth = bridge.imgmsg_to_cv2(depth_msg)
-            # self._depth = depth
+            if self._static:
+                self._depth = depth
         else:
             depth = self._depth
         if depth.dtype == np.uint16:
@@ -119,7 +122,8 @@ class SingleViewPoseEstimation3D(LazyTransport):
         )
         if self._ins is None:
             ins = bridge.imgmsg_to_cv2(ins_msg)
-            # self._ins = ins
+            if self._static:
+                self._ins = ins
         else:
             ins = self._ins
 

@@ -2,9 +2,17 @@
 
   <arg name="CONTEXT" default="[]" />
 
-  <include file="$(find ros_objslampp_ycb_video)/launch/singleview_3d_pose_estimation.launch">
+  <include file="$(find ros_objslampp_ycb_video)/launch/mask_rcnn_instance_segmentation.launch">
     <arg name="CONTEXT" value="$(arg CONTEXT)" />
+    <arg name="GUI" value="false" />
+  </include>
+  <include file="$(find ros_objslampp_ycb_video)/launch/singleview_3d_pose_estimation.launch">
     <arg name="OCCUPANCY" value="true" />
+    <arg name="STATIC" value="false" />
+  </include>
+  <include file="$(find ros_objslampp_ycb_video)/launch/singleview_3d_pose_estimation.launch">
+    <arg name="OCCUPANCY" value="false" />
+    <arg name="STATIC" value="false" />
   </include>
 
   <group ns="camera">

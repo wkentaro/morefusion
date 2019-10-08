@@ -94,6 +94,7 @@ class CollisionBasedPoseRefinement(topic_tools.LazyTransport):
                 quaternion, translation
             ).array
 
+            '''
             registration = objslampp.contrib.OccupancyRegistration(
                 pcd_cad,
                 np.stack((grid_target, grid_nontarget_empty)),
@@ -115,6 +116,7 @@ class CollisionBasedPoseRefinement(topic_tools.LazyTransport):
             poses_msg.poses[i].pose.orientation.y = quaternion[2]
             poses_msg.poses[i].pose.orientation.z = quaternion[3]
             break
+            '''
         self._pub.publish(poses_msg)
 
 
