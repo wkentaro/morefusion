@@ -349,13 +349,15 @@ void OctomapServer::publishAll(const ros::Time& rostime)
     grid.origin.x = center_sensor.points[0].x - (grid.dims.x / 2.0 - 0.5) * grid.pitch;
     grid.origin.y = center_sensor.points[0].y - (grid.dims.y / 2.0 - 0.5) * grid.pitch;
     grid.origin.z = center_sensor.points[0].z - (grid.dims.z / 2.0 - 0.5) * grid.pitch;
-    grid.label = instance_id;
+    grid.instance_id = instance_id;
+    grid.class_id = class_id;
 
     ros_objslampp_msgs::VoxelGrid grid_noentry;
     grid_noentry.pitch = grid.pitch;
     grid_noentry.dims = grid.dims;
     grid_noentry.origin = grid.origin;
-    grid_noentry.label = grid.label;
+    grid_noentry.instance_id = grid.instance_id;
+    grid_noentry.class_id = grid.class_id;
     for (size_t i = 0; i < grid.dims.x; i++) {
       for (size_t j = 0; j < grid.dims.y; j++) {
         for (size_t k = 0; k < grid.dims.z; k++) {

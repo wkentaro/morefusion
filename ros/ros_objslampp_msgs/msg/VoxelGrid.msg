@@ -3,4 +3,5 @@ float32 pitch
 ros_objslampp_msgs/VoxelDimensions dims
 float32[] values
 uint32[] indices
-int32 label
+int32 instance_id
+uint32 class_id

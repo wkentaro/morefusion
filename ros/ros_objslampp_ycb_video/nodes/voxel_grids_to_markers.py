@@ -36,7 +36,7 @@ class VoxelGridsToMarkers(topic_tools.LazyTransport):
     def _callback(self, grids_msg):
         markers = MarkerArray()
         for grid in grids_msg.grids:
-            instance_id = grid.label
+            instance_id = grid.instance_id
             color = self._colormap[instance_id + 1]
 
             origin = np.array([grid.origin.x, grid.origin.y, grid.origin.z])

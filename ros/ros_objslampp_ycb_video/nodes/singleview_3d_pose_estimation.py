@@ -125,7 +125,7 @@ class SingleViewPoseEstimation3D(LazyTransport):
         grids_noentry = {}
         if noentry_msg:
             for grid in noentry_msg.grids:
-                instance_id = grid.label
+                instance_id = grid.instance_id
                 dims = (grid.dims.x, grid.dims.y, grid.dims.z)
                 indices = np.array(grid.indices)
                 k = indices % grid.dims.z

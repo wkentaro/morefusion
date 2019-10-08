@@ -53,13 +53,13 @@ class VoxelGridsToMeshMarkers(topic_tools.LazyTransport):
                 matrix, pitch, origin
             )
             mesh = trimesh.smoothing.filter_humphrey(mesh)
-            color = self._colormap[grid.label + 1]
-            mesh_file = self._tmp_dir / f'{grid.label:04d}.ply'
+            color = self._colormap[grid.instance_id + 1]
+            mesh_file = self._tmp_dir / f'{grid.instance_id:04d}.ply'
             trimesh.exchange.export.export_mesh(mesh, mesh_file)
 
             marker = Marker()
             marker.header = grids_msg.header
-            marker.id = grid.label
+            marker.id = grid.instance_id
             marker.pose.orientation.w = 1
             marker.scale.x = 1
             marker.scale.y = 1
