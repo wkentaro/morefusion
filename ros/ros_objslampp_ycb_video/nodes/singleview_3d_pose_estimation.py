@@ -28,9 +28,9 @@ class SingleViewPoseEstimation3D(LazyTransport):
     def __init__(self):
         self._with_occupancy = rospy.get_param('~with_occupancy')
         if self._with_occupancy:
-            pretrained_model = '/home/wkentaro/objslampp/examples/ycb_video/singleview_3d/logs.20190930.all_data/20191006_033716.282726576/snapshot_model_best_add.npz'  # NOQA
+            pretrained_model = '/home/wkentaro/Gdrive/objslampp/ycb_video_singleview_3d/logs.20190930.all_data/20191006_033716.282726576/snapshot_model_best_add.npz'  # NOQA
         else:
-            pretrained_model = '/home/wkentaro/objslampp/examples/ycb_video/singleview_3d/logs.20190930.all_data/20191006_033841.435435745/snapshot_model_best_add.npz'  # NOQA
+            pretrained_model = '/home/wkentaro/Gdrive/objslampp/ycb_video_singleview_3d/logs.20190930.all_data/20191006_033841.435435745/snapshot_model_best_add.npz'  # NOQA
 
         args_file = path.Path(pretrained_model).parent / 'args'
 
