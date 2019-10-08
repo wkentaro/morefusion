@@ -23,11 +23,16 @@
         with_occupancy: $(arg OCCUPANCY)
       </rosparam>
     </node>
+    <node name="object_poses_to_markers"
+          pkg="ros_objslampp_ycb_video" type="object_poses_to_markers.py"
+          clear_params="true">
+      <remap from="~input" to="singleview_3d_pose_estimation/output" />
+    </node>
     <node name="render_marker_array"
           pkg="ros_objslampp_ycb_video" type="render_marker_array.py"
           clear_params="true">
       <remap from="~input/camera_info" to="color/camera_info" />
-      <remap from="~input/markers" to="singleview_3d_pose_estimation/output/markers" />
+      <remap from="~input/markers" to="object_poses_to_markers/output" />
     </node>
     <group ns="render_marker_array">
       <node name="tile_image"

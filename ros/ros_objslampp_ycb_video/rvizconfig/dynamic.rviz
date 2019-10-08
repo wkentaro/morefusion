@@ -53,10 +53,10 @@ Visualization Manager:
       Value: true
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /camera/singleview_3d_pose_estimation/output/markers
+      Marker Topic: /camera/object_poses_to_markers/output
       Name: MarkerArray
       Namespaces:
-        map: true
+        "": true
       Queue Size: 1
       Value: true
     - Alpha: 0.300000012

@@ -33,7 +33,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: Raw
+    SyncSource: ""
 Toolbars:
   toolButtonStyle: 2
 Visualization Manager:
@@ -58,13 +58,13 @@ Visualization Manager:
       Reference Frame: <Fixed Frame>
       Value: true
     - Class: rviz/MarkerArray
-      Enabled: false
-      Marker Topic: /camera/singleview_3d_pose_estimation/output/markers
+      Enabled: true
+      Marker Topic: /camera/object_poses_to_markers/output
       Name: Full
       Namespaces:
         {}
       Queue Size: 1
-      Value: false
+      Value: true
     - Alpha: 0.300000012
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
@@ -100,54 +100,13 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: false
-        base:
-          Value: true
-        camera_aligned_depth_to_color_frame:
-          Value: true
-        camera_aligned_depth_to_infra1_frame:
-          Value: true
-        camera_color_frame:
-          Value: true
-        camera_color_optical_frame:
-          Value: true
-        camera_depth_frame:
-          Value: true
-        camera_depth_optical_frame:
-          Value: true
-        camera_infra1_frame:
-          Value: true
-        camera_infra1_optical_frame:
-          Value: true
-        camera_infra2_frame:
-          Value: true
-        camera_infra2_optical_frame:
-          Value: true
-        camera_link:
-          Value: true
       Marker Scale: 0.400000006
       Name: TF
       Show Arrows: true
       Show Axes: true
       Show Names: false
       Tree:
-        camera_link:
-          camera_aligned_depth_to_color_frame:
-            camera_color_optical_frame:
-              base:
-                {}
-          camera_aligned_depth_to_infra1_frame:
-            camera_infra1_optical_frame:
-              {}
-          camera_color_frame:
-            {}
-          camera_depth_frame:
-            camera_depth_optical_frame:
-              {}
-          camera_infra1_frame:
-            {}
-          camera_infra2_frame:
-            camera_infra2_optical_frame:
-              {}
+        {}
       Update Interval: 0
       Value: true
     - Class: jsk_rviz_plugin/OverlayImage
@@ -239,7 +198,7 @@ Visualization Manager:
           Marker Topic: /camera/grids_to_mesh_markers/output
           Name: PartialMesh
           Namespaces:
-            "": true
+            {}
           Queue Size: 1
           Value: true
         - Class: rviz/MarkerArray
@@ -247,10 +206,7 @@ Visualization Manager:
           Marker Topic: /camera/occupied_cells_vis_array
           Name: OctreeOccupied
           Namespaces:
-            -1: true
-            0: false
-            1: false
-            2: false
+            {}
           Queue Size: 1
           Value: true
         - Class: rviz/MarkerArray

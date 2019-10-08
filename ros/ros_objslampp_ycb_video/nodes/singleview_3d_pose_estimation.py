@@ -17,8 +17,9 @@ import rospy
 from topic_tools import LazyTransport
 import message_filters
 from sensor_msgs.msg import Image, CameraInfo
-from visualization_msgs.msg import Marker, MarkerArray
 from ros_objslampp_msgs.msg import VoxelGridArray
+from ros_objslampp_msgs.msg import ObjectPose
+from ros_objslampp_msgs.msg import ObjectPoseArray
 
 
 class SingleViewPoseEstimation3D(LazyTransport):
@@ -55,8 +56,8 @@ class SingleViewPoseEstimation3D(LazyTransport):
         self._pub_debug_rgbd = self.advertise(
             '~output/debug/rgbd', Image, queue_size=1
         )
-        self._pub_markers = self.advertise(
-            '~output/markers', MarkerArray, queue_size=1
+        self._pub_poses = self.advertise(
+            '~output', ObjectPoseArray, queue_size=1
         )
 
     def subscribe(self):
@@ -147,8 +148,9 @@ class SingleViewPoseEstimation3D(LazyTransport):
         instance_ids = np.arange(0, len(class_ids))
 
         examples = []
+        keep = []
         nanmask = np.isnan(pcd).any(axis=2)
-        for ins_id, cls_id in zip(instance_ids, class_ids):
+        for i, (ins_id, cls_id) in enumerate(zip(instance_ids, class_ids)):
             mask = ins == ins_id
             if (~nanmask & mask).sum() < 50:
                 continue
@@ -174,9 +176,12 @@ class SingleViewPoseEstimation3D(LazyTransport):
                 example['grid_nontarget_empty'] = \
                     grids_noentry[ins_id]['matrix']
             examples.append(example)
+            keep.append(i)
         if not examples:
             return
         inputs = chainer.dataset.concat_examples(examples, device=0)
+        instance_ids = instance_ids[keep]
+        del class_ids
 
         if self._pub_debug_rgbd.get_num_connections() > 0:
             debug_rgbd = [
@@ -217,39 +222,21 @@ class SingleViewPoseEstimation3D(LazyTransport):
             translation[i] = ttf.translation_from_matrix(transform)
         del transforms
 
-        markers = MarkerArray()
-
-        marker = Marker(
-            header=rgb_msg.header,
-            ns='map',
-            id=0,
-            action=Marker.DELETEALL,
-        )
-        markers.markers.append(marker)
-
-        for i, example in enumerate(examples):
-            marker = Marker()
-            marker.header = rgb_msg.header
-            marker.ns = 'map'
-            marker.id = len(markers.markers)
-
-            marker.action = Marker.ADD
-            marker.type = Marker.MESH_RESOURCE
-            marker.pose.position.x = translation[i][0]
-            marker.pose.position.y = translation[i][1]
-            marker.pose.position.z = translation[i][2]
-            marker.pose.orientation.x = quaternion[i][1]
-            marker.pose.orientation.y = quaternion[i][2]
-            marker.pose.orientation.z = quaternion[i][3]
-            marker.pose.orientation.w = quaternion[i][0]
-            marker.scale.x = 1
-            marker.scale.y = 1
-            marker.scale.z = 1
-            cad_file = self._models.get_cad_file(example['class_id'])
-            marker.mesh_resource = f'file://{cad_file}'
-            marker.mesh_use_embedded_materials = True
-            markers.markers.append(marker)
-        self._pub_markers.publish(markers)
+        poses = ObjectPoseArray()
+        poses.header = rgb_msg.header
+        for i, (ins_id, example) in enumerate(zip(instance_ids, examples)):
+            pose = ObjectPose()
+            pose.pose.position.x = translation[i][0]
+            pose.pose.position.y = translation[i][1]
+            pose.pose.position.z = translation[i][2]
+            pose.pose.orientation.w = quaternion[i][0]
+            pose.pose.orientation.x = quaternion[i][1]
+            pose.pose.orientation.y = quaternion[i][2]
+            pose.pose.orientation.z = quaternion[i][3]
+            pose.instance_id = ins_id
+            pose.class_id = examples[i]['class_id']
+            poses.poses.append(pose)
+        self._pub_poses.publish(poses)
 
 
 if __name__ == '__main__':
