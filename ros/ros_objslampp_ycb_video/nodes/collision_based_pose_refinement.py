@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# flake8: noqa
 
 import numpy as np
 import trimesh.transformations as ttf
