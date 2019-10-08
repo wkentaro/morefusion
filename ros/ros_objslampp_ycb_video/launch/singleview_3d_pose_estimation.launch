@@ -18,7 +18,7 @@
       <remap from="~input/depth" to="aligned_depth_to_color/image_raw" />
       <remap from="~input/label_ins" to="mask_rcnn_instance_segmentation/output/label_ins" />
       <remap from="~input/class" to="mask_rcnn_instance_segmentation/output/class" />
-      <remap from="~input/grids_noentry" to="octomap_server/output/grids_noentry" />
+      <remap from="~input/grids_noentry" to="octomap_server/output/grids_noentry" if="$(arg OCCUPANCY)" />
       <rosparam subst_value="true">
         with_occupancy: $(arg OCCUPANCY)
       </rosparam>
@@ -45,6 +45,24 @@
           queue_size: 100
           approximate_sync: false
         </rosparam>
+      </node>
+    </group>
+
+    <group if="$(arg OCCUPANCY)">
+      <node name="collision_based_pose_refinement"
+            pkg="ros_objslampp_ycb_video" type="collision_based_pose_refinement.py"
+            clear_params="true"
+            output="screen">
+        <remap from="~input/poses" to="singleview_3d_pose_estimation/output" />
+        <remap from="~input/grids" to="octomap_server/output/grids" />
+        <remap from="~input/grids_noentry" to="octomap_server/output/grids_noentry" />
+      </node>
+    </group>
+    <group ns="collision_based_pose_refinement">
+      <node name="object_poses_to_markers"
+            pkg="ros_objslampp_ycb_video" type="object_poses_to_markers.py"
+            clear_params="true">
+        <remap from="~input" to="output" />
       </node>
     </group>
   </group>
