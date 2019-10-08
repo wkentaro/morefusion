@@ -3,6 +3,7 @@
 import json
 
 import chainer
+import gdown
 import numpy as np
 import path
 import imgviz
@@ -29,9 +30,15 @@ class SingleViewPoseEstimation3D(LazyTransport):
     def __init__(self):
         self._with_occupancy = rospy.get_param('~with_occupancy')
         if self._with_occupancy:
-            pretrained_model = '/home/wkentaro/Gdrive/objslampp/ycb_video_singleview_3d/logs.20190930.all_data/20191006_033716.282726576/snapshot_model_best_add.npz'  # NOQA
+            pretrained_model = gdown.cached_download(
+                url='https://drive.google.com/uc?id=1gNfkP7vY2LwnuaoV55He0fKdVdLFD5iR',  # NOQA
+                md5='e516bd08791d892bab5374e575f82de4',
+            )
         else:
-            pretrained_model = '/home/wkentaro/Gdrive/objslampp/ycb_video_singleview_3d/logs.20190930.all_data/20191006_033841.435435745/snapshot_model_best_add.npz'  # NOQA
+            pretrained_model = gdown.cached_download(
+                url='https://drive.google.com/uc?id=1Dv03xveUV3p3oFvlx1zwX6pWK56y_b-K',  # NOQA
+                md5='94a988d4b9af9647f9e94a249212a40c',
+            )
 
         args_file = path.Path(pretrained_model).parent / 'args'
 
