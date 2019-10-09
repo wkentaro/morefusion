@@ -82,14 +82,14 @@ class RGBDPoseEstimationDatasetReIndexedBase(DatasetBase):
         case = random_state.choice(4)
         y1, x1, y2, x2 = geometry_module.masks_to_bboxes([mask])[0]
         if case == 0:
-            y1 = random_state.uniform(0, H * 0.25)
+            y1 = random_state.uniform(0, (y2 - y1) * 0.25)
         elif case == 1:
-            y2 = H - random_state.uniform(0, H * 0.25)
+            y2 = H - random_state.uniform(0, (y2 - y1) * 0.25)
         elif case == 2:
-            x1 = random_state.uniform(0, W * 0.25)
+            x1 = random_state.uniform(0, (x2 - x1) * 0.25)
         else:
             assert case == 3
-            x2 = W - random_state.uniform(0, W * 0.25)
+            x2 = W - random_state.uniform(0, (x2 - x1) * 0.25)
         y1, x1, y2, x2 = np.array([y1, x1, y2, x2]).round().astype(int)
         mask[:y1, :] = 0
         mask[y2:, :] = 0
