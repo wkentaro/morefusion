@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import time
+
 import chainer
 from chainer.backends import cuda
 import numpy as np
@@ -32,7 +34,8 @@ def get_scenes():
     optimizer.setup(link)
     link.translation.update_rule.hyperparam.alpha *= 0.1
 
-    for i in range(300):
+    t_start = time.time()
+    for i in range(200):
         transform = objslampp.functions.transformation_matrix(
             link.quaternion, link.translation
         )
@@ -56,9 +59,11 @@ def get_scenes():
         loss.backward()
         optimizer.update()
         link.zerograds()
-        print(i)
-        print(link.quaternion, link.quaternion.dtype)
-        print(link.translation, link.translation.dtype)
+
+        print(i, time.time() - t_start)
+        # print(i)
+        # print(link.quaternion, link.quaternion.dtype)
+        # print(link.translation, link.translation.dtype)
 
 
 def main():
