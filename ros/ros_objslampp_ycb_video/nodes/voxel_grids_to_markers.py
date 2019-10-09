@@ -31,7 +31,7 @@ class VoxelGridsToMarkers(topic_tools.LazyTransport):
         )
 
     def unsubscribe(self):
-        self._sub.unsubscribe()
+        self._sub.unregister()
 
     def _callback(self, grids_msg):
         markers = MarkerArray()

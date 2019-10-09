@@ -27,7 +27,7 @@ class ObjectPosesToMarkers(topic_tools.LazyTransport):
         )
 
     def unsubscribe(self):
-        self._sub.unsubscribe()
+        self._sub.unregister()
 
     def _callback(self, poses_msg):
         markers_msg = MarkerArray()
