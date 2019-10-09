@@ -97,25 +97,15 @@ class RGBDPoseEstimationDatasetReIndexedBase(DatasetBase):
         mask[:, x2:] = 0
 
         # select blobs
-        contours, hierarchy = cv2.findContours(
+        contours, _ = cv2.findContours(
             mask.astype(np.uint8),
             mode=cv2.RETR_TREE,
             method=cv2.CHAIN_APPROX_SIMPLE,
         )
-        areas = [cv2.contourArea(c) for c in contours]
-        contour_index = np.argmax(areas)
-        mask_contour = np.zeros((H, W), dtype=np.uint8)
-        cv2.drawContours(
-            mask_contour,
-            contours,
-            contourIdx=contour_index,
-            thickness=-1,
-            color=1,
-        )
-        n_contours = random_state.choice(len(contours))
-        for contour_index in random_state.permutation(
-            len(contours)
-        )[:n_contours]:
+        if contours:
+            areas = [cv2.contourArea(c) for c in contours]
+            contour_index = np.argmax(areas)
+            mask_contour = np.zeros((H, W), dtype=np.uint8)
             cv2.drawContours(
                 mask_contour,
                 contours,
@@ -123,7 +113,18 @@ class RGBDPoseEstimationDatasetReIndexedBase(DatasetBase):
                 thickness=-1,
                 color=1,
             )
-        mask = mask_contour.astype(bool)
+            n_contours = random_state.choice(len(contours))
+            for contour_index in random_state.permutation(
+                len(contours)
+            )[:n_contours]:
+                cv2.drawContours(
+                    mask_contour,
+                    contours,
+                    contourIdx=contour_index,
+                    thickness=-1,
+                    color=1,
+                )
+            mask = mask_contour.astype(bool)
 
         rgb[~mask] = 0
         pcd[~mask] = np.nan
