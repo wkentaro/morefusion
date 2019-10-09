@@ -137,7 +137,7 @@ void OctomapServer::insertCloudCallback(
   const sensor_msgs::ImageConstPtr& ins_msg,
   const jsk_recognition_msgs::ClassificationResultConstPtr& class_msg)
 {
-  ROS_INFO_BLUE("insertCloudCallback");
+  // ROS_INFO_BLUE("insertCloudCallback");
 
   PCLPointCloud pc;
   pcl::fromROSMsg(*cloud, pc);
@@ -268,7 +268,7 @@ void OctomapServer::publishAll(const ros::Time& rostime)
   if (m_octrees.size() == 0) {
     return;
   }
-  ROS_INFO_BLUE("publishAll");
+  // ROS_INFO_BLUE("publishAll");
 
   ros::WallTime startTime = ros::WallTime::now();
 
