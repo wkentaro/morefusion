@@ -63,6 +63,12 @@
               clear_params="true">
           <remap from="~input" to="output" />
         </node>
+        <node name="render_marker_array"
+              pkg="ros_objslampp_ycb_video" type="render_marker_array.py"
+              clear_params="true">
+          <remap from="~input/camera_info" to="/camera/color/camera_info" />
+          <remap from="~input/markers" to="object_poses_to_markers/output" />
+        </node>
       </group>
     </group>
 

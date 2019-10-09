@@ -1,5 +1,7 @@
 <launch>
 
+  <arg name="RVIZ" default="true" />
+
   <include file="$(find ros_objslampp_ycb_video)/launch/rosbag_play_rs_rgbd.launch">
   </include>
 
@@ -7,8 +9,10 @@
     <arg name="GUI" value="false" />
   </include>
 
-  <include file="$(find ros_objslampp_ycb_video)/launch/rviz_static.launch">
-  </include>
+  <group if="$(arg RVIZ)">
+    <include file="$(find ros_objslampp_ycb_video)/launch/rviz_static.launch">
+    </include>
+  </group>
 
   <include file="$(find ros_objslampp_ycb_video)/launch/setup_static.launch">
     <arg name="CONTEXT" value="[2, 3, 9]" />
