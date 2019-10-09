@@ -368,13 +368,13 @@ def main():
             print(name, link.update_enabled)
 
     # iterator initialization
-    iter_train = chainer.iterators.MultiprocessIterator(
+    iter_train = chainer.iterators.MultithreadIterator(
         data_train,
         batch_size=16 // n_gpu,
         repeat=True,
         shuffle=True,
     )
-    iter_valid = chainer.iterators.MultiprocessIterator(
+    iter_valid = chainer.iterators.MultithreadIterator(
         data_valid,
         batch_size=48,
         repeat=False,
