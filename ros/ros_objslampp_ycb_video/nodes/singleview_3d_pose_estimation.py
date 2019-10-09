@@ -14,15 +14,15 @@ import objslampp.contrib.singleview_3d as contrib
 import cv_bridge
 from jsk_recognition_msgs.msg import ClassificationResult
 import rospy
-from topic_tools import LazyTransport
 import message_filters
 from sensor_msgs.msg import Image, CameraInfo
 from ros_objslampp_msgs.msg import VoxelGridArray
 from ros_objslampp_msgs.msg import ObjectPose
 from ros_objslampp_msgs.msg import ObjectPoseArray
+import topic_tools
 
 
-class SingleViewPoseEstimation3D(LazyTransport):
+class SingleViewPoseEstimation3D(topic_tools.LazyTransport):
 
     _models = objslampp.datasets.YCBVideoModels()
 
@@ -72,6 +72,7 @@ class SingleViewPoseEstimation3D(LazyTransport):
         self._pub_poses = self.advertise(
             '~output', ObjectPoseArray, queue_size=1
         )
+        self._post_init()
 
     def subscribe(self):
         sub_cam = message_filters.Subscriber('~input/camera_info', CameraInfo)
