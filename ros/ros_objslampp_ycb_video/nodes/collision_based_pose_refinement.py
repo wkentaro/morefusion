@@ -1,8 +1,8 @@
 #!/usr/bin/env python
-# flake8: noqa
 
+import chainer
+from chainer.backends import cuda
 import numpy as np
-import trimesh.transformations as ttf
 
 import objslampp
 
@@ -18,10 +18,11 @@ class CollisionBasedPoseRefinement(topic_tools.LazyTransport):
     _models = objslampp.datasets.YCBVideoModels()
 
     def __init__(self):
+        self._pcd_cad = {}
+
         super().__init__()
         self._pub = self.advertise('~output', ObjectPoseArray, queue_size=1)
         self._post_init()
-        self.subscribe()
 
     def subscribe(self):
         sub_pose = message_filters.Subscriber(
@@ -59,66 +60,98 @@ class CollisionBasedPoseRefinement(topic_tools.LazyTransport):
         matrix[i, j, k] = 1
         return matrix, pitch, origin
 
-    def _callback(self, poses_msg, grids_msg, grids_noentry_msg):
-        grids = {g.instance_id: g for g in grids_msg.grids}
-        grids_noentry = {g.instance_id: g for g in grids_noentry_msg.grids}
-
-        for i, pose in enumerate(poses_msg.poses):
-            grid_target, pitch1, origin1 = self._grid_msg_to_matrix(
-                grids[pose.instance_id]
-            )
-            grid_nontarget_empty, pitch2, origin2 = self._grid_msg_to_matrix(
-                grids_noentry[pose.instance_id]
-            )
-            assert pitch1 == pitch2
-            assert (origin1 == origin2).all()
-            pitch = pitch1
-            origin = origin1
-
-            pcd_cad = self._models.get_solid_voxel(
-                pose.class_id
-            ).points.astype(np.float32)
+    def _get_pcd_cad(self, class_id):
+        if class_id in self._pcd_cad:
+            pcd_cad = self._pcd_cad[class_id]
+        else:
+            pitch = self._models.get_voxel_pitch(32, class_id)
+            pcd_cad = self._models.get_solid_voxel(class_id).points
             pcd_cad = objslampp.extra.open3d.voxel_down_sample(
                 pcd_cad, voxel_size=pitch
             ).astype(np.float32)
-            translation = np.array(
-                [pose.pose.position.x, pose.pose.position.y, pose.pose.position.z],
-                dtype=np.float32,
-            )
+            pcd_cad = cuda.to_gpu(pcd_cad)
+            self._pcd_cad[class_id] = pcd_cad
+        return pcd_cad
+
+    def _callback(self, poses_msg, grids_msg, grids_noentry_msg):
+        grids = {
+            g.instance_id: self._grid_msg_to_matrix(g)
+            for g in grids_msg.grids
+        }
+        grids_noentry = {
+            g.instance_id: self._grid_msg_to_matrix(g)
+            for g in grids_noentry_msg.grids
+        }
+
+        points = []
+        pitches = []
+        origins = []
+        grid_target = []
+        grid_nontarget_empty = []
+        transforms = []
+        for i, pose in enumerate(poses_msg.poses):
+            grid, pitch, origin = grids[pose.instance_id]
+            grid_no, pitch_no, origin_no = grids_noentry[pose.instance_id]
+            assert pitch == pitch_no
+            assert (origin == origin_no).all()
+            del pitch_no, origin_no
+
+            translation = np.array([
+                pose.pose.position.x,
+                pose.pose.position.y,
+                pose.pose.position.z,
+            ], dtype=np.float32)
             quaternion = np.array([
                 pose.pose.orientation.w,
                 pose.pose.orientation.x,
                 pose.pose.orientation.y,
                 pose.pose.orientation.z,
             ], dtype=np.float32)
-            transform_init = objslampp.functions.transformation_matrix(
+            transform = objslampp.functions.transformation_matrix(
                 quaternion, translation
             ).array
 
-            '''
-            registration = objslampp.contrib.OccupancyRegistration(
-                pcd_cad,
-                np.stack((grid_target, grid_nontarget_empty)),
-                pitch=pitch,
-                origin=origin,
-                threshold=2,
-                transform_init=transform_init,  # cad2depth
-                gpu=0,
-                alpha=0.1
+            points.append(self._get_pcd_cad(pose.class_id))
+            pitches.append(cuda.to_gpu(np.float32(pitch)))
+            origins.append(cuda.to_gpu(origin.astype(np.float32)))
+            grid_target.append(cuda.to_gpu(grid))
+            grid_nontarget_empty.append(cuda.to_gpu(grid_no))
+            transforms.append(transform)
+        grid_target = cuda.cupy.stack(grid_target)
+
+        link = objslampp.contrib.CollisionBasedPoseRefinementLink(transforms)
+        link.to_gpu()
+        optimizer = chainer.optimizers.Adam(alpha=0.01)
+        optimizer.setup(link)
+        link.translation.update_rule.hyperparam.alpha *= 0.1
+
+        import time
+        t_start = time.time()
+        for i in range(200):
+            loss = link(
+                points,
+                pitches,
+                origins,
+                grid_target,
+                grid_nontarget_empty,
             )
-            transform = registration.register(iteration=30)
-            quaternion = ttf.quaternion_from_matrix(transform)
-            translation = ttf.translation_from_matrix(transform)
-            poses_msg.poses[i].pose.position.x = translation[0]
-            poses_msg.poses[i].pose.position.y = translation[1]
-            poses_msg.poses[i].pose.position.z = translation[2]
-            poses_msg.poses[i].pose.orientation.w = quaternion[0]
-            poses_msg.poses[i].pose.orientation.x = quaternion[1]
-            poses_msg.poses[i].pose.orientation.y = quaternion[2]
-            poses_msg.poses[i].pose.orientation.z = quaternion[3]
-            break
-            '''
-        self._pub.publish(poses_msg)
+            loss.backward()
+            optimizer.update()
+            link.zerograds()
+
+            if i % 20 == 0:
+                print(i, time.time() - t_start)
+                quaternion = cuda.to_cpu(link.quaternion.array)
+                translation = cuda.to_cpu(link.translation.array)
+                for i, pose in enumerate(poses_msg.poses):
+                    pose.pose.position.x = translation[i][0]
+                    pose.pose.position.y = translation[i][1]
+                    pose.pose.position.z = translation[i][2]
+                    pose.pose.orientation.w = quaternion[i][0]
+                    pose.pose.orientation.x = quaternion[i][1]
+                    pose.pose.orientation.y = quaternion[i][2]
+                    pose.pose.orientation.z = quaternion[i][3]
+                self._pub.publish(poses_msg)
 
 
 if __name__ == '__main__':
