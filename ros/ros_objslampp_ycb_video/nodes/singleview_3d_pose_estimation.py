@@ -5,7 +5,6 @@ import json
 import chainer
 import gdown
 import numpy as np
-import path
 import imgviz
 import trimesh.transformations as ttf
 
