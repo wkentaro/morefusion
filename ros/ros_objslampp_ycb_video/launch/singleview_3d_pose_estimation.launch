@@ -40,10 +40,10 @@
             clear_params="true">
         <rosparam subst_value="true">
           input_topics:
-            - /camera/color/image_rect_color
+            - /camera/color/image_rect_color_throttle/output
             - output
           queue_size: 100
-          approximate_sync: false
+          approximate_sync: true
         </rosparam>
       </node>
     </group>
@@ -69,6 +69,19 @@
           <remap from="~input/camera_info" to="/camera/color/camera_info" />
           <remap from="~input/markers" to="object_poses_to_markers/output" />
         </node>
+        <group ns="render_marker_array">
+          <node name="tile_image"
+                pkg="jsk_perception" type="tile_image.py"
+                clear_params="true">
+            <rosparam subst_value="true">
+              input_topics:
+                - /camera/color/image_rect_color_throttle/output
+                - output
+              queue_size: 100
+              approximate_sync: true
+            </rosparam>
+          </node>
+        </group>
       </group>
     </group>
 

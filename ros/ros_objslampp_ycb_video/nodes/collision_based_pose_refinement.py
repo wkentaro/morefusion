@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import time
+
 import chainer
 from chainer.backends import cuda
 import numpy as np
@@ -125,9 +127,8 @@ class CollisionBasedPoseRefinement(topic_tools.LazyTransport):
         optimizer.setup(link)
         link.translation.update_rule.hyperparam.alpha *= 0.1
 
-        import time
         t_start = time.time()
-        for i in range(200):
+        for iteration in range(200):
             loss = link(
                 points,
                 pitches,
@@ -139,19 +140,20 @@ class CollisionBasedPoseRefinement(topic_tools.LazyTransport):
             optimizer.update()
             link.zerograds()
 
-            if i % 20 == 0:
-                print(i, time.time() - t_start)
-                quaternion = cuda.to_cpu(link.quaternion.array)
-                translation = cuda.to_cpu(link.translation.array)
-                for i, pose in enumerate(poses_msg.poses):
-                    pose.pose.position.x = translation[i][0]
-                    pose.pose.position.y = translation[i][1]
-                    pose.pose.position.z = translation[i][2]
-                    pose.pose.orientation.w = quaternion[i][0]
-                    pose.pose.orientation.x = quaternion[i][1]
-                    pose.pose.orientation.y = quaternion[i][2]
-                    pose.pose.orientation.z = quaternion[i][3]
-                self._pub.publish(poses_msg)
+            if iteration % 10 == 0:
+                rospy.loginfo(f'[{iteration}] {time.time() - t_start} [s]')
+
+        quaternion = cuda.to_cpu(link.quaternion.array)
+        translation = cuda.to_cpu(link.translation.array)
+        for i, pose in enumerate(poses_msg.poses):
+            pose.pose.position.x = translation[i][0]
+            pose.pose.position.y = translation[i][1]
+            pose.pose.position.z = translation[i][2]
+            pose.pose.orientation.w = quaternion[i][0]
+            pose.pose.orientation.x = quaternion[i][1]
+            pose.pose.orientation.y = quaternion[i][2]
+            pose.pose.orientation.z = quaternion[i][3]
+        self._pub.publish(poses_msg)
 
 
 if __name__ == '__main__':
