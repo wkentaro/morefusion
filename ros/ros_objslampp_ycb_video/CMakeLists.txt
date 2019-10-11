@@ -12,22 +12,25 @@ find_package(catkin REQUIRED COMPONENTS
 
 find_package(PCL REQUIRED io)
 
+find_package(octomap REQUIRED)
+add_definitions(-DOCTOMAP_NODEBUGOUT)
+
 generate_dynamic_reconfigure_options(
   cfg/OctomapServer.cfg
 )
 
 catkin_package(
-  DEPENDS PCL
+  DEPENDS PCL OCTOMAP
   INCLUDE_DIRS include
   LIBRARIES ${PROJECT_NAME}
 )
 
 # ---------------------------------------------------------------------
 
-include_directories(include ${catkin_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS})
+include_directories(include ${catkin_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS} ${OCTOMAP_INCLUDE_DIRS})
 
 add_executable(octomap_server src/OctomapServer.cpp)
-target_link_libraries(octomap_server ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+target_link_libraries(octomap_server ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OCTOMAP_LIBRARIES})
 add_dependencies(octomap_server ${PROJECT_NAME}_gencfg)
 
 # ---------------------------------------------------------------------
