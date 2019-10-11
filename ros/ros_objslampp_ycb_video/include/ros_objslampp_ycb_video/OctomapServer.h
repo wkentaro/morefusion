@@ -168,8 +168,6 @@ class OctomapServer {
 
   bool m_compressMap;
 
-  bool m_stopUpdate;
-
   bool m_groundAsNoEntry;
   bool m_freeAsNoEntry;
 };

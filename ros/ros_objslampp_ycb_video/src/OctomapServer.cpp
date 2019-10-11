@@ -30,8 +30,7 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_occupancyMaxZ(std::numeric_limits<double>::max()),
   m_minSizeX(0.0), m_minSizeY(0.0),
   m_filterSpeckles(false),
-  m_compressMap(true),
-  m_stopUpdate(false) {
+  m_compressMap(true) {
   double probHit, probMiss, thresMin, thresMax;
 
   ros::NodeHandle private_nh(private_nh_);
@@ -234,9 +233,7 @@ void OctomapServer::insertCloudCallback(
   m_labelTrackedPub.publish(
     cv_bridge::CvImage(cloud->header, "32SC1", label_ins).toImageMsg());
 
-  if (!m_stopUpdate) {
-    insertScan(sensorToWorldTf.getOrigin(), pc, label_ins, class_msg);
-  }
+  insertScan(sensorToWorldTf.getOrigin(), pc, label_ins, class_msg);
 
   publishAll(cloud->header.stamp);
 }
@@ -338,9 +335,6 @@ void OctomapServer::insertScan(
       it->second->prune();
     }
   }
-
-  ROS_INFO_MAGENTA("Stop updating for single-view dev");
-  m_stopUpdate = true;
 }
 
 
