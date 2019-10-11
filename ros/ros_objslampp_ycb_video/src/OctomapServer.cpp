@@ -11,6 +11,7 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
 : m_nh(),
   m_octrees(),
   m_classIds(),
+  m_centers(),
   m_pointCloudSub(NULL),
   m_labelInsSub(NULL),
   m_tfPointCloudSub(NULL),
@@ -69,8 +70,6 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_mapPub = m_nh.advertise<nav_msgs::OccupancyGrid>("projected_map", 5, m_latchedTopics);
   m_fmarkerPub = m_nh.advertise<visualization_msgs::MarkerArray>(
     "free_cells_vis_array", 1, m_latchedTopics);
-  m_bboxesPub = private_nh.advertise<jsk_recognition_msgs::BoundingBoxArray>(
-    "output/bboxes", 1, m_latchedTopics);
   m_gridsPub = private_nh.advertise<ros_objslampp_msgs::VoxelGridArray>(
     "output/grids", 1, m_latchedTopics);
   m_gridsNoEntryPub = private_nh.advertise<ros_objslampp_msgs::VoxelGridArray>(
@@ -309,6 +308,22 @@ void OctomapServer::insertScan(
     }
   }
 
+  for (std::map<int, OcTreeT*>::iterator it = m_octrees.begin(); it != m_octrees.end(); it++) {
+    int instance_id = it->first;
+    OcTreeT* octree = it->second;
+    unsigned class_id = m_classIds.find(instance_id)->second;
+
+    double min_x, min_y, min_z;
+    octree->getMetricMin(min_x, min_y, min_z);
+    double max_x, max_y, max_z;
+    octree->getMetricMax(max_x, max_y, max_z);
+    double center_x = (min_x + max_x) / 2;
+    double center_y = (min_y + max_y) / 2;
+    double center_z = (min_z + max_z) / 2;
+    octomap::point3d center(center_x, center_y, center_z);
+    m_centers.insert(std::make_pair(instance_id, center));
+  }
+
   // mark free cells only if not seen occupied in this cloud
   for (octomap::KeySet::iterator i = free_cells.begin(), end=free_cells.end(); i != end; ++i) {
     for (std::map<int, OcTreeT*>::iterator j = m_octrees.begin(); j != m_octrees.end(); j++) {
@@ -364,13 +379,11 @@ void OctomapServer::publishAll(const ros::Time& rostime) {
   // init pointcloud:
   pcl::PointCloud<PCLPoint> pclCloud;
 
-  jsk_recognition_msgs::BoundingBoxArray bboxes;
-  bboxes.header.frame_id = m_sensorFrameId;
-  bboxes.header.stamp = rostime;
   ros_objslampp_msgs::VoxelGridArray grids;
-  grids.header = bboxes.header;
+  grids.header.frame_id = m_sensorFrameId;
+  grids.header.stamp = rostime;
   ros_objslampp_msgs::VoxelGridArray grids_noentry;
-  grids_noentry.header = bboxes.header;
+  grids_noentry.header = grids.header;
   for (std::map<int, OcTreeT*>::iterator it_octree = m_octrees.begin();
        it_octree != m_octrees.end(); it_octree++) {
     int instance_id = it_octree->first;
@@ -382,27 +395,10 @@ void OctomapServer::publishAll(const ros::Time& rostime) {
     unsigned class_id = m_classIds.find(instance_id)->second;
     double pitch = ros_objslampp_ycb_video::utils::class_id_to_voxel_pitch(class_id);
 
-    double min_x, min_y, min_z;
-    double max_x, max_y, max_z;
-    double dim_x, dim_y, dim_z;
-    octree->getMetricMax(max_x, max_y, max_z);
-    octree->getMetricMin(min_x, min_y, min_z);
-    octree->getMetricSize(dim_x, dim_y, dim_z);
-
-    jsk_recognition_msgs::BoundingBox bbox;
-    bbox.header.frame_id = m_worldFrameId;
-    bbox.header.stamp = rostime;
-    bbox.pose.position.x = (min_x + max_x) / 2;
-    bbox.pose.position.y = (min_y + max_y) / 2;
-    bbox.pose.position.z = (min_z + max_z) / 2;
-    bbox.dimensions.x = dim_x;
-    bbox.dimensions.y = dim_y;
-    bbox.dimensions.z = dim_z;
-    bboxes.boxes.push_back(bbox);
+    octomap::point3d center = m_centers.find(instance_id)->second;
 
     PCLPointCloud center_sensor;
-    center_sensor.push_back(PCLPoint(
-        bbox.pose.position.x, bbox.pose.position.y, bbox.pose.position.z));
+    center_sensor.push_back(PCLPoint(center.x(), center.y(), center.z()));
     pcl::transformPointCloud(center_sensor, center_sensor, worldToSensor);
 
     ros_objslampp_msgs::VoxelGrid grid;
@@ -446,7 +442,7 @@ void OctomapServer::publishAll(const ros::Time& rostime) {
           }
 
           octomap::OcTreeNode* node = octree->search(x, y, z, /*depth=*/0);
-          if (node != NULL) {
+          if ((node != NULL) && (node->getOccupancy() > 0.5)) {
             grid.indices.push_back(index);
             grid.values.push_back(node->getOccupancy());
           } else {
@@ -472,7 +468,6 @@ void OctomapServer::publishAll(const ros::Time& rostime) {
     grids.grids.push_back(grid);
     grids_noentry.grids.push_back(grid_noentry);
   }
-  m_bboxesPub.publish(bboxes);
   m_gridsPub.publish(grids);
   m_gridsNoEntryPub.publish(grids_noentry);
 

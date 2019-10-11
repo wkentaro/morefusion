@@ -125,7 +125,6 @@ class OctomapServer {
   ros::Publisher m_cmapPub;
   ros::Publisher m_fmapPub;
   ros::Publisher m_fmarkerPub;
-  ros::Publisher m_bboxesPub;
   ros::Publisher m_gridsPub;
   ros::Publisher m_gridsNoEntryPub;
   ros::Publisher m_labelTrackedPub;
@@ -141,6 +140,7 @@ class OctomapServer {
 
   std::map<int, OcTreeT*> m_octrees;
   std::map<int, unsigned> m_classIds;
+  std::map<int, octomap::point3d> m_centers;
   octomap::KeyRay m_keyRay;  // temp storage for ray casting
   octomap::OcTreeKey m_updateBBXMin;
   octomap::OcTreeKey m_updateBBXMax;
