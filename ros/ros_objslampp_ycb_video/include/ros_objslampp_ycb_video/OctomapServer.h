@@ -12,6 +12,7 @@
 #include <jsk_recognition_msgs/ClassificationResult.h>
 
 #include <sensor_msgs/PointCloud2.h>
+#include <sensor_msgs/CameraInfo.h>
 #include <std_srvs/Empty.h>
 
 #include <pcl/point_types.h>
@@ -100,8 +101,11 @@ protected:
 
   void configCallback(ros_objslampp_ycb_video::OctomapServerConfig &config, uint32_t level);
 
+  void renderOctrees(cv::Mat label_ins, cv::Mat depth);
+
   ros::NodeHandle m_nh;
   ros::Publisher  m_markerPub, m_binaryMapPub, m_fullMapPub, m_pointCloudPub, m_collisionObjectPub, m_mapPub, m_cmapPub, m_fmapPub, m_fmarkerPub, m_bboxesPub, m_gridsPub, m_gridsNoEntryPub;
+  ros::Publisher m_labelTrackedPub, m_labelRenderedPub;
   dynamic_reconfigure::Server<ros_objslampp_ycb_video::OctomapServerConfig> m_reconfigSrv;
   message_filters::Subscriber<sensor_msgs::PointCloud2>* m_pointCloudSub;
   message_filters::Subscriber<sensor_msgs::Image>* m_labelInsSub;

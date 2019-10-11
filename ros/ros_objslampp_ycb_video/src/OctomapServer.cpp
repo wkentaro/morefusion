@@ -1,7 +1,6 @@
-#include "ros_objslampp_ycb_video/color_utils.h"
 #include "ros_objslampp_ycb_video/OctomapServer.h"
-#include "ros_objslampp_ycb_video/log_utils.h"
 #include "ros_objslampp_ycb_video/class_id_to_voxel_pitch.h"
+#include "ros_objslampp_ycb_video/utils.h"
 #include <ros_objslampp_msgs/VoxelGridArray.h>
 
 using namespace octomap;
@@ -78,6 +77,8 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
     "output/grids", 1, m_latchedTopics);
   m_gridsNoEntryPub = private_nh.advertise<ros_objslampp_msgs::VoxelGridArray>(
     "output/grids_noentry", 1, m_latchedTopics);
+  m_labelRenderedPub = private_nh.advertise<sensor_msgs::Image>("debug/label_rendered", 1);
+  m_labelTrackedPub = private_nh.advertise<sensor_msgs::Image>("debug/label_tracked", 1);
 
   m_pointCloudSub = new message_filters::Subscriber<sensor_msgs::PointCloud2> (m_nh, "cloud_in", 5);
   m_labelInsSub = new message_filters::Subscriber<sensor_msgs::Image> (m_nh, "label_ins_in", 5);
@@ -96,6 +97,80 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_reconfigSrv.setCallback(f);
 
   ROS_INFO_BLUE("Initialized");
+}
+
+void OctomapServer::renderOctrees(cv::Mat label_ins, cv::Mat depth)
+{
+  float fx = 619.4407958984375;
+  float fy = 619.3239135742188;
+  float cx = 326.8212585449219;
+  float cy = 239.52056884765625;
+  unsigned height = 480;
+  unsigned width = 640;
+
+  tf::StampedTransform sensorToWorldTf;
+  ros::Time rostime = ros::Time::now();
+  try
+  {
+    m_tfListener.lookupTransform(m_worldFrameId, m_sensorFrameId, rostime, sensorToWorldTf);
+  }
+  catch(tf::TransformException& ex)
+  {
+    ROS_ERROR_STREAM("Transform error of sensor data: " << ex.what() << ", quitting callback");
+    return;
+  }
+  Eigen::Matrix4f sensorToWorld;
+  pcl_ros::transformAsMatrix(sensorToWorldTf, sensorToWorld);
+
+  if (m_octrees.size() == 0)
+  {
+    return;
+  }
+
+  // ROS_INFO_GREEN("rendering");
+  for (size_t j = 0; j < height; j++)
+  {
+    for (size_t i = 0; i < width; i++)
+    {
+      for (std::map<int, OcTreeT*>::iterator it = m_octrees.begin(); it != m_octrees.end(); it++)
+      {
+        int instance_id = it->first;
+        OcTreeT* octree = it->second;
+        if (instance_id == -1)
+        {
+          continue;
+        }
+
+        pcl::PointCloud<PCLPoint> pc;
+        pc.push_back(PCLPoint(0, 0, 0));
+        float z = 1;
+        float x = (i - cx) / fx;
+        float y = (j - cy) / fy;
+        pc.push_back(PCLPoint(x, y, z));
+        pcl::transformPointCloud(pc, pc, sensorToWorld);
+
+        point3d end;
+        bool hit = octree->castRay(
+          /*origin=*/point3d(pc[0].x, pc[0].y, pc[0].z),
+          /*direction=*/point3d(pc[1].x - pc[0].x, pc[1].y - pc[0].y, pc[1].z - pc[0].z),
+          /*end=*/end);
+        if (hit)
+        {
+          pc.clear();
+          pc.push_back(PCLPoint(end.x(), end.y(), end.z()));
+          pcl::transformPointCloud(pc, pc, sensorToWorld.inverse());
+
+          float depth_ij = depth.at<float>(j, i);
+          if (isnan(depth_ij) || (pc[0].z < depth_ij))
+          {
+            depth.at<float>(j, i) = pc[0].z;
+            label_ins.at<int32_t>(j, i) = instance_id;
+          }
+        }
+      }
+    }
+  }
+  // ROS_INFO_GREEN("rendering completed");
 }
 
 OctomapServer::~OctomapServer(){
@@ -162,6 +237,13 @@ void OctomapServer::insertCloudCallback(
     return;
   }
 
+  cv::Mat label_ins_rend = cv::Mat(pc.height, pc.width, CV_32SC1, -1);
+  cv::Mat depth_rend = cv::Mat(pc.height, pc.width, CV_32FC1, std::numeric_limits<float>::quiet_NaN());
+  renderOctrees(label_ins_rend, depth_rend);
+  ros_objslampp_ycb_video::utils::track_instance_id(/*reference=*/label_ins_rend, /*target=*/&label_ins);
+  m_labelRenderedPub.publish(cv_bridge::CvImage(cloud->header, "32SC1", label_ins_rend).toImageMsg());
+  m_labelTrackedPub.publish(cv_bridge::CvImage(cloud->header, "32SC1", label_ins).toImageMsg());
+
   if (!m_stopUpdate) {
     insertScan(sensorToWorldTf.getOrigin(), pc, label_ins, class_msg);
   }
@@ -190,7 +272,7 @@ void OctomapServer::insertScan(
     }
 
     octomap::point3d point(pc.points[index].x, pc.points[index].y, pc.points[index].z);
-    int instance_id = label_ins.at<uint32_t>(height_index, width_index);
+    int instance_id = label_ins.at<int32_t>(height_index, width_index);
     unsigned class_id = 0;
     double pitch = m_res;
     if (instance_id >= 0) {
@@ -244,9 +326,14 @@ void OctomapServer::insertScan(
 
   // mark free cells only if not seen occupied in this cloud
   OcTreeT* octree_bg = m_octrees.find(-1)->second;
-  for(KeySet::iterator it = free_cells.begin(), end=free_cells.end(); it!= end; ++it){
-    if (occupied_cells.find(*it) == occupied_cells.end()){
-      octree_bg->updateNode(*it, false);
+  for(KeySet::iterator i = free_cells.begin(), end=free_cells.end(); i != end; ++i)
+  {
+    for (std::map<int, OcTreeT*>::iterator j = m_octrees.begin(); j != m_octrees.end(); j++)
+    {
+      if (occupied_cells.find(*i) == occupied_cells.end())
+      {
+        j->second->updateNode(*i, false);
+      }
     }
   }
 
@@ -506,7 +593,7 @@ void OctomapServer::publishAll(const ros::Time& rostime)
         occupiedNodesVis.markers[i].scale.x = size;
         occupiedNodesVis.markers[i].scale.y = size;
         occupiedNodesVis.markers[i].scale.z = size;
-        occupiedNodesVis.markers[i].color = colorCategory40(instance_id + 1);
+        occupiedNodesVis.markers[i].color = ros_objslampp_ycb_video::utils::colorCategory40(instance_id + 1);
 
         if (occupiedNodesVis.markers[i].points.size() > 0)
           occupiedNodesVis.markers[i].action = visualization_msgs::Marker::ADD;
