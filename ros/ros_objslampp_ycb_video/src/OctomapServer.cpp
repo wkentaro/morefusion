@@ -310,7 +310,6 @@ void OctomapServer::insertScan(
   }
 
   // mark free cells only if not seen occupied in this cloud
-  OcTreeT* octree_bg = m_octrees.find(-1)->second;
   for (octomap::KeySet::iterator i = free_cells.begin(), end=free_cells.end(); i != end; ++i) {
     for (std::map<int, OcTreeT*>::iterator j = m_octrees.begin(); j != m_octrees.end(); j++) {
       if (occupied_cells.find(*i) == occupied_cells.end()) {
