@@ -1,7 +1,8 @@
+// Copyright (c) 2019 Kentaro Wada
+
 #include "ros_objslampp_ycb_video/OctomapServer.h"
 #include "ros_objslampp_ycb_video/utils.h"
 
-using namespace octomap;
 using octomap_msgs::Octomap;
 
 namespace ros_objslampp_ycb_video {
@@ -29,18 +30,17 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_minSizeX(0.0), m_minSizeY(0.0),
   m_filterSpeckles(false),
   m_compressMap(true),
-  m_stopUpdate(false)
-{
+  m_stopUpdate(false) {
   double probHit, probMiss, thresMin, thresMax;
 
   ros::NodeHandle private_nh(private_nh_);
   private_nh.param("frame_id", m_worldFrameId, m_worldFrameId);
   private_nh.param("sensor_frame_id", m_sensorFrameId, m_sensorFrameId);
 
-  private_nh.param("occupancy_min_z", m_occupancyMinZ,m_occupancyMinZ);
-  private_nh.param("occupancy_max_z", m_occupancyMaxZ,m_occupancyMaxZ);
-  private_nh.param("min_x_size", m_minSizeX,m_minSizeX);
-  private_nh.param("min_y_size", m_minSizeY,m_minSizeY);
+  private_nh.param("occupancy_min_z", m_occupancyMinZ, m_occupancyMinZ);
+  private_nh.param("occupancy_max_z", m_occupancyMaxZ, m_occupancyMaxZ);
+  private_nh.param("min_x_size", m_minSizeX, m_minSizeX);
+  private_nh.param("min_y_size", m_minSizeY, m_minSizeY);
   private_nh.param("filter_speckles", m_filterSpeckles, m_filterSpeckles);
 
   private_nh.param("sensor_model/max_range", m_maxRange, m_maxRange);
@@ -53,17 +53,22 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   private_nh.param("compress_map", m_compressMap, m_compressMap);
 
   private_nh.param("latch", m_latchedTopics, m_latchedTopics);
-  if (m_latchedTopics){
+  if (m_latchedTopics) {
     ROS_INFO("Publishing latched (single publish will take longer, all topics are prepared)");
-  } else
-    ROS_INFO("Publishing non-latched (topics are only prepared as needed, will only be re-published on map change");
+  } else {
+    ROS_INFO("Publishing non-latched (topics are only prepared as needed, "
+             "will only be re-published on map change");
+  }
 
-  m_markerPub = m_nh.advertise<visualization_msgs::MarkerArray>("occupied_cells_vis_array", 1, m_latchedTopics);
+  m_markerPub = m_nh.advertise<visualization_msgs::MarkerArray>(
+    "occupied_cells_vis_array", 1, m_latchedTopics);
   m_binaryMapPub = m_nh.advertise<Octomap>("octomap_binary", 1, m_latchedTopics);
   m_fullMapPub = m_nh.advertise<Octomap>("octomap_full", 1, m_latchedTopics);
-  m_pointCloudPub = m_nh.advertise<sensor_msgs::PointCloud2>("octomap_point_cloud_centers", 1, m_latchedTopics);
+  m_pointCloudPub = m_nh.advertise<sensor_msgs::PointCloud2>(
+    "octomap_point_cloud_centers", 1, m_latchedTopics);
   m_mapPub = m_nh.advertise<nav_msgs::OccupancyGrid>("projected_map", 5, m_latchedTopics);
-  m_fmarkerPub = m_nh.advertise<visualization_msgs::MarkerArray>("free_cells_vis_array", 1, m_latchedTopics);
+  m_fmarkerPub = m_nh.advertise<visualization_msgs::MarkerArray>(
+    "free_cells_vis_array", 1, m_latchedTopics);
   m_bboxesPub = private_nh.advertise<jsk_recognition_msgs::BoundingBoxArray>(
     "output/bboxes", 1, m_latchedTopics);
   m_gridsPub = private_nh.advertise<ros_objslampp_msgs::VoxelGridArray>(
@@ -73,9 +78,12 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_labelRenderedPub = private_nh.advertise<sensor_msgs::Image>("debug/label_rendered", 1);
   m_labelTrackedPub = private_nh.advertise<sensor_msgs::Image>("debug/label_tracked", 1);
 
-  m_pointCloudSub = new message_filters::Subscriber<sensor_msgs::PointCloud2> (m_nh, "cloud_in", 5);
-  m_labelInsSub = new message_filters::Subscriber<sensor_msgs::Image> (m_nh, "label_ins_in", 5);
-  m_classSub = new message_filters::Subscriber<jsk_recognition_msgs::ClassificationResult> (m_nh, "class_in", 5);
+  m_pointCloudSub = new message_filters::Subscriber<sensor_msgs::PointCloud2>(
+    m_nh, "cloud_in", 5);
+  m_labelInsSub = new message_filters::Subscriber<sensor_msgs::Image>(
+    m_nh, "label_ins_in", 5);
+  m_classSub = new message_filters::Subscriber<jsk_recognition_msgs::ClassificationResult>(
+    m_nh, "class_in", 5);
   m_sync = new message_filters::Synchronizer<ExactSyncPolicy>(100);
   m_sync->connectInput(*m_pointCloudSub, *m_labelInsSub, *m_classSub);
   m_sync->registerCallback(boost::bind(&OctomapServer::insertCloudCallback, this, _1, _2, _3));
@@ -89,8 +97,7 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   ROS_INFO_BLUE("Initialized");
 }
 
-void OctomapServer::renderOctrees(cv::Mat label_ins, cv::Mat depth)
-{
+void OctomapServer::renderOctrees(cv::Mat label_ins, cv::Mat depth) {
   float fx = 619.4407958984375;
   float fy = 619.3239135742188;
   float cx = 326.8212585449219;
@@ -100,34 +107,26 @@ void OctomapServer::renderOctrees(cv::Mat label_ins, cv::Mat depth)
 
   tf::StampedTransform sensorToWorldTf;
   ros::Time rostime = ros::Time::now();
-  try
-  {
+  try {
     m_tfListener.lookupTransform(m_worldFrameId, m_sensorFrameId, rostime, sensorToWorldTf);
-  }
-  catch(tf::TransformException& ex)
-  {
+  } catch (tf::TransformException& ex) {
     ROS_ERROR_STREAM("Transform error of sensor data: " << ex.what() << ", quitting callback");
     return;
   }
   Eigen::Matrix4f sensorToWorld;
   pcl_ros::transformAsMatrix(sensorToWorldTf, sensorToWorld);
 
-  if (m_octrees.size() == 0)
-  {
+  if (m_octrees.size() == 0) {
     return;
   }
 
   // ROS_INFO_GREEN("rendering");
-  for (size_t j = 0; j < height; j++)
-  {
-    for (size_t i = 0; i < width; i++)
-    {
-      for (std::map<int, OcTreeT*>::iterator it = m_octrees.begin(); it != m_octrees.end(); it++)
-      {
+  for (size_t j = 0; j < height; j++) {
+    for (size_t i = 0; i < width; i++) {
+      for (std::map<int, OcTreeT*>::iterator it = m_octrees.begin(); it != m_octrees.end(); it++) {
         int instance_id = it->first;
         OcTreeT* octree = it->second;
-        if (instance_id == -1)
-        {
+        if (instance_id == -1) {
           continue;
         }
 
@@ -139,20 +138,18 @@ void OctomapServer::renderOctrees(cv::Mat label_ins, cv::Mat depth)
         pc.push_back(PCLPoint(x, y, z));
         pcl::transformPointCloud(pc, pc, sensorToWorld);
 
-        point3d end;
+        octomap::point3d end;
         bool hit = octree->castRay(
-          /*origin=*/point3d(pc[0].x, pc[0].y, pc[0].z),
-          /*direction=*/point3d(pc[1].x - pc[0].x, pc[1].y - pc[0].y, pc[1].z - pc[0].z),
+          /*origin=*/octomap::point3d(pc[0].x, pc[0].y, pc[0].z),
+          /*direction=*/octomap::point3d(pc[1].x - pc[0].x, pc[1].y - pc[0].y, pc[1].z - pc[0].z),
           /*end=*/end);
-        if (hit)
-        {
+        if (hit) {
           pc.clear();
           pc.push_back(PCLPoint(end.x(), end.y(), end.z()));
           pcl::transformPointCloud(pc, pc, sensorToWorld.inverse());
 
           float depth_ij = depth.at<float>(j, i);
-          if (isnan(depth_ij) || (pc[0].z < depth_ij))
-          {
+          if (isnan(depth_ij) || (pc[0].z < depth_ij)) {
             depth.at<float>(j, i) = pc[0].z;
             label_ins.at<int32_t>(j, i) = instance_id;
           }
@@ -163,18 +160,18 @@ void OctomapServer::renderOctrees(cv::Mat label_ins, cv::Mat depth)
   // ROS_INFO_GREEN("rendering completed");
 }
 
-OctomapServer::~OctomapServer(){
-  if (m_tfPointCloudSub){
+OctomapServer::~OctomapServer() {
+  if (m_tfPointCloudSub) {
     delete m_tfPointCloudSub;
     m_tfPointCloudSub = NULL;
   }
 
-  if (m_pointCloudSub){
+  if (m_pointCloudSub) {
     delete m_pointCloudSub;
     m_pointCloudSub = NULL;
   }
 
-  if (m_labelInsSub){
+  if (m_labelInsSub) {
     delete m_labelInsSub;
     m_labelInsSub = NULL;
   }
@@ -190,8 +187,8 @@ OctomapServer::~OctomapServer(){
   }
 }
 
-void OctomapServer::configCallback(const ros_objslampp_ycb_video::OctomapServerConfig& config, const uint32_t level)
-{
+void OctomapServer::configCallback(
+  const ros_objslampp_ycb_video::OctomapServerConfig& config, const uint32_t level) {
   ROS_INFO_BLUE("configCallback");
   m_groundAsNoEntry = config.ground_as_noentry;
   m_freeAsNoEntry = config.free_as_noentry;
@@ -200,8 +197,7 @@ void OctomapServer::configCallback(const ros_objslampp_ycb_video::OctomapServerC
 void OctomapServer::insertCloudCallback(
   const sensor_msgs::PointCloud2::ConstPtr& cloud,
   const sensor_msgs::ImageConstPtr& ins_msg,
-  const jsk_recognition_msgs::ClassificationResultConstPtr& class_msg)
-{
+  const jsk_recognition_msgs::ClassificationResultConstPtr& class_msg) {
   // ROS_INFO_BLUE("insertCloudCallback");
 
   PCLPointCloud pc;
@@ -209,9 +205,10 @@ void OctomapServer::insertCloudCallback(
 
   tf::StampedTransform sensorToWorldTf;
   try {
-    m_tfListener.lookupTransform(m_worldFrameId, cloud->header.frame_id, cloud->header.stamp, sensorToWorldTf);
-  } catch(tf::TransformException& ex){
-    ROS_ERROR_STREAM( "Transform error of sensor data: " << ex.what() << ", quitting callback");
+    m_tfListener.lookupTransform(
+      m_worldFrameId, cloud->header.frame_id, cloud->header.stamp, sensorToWorldTf);
+  } catch (tf::TransformException& ex) {
+    ROS_ERROR_STREAM("Transform error of sensor data: " << ex.what() << ", quitting callback");
     return;
   }
 
@@ -228,11 +225,15 @@ void OctomapServer::insertCloudCallback(
   }
 
   cv::Mat label_ins_rend = cv::Mat(pc.height, pc.width, CV_32SC1, -1);
-  cv::Mat depth_rend = cv::Mat(pc.height, pc.width, CV_32FC1, std::numeric_limits<float>::quiet_NaN());
+  cv::Mat depth_rend = cv::Mat(
+    pc.height, pc.width, CV_32FC1, std::numeric_limits<float>::quiet_NaN());
   renderOctrees(label_ins_rend, depth_rend);
-  ros_objslampp_ycb_video::utils::track_instance_id(/*reference=*/label_ins_rend, /*target=*/&label_ins);
-  m_labelRenderedPub.publish(cv_bridge::CvImage(cloud->header, "32SC1", label_ins_rend).toImageMsg());
-  m_labelTrackedPub.publish(cv_bridge::CvImage(cloud->header, "32SC1", label_ins).toImageMsg());
+  ros_objslampp_ycb_video::utils::track_instance_id(
+    /*reference=*/label_ins_rend, /*target=*/&label_ins);
+  m_labelRenderedPub.publish(
+    cv_bridge::CvImage(cloud->header, "32SC1", label_ins_rend).toImageMsg());
+  m_labelTrackedPub.publish(
+    cv_bridge::CvImage(cloud->header, "32SC1", label_ins).toImageMsg());
 
   if (!m_stopUpdate) {
     insertScan(sensorToWorldTf.getOrigin(), pc, label_ins, class_msg);
@@ -245,18 +246,15 @@ void OctomapServer::insertScan(
   const tf::Point& sensorOriginTf,
   const PCLPointCloud& pc,
   const cv::Mat& label_ins,
-  const jsk_recognition_msgs::ClassificationResultConstPtr& class_msg)
-{
-  point3d sensorOrigin = pointTfToOctomap(sensorOriginTf);
+  const jsk_recognition_msgs::ClassificationResultConstPtr& class_msg) {
+  octomap::point3d sensorOrigin = octomap::pointTfToOctomap(sensorOriginTf);
 
   // all other points: free on ray, occupied on endpoint:
-  KeySet free_cells, occupied_cells;
-  for (size_t index = 0 ; index < pc.points.size(); index++)
-  {
+  octomap::KeySet free_cells, occupied_cells;
+  for (size_t index = 0 ; index < pc.points.size(); index++) {
     size_t width_index = index % pc.width;
     size_t height_index = index / pc.width;
-    if (isnan(pc.points[index].x) || isnan(pc.points[index].y) || isnan(pc.points[index].z))
-    {
+    if (isnan(pc.points[index].x) || isnan(pc.points[index].y) || isnan(pc.points[index].z)) {
       // Skip NaN points
       continue;
     }
@@ -269,8 +267,7 @@ void OctomapServer::insertScan(
       class_id = class_msg->labels[instance_id];
       pitch = ros_objslampp_ycb_video::utils::class_id_to_voxel_pitch(class_id);
     }
-    if (m_octrees.find(instance_id) == m_octrees.end())
-    {
+    if (m_octrees.find(instance_id) == m_octrees.end()) {
       OcTreeT* octree = new OcTreeT(pitch);
       octree->setProbHit(m_probHit);
       octree->setProbMiss(m_probMiss);
@@ -282,33 +279,31 @@ void OctomapServer::insertScan(
     OcTreeT* octree = m_octrees.find(instance_id)->second;
 
     // maxrange check
-    if ((m_maxRange < 0.0) || ((point - sensorOrigin).norm() <= m_maxRange))
-    {
+    if ((m_maxRange < 0.0) || ((point - sensorOrigin).norm() <= m_maxRange)) {
       // free cells
-      if (octree->computeRayKeys(sensorOrigin, point, m_keyRay))
-      {
+      if (octree->computeRayKeys(sensorOrigin, point, m_keyRay)) {
         free_cells.insert(m_keyRay.begin(), m_keyRay.end());
       }
       // occupied endpoint
-      OcTreeKey key;
-      if (octree->coordToKeyChecked(point, key)){
+      octomap::OcTreeKey key;
+      if (octree->coordToKeyChecked(point, key)) {
         occupied_cells.insert(key);
         octree->updateNode(key, true);
         updateMinKey(key, &m_updateBBXMin);
         updateMaxKey(key, &m_updateBBXMax);
       }
-    } else {// ray longer than maxrange:;
-      point3d new_end = sensorOrigin + (point - sensorOrigin).normalized() * m_maxRange;
-      if (octree->computeRayKeys(sensorOrigin, new_end, m_keyRay)){
+    } else {  // ray longer than maxrange:;
+      octomap::point3d new_end = sensorOrigin + (point - sensorOrigin).normalized() * m_maxRange;
+      if (octree->computeRayKeys(sensorOrigin, new_end, m_keyRay)) {
         free_cells.insert(m_keyRay.begin(), m_keyRay.end());
 
         octomap::OcTreeKey endKey;
-        if (octree->coordToKeyChecked(new_end, endKey)){
+        if (octree->coordToKeyChecked(new_end, endKey)) {
           free_cells.insert(endKey);
           updateMinKey(endKey, &m_updateBBXMin);
           updateMaxKey(endKey, &m_updateBBXMax);
-        } else{
-          ROS_ERROR_STREAM("Could not generate Key for endpoint "<<new_end);
+        } else {
+          ROS_ERROR_STREAM("Could not generate Key for endpoint " << new_end);
         }
       }
     }
@@ -316,20 +311,16 @@ void OctomapServer::insertScan(
 
   // mark free cells only if not seen occupied in this cloud
   OcTreeT* octree_bg = m_octrees.find(-1)->second;
-  for(KeySet::iterator i = free_cells.begin(), end=free_cells.end(); i != end; ++i)
-  {
-    for (std::map<int, OcTreeT*>::iterator j = m_octrees.begin(); j != m_octrees.end(); j++)
-    {
-      if (occupied_cells.find(*i) == occupied_cells.end())
-      {
+  for (octomap::KeySet::iterator i = free_cells.begin(), end=free_cells.end(); i != end; ++i) {
+    for (std::map<int, OcTreeT*>::iterator j = m_octrees.begin(); j != m_octrees.end(); j++) {
+      if (occupied_cells.find(*i) == occupied_cells.end()) {
         j->second->updateNode(*i, false);
       }
     }
   }
 
   if (m_compressMap) {
-    for (std::map<int, OcTreeT*>::iterator it = m_octrees.begin(); it != m_octrees.end(); it++)
-    {
+    for (std::map<int, OcTreeT*>::iterator it = m_octrees.begin(); it != m_octrees.end(); it++) {
       it->second->prune();
     }
   }
@@ -339,9 +330,7 @@ void OctomapServer::insertScan(
 }
 
 
-
-void OctomapServer::publishAll(const ros::Time& rostime)
-{
+void OctomapServer::publishAll(const ros::Time& rostime) {
   if (m_octrees.size() == 0) {
     return;
   }
@@ -366,8 +355,8 @@ void OctomapServer::publishAll(const ros::Time& rostime)
   tf::StampedTransform worldToSensorTf;
   try {
     m_tfListener.lookupTransform(m_sensorFrameId, m_worldFrameId, rostime, worldToSensorTf);
-  } catch(tf::TransformException& ex) {
-    ROS_ERROR_STREAM( "Transform error of sensor data: " << ex.what() << ", quitting callback");
+  } catch (tf::TransformException& ex) {
+    ROS_ERROR_STREAM("Transform error of sensor data: " << ex.what() << ", quitting callback");
     return;
   }
   Eigen::Matrix4f worldToSensor;
@@ -383,13 +372,12 @@ void OctomapServer::publishAll(const ros::Time& rostime)
   grids.header = bboxes.header;
   ros_objslampp_msgs::VoxelGridArray grids_noentry;
   grids_noentry.header = bboxes.header;
-  for (std::map<int, OcTreeT*>::iterator it_octree = m_octrees.begin(); it_octree != m_octrees.end(); it_octree++)
-  {
+  for (std::map<int, OcTreeT*>::iterator it_octree = m_octrees.begin();
+       it_octree != m_octrees.end(); it_octree++) {
     int instance_id = it_octree->first;
     OcTreeT* octree = it_octree->second;
 
-    if (instance_id == -1)
-    {
+    if (instance_id == -1) {
       continue;
     }
     unsigned class_id = m_classIds.find(instance_id)->second;
@@ -446,15 +434,14 @@ void OctomapServer::publishAll(const ros::Time& rostime)
 
           // in world
           PCLPointCloud p_world;
-          p_world.push_back(PCLPoint(x, y, z)); // sensor
+          p_world.push_back(PCLPoint(x, y, z));  // sensor
           pcl::transformPointCloud(p_world, p_world, worldToSensor.inverse());
           x = p_world.points[0].x;
           y = p_world.points[0].y;
           z = p_world.points[0].z;
 
           size_t index = i * grid.dims.y * grid.dims.z + j * grid.dims.z + k;
-          if (m_groundAsNoEntry && (z < 0))
-          {
+          if (m_groundAsNoEntry && (z < 0)) {
             grid_noentry.indices.push_back(index);
             continue;
           }
@@ -464,10 +451,9 @@ void OctomapServer::publishAll(const ros::Time& rostime)
             grid.indices.push_back(index);
             grid.values.push_back(node->getOccupancy());
           } else {
-            for (std::map<int, OcTreeT*>::iterator it_octree_other = m_octrees.begin(); it_octree_other != m_octrees.end(); it_octree_other++)
-            {
-              if (it_octree_other->first == instance_id)
-              {
+            for (std::map<int, OcTreeT*>::iterator it_octree_other = m_octrees.begin();
+                 it_octree_other != m_octrees.end(); it_octree_other++) {
+              if (it_octree_other->first == instance_id) {
                 continue;
               }
               OcTreeT* octree_other = it_octree_other->second;
@@ -475,8 +461,7 @@ void OctomapServer::publishAll(const ros::Time& rostime)
               if (node != NULL) {
                 double occupancy = node->getOccupancy();
                 if ((m_freeAsNoEntry && (occupancy < 0.5)) ||
-                    (occupancy >= m_thresMax))
-                {
+                    (occupancy >= m_thresMax)) {
                   grid_noentry.indices.push_back(index);
                 }
               }
@@ -494,8 +479,8 @@ void OctomapServer::publishAll(const ros::Time& rostime)
 
   // now, traverse all leafs in the tree:
   std::vector<visualization_msgs::MarkerArray> occupiedNodesVisAll;
-  for (std::map<int, OcTreeT*>::iterator it_octree = m_octrees.begin(); it_octree != m_octrees.end(); it_octree++)
-  {
+  for (std::map<int, OcTreeT*>::iterator it_octree = m_octrees.begin();
+       it_octree != m_octrees.end(); it_octree++) {
     // init markers:
     visualization_msgs::MarkerArray occupiedNodesVis;
     // each array stores all cubes of a different size, one for each depth level:
@@ -503,25 +488,24 @@ void OctomapServer::publishAll(const ros::Time& rostime)
 
     int instance_id = it_octree->first;
     OcTreeT* octree = it_octree->second;
-    for (OcTreeT::iterator it = octree->begin(m_maxTreeDepth), end = octree->end(); it != end; ++it)
-    {
+    for (OcTreeT::iterator it = octree->begin(m_maxTreeDepth);
+         it != octree->end(); it++) {
       if (octree->isNodeOccupied(*it)) {
         double z = it.getZ();
         double half_size = it.getSize() / 2.0;
-        if (z + half_size > m_occupancyMinZ && z - half_size < m_occupancyMaxZ)
-        {
+        if (z + half_size > m_occupancyMinZ && z - half_size < m_occupancyMaxZ) {
           double size = it.getSize();
           double x = it.getX();
           double y = it.getY();
 
           // Ignore speckles in the map:
-          if (m_filterSpeckles && (it.getDepth() == m_treeDepth +1) && isSpeckleNode(it.getKey())){
+          if (m_filterSpeckles && (it.getDepth() == m_treeDepth +1) && isSpeckleNode(it.getKey())) {
             ROS_DEBUG("Ignoring single speckle at (%f,%f,%f)", x, y, z);
             continue;
-          } // else: current octree node is no speckle, send it out
+          }  // else: current octree node is no speckle, send it out
 
-          //create marker:
-          if (publishMarkerArray){
+          // create marker:
+          if (publishMarkerArray) {
             unsigned idx = it.getDepth();
             assert(idx < occupiedNodesVis.markers.size());
 
@@ -537,25 +521,19 @@ void OctomapServer::publishAll(const ros::Time& rostime)
           if (publishPointCloud) {
             pclCloud.push_back(PCLPoint(x, y, z));
           }
-
         }
-      }
-      else if (instance_id != -1)
-      {
+      } else if (instance_id != -1) {
         continue;
-      }
-      else
-      {
+      } else {
         // node not occupied => mark as free in 2D map if unknown so far
         double z = it.getZ();
         double half_size = it.getSize() / 2.0;
-        if (z + half_size > m_occupancyMinZ && z - half_size < m_occupancyMaxZ)
-        {
-          if (publishFreeMarkerArray){
+        if (z + half_size > m_occupancyMinZ && z - half_size < m_occupancyMaxZ) {
+          if (publishFreeMarkerArray) {
             double x = it.getX();
             double y = it.getY();
 
-            //create marker for free space:
+            // create marker for free space:
             unsigned idx = it.getDepth();
             assert(idx < freeNodesVis.markers.size());
 
@@ -572,7 +550,7 @@ void OctomapServer::publishAll(const ros::Time& rostime)
 
     // finish MarkerArray:
     if (publishMarkerArray) {
-      for (unsigned i= 0; i < occupiedNodesVis.markers.size(); ++i){
+      for (unsigned i= 0; i < occupiedNodesVis.markers.size(); ++i) {
         double size = octree->getNodeSize(i);
 
         occupiedNodesVis.markers[i].header.frame_id = m_worldFrameId;
@@ -583,7 +561,8 @@ void OctomapServer::publishAll(const ros::Time& rostime)
         occupiedNodesVis.markers[i].scale.x = size;
         occupiedNodesVis.markers[i].scale.y = size;
         occupiedNodesVis.markers[i].scale.z = size;
-        occupiedNodesVis.markers[i].color = ros_objslampp_ycb_video::utils::colorCategory40(instance_id + 1);
+        occupiedNodesVis.markers[i].color =
+          ros_objslampp_ycb_video::utils::colorCategory40(instance_id + 1);
 
         if (occupiedNodesVis.markers[i].points.size() > 0)
           occupiedNodesVis.markers[i].action = visualization_msgs::Marker::ADD;
@@ -594,8 +573,7 @@ void OctomapServer::publishAll(const ros::Time& rostime)
     occupiedNodesVisAll.push_back(occupiedNodesVis);
   }
 
-  if (publishMarkerArray)
-  {
+  if (publishMarkerArray) {
     visualization_msgs::MarkerArray occupiedNodesVis;
     for (size_t i = 0; i < occupiedNodesVisAll.size(); i++) {
       for (size_t j = 0; j < occupiedNodesVisAll[i].markers.size(); j++) {
@@ -606,9 +584,9 @@ void OctomapServer::publishAll(const ros::Time& rostime)
   }
 
   // finish FreeMarkerArray:
-  if (publishFreeMarkerArray){
+  if (publishFreeMarkerArray) {
     OcTreeT* octree_bg = m_octrees.find(-1)->second;
-    for (unsigned i= 0; i < freeNodesVis.markers.size(); ++i){
+    for (unsigned i= 0; i < freeNodesVis.markers.size(); ++i) {
       double size = octree_bg->getNodeSize(i);
 
       freeNodesVis.markers[i].header.frame_id = m_worldFrameId;
@@ -625,10 +603,11 @@ void OctomapServer::publishAll(const ros::Time& rostime)
       freeNodesVis.markers[i].color.a = 1.0;
 
 
-      if (freeNodesVis.markers[i].points.size() > 0)
+      if (freeNodesVis.markers[i].points.size() > 0) {
         freeNodesVis.markers[i].action = visualization_msgs::Marker::ADD;
-      else
+      } else {
         freeNodesVis.markers[i].action = visualization_msgs::Marker::DELETE;
+      }
     }
 
     m_fmarkerPub.publish(freeNodesVis);
@@ -636,24 +615,24 @@ void OctomapServer::publishAll(const ros::Time& rostime)
 
 
   // finish pointcloud:
-  if (publishPointCloud){
+  if (publishPointCloud) {
     sensor_msgs::PointCloud2 cloud;
-    pcl::toROSMsg (pclCloud, cloud);
+    pcl::toROSMsg(pclCloud, cloud);
     cloud.header.frame_id = m_worldFrameId;
     cloud.header.stamp = rostime;
     m_pointCloudPub.publish(cloud);
   }
 
-  if (publishBinaryMap)
+  if (publishBinaryMap) {
     publishBinaryOctoMap(rostime);
+  }
 
-  if (publishFullMap)
+  if (publishFullMap) {
     publishFullOctoMap(rostime);
-
+  }
 
   double total_elapsed = (ros::WallTime::now() - startTime).toSec();
   ROS_DEBUG("Map publishing in OctomapServer took %f sec", total_elapsed);
-
 }
 
 
@@ -668,8 +647,7 @@ bool OctomapServer::resetSrv(std_srvs::Empty::Request& req, std_srvs::Empty::Res
   publishAll(rostime);
 
   publishBinaryOctoMap(rostime);
-  for (unsigned i= 0; i < occupiedNodesVis.markers.size(); ++i){
-
+  for (unsigned i= 0; i < occupiedNodesVis.markers.size(); ++i) {
     occupiedNodesVis.markers[i].header.frame_id = m_worldFrameId;
     occupiedNodesVis.markers[i].header.stamp = rostime;
     occupiedNodesVis.markers[i].ns = "map";
@@ -683,8 +661,7 @@ bool OctomapServer::resetSrv(std_srvs::Empty::Request& req, std_srvs::Empty::Res
   visualization_msgs::MarkerArray freeNodesVis;
   freeNodesVis.markers.resize(m_treeDepth +1);
 
-  for (unsigned i= 0; i < freeNodesVis.markers.size(); ++i){
-
+  for (unsigned i= 0; i < freeNodesVis.markers.size(); ++i) {
     freeNodesVis.markers[i].header.frame_id = m_worldFrameId;
     freeNodesVis.markers[i].header.stamp = rostime;
     freeNodesVis.markers[i].ns = "map";
@@ -697,43 +674,42 @@ bool OctomapServer::resetSrv(std_srvs::Empty::Request& req, std_srvs::Empty::Res
   return true;
 }
 
-void OctomapServer::publishBinaryOctoMap(const ros::Time& rostime) const{
-
+void OctomapServer::publishBinaryOctoMap(const ros::Time& rostime) const {
   Octomap map;
   map.header.frame_id = m_worldFrameId;
   map.header.stamp = rostime;
 
   OcTreeT* octree_bg = m_octrees.find(-1)->second;
-  if (octomap_msgs::binaryMapToMsg(*octree_bg, map))
+  if (octomap_msgs::binaryMapToMsg(*octree_bg, map)) {
     m_binaryMapPub.publish(map);
-  else
+  } else {
     ROS_ERROR("Error serializing OctoMap");
+  }
 }
 
-void OctomapServer::publishFullOctoMap(const ros::Time& rostime) const{
-
+void OctomapServer::publishFullOctoMap(const ros::Time& rostime) const {
   Octomap map;
   map.header.frame_id = m_worldFrameId;
   map.header.stamp = rostime;
 
   OcTreeT* octree_bg = m_octrees.find(-1)->second;
-  if (octomap_msgs::fullMapToMsg(*octree_bg, map))
+  if (octomap_msgs::fullMapToMsg(*octree_bg, map)) {
     m_fullMapPub.publish(map);
-  else
+  } else {
     ROS_ERROR("Error serializing OctoMap");
-
+  }
 }
 
-bool OctomapServer::isSpeckleNode(const OcTreeKey&nKey) const {
-  OcTreeKey key;
+bool OctomapServer::isSpeckleNode(const octomap::OcTreeKey& nKey) const {
+  octomap::OcTreeKey key;
   bool neighborFound = false;
   OcTreeT* octree_bg = m_octrees.find(-1)->second;
-  for (key[2] = nKey[2] - 1; !neighborFound && key[2] <= nKey[2] + 1; ++key[2]){
-    for (key[1] = nKey[1] - 1; !neighborFound && key[1] <= nKey[1] + 1; ++key[1]){
-      for (key[0] = nKey[0] - 1; !neighborFound && key[0] <= nKey[0] + 1; ++key[0]){
-        if (key != nKey){
-          OcTreeNode* node = octree_bg->search(key);
-          if (node && octree_bg->isNodeOccupied(node)){
+  for (key[2] = nKey[2] - 1; !neighborFound && key[2] <= nKey[2] + 1; ++key[2]) {
+    for (key[1] = nKey[1] - 1; !neighborFound && key[1] <= nKey[1] + 1; ++key[1]) {
+      for (key[0] = nKey[0] - 1; !neighborFound && key[0] <= nKey[0] + 1; ++key[0]) {
+        if (key != nKey) {
+          octomap::OcTreeNode* node = octree_bg->search(key);
+          if (node && octree_bg->isNodeOccupied(node)) {
             // we have a neighbor => break!
             neighborFound = true;
           }
@@ -747,15 +723,15 @@ bool OctomapServer::isSpeckleNode(const OcTreeKey&nKey) const {
 
 }  // namespace ros_objslampp_ycb_video
 
-int main(int argc, char** argv){
+int main(int argc, char** argv) {
   ros::init(argc, argv, "octomap_server");
   const ros::NodeHandle& private_nh = ros::NodeHandle("~");
 
   ros_objslampp_ycb_video::OctomapServer server;
 
-  try{
+  try {
     ros::spin();
-  }catch(std::runtime_error& e){
+  } catch (std::runtime_error& e) {
     ROS_ERROR("octomap_server exception: %s", e.what());
     return -1;
   }
