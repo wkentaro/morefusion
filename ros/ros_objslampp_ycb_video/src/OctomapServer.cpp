@@ -1,15 +1,8 @@
 #include "ros_objslampp_ycb_video/OctomapServer.h"
-#include "ros_objslampp_ycb_video/class_id_to_voxel_pitch.h"
 #include "ros_objslampp_ycb_video/utils.h"
-#include <ros_objslampp_msgs/VoxelGridArray.h>
 
 using namespace octomap;
 using octomap_msgs::Octomap;
-
-bool is_equal (double a, double b, double epsilon = 1.0e-7)
-{
-    return std::abs(a - b) < epsilon;
-}
 
 namespace ros_objslampp_ycb_video {
 
@@ -277,7 +270,7 @@ void OctomapServer::insertScan(
     double pitch = m_res;
     if (instance_id >= 0) {
       class_id = class_msg->labels[instance_id];
-      pitch = ros_objslampp_ycb_video::class_id_to_voxel_pitch(class_id);
+      pitch = ros_objslampp_ycb_video::utils::class_id_to_voxel_pitch(class_id);
     }
     if (m_octrees.find(instance_id) == m_octrees.end())
     {
@@ -403,7 +396,7 @@ void OctomapServer::publishAll(const ros::Time& rostime)
       continue;
     }
     unsigned class_id = m_classIds.find(instance_id)->second;
-    double pitch = ros_objslampp_ycb_video::class_id_to_voxel_pitch(class_id);
+    double pitch = ros_objslampp_ycb_video::utils::class_id_to_voxel_pitch(class_id);
 
     double min_x, min_y, min_z;
     double max_x, max_y, max_z;

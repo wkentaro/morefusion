@@ -1,9 +1,10 @@
-// Copyright (c) 2018 Kentaro Wada
+// Copyright (c) 2019 Kentaro Wada
 
-#ifndef ROS_ROS_OBJSLAMPP_YCB_VIDEO_INCLUDE_ROS_OBJSLAMPP_YCB_VIDEO_CLASS_ID_TO_VOXEL_PITCH_H_
-#define ROS_ROS_OBJSLAMPP_YCB_VIDEO_INCLUDE_ROS_OBJSLAMPP_YCB_VIDEO_CLASS_ID_TO_VOXEL_PITCH_H_
+#ifndef ROS_ROS_OBJSLAMPP_YCB_VIDEO_INCLUDE_ROS_OBJSLAMPP_YCB_VIDEO_UTILS_DATA_H_
+#define ROS_ROS_OBJSLAMPP_YCB_VIDEO_INCLUDE_ROS_OBJSLAMPP_YCB_VIDEO_UTILS_DATA_H_
 
 namespace ros_objslampp_ycb_video {
+namespace utils {
 
 double class_id_to_voxel_pitch(unsigned class_id) {
   double pitch;
@@ -35,6 +36,7 @@ double class_id_to_voxel_pitch(unsigned class_id) {
   return pitch;
 }
 
+}  // namespace utils
 }  // namespace ros_objslampp_ycb_video
 
-#endif  // ROS_ROS_OBJSLAMPP_YCB_VIDEO_INCLUDE_ROS_OBJSLAMPP_YCB_VIDEO_CLASS_ID_TO_VOXEL_PITCH_H_
+#endif  // ROS_ROS_OBJSLAMPP_YCB_VIDEO_INCLUDE_ROS_OBJSLAMPP_YCB_VIDEO_UTILS_DATA_H_

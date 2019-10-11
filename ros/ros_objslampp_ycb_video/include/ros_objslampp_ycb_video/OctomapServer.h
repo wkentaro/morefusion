@@ -43,6 +43,7 @@
 #include <octomap/octomap.h>
 #include <octomap/OcTreeKey.h>
 
+#include <ros_objslampp_msgs/VoxelGridArray.h>
 #include "ros_objslampp_ycb_video/OctomapServerConfig.h"
 
 namespace ros_objslampp_ycb_video {
