@@ -1,19 +1,7 @@
-#ifndef ROS_OBJSLAMPP_YCB_VIDEO_OCTOMAPSERVER_H
-#define ROS_OBJSLAMPP_YCB_VIDEO_OCTOMAPSERVER_H
+// Copyright (c) 2019 Kentaro Wada
 
-#include <boost/lexical_cast.hpp>
-
-#include <ros/ros.h>
-#include <dynamic_reconfigure/server.h>
-#include <visualization_msgs/MarkerArray.h>
-#include <nav_msgs/OccupancyGrid.h>
-#include <std_msgs/ColorRGBA.h>
-#include <jsk_recognition_msgs/BoundingBoxArray.h>
-#include <jsk_recognition_msgs/ClassificationResult.h>
-
-#include <sensor_msgs/PointCloud2.h>
-#include <sensor_msgs/CameraInfo.h>
-#include <std_srvs/Empty.h>
+#ifndef ROS_ROS_OBJSLAMPP_YCB_VIDEO_INCLUDE_ROS_OBJSLAMPP_YCB_VIDEO_OCTOMAPSERVER_H_
+#define ROS_ROS_OBJSLAMPP_YCB_VIDEO_INCLUDE_ROS_OBJSLAMPP_YCB_VIDEO_OCTOMAPSERVER_H_
 
 #include <pcl/point_types.h>
 #include <pcl/conversions.h>
@@ -27,29 +15,43 @@
 #include <pcl_conversions/pcl_conversions.h>
 
 #include <cv_bridge/cv_bridge.h>
-#include <opencv2/opencv.hpp>
-
-#include <tf/transform_listener.h>
-#include <tf/message_filter.h>
+#include <dynamic_reconfigure/server.h>
+#include <jsk_recognition_msgs/BoundingBoxArray.h>
+#include <jsk_recognition_msgs/ClassificationResult.h>
+#include <nav_msgs/OccupancyGrid.h>
 #include <message_filters/subscriber.h>
 #include <message_filters/synchronizer.h>
 #include <message_filters/sync_policies/exact_time.h>
+#include <octomap_ros/conversions.h>
+#include <octomap/octomap.h>
+#include <octomap/OcTreeKey.h>
 #include <octomap_msgs/Octomap.h>
 #include <octomap_msgs/GetOctomap.h>
 #include <octomap_msgs/BoundingBoxQuery.h>
 #include <octomap_msgs/conversions.h>
-
-#include <octomap_ros/conversions.h>
-#include <octomap/octomap.h>
-#include <octomap/OcTreeKey.h>
-
+#include <ros/ros.h>
 #include <ros_objslampp_msgs/VoxelGridArray.h>
+#include <sensor_msgs/PointCloud2.h>
+#include <sensor_msgs/CameraInfo.h>
+#include <std_msgs/ColorRGBA.h>
+#include <std_srvs/Empty.h>
+#include <tf/message_filter.h>
+#include <tf/transform_listener.h>
+#include <visualization_msgs/MarkerArray.h>
+
+#include <algorithm>
+#include <map>
+#include <string>
+
+#include <boost/lexical_cast.hpp>
+#include <opencv2/opencv.hpp>
+
 #include "ros_objslampp_ycb_video/OctomapServerConfig.h"
 
 namespace ros_objslampp_ycb_video {
-class OctomapServer {
 
-public:
+class OctomapServer {
+ public:
   typedef pcl::PointXYZ PCLPoint;
   typedef pcl::PointCloud<pcl::PointXYZ> PCLPointCloud;
   typedef octomap::OcTree OcTreeT;
@@ -57,27 +59,30 @@ public:
   typedef octomap_msgs::GetOctomap OctomapSrv;
   typedef octomap_msgs::BoundingBoxQuery BBXSrv;
 
-  typedef message_filters::sync_policies::ExactTime <sensor_msgs::PointCloud2, sensor_msgs::Image, jsk_recognition_msgs::ClassificationResult> ExactSyncPolicy;
+  typedef message_filters::sync_policies::ExactTime<
+    sensor_msgs::PointCloud2, sensor_msgs::Image, jsk_recognition_msgs::ClassificationResult>
+    ExactSyncPolicy;
 
-  OctomapServer(ros::NodeHandle private_nh_ = ros::NodeHandle("~"));
+  explicit OctomapServer(ros::NodeHandle private_nh_ = ros::NodeHandle("~"));
   virtual ~OctomapServer();
-  virtual bool octomapBinarySrv(OctomapSrv::Request  &req, OctomapSrv::GetOctomap::Response &res);
-  virtual bool octomapFullSrv(OctomapSrv::Request  &req, OctomapSrv::GetOctomap::Response &res);
-  bool clearBBXSrv(BBXSrv::Request& req, BBXSrv::Response& resp);
-  bool resetSrv(std_srvs::Empty::Request& req, std_srvs::Empty::Response& resp);
+  bool resetSrv(std_srvs::Empty::Request& req, std_srvs::Empty::Response& resp);  // NOLINT
 
-  virtual void insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud, const sensor_msgs::ImageConstPtr& ins_msg, const jsk_recognition_msgs::ClassificationResultConstPtr& class_msg);
+  virtual void insertCloudCallback(
+    const sensor_msgs::PointCloud2::ConstPtr& cloud,
+    const sensor_msgs::ImageConstPtr& ins_msg,
+    const jsk_recognition_msgs::ClassificationResultConstPtr& class_msg);
 
-protected:
-  inline static void updateMinKey(const octomap::OcTreeKey& in, octomap::OcTreeKey& min) {
+ protected:
+  inline static void updateMinKey(const octomap::OcTreeKey& in, octomap::OcTreeKey* min) {
+    for (unsigned i = 0; i < 3; ++i) {
+      (*min)[i] = std::min(in[i], (*min)[i]);
+    }
+  }
+
+  inline static void updateMaxKey(const octomap::OcTreeKey& in, octomap::OcTreeKey* max) {
     for (unsigned i = 0; i < 3; ++i)
-      min[i] = std::min(in[i], min[i]);
-  };
-
-  inline static void updateMaxKey(const octomap::OcTreeKey& in, octomap::OcTreeKey& max) {
-    for (unsigned i = 0; i < 3; ++i)
-      max[i] = std::max(in[i], max[i]);
-  };
+     (*max)[i] = std::max(in[i], (*max)[i]);
+  }
 
   void publishBinaryOctoMap(const ros::Time& rostime = ros::Time::now()) const;
   void publishFullOctoMap(const ros::Time& rostime = ros::Time::now()) const;
@@ -91,7 +96,11 @@ protected:
   * @param ground scan endpoints on the ground plane (only clear space)
   * @param nonground all other endpoints (clear up to occupied endpoint)
   */
-  virtual void insertScan(const tf::Point& sensorOrigin, const PCLPointCloud& pc, const cv::Mat& label_ins, const jsk_recognition_msgs::ClassificationResultConstPtr& class_msg);
+  virtual void insertScan(
+    const tf::Point& sensorOrigin,
+    const PCLPointCloud& pc,
+    const cv::Mat& label_ins,
+    const jsk_recognition_msgs::ClassificationResultConstPtr& class_msg);
 
   /**
   * @brief Find speckle nodes (single occupied voxels with no neighbors). Only works on lowest resolution!
@@ -100,20 +109,34 @@ protected:
   */
   bool isSpeckleNode(const octomap::OcTreeKey& key) const;
 
-  void configCallback(ros_objslampp_ycb_video::OctomapServerConfig &config, uint32_t level);
+  void configCallback(
+    const ros_objslampp_ycb_video::OctomapServerConfig& config,
+    const uint32_t level);
 
   void renderOctrees(cv::Mat label_ins, cv::Mat depth);
 
   ros::NodeHandle m_nh;
-  ros::Publisher  m_markerPub, m_binaryMapPub, m_fullMapPub, m_pointCloudPub, m_collisionObjectPub, m_mapPub, m_cmapPub, m_fmapPub, m_fmarkerPub, m_bboxesPub, m_gridsPub, m_gridsNoEntryPub;
-  ros::Publisher m_labelTrackedPub, m_labelRenderedPub;
+  ros::Publisher m_markerPub;
+  ros::Publisher m_binaryMapPub;
+  ros::Publisher m_fullMapPub;
+  ros::Publisher m_pointCloudPub;
+  ros::Publisher m_collisionObjectPub;
+  ros::Publisher m_mapPub;
+  ros::Publisher m_cmapPub;
+  ros::Publisher m_fmapPub;
+  ros::Publisher m_fmarkerPub;
+  ros::Publisher m_bboxesPub;
+  ros::Publisher m_gridsPub;
+  ros::Publisher m_gridsNoEntryPub;
+  ros::Publisher m_labelTrackedPub;
+  ros::Publisher m_labelRenderedPub;
   dynamic_reconfigure::Server<ros_objslampp_ycb_video::OctomapServerConfig> m_reconfigSrv;
   message_filters::Subscriber<sensor_msgs::PointCloud2>* m_pointCloudSub;
   message_filters::Subscriber<sensor_msgs::Image>* m_labelInsSub;
   message_filters::Subscriber<jsk_recognition_msgs::ClassificationResult>* m_classSub;
   tf::MessageFilter<sensor_msgs::PointCloud2>* m_tfPointCloudSub;
   message_filters::Synchronizer<ExactSyncPolicy>* m_sync;
-  ros::ServiceServer m_octomapBinaryService, m_octomapFullService, m_clearBBXService, m_resetService;
+  ros::ServiceServer m_resetService;
   tf::TransformListener m_tfListener;
 
   std::map<int, OcTreeT*> m_octrees;
@@ -123,8 +146,8 @@ protected:
   octomap::OcTreeKey m_updateBBXMax;
 
   double m_maxRange;
-  std::string m_worldFrameId; // the map frame
-  std::string m_sensorFrameId; // base of the robot for ground plane filtering
+  std::string m_worldFrameId;  // the map frame
+  std::string m_sensorFrameId;  // base of the robot for ground plane filtering
 
   bool m_latchedTopics;
 
@@ -150,6 +173,7 @@ protected:
   bool m_groundAsNoEntry;
   bool m_freeAsNoEntry;
 };
-}
 
-#endif
+}  // namespace ros_objslampp_ycb_video
+
+#endif  // ROS_ROS_OBJSLAMPP_YCB_VIDEO_INCLUDE_ROS_OBJSLAMPP_YCB_VIDEO_OCTOMAPSERVER_H_

@@ -80,9 +80,6 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_sync->connectInput(*m_pointCloudSub, *m_labelInsSub, *m_classSub);
   m_sync->registerCallback(boost::bind(&OctomapServer::insertCloudCallback, this, _1, _2, _3));
 
-  m_octomapBinaryService = m_nh.advertiseService("octomap_binary", &OctomapServer::octomapBinarySrv, this);
-  m_octomapFullService = m_nh.advertiseService("octomap_full", &OctomapServer::octomapFullSrv, this);
-  m_clearBBXService = private_nh.advertiseService("clear_bbx", &OctomapServer::clearBBXSrv, this);
   m_resetService = private_nh.advertiseService("reset", &OctomapServer::resetSrv, this);
 
   dynamic_reconfigure::Server<ros_objslampp_ycb_video::OctomapServerConfig>::CallbackType f =
@@ -193,7 +190,7 @@ OctomapServer::~OctomapServer(){
   }
 }
 
-void OctomapServer::configCallback(ros_objslampp_ycb_video::OctomapServerConfig &config, uint32_t level)
+void OctomapServer::configCallback(const ros_objslampp_ycb_video::OctomapServerConfig& config, const uint32_t level)
 {
   ROS_INFO_BLUE("configCallback");
   m_groundAsNoEntry = config.ground_as_noentry;
@@ -297,8 +294,8 @@ void OctomapServer::insertScan(
       if (octree->coordToKeyChecked(point, key)){
         occupied_cells.insert(key);
         octree->updateNode(key, true);
-        updateMinKey(key, m_updateBBXMin);
-        updateMaxKey(key, m_updateBBXMax);
+        updateMinKey(key, &m_updateBBXMin);
+        updateMaxKey(key, &m_updateBBXMax);
       }
     } else {// ray longer than maxrange:;
       point3d new_end = sensorOrigin + (point - sensorOrigin).normalized() * m_maxRange;
@@ -308,8 +305,8 @@ void OctomapServer::insertScan(
         octomap::OcTreeKey endKey;
         if (octree->coordToKeyChecked(new_end, endKey)){
           free_cells.insert(endKey);
-          updateMinKey(endKey, m_updateBBXMin);
-          updateMaxKey(endKey, m_updateBBXMax);
+          updateMinKey(endKey, &m_updateBBXMin);
+          updateMaxKey(endKey, &m_updateBBXMax);
         } else{
           ROS_ERROR_STREAM("Could not generate Key for endpoint "<<new_end);
         }
@@ -660,57 +657,7 @@ void OctomapServer::publishAll(const ros::Time& rostime)
 }
 
 
-bool OctomapServer::octomapBinarySrv(OctomapSrv::Request  &req,
-                                    OctomapSrv::Response &res)
-{
-  ros::WallTime startTime = ros::WallTime::now();
-  ROS_INFO("Sending binary map data on service request");
-  res.map.header.frame_id = m_worldFrameId;
-  res.map.header.stamp = ros::Time::now();
-  OcTreeT* octree_bg = m_octrees.find(-1)->second;
-  if (!octomap_msgs::binaryMapToMsg(*octree_bg, res.map))
-    return false;
-
-  double total_elapsed = (ros::WallTime::now() - startTime).toSec();
-  ROS_INFO("Binary octomap sent in %f sec", total_elapsed);
-  return true;
-}
-
-bool OctomapServer::octomapFullSrv(OctomapSrv::Request  &req,
-                                    OctomapSrv::Response &res)
-{
-  ROS_INFO("Sending full map data on service request");
-  res.map.header.frame_id = m_worldFrameId;
-  res.map.header.stamp = ros::Time::now();
-
-  OcTreeT* octree_bg = m_octrees.find(-1)->second;
-  if (!octomap_msgs::fullMapToMsg(*octree_bg, res.map))
-    return false;
-
-  return true;
-}
-
-bool OctomapServer::clearBBXSrv(BBXSrv::Request& req, BBXSrv::Response& resp){
-  point3d min = pointMsgToOctomap(req.min);
-  point3d max = pointMsgToOctomap(req.max);
-
-  OcTreeT* octree_bg = m_octrees.find(-1)->second;
-  double thresMin = octree_bg->getClampingThresMin();
-  for(OcTreeT::leaf_bbx_iterator it = octree_bg->begin_leafs_bbx(min,max),
-      end=octree_bg->end_leafs_bbx(); it!= end; ++it){
-
-    it->setLogOdds(octomap::logodds(thresMin));
-    // octree_bg->updateNode(it.getKey(), -6.0f);
-  }
-  // TODO: eval which is faster (setLogOdds+updateInner or updateNode)
-  octree_bg->updateInnerOccupancy();
-
-  publishAll(ros::Time::now());
-
-  return true;
-}
-
-bool OctomapServer::resetSrv(std_srvs::Empty::Request& req, std_srvs::Empty::Response& resp) {
+bool OctomapServer::resetSrv(std_srvs::Empty::Request& req, std_srvs::Empty::Response& resp) {  // NOLINT
   visualization_msgs::MarkerArray occupiedNodesVis;
   occupiedNodesVis.markers.resize(m_treeDepth +1);
   ros::Time rostime = ros::Time::now();
