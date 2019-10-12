@@ -10,19 +10,26 @@ import objslampp
 
 
 def check_max_voxelization_3d(origin, pitch, points, values, gpu, **kwargs):
+    batch_indices = np.zeros((values.shape[0],), dtype=np.int32)
+    intensities = np.linalg.norm(values, axis=1)
     if gpu >= 0:
         cuda.get_device_from_id(gpu).use()
         values = cuda.to_gpu(values)
         points = cuda.to_gpu(points)
+        batch_indices = cuda.to_gpu(batch_indices)
+        intensities = cuda.to_gpu(intensities)
 
     y = objslampp.functions.max_voxelization_3d(
         values,
         points,
+        batch_indices=batch_indices,
+        intensities=intensities,
+        batch_size=1,
         origin=origin,
         pitch=pitch,
         dimensions=(32, 32, 32),
-        channels=3,
     )
+    y = y[0]
     y = y.transpose(1, 2, 3, 0)
 
     matrix_values = cuda.to_cpu(y.array)

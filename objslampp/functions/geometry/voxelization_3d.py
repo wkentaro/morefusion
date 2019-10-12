@@ -17,9 +17,7 @@ class Voxelization3D(chainer.Function):
         self.dimensions = dimensions
 
     def check_type_forward(self, in_types):
-        chainer.utils.type_check.expect(in_types.size() == 3)
-
-        values_type, points_type, batch_indices_type = in_types
+        values_type, points_type, batch_indices_type = in_types[:3]
         chainer.utils.type_check.expect(
             values_type.dtype == np.float32,
             values_type.ndim == 2,
