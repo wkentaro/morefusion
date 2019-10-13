@@ -50,6 +50,8 @@ class CollisionBasedPoseRefinementLink(chainer.Link):
             )
             grid.append(grid_i)
 
+            if len(points) <= 1:
+                continue
             points_other = F.vstack(
                 [p for j, p in enumerate(points) if i != j]
             )
