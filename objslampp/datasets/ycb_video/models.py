@@ -7,7 +7,8 @@ import numpy as np
 import path
 import trimesh
 
-from ...utils import get_binvox_file
+from ... import extra as extra_module
+from ... import utils as utils_module
 from ..base import DatasetBase
 from .class_names import class_names
 
@@ -22,6 +23,7 @@ class YCBVideoModels(DatasetBase):
     _bbox_diagonal_cache: typing.Dict[str, float] = {}
     _cad_cache: typing.Dict[str, trimesh.Trimesh] = {}
     _pcd_cache: typing.Dict[str, np.ndarray] = {}
+    _sdf_cache: typing.Dict[str, typing.Tuple[np.ndarray, np.ndarray]] = {}
 
     def __len__(self):
         raise NotImplementedError
@@ -79,8 +81,33 @@ class YCBVideoModels(DatasetBase):
         class_name = self._get_class_name(*args, **kwargs)
         return self.root_dir / class_name / 'points.xyz'
 
+    def get_sdf(self, *args, **kwargs):
+        class_name = self._get_class_name(*args, **kwargs)
+        if class_name not in self._sdf_cache:
+            points, sdf = self._get_sdf(*args, **kwargs)
+            self._sdf_cache[class_name] = points, sdf
+        return self._sdf_cache[class_name]
+
+    def _get_sdf_file(self, *args, **kwargs):
+        class_name = self._get_class_name(*args, **kwargs)
+        return self._root_dir / class_name / 'sdf.npz'
+
+    def _get_sdf(self, *args, **kwargs):
+        sdf_file = self._get_sdf_file(*args, **kwargs)
+        if sdf_file.exists():
+            data = np.load(sdf_file)
+            points, sdf = data['points'], data['sdf']
+        else:
+            points = self.get_solid_voxel(*args, **kwargs).points
+            pitch = self.get_voxel_pitch(32, *args, **kwargs)
+            points = extra_module.open3d.voxel_down_sample(points, pitch)
+            sdf = self.get_cad(*args, **kwargs).nearest.signed_distance(points)
+            np.savez_compressed(sdf_file, points=points, sdf=sdf)
+        return points, sdf
+
     def get_solid_voxel(self, *args, **kwargs):
-        vox_file = get_binvox_file(self.get_cad_file(*args, **kwargs))
+        cad_file = self.get_cad_file(*args, **kwargs)
+        vox_file = utils_module.get_binvox_file(cad_file)
         with open(vox_file, 'rb') as f:
             vox = binvox_rw.read_as_3d_array(f)
 

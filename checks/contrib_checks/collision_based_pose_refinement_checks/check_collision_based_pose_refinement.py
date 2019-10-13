@@ -17,20 +17,28 @@ def get_scenes():
 
     models = objslampp.datasets.YCBVideoModels()
 
-    transform = np.array([ins['transform_init'] for ins in instances])
-    points = [cuda.to_gpu(ins['pcd_cad']) for ins in instances]
-    sdf = [
-        cuda.to_gpu(models.get_cad(ins['class_id']).nearest.signed_distance(ins['pcd_cad']))
-        for ins in instances
-    ]
-    pitch = [cuda.to_gpu(ins['pitch']).astype(np.float32) for ins in instances]
-    origin = [cuda.to_gpu(ins['origin']) for ins in instances]
-    grid_target = cuda.cupy.stack(
-        [cuda.to_gpu(ins['grid_target']) for ins in instances]
-    )
-    grid_nontarget_empty = cuda.cupy.stack(
-        [cuda.to_gpu(ins['grid_nontarget_empty']) for ins in instances]
-    )
+    transform = []
+    points = []
+    sdf = []
+    pitch = []
+    origin = []
+    grid_target = []
+    grid_nontarget_empty = []
+    for instance in instances:
+        transform.append(instance['transform_init'].astype(np.float32))
+        points_i, sdf_i = models.get_sdf(class_id=instance['class_id'])
+        points.append(cuda.to_gpu(points_i).astype(np.float32))
+        sdf.append(cuda.to_gpu(sdf_i).astype(np.float32))
+        pitch.append(instance['pitch'].astype(np.float32))
+        origin.append(instance['origin'].astype(np.float32))
+        grid_target.append(instance['grid_target'].astype(np.float32))
+        grid_nontarget_empty.append(
+            instance['grid_nontarget_empty'].astype(np.float32)
+        )
+    pitch = cuda.cupy.asarray(pitch)
+    origin = cuda.cupy.asarray(origin)
+    grid_target = cuda.cupy.asarray(grid_target)
+    grid_nontarget_empty = cuda.cupy.asarray(grid_nontarget_empty)
 
     link = objslampp.contrib.CollisionBasedPoseRefinementLink(transform)
     link.to_gpu()
