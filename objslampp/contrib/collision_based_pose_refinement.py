@@ -27,7 +27,7 @@ class CollisionBasedPoseRefinementLink(chainer.Link):
             self.translation = chainer.Parameter(translation)
 
     def forward(
-        self, points, pitch, origin, grid_target, grid_nontarget_empty
+        self, points, sdf, pitch, origin, grid_target, grid_nontarget_empty
     ):
         transform = functions_module.transformation_matrix(
             self.quaternion, self.translation
@@ -43,6 +43,7 @@ class CollisionBasedPoseRefinementLink(chainer.Link):
         for i in range(len(points)):
             grid_i = functions_module.pseudo_occupancy_voxelization(
                 points[i],
+                sdf[i],
                 pitch=pitch[i],
                 origin=origin[i],
                 dims=(self._voxel_dim,) * 3,
@@ -52,11 +53,15 @@ class CollisionBasedPoseRefinementLink(chainer.Link):
 
             if len(points) <= 1:
                 continue
-            points_other = F.vstack(
-                [p for j, p in enumerate(points) if i != j]
+            points_other = F.concat(
+                [p for j, p in enumerate(points) if i != j], axis=0
+            )
+            sdf_other = self.xp.concatenate(
+                [p for j, p in enumerate(sdf) if i != j], axis=0
             )
             grid_other = functions_module.pseudo_occupancy_voxelization(
                 points_other,
+                sdf_other,
                 pitch=pitch[i],
                 origin=origin[i],
                 dims=(self._voxel_dim,) * 3,

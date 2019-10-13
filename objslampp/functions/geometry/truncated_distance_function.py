@@ -205,8 +205,7 @@ def pseudo_occupancy_voxelization(
     mask = indices != -1
     df_grid[mask] = df[indices[mask]]
 
-    scale = xp.tanh(df_grid / sdf.max())
-    # scale = df_grid / sdf.max()
+    scale = xp.tanh(df_grid / sdf.max() * 1000)
 
     return grid * scale
 

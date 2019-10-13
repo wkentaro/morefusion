@@ -19,6 +19,10 @@ def get_scenes():
 
     transform = np.array([ins['transform_init'] for ins in instances])
     points = [cuda.to_gpu(ins['pcd_cad']) for ins in instances]
+    sdf = [
+        cuda.to_gpu(models.get_cad(ins['class_id']).nearest.signed_distance(ins['pcd_cad']))
+        for ins in instances
+    ]
     pitch = [cuda.to_gpu(ins['pitch']).astype(np.float32) for ins in instances]
     origin = [cuda.to_gpu(ins['origin']) for ins in instances]
     grid_target = cuda.cupy.stack(
@@ -55,7 +59,9 @@ def get_scenes():
             objslampp.extra.trimesh.to_opengl_transform()
         yield scenes
 
-        loss = link(points, pitch, origin, grid_target, grid_nontarget_empty)
+        loss = link(
+            points, sdf, pitch, origin, grid_target, grid_nontarget_empty
+        )
         loss.backward()
         optimizer.update()
         link.zerograds()
