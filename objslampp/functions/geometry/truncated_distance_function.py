@@ -75,7 +75,7 @@ class TruncatedDistanceFunction(chainer.Function):
                 if (distance < truncation) {
                     int index = (ix * dims[1] * dims[2]) + (iy * dims[2]) + iz;
                     T old = atomicMin(&matrix[index], distance);
-                    if (old != distance) {
+                    if (distance < old) {
                         atomicExch(&indices[index], i);
                     }
                 }
@@ -159,38 +159,56 @@ class TruncatedDistanceFunction(chainer.Function):
             gpoints,
         )
 
-        K = self._ksize ** 3
-        keep = self._indices >= 0
-        kernel_indices = self._indices.copy()
-        point_indices = self._indices.copy()
-        kernel_indices[keep] = self._indices[keep] % K
-        point_indices[keep] = self._indices[keep] / K
+        # K = self._ksize ** 3
+        # keep = self._indices >= 0
+        # kernel_indices = self._indices.copy()
+        # point_indices = self._indices.copy()
+        # kernel_indices[keep] = self._indices[keep] % K
+        # point_indices[keep] = self._indices[keep] / K
 
         return gpoints,
 
 
-def truncated_distance_function(points, *, pitch, origin, dims, truncation):
-    return TruncatedDistanceFunction(
+def truncated_distance_function(
+    points, *, pitch, origin, dims, truncation, return_indices=False
+):
+    func = TruncatedDistanceFunction(
         pitch=pitch,
         origin=origin,
         dims=dims,
         truncation=truncation,
-    )(points)
+    )
+    tdf = func(points)
+    if return_indices:
+        return tdf, func._indices // (func._ksize ** 3)
+    return tdf
 
 
 def pseudo_occupancy_voxelization(
-    points, *, pitch, origin, dims, threshold=1,
+    points, sdf, *, pitch, origin, dims, threshold=1,
 ):
     truncation = threshold * pitch
-    matrix = truncated_distance_function(
+    tdf, indices = truncated_distance_function(
         points,
         pitch=pitch,
         origin=origin,
         dims=dims,
         truncation=truncation,
+        return_indices=True,
     )  # [0, truncation]
-    matrix = (truncation - matrix) / pitch
-    return F.minimum(matrix, matrix * 0 + 1)
+
+    grid = 1 - (tdf / truncation)  # [0, 1]
+
+    xp = cuda.get_array_module(points)
+    df = xp.maximum(sdf, 0)
+    df_grid = xp.zeros_like(tdf.array)
+    mask = indices != -1
+    df_grid[mask] = df[indices[mask]]
+
+    scale = xp.tanh(df_grid / sdf.max())
+    # scale = df_grid / sdf.max()
+
+    return grid * scale
 
 
 if __name__ == '__main__':
