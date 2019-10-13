@@ -20,7 +20,7 @@ class CollisionBasedPoseRefinement(topic_tools.LazyTransport):
     _models = objslampp.datasets.YCBVideoModels()
 
     def __init__(self):
-        self._pcd_cad = {}
+        self._sdf = {}
 
         super().__init__()
         self._pub = self.advertise('~output', ObjectPoseArray, queue_size=1)
@@ -62,18 +62,13 @@ class CollisionBasedPoseRefinement(topic_tools.LazyTransport):
         matrix[i, j, k] = grid.values
         return matrix, pitch, origin
 
-    def _get_pcd_cad(self, class_id):
-        if class_id in self._pcd_cad:
-            pcd_cad = self._pcd_cad[class_id]
-        else:
-            pitch = self._models.get_voxel_pitch(32, class_id)
-            pcd_cad = self._models.get_solid_voxel(class_id).points
-            pcd_cad = objslampp.extra.open3d.voxel_down_sample(
-                pcd_cad, voxel_size=pitch
-            ).astype(np.float32)
-            pcd_cad = cuda.to_gpu(pcd_cad)
-            self._pcd_cad[class_id] = pcd_cad
-        return pcd_cad
+    def _get_sdf(self, class_id):
+        if class_id not in self._sdf:
+            pcd, sdf = self._models.get_sdf(class_id)
+            pcd = cuda.to_gpu(pcd).astype(np.float32)
+            sdf = cuda.to_gpu(sdf).astype(np.float32)
+            self._sdf[class_id] = pcd, sdf
+        return self._sdf[class_id]
 
     def _callback(self, poses_msg, grids_msg, grids_noentry_msg):
         grids = {
@@ -86,6 +81,7 @@ class CollisionBasedPoseRefinement(topic_tools.LazyTransport):
         }
 
         points = []
+        sdfs = []
         pitches = []
         origins = []
         grid_target = []
@@ -113,7 +109,9 @@ class CollisionBasedPoseRefinement(topic_tools.LazyTransport):
                 quaternion, translation
             ).array
 
-            points.append(self._get_pcd_cad(pose.class_id))
+            pcd, sdf = self._get_sdf(pose.class_id)
+            points.append(pcd)
+            sdfs.append(sdf)
             pitches.append(cuda.to_gpu(np.float32(pitch)))
             origins.append(cuda.to_gpu(origin.astype(np.float32)))
             grid_target.append(cuda.to_gpu(grid))
@@ -143,6 +141,7 @@ class CollisionBasedPoseRefinement(topic_tools.LazyTransport):
         for iteration in range(200):
             loss = link(
                 points,
+                sdfs,
                 pitches,
                 origins,
                 grid_target,
