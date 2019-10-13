@@ -432,6 +432,7 @@ void OctomapServer::publishAll(const ros::Time& rostime) {
           size_t index = i * grid.dims.y * grid.dims.z + j * grid.dims.z + k;
           if (m_groundAsNoEntry && (z < 0)) {
             grid_noentry.indices.push_back(index);
+            grid_noentry.values.push_back(m_thresMin);
             continue;
           }
 
@@ -449,9 +450,12 @@ void OctomapServer::publishAll(const ros::Time& rostime) {
               node = octree_other->search(x, y, z, /*depth=*/0);
               if (node != NULL) {
                 double occupancy = node->getOccupancy();
-                if ((m_freeAsNoEntry && (occupancy < 0.5)) ||
-                    (occupancy >= m_thresMax)) {
+                if ((instance_id == -1 && m_freeAsNoEntry && (occupancy < 0.5))) {
                   grid_noentry.indices.push_back(index);
+                  grid_noentry.values.push_back(1 - occupancy);
+                } else if (occupancy >= m_thresMax) {
+                  grid_noentry.indices.push_back(index);
+                  grid_noentry.values.push_back(occupancy);
                 }
               }
             }
