@@ -97,6 +97,7 @@ class CollisionBasedPoseRefinement(topic_tools.LazyTransport):
             assert pitch == pitch_no
             assert (origin == origin_no).all()
             del pitch_no, origin_no
+            grid_no[grid == 1] = 0
 
             translation = np.array([
                 pose.pose.position.x,
