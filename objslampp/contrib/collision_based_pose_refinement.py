@@ -41,7 +41,7 @@ class CollisionBasedPoseRefinementLink(chainer.Link):
         grid = []
         grid_nontarget_empty = [g for g in grid_nontarget_empty]
         for i in range(len(points)):
-            grid_i = functions_module.pseudo_occupancy_voxelization(
+            grid_i, _ = functions_module.pseudo_occupancy_voxelization(
                 points[i],
                 sdf[i],
                 pitch=pitch[i],
@@ -59,7 +59,7 @@ class CollisionBasedPoseRefinementLink(chainer.Link):
             sdf_other = self.xp.concatenate(
                 [p for j, p in enumerate(sdf) if i != j], axis=0
             )
-            grid_other = functions_module.pseudo_occupancy_voxelization(
+            _, grid_other = functions_module.pseudo_occupancy_voxelization(
                 points_other,
                 sdf_other,
                 pitch=pitch[i],
