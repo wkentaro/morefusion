@@ -316,7 +316,7 @@ void OctomapServer::insertScan(
     octree->getMetricMax(max_x, max_y, max_z);
     double center_x = (min_x + max_x) / 2;
     double center_y = (min_y + max_y) / 2;
-    double center_z = (min_z + max_z) / 2;
+    double center_z = (min_z + max_z) / 3;
     octomap::point3d center(center_x, center_y, center_z);
     m_centers.insert(std::make_pair(instance_id, center));
   }
