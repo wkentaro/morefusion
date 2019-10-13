@@ -29,14 +29,8 @@ class SingleViewPoseEstimation3D(topic_tools.LazyTransport):
     def __init__(self):
         self._with_occupancy = rospy.get_param('~with_occupancy')
         if self._with_occupancy:
-            pretrained_model = gdown.cached_download(
-                url='https://drive.google.com/uc?id=1gNfkP7vY2LwnuaoV55He0fKdVdLFD5iR',  # NOQA
-                md5='e516bd08791d892bab5374e575f82de4',
-            )
-            args_file = gdown.cached_download(
-                url='https://drive.google.com/uc?id=1RcW0jGzmr3jp5SuEKaopd8aR9vknoqI3',  # NOQA
-                md5='a495652fc2d9c1c951076c6e40e22815',
-            )
+            pretrained_model = '/home/wkentaro/Gdrive/objslampp/ycb_video_singleview_3d/logs.20191008.all_data/20191012_085211.477293663/snapshot_model_best_add.npz'  # NOQA
+            args_file = '/home/wkentaro/Gdrive/objslampp/ycb_video_singleview_3d/logs.20191008.all_data/20191012_085211.477293663/args'  # NOQA
         else:
             pretrained_model = gdown.cached_download(
                 url='https://drive.google.com/uc?id=1Dv03xveUV3p3oFvlx1zwX6pWK56y_b-K',  # NOQA
