@@ -59,7 +59,7 @@ class CollisionBasedPoseRefinement(topic_tools.LazyTransport):
         i = indices // grid.dims.z // grid.dims.y
         dims = (grid.dims.x, grid.dims.y, grid.dims.z)
         matrix = np.zeros(dims, dtype=np.float32)
-        matrix[i, j, k] = 1
+        matrix[i, j, k] = grid.values
         return matrix, pitch, origin
 
     def _get_pcd_cad(self, class_id):
@@ -97,7 +97,6 @@ class CollisionBasedPoseRefinement(topic_tools.LazyTransport):
             assert pitch == pitch_no
             assert (origin == origin_no).all()
             del pitch_no, origin_no
-            grid_no[grid == 1] = 0
 
             translation = np.array([
                 pose.pose.position.x,
@@ -120,6 +119,18 @@ class CollisionBasedPoseRefinement(topic_tools.LazyTransport):
             grid_target.append(cuda.to_gpu(grid))
             grid_nontarget_empty.append(cuda.to_gpu(grid_no))
             transforms.append(transform)
+
+            '''
+            cuda.cupy.savez_compressed(f'{i:08d}.npz',
+                class_id=pose.class_id,
+                transform_init=transforms[-1],
+                pcd_cad=points[-1],
+                pitch=pitches[-1],
+                origin=origins[-1],
+                grid_target=grid_target[-1],
+                grid_nontarget_empty=grid_nontarget_empty[-1],
+            )
+            '''
         grid_target = cuda.cupy.stack(grid_target)
 
         link = objslampp.contrib.CollisionBasedPoseRefinementLink(transforms)
