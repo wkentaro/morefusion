@@ -73,8 +73,9 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
     "output/grids", 1, m_latchedTopics);
   m_gridsNoEntryPub = private_nh.advertise<ros_objslampp_msgs::VoxelGridArray>(
     "output/grids_noentry", 1, m_latchedTopics);
-  m_labelRenderedPub = private_nh.advertise<sensor_msgs::Image>("debug/label_rendered", 1);
   m_labelTrackedPub = private_nh.advertise<sensor_msgs::Image>("debug/label_tracked", 1);
+  m_labelRenderedPub = private_nh.advertise<sensor_msgs::Image>("output/label_rendered", 1);
+  m_classPub = private_nh.advertise<ros_objslampp_msgs::ObjectClassArray>("output/class", 1);
 
   m_pointCloudSub = new message_filters::Subscriber<sensor_msgs::PointCloud2>(
     m_nh, "cloud_in", 5);
@@ -241,6 +242,21 @@ void OctomapServer::insertCloudCallback(
     cv_bridge::CvImage(cloud->header, "32SC1", label_ins_rend).toImageMsg());
   m_labelTrackedPub.publish(
     cv_bridge::CvImage(cloud->header, "32SC1", label_ins).toImageMsg());
+
+  ros_objslampp_msgs::ObjectClassArray cls_rend_msg;
+  cls_rend_msg.header = cloud->header;
+  for (std::map<int, unsigned>::iterator it = m_classIds.begin();
+       it != m_classIds.end(); it++) {
+    if (it->first == -1) {
+      continue;
+    }
+    ros_objslampp_msgs::ObjectClass cls;
+    cls.instance_id = it->first;
+    cls.class_id = it->second;
+    cls.confidence = 1;
+    cls_rend_msg.classes.push_back(cls);
+  }
+  m_classPub.publish(cls_rend_msg);
 
   insertScan(sensorToWorldTf.getOrigin(), pc, label_ins, instance_id_to_class_id);
 

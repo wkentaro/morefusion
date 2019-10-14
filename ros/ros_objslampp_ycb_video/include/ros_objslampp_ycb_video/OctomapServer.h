@@ -129,6 +129,7 @@ class OctomapServer {
   ros::Publisher m_gridsNoEntryPub;
   ros::Publisher m_labelTrackedPub;
   ros::Publisher m_labelRenderedPub;
+  ros::Publisher m_classPub;
   dynamic_reconfigure::Server<ros_objslampp_ycb_video::OctomapServerConfig> m_reconfigSrv;
   message_filters::Subscriber<sensor_msgs::PointCloud2>* m_pointCloudSub;
   message_filters::Subscriber<sensor_msgs::Image>* m_labelInsSub;

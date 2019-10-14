@@ -11,8 +11,12 @@ from sensor_msgs.msg import Image
 import imgviz
 import numpy as np
 
+import objslampp
+
 
 class DrawInstanceSegmentation(LazyTransport):
+
+    _class_names = objslampp.datasets.ycb_video.class_names
 
     def __init__(self):
         super().__init__()
@@ -23,9 +27,14 @@ class DrawInstanceSegmentation(LazyTransport):
         sub_ins = message_filters.Subscriber('~input/label_ins', Image)
         sub_lbl = message_filters.Subscriber('~input/class', ObjectClassArray)
         self._subscribers = [sub_rgb, sub_ins, sub_lbl]
-        sync = message_filters.TimeSynchronizer(
-            self._subscribers, queue_size=100
-        )
+        if rospy.get_param('approximate_sync', False):
+            sync = message_filters.ApproximateTimeSynchronizer(
+                self._subscribers, queue_size=100, slop=0.1
+            )
+        else:
+            sync = message_filters.TimeSynchronizer(
+                self._subscribers, queue_size=100
+            )
         sync.registerCallback(self._callback)
 
     def unsubscribe(self):
@@ -48,7 +57,7 @@ class DrawInstanceSegmentation(LazyTransport):
             class_ids.append(cls.class_id)
             class_confs.append(cls.confidence)
             masks.append(ins == cls.instance_id)
-            class_name = cls_msg.class_names[cls.class_id]
+            class_name = self._class_names[cls.class_id]
             captions.append(
                 f'{cls.class_id}: {class_name}: {cls.confidence:.1%}'
             )
