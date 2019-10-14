@@ -19,7 +19,7 @@ class MaxVoxelization3D(Voxelization3D):
 
         matrix = np.zeros([B, C, X, Y, Z], dtype=np.float32)
         indices = np.full([B, X, Y, Z], -1, dtype=np.int32)
-        max_intensities = cuda.cupy.zeros([B, X, Y, Z], dtype=np.float32)
+        max_intensities = np.zeros([B, X, Y, Z], dtype=np.float32)
 
         for i in range(points.shape[0]):
             batch_index = batch_indices[i]
