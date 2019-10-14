@@ -15,7 +15,10 @@
 namespace ros_objslampp_ycb_video {
 namespace utils {
 
-void track_instance_id(const cv::Mat& reference, cv::Mat* target) {
+void track_instance_id(
+    const cv::Mat& reference,
+    cv::Mat* target,
+    std::map<int, unsigned>* instance_id_to_class_id) {
   std::vector<int> instance_ids1 = ros_objslampp_ycb_video::utils::unique<int>(reference);
   std::vector<int> instance_ids2 = ros_objslampp_ycb_video::utils::unique<int>(*target);
 
@@ -46,6 +49,17 @@ void track_instance_id(const cv::Mat& reference, cv::Mat* target) {
       } else if (iou > it2->second.second) {
         it2->second = std::make_pair(ins_id2, iou);
       }
+    }
+  }
+
+  for (std::map<int, unsigned>::iterator it = instance_id_to_class_id->begin();
+       it != instance_id_to_class_id->end(); it++) {
+    int ins_id1 = it->first;
+    unsigned class_id = it->second;
+    int ins_id2 = ins_id1to2.find(ins_id1)->second.first;
+    if (ins_id1 != ins_id2) {
+      instance_id_to_class_id->erase(it);
+      instance_id_to_class_id->insert(std::make_pair(ins_id1, class_id));
     }
   }
 

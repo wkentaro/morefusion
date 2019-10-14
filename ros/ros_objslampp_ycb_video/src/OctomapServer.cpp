@@ -223,23 +223,7 @@ void OctomapServer::insertCloudCallback(
   cv::Mat depth_rend = cv::Mat(
     pc.height, pc.width, CV_32FC1, std::numeric_limits<float>::quiet_NaN());
   renderOctrees(label_ins_rend, depth_rend);
-  ros_objslampp_ycb_video::utils::track_instance_id(
-    /*reference=*/label_ins_rend, /*target=*/&label_ins);
-  m_labelRenderedPub.publish(
-    cv_bridge::CvImage(cloud->header, "32SC1", label_ins_rend).toImageMsg());
-  m_labelTrackedPub.publish(
-    cv_bridge::CvImage(cloud->header, "32SC1", label_ins).toImageMsg());
 
-  insertScan(sensorToWorldTf.getOrigin(), pc, label_ins, class_msg);
-
-  publishAll(cloud->header.stamp);
-}
-
-void OctomapServer::insertScan(
-  const tf::Point& sensorOriginTf,
-  const PCLPointCloud& pc,
-  const cv::Mat& label_ins,
-  const ros_objslampp_msgs::ObjectClassArrayConstPtr& class_msg) {
   std::map<int, unsigned> instance_id_to_class_id;
   for (size_t i = 0; i < class_msg->classes.size(); i++) {
     instance_id_to_class_id.insert(
@@ -248,6 +232,26 @@ void OctomapServer::insertScan(
         class_msg->classes[i].class_id));
   }
 
+  ros_objslampp_ycb_video::utils::track_instance_id(
+    /*reference=*/label_ins_rend,
+    /*target=*/&label_ins,
+    /*instance_id_to_class_id=*/&instance_id_to_class_id);
+
+  m_labelRenderedPub.publish(
+    cv_bridge::CvImage(cloud->header, "32SC1", label_ins_rend).toImageMsg());
+  m_labelTrackedPub.publish(
+    cv_bridge::CvImage(cloud->header, "32SC1", label_ins).toImageMsg());
+
+  insertScan(sensorToWorldTf.getOrigin(), pc, label_ins, instance_id_to_class_id);
+
+  publishAll(cloud->header.stamp);
+}
+
+void OctomapServer::insertScan(
+    const tf::Point& sensorOriginTf,
+    const PCLPointCloud& pc,
+    const cv::Mat& label_ins,
+    const std::map<int, unsigned>& instance_id_to_class_id) {
   octomap::point3d sensorOrigin = octomap::pointTfToOctomap(sensorOriginTf);
 
   // all other points: free on ray, occupied on endpoint:
@@ -269,11 +273,10 @@ void OctomapServer::insertScan(
     unsigned class_id = 0;
     double pitch = m_res;
     if (instance_id >= 0) {
-      std::map<int, unsigned>::iterator it = instance_id_to_class_id.find(instance_id);
-      if (it == instance_id_to_class_id.end()) {
+      if (instance_id_to_class_id.find(instance_id) == instance_id_to_class_id.end()) {
         ROS_FATAL("Can't find instance_id [%d] in class_msg->classes", instance_id);
       } else {
-        class_id = it->second;
+        class_id = instance_id_to_class_id.find(instance_id)->second;
       }
       pitch = ros_objslampp_ycb_video::utils::class_id_to_voxel_pitch(class_id);
     }

@@ -100,7 +100,7 @@ class OctomapServer {
     const tf::Point& sensorOrigin,
     const PCLPointCloud& pc,
     const cv::Mat& label_ins,
-    const ros_objslampp_msgs::ObjectClassArrayConstPtr& class_msg);
+    const std::map<int, unsigned>& instance_id_to_class_id);
 
   /**
   * @brief Find speckle nodes (single occupied voxels with no neighbors). Only works on lowest resolution!
