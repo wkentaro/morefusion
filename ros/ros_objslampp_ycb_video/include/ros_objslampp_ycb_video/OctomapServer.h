@@ -17,7 +17,6 @@
 #include <cv_bridge/cv_bridge.h>
 #include <dynamic_reconfigure/server.h>
 #include <jsk_recognition_msgs/BoundingBoxArray.h>
-#include <jsk_recognition_msgs/ClassificationResult.h>
 #include <nav_msgs/OccupancyGrid.h>
 #include <message_filters/subscriber.h>
 #include <message_filters/synchronizer.h>
@@ -31,6 +30,7 @@
 #include <octomap_msgs/conversions.h>
 #include <ros/ros.h>
 #include <ros_objslampp_msgs/VoxelGridArray.h>
+#include <ros_objslampp_msgs/ObjectClassArray.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/CameraInfo.h>
 #include <std_msgs/ColorRGBA.h>
@@ -60,7 +60,7 @@ class OctomapServer {
   typedef octomap_msgs::BoundingBoxQuery BBXSrv;
 
   typedef message_filters::sync_policies::ExactTime<
-    sensor_msgs::PointCloud2, sensor_msgs::Image, jsk_recognition_msgs::ClassificationResult>
+    sensor_msgs::PointCloud2, sensor_msgs::Image, ros_objslampp_msgs::ObjectClassArray>
     ExactSyncPolicy;
 
   explicit OctomapServer(ros::NodeHandle private_nh_ = ros::NodeHandle("~"));
@@ -70,7 +70,7 @@ class OctomapServer {
   virtual void insertCloudCallback(
     const sensor_msgs::PointCloud2::ConstPtr& cloud,
     const sensor_msgs::ImageConstPtr& ins_msg,
-    const jsk_recognition_msgs::ClassificationResultConstPtr& class_msg);
+    const ros_objslampp_msgs::ObjectClassArrayConstPtr& class_msg);
 
  protected:
   inline static void updateMinKey(const octomap::OcTreeKey& in, octomap::OcTreeKey* min) {
@@ -100,7 +100,7 @@ class OctomapServer {
     const tf::Point& sensorOrigin,
     const PCLPointCloud& pc,
     const cv::Mat& label_ins,
-    const jsk_recognition_msgs::ClassificationResultConstPtr& class_msg);
+    const ros_objslampp_msgs::ObjectClassArrayConstPtr& class_msg);
 
   /**
   * @brief Find speckle nodes (single occupied voxels with no neighbors). Only works on lowest resolution!
@@ -132,7 +132,7 @@ class OctomapServer {
   dynamic_reconfigure::Server<ros_objslampp_ycb_video::OctomapServerConfig> m_reconfigSrv;
   message_filters::Subscriber<sensor_msgs::PointCloud2>* m_pointCloudSub;
   message_filters::Subscriber<sensor_msgs::Image>* m_labelInsSub;
-  message_filters::Subscriber<jsk_recognition_msgs::ClassificationResult>* m_classSub;
+  message_filters::Subscriber<ros_objslampp_msgs::ObjectClassArray>* m_classSub;
   tf::MessageFilter<sensor_msgs::PointCloud2>* m_tfPointCloudSub;
   message_filters::Synchronizer<ExactSyncPolicy>* m_sync;
   ros::ServiceServer m_resetService;

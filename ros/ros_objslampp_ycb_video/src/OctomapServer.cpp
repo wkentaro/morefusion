@@ -80,7 +80,7 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
     m_nh, "cloud_in", 5);
   m_labelInsSub = new message_filters::Subscriber<sensor_msgs::Image>(
     m_nh, "label_ins_in", 5);
-  m_classSub = new message_filters::Subscriber<jsk_recognition_msgs::ClassificationResult>(
+  m_classSub = new message_filters::Subscriber<ros_objslampp_msgs::ObjectClassArray>(
     m_nh, "class_in", 5);
   m_sync = new message_filters::Synchronizer<ExactSyncPolicy>(100);
   m_sync->connectInput(*m_pointCloudSub, *m_labelInsSub, *m_classSub);
@@ -192,7 +192,7 @@ void OctomapServer::configCallback(
 void OctomapServer::insertCloudCallback(
   const sensor_msgs::PointCloud2::ConstPtr& cloud,
   const sensor_msgs::ImageConstPtr& ins_msg,
-  const jsk_recognition_msgs::ClassificationResultConstPtr& class_msg) {
+  const ros_objslampp_msgs::ObjectClassArrayConstPtr& class_msg) {
   // ROS_INFO_BLUE("insertCloudCallback");
 
   PCLPointCloud pc;
@@ -239,7 +239,15 @@ void OctomapServer::insertScan(
   const tf::Point& sensorOriginTf,
   const PCLPointCloud& pc,
   const cv::Mat& label_ins,
-  const jsk_recognition_msgs::ClassificationResultConstPtr& class_msg) {
+  const ros_objslampp_msgs::ObjectClassArrayConstPtr& class_msg) {
+  std::map<int, unsigned> instance_id_to_class_id;
+  for (size_t i = 0; i < class_msg->classes.size(); i++) {
+    instance_id_to_class_id.insert(
+      std::make_pair(
+        class_msg->classes[i].instance_id,
+        class_msg->classes[i].class_id));
+  }
+
   octomap::point3d sensorOrigin = octomap::pointTfToOctomap(sensorOriginTf);
 
   // all other points: free on ray, occupied on endpoint:
@@ -261,7 +269,12 @@ void OctomapServer::insertScan(
     unsigned class_id = 0;
     double pitch = m_res;
     if (instance_id >= 0) {
-      class_id = class_msg->labels[instance_id];
+      std::map<int, unsigned>::iterator it = instance_id_to_class_id.find(instance_id);
+      if (it == instance_id_to_class_id.end()) {
+        ROS_FATAL("Can't find instance_id [%d] in class_msg->classes", instance_id);
+      } else {
+        class_id = it->second;
+      }
       pitch = ros_objslampp_ycb_video::utils::class_id_to_voxel_pitch(class_id);
     }
     if (m_octrees.find(instance_id) == m_octrees.end()) {
