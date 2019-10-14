@@ -450,7 +450,8 @@ void OctomapServer::publishAll(const ros::Time& rostime) {
               node = octree_other->search(x, y, z, /*depth=*/0);
               if (node != NULL) {
                 double occupancy = node->getOccupancy();
-                if ((instance_id == -1 && m_freeAsNoEntry && (occupancy < 0.5))) {
+                if ((it_octree_other->first == -1) &&
+                    m_freeAsNoEntry && (occupancy < 0.5)) {
                   grid_noentry.indices.push_back(index);
                   grid_noentry.values.push_back(1 - occupancy);
                 } else if (occupancy >= m_thresMax) {
