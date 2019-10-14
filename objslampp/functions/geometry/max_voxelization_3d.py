@@ -32,7 +32,7 @@ class MaxVoxelization3D(Voxelization3D):
             if valid:
                 ix, iy, iz = index
                 if ((indices[batch_index, ix, iy, iz] < 0) or
-                    (intensity > max_intensities[batch_index, ix, iy, iz])):
+                        (intensity > max_intensities[batch_index, ix, iy, iz])):  # NOQA
                     matrix[batch_index, :, ix, iy, iz] = value
                     indices[batch_index, ix, iy, iz] = i
                     max_intensities[batch_index, ix, iy, iz] = intensity
@@ -65,7 +65,6 @@ class MaxVoxelization3D(Voxelization3D):
         X, Y, Z = self.dimensions
 
         matrix = cuda.cupy.zeros([B, C, X, Y, Z], dtype=np.float32)
-        counts = cuda.cupy.zeros([B, C, X, Y, Z], dtype=np.int32)
         origin = cuda.cupy.asarray(self.origin, dtype=np.float32)
         shape = cuda.cupy.array([B, C, X, Y, Z], dtype=np.int32)
 
