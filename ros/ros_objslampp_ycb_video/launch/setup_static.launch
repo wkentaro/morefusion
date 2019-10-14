@@ -8,11 +8,9 @@
   </include>
   <include file="$(find ros_objslampp_ycb_video)/launch/singleview_3d_pose_estimation.launch">
     <arg name="OCCUPANCY" value="true" />
-    <arg name="STATIC" value="true" />
   </include>
   <include file="$(find ros_objslampp_ycb_video)/launch/singleview_3d_pose_estimation.launch">
     <arg name="OCCUPANCY" value="false" />
-    <arg name="STATIC" value="false" />
   </include>
 
   <group ns="camera">

@@ -54,11 +54,6 @@ class SingleViewPoseEstimation3D(topic_tools.LazyTransport):
         chainer.serializers.load_npz(pretrained_model, self._model)
         self._model.to_gpu()
 
-        self._static = rospy.get_param('~static', False)
-        self._rgb = None
-        self._depth = None
-        self._ins = None
-
         super().__init__()
         self._pub_debug_rgbd = self.advertise(
             '~output/debug/rgbd', Image, queue_size=1
@@ -107,18 +102,8 @@ class SingleViewPoseEstimation3D(topic_tools.LazyTransport):
         self, cam_msg, rgb_msg, depth_msg, ins_msg, cls_msg, noentry_msg=None
     ):
         bridge = cv_bridge.CvBridge()
-        if self._rgb is None:
-            rgb = bridge.imgmsg_to_cv2(rgb_msg, desired_encoding='rgb8')
-            if self._static:
-                self._rgb = rgb
-        else:
-            rgb = self._rgb
-        if self._depth is None:
-            depth = bridge.imgmsg_to_cv2(depth_msg)
-            if self._static:
-                self._depth = depth
-        else:
-            depth = self._depth
+        rgb = bridge.imgmsg_to_cv2(rgb_msg, desired_encoding='rgb8')
+        depth = bridge.imgmsg_to_cv2(depth_msg)
         if depth.dtype == np.uint16:
             depth = depth.astype(np.float32) / 1000
             depth[depth == 0] = np.nan
@@ -127,12 +112,7 @@ class SingleViewPoseEstimation3D(topic_tools.LazyTransport):
         pcd = objslampp.geometry.pointcloud_from_depth(
             depth, K[0, 0], K[1, 1], K[0, 2], K[1, 2]
         )
-        if self._ins is None:
-            ins = bridge.imgmsg_to_cv2(ins_msg)
-            if self._static:
-                self._ins = ins
-        else:
-            ins = self._ins
+        ins = bridge.imgmsg_to_cv2(ins_msg)
 
         grids_noentry = {}
         if noentry_msg:
