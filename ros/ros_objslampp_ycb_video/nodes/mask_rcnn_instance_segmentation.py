@@ -61,7 +61,6 @@ class MaskRCNNInstanceSegmentationNode(LazyTransport):
         confs = confs[0]
 
         class_ids = labels + 1
-        class_names = objslampp.datasets.ycb_video.class_names
         del labels
 
         if self._context:
@@ -120,7 +119,7 @@ class MaskRCNNInstanceSegmentationNode(LazyTransport):
         confs = confs[keep]
 
         cls_msg = ObjectClassArray(
-            header=imgmsg.header, class_names=class_names.tolist()
+            header=imgmsg.header
         )
         for ins_id, cls_id, conf in zip(instance_ids, class_ids, confs):
             cls_msg.classes.append(ObjectClass(
