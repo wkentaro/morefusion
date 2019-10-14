@@ -124,9 +124,6 @@ void OctomapServer::renderOctrees(cv::Mat label_ins, cv::Mat depth) {
       for (std::map<int, OcTreeT*>::iterator it = m_octrees.begin(); it != m_octrees.end(); it++) {
         int instance_id = it->first;
         OcTreeT* octree = it->second;
-        if (instance_id == -1) {
-          continue;
-        }
 
         pcl::PointCloud<PCLPoint> pc;
         pc.push_back(PCLPoint(0, 0, 0));
