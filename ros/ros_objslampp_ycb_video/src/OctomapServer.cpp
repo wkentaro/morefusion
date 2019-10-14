@@ -190,7 +190,7 @@ void OctomapServer::configCallback(
 }
 
 void OctomapServer::insertCloudCallback(
-  const sensor_msgs::PointCloud2::ConstPtr& cloud,
+  const sensor_msgs::PointCloud2ConstPtr& cloud,
   const sensor_msgs::ImageConstPtr& ins_msg,
   const ros_objslampp_msgs::ObjectClassArrayConstPtr& class_msg) {
   // ROS_INFO_BLUE("insertCloudCallback");
