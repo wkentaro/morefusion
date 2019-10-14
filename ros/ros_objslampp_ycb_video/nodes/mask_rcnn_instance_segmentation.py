@@ -59,11 +59,6 @@ class MaskRCNNInstanceSegmentationNode(LazyTransport):
         labels = labels[0]
         confs = confs[0]
 
-        keep = masks.sum(axis=(1, 2)) > 0
-        masks = masks[keep]
-        labels = labels[keep]
-        confs = confs[keep]
-
         class_ids = labels + 1
         class_names = objslampp.datasets.ycb_video.class_names
         del labels
@@ -74,13 +69,8 @@ class MaskRCNNInstanceSegmentationNode(LazyTransport):
             class_ids = class_ids[keep]
             confs = confs[keep]
 
-        label_ins = np.full(rgb.shape[:2], -1, dtype=np.int32)
-        sort = np.argsort(confs)
-        class_ids = class_ids[sort]
-        masks = masks[sort]
-        for ins_id, (cls_id, mask) in enumerate(zip(class_ids, masks)):
-            label_ins[mask] = ins_id
-
+        mask_contours = []
+        for mask in masks:
             contours, _ = cv2.findContours(
                 mask.astype(np.uint8),
                 cv2.RETR_TREE,
@@ -95,7 +85,24 @@ class MaskRCNNInstanceSegmentationNode(LazyTransport):
                     color=1,
                     thickness=10,
                 )
-            label_ins[mask_contour == 1] = -2
+            mask_contours.append(mask_contour.astype(bool))
+        mask_contours = np.array(mask_contours)
+
+        masks = masks & ~mask_contours
+
+        keep = masks.sum(axis=(1, 2)) > 0
+        masks = masks[keep]
+        class_ids = class_ids[keep]
+        confs = confs[keep]
+
+        label_ins = np.full(rgb.shape[:2], -1, dtype=np.int32)
+        sort = np.argsort(confs)
+        class_ids = class_ids[sort]
+        masks = masks[sort]
+        for ins_id, (cls_id, mask, mask_contour) in \
+                enumerate(zip(class_ids, masks, mask_contours)):
+            label_ins[mask] = ins_id
+            label_ins[mask_contour] = -2
 
         ins_msg = bridge.cv2_to_imgmsg(label_ins)
         ins_msg.header = imgmsg.header
