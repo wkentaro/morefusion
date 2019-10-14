@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import argparse
 import time
 
 import chainer
@@ -11,9 +12,15 @@ import objslampp
 
 
 def get_scenes():
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument('data_dir')
+    args = parser.parse_args()
+
     instances = []
     for instance_id in range(3):
-        instances.append(np.load(f'{instance_id:08d}.npz'))
+        instances.append(np.load(f'{args.data_dir}/{instance_id:08d}.npz'))
 
     models = objslampp.datasets.YCBVideoModels()
 

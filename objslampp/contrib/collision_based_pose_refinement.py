@@ -38,10 +38,12 @@ class CollisionBasedPoseRefinementLink(chainer.Link):
             for p, t in zip(points, transform)
         ]
 
-        grid = []
+        grid_uniform = []
+        grid_surface = []
+        grid_inside = []
         grid_nontarget_empty = [g for g in grid_nontarget_empty]
         for i in range(len(points)):
-            grid_i, _ = functions_module.pseudo_occupancy_voxelization(
+            grid_uniform_i, grid_surface_i, grid_inside_i = functions_module.pseudo_occupancy_voxelization(
                 points[i],
                 sdf[i],
                 pitch=pitch[i],
@@ -49,7 +51,9 @@ class CollisionBasedPoseRefinementLink(chainer.Link):
                 dims=(self._voxel_dim,) * 3,
                 threshold=self._voxel_threshold,
             )
-            grid.append(grid_i)
+            grid_uniform.append(grid_uniform_i)
+            grid_surface.append(grid_surface_i)
+            grid_inside.append(grid_inside_i)
 
             if len(points) <= 1:
                 continue
@@ -59,7 +63,7 @@ class CollisionBasedPoseRefinementLink(chainer.Link):
             sdf_other = self.xp.concatenate(
                 [p for j, p in enumerate(sdf) if i != j], axis=0
             )
-            _, grid_other = functions_module.pseudo_occupancy_voxelization(
+            _, _, grid_other = functions_module.pseudo_occupancy_voxelization(
                 points_other,
                 sdf_other,
                 pitch=pitch[i],
@@ -70,10 +74,13 @@ class CollisionBasedPoseRefinementLink(chainer.Link):
             grid_nontarget_empty[i] = F.maximum(
                 grid_nontarget_empty[i], grid_other
             )
-        grid = F.stack(grid)
+        grid_uniform = F.stack(grid_uniform)
+        grid_surface = F.stack(grid_surface)
+        grid_inside = F.stack(grid_inside)
         grid_nontarget_empty = F.stack(grid_nontarget_empty)
 
-        reward = F.sum(grid * grid_target) / F.sum(grid_target)
-        penalty = F.sum(grid * grid_nontarget_empty) / F.sum(grid)
+        reward = F.sum(grid_surface * grid_target) / F.sum(grid_target)
+        penalty = F.sum(grid_uniform * grid_nontarget_empty) / F.sum(grid_uniform)
+        # penalty = F.sum(grid_inside * grid_nontarget_empty) / F.sum(grid_inside)
         loss = penalty - reward
         return loss

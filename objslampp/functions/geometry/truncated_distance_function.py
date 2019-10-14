@@ -200,15 +200,22 @@ def pseudo_occupancy_voxelization(
     grid = 1 - (tdf / truncation)  # [0, 1]
 
     xp = cuda.get_array_module(points)
-    df = xp.maximum(sdf, 0)
-    df_grid = xp.zeros_like(tdf.array)
+
+    weight_inside = xp.full_like(tdf.array, -1)
     mask = indices != -1
-    df_grid[mask] = df[indices[mask]]
+    weight_inside[mask] = sdf[indices[mask]]
+    mask = weight_inside < 0
+    weight_inside[mask] = 0
+    weight_inside = weight_inside / weight_inside.max()
 
-    # scale = xp.tanh(df_grid / sdf.max() * 1000)
-    scale = df_grid / df_grid.max()
+    weight_surface = weight_inside.copy()
+    weight_surface[~mask] = 1 - weight_surface[~mask]
 
-    return grid, grid * scale
+    grid_weighted_uniform = grid
+    grid_weighted_surface = grid * weight_surface
+    grid_weighted_inside = grid * weight_inside
+
+    return grid_weighted_uniform, grid_weighted_surface, grid_weighted_inside
 
 
 if __name__ == '__main__':
