@@ -14,8 +14,12 @@
       <remap from="~input/camera_info" to="/camera/color/camera_info" />
       <remap from="~input/rgb" to="/camera/color/image_rect_color" />
       <remap from="~input/depth" to="/camera/aligned_depth_to_color/image_raw" />
-      <remap from="~input/label_ins" to="/camera/mask_rcnn_instance_segmentation/output/label_ins" />
-      <remap from="~input/class" to="/camera/mask_rcnn_instance_segmentation/output/class" />
+      <!-- OCCUPANCY: false -->
+      <remap from="~input/label_ins" to="/camera/mask_rcnn_instance_segmentation/output/label_ins" unless="$(arg OCCUPANCY)" />
+      <remap from="~input/class" to="/camera/mask_rcnn_instance_segmentation/output/class" unless="$(arg OCCUPANCY)" />
+      <!-- OCCUPANCY: true -->
+      <remap from="~input/label_ins" to="/camera/octomap_server/output/label_rendered" if="$(arg OCCUPANCY)" />
+      <remap from="~input/class" to="/camera/octomap_server/output/class" if="$(arg OCCUPANCY)" />
       <remap from="~input/grids_noentry" to="/camera/octomap_server/output/grids_noentry" if="$(arg OCCUPANCY)" />
       <rosparam subst_value="true">
         with_occupancy: $(arg OCCUPANCY)
