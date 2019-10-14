@@ -53,7 +53,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /camera/object_poses_to_markers/output
+      Marker Topic: /camera/without_occupancy/object_poses_to_markers/output
       Name: MarkerArray
       Namespaces:
         "": true
@@ -183,7 +183,7 @@ Visualization Manager:
     - Class: jsk_rviz_plugin/OverlayImage
       Enabled: true
       Name: PoseNetInput
-      Topic: /camera/singleview_3d_pose_estimation/output/debug/rgbd
+      Topic: /camera/without_occupancy/singleview_3d_pose_estimation/output/debug/rgbd
       Value: true
       alpha: 1
       height: 128
@@ -194,7 +194,7 @@ Visualization Manager:
     - Class: jsk_rviz_plugin/OverlayImage
       Enabled: true
       Name: Rendered
-      Topic: /camera/render_marker_array/tile_image/output
+      Topic: /camera/without_occupancy/render_marker_array/tile_image/output
       Value: true
       alpha: 1
       height: 128
