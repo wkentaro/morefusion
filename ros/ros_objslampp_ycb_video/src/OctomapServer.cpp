@@ -257,6 +257,10 @@ void OctomapServer::insertScan(
 
     octomap::point3d point(pc.points[index].x, pc.points[index].y, pc.points[index].z);
     int instance_id = label_ins.at<int32_t>(height_index, width_index);
+    if (instance_id == -2) {
+      // -1: background, -2: uncertain (e.g., boundary)
+      continue;
+    }
     unsigned class_id = 0;
     double pitch = m_res;
     if (instance_id >= 0) {

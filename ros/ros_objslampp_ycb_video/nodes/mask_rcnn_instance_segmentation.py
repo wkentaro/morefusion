@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from chainercv.links.model.fpn import MaskRCNNFPNResNet50
+import cv2
 import gdown
 import numpy as np
 
@@ -79,6 +80,22 @@ class MaskRCNNInstanceSegmentationNode(LazyTransport):
         masks = masks[sort]
         for ins_id, (cls_id, mask) in enumerate(zip(class_ids, masks)):
             label_ins[mask] = ins_id
+
+            contours, _ = cv2.findContours(
+                mask.astype(np.uint8),
+                cv2.RETR_TREE,
+                method=cv2.CHAIN_APPROX_SIMPLE,
+            )
+            mask_contour = np.zeros(mask.shape, dtype=np.uint8)
+            if contours:
+                cv2.drawContours(
+                    mask_contour,
+                    contours,
+                    contourIdx=-1,
+                    color=1,
+                    thickness=10,
+                )
+            label_ins[mask_contour == 1] = -2
 
         ins_msg = bridge.cv2_to_imgmsg(label_ins)
         ins_msg.header = imgmsg.header
