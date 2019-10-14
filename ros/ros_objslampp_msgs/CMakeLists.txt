@@ -9,6 +9,8 @@ find_package(catkin REQUIRED COMPONENTS
 
 add_message_files(
   FILES
+  ObjectClass.msg
+  ObjectClassArray.msg
   ObjectPose.msg
   ObjectPoseArray.msg
   VoxelDimensions.msg
