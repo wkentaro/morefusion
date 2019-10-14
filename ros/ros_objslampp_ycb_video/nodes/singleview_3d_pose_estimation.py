@@ -12,13 +12,13 @@ import objslampp
 import objslampp.contrib.singleview_3d as contrib
 
 import cv_bridge
-from jsk_recognition_msgs.msg import ClassificationResult
 import rospy
 import message_filters
 from sensor_msgs.msg import Image, CameraInfo
 from ros_objslampp_msgs.msg import VoxelGridArray
 from ros_objslampp_msgs.msg import ObjectPose
 from ros_objslampp_msgs.msg import ObjectPoseArray
+from ros_objslampp_msgs.msg import ObjectClassArray
 import topic_tools
 
 
@@ -75,7 +75,7 @@ class SingleViewPoseEstimation3D(topic_tools.LazyTransport):
             '~input/label_ins', Image, queue_size=1, buff_size=2 ** 24
         )
         sub_cls = message_filters.Subscriber(
-            '~input/class', ClassificationResult, queue_size=1,
+            '~input/class', ObjectClassArray, queue_size=1,
         )
         self._subscribers = [
             sub_cam,
@@ -135,8 +135,13 @@ class SingleViewPoseEstimation3D(topic_tools.LazyTransport):
                     matrix=grid_nontarget_empty,
                 )
 
-        class_ids = cls_msg.labels
-        instance_ids = np.arange(0, len(class_ids))
+        instance_ids = []
+        class_ids = []
+        for cls in cls_msg.classes:
+            instance_ids.append(cls.instance_id)
+            class_ids.append(cls.class_id)
+        instance_ids = np.array(instance_ids)
+        class_ids = np.array(class_ids)
 
         examples = []
         keep = []

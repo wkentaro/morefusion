@@ -3,8 +3,8 @@
 from topic_tools import LazyTransport
 
 import cv_bridge
-from jsk_recognition_msgs.msg import ClassificationResult
 import message_filters
+from ros_objslampp_msgs.msg import ObjectClassArray
 import rospy
 from sensor_msgs.msg import Image
 
@@ -21,9 +21,7 @@ class DrawInstanceSegmentation(LazyTransport):
     def subscribe(self):
         sub_rgb = message_filters.Subscriber('~input/rgb', Image)
         sub_ins = message_filters.Subscriber('~input/label_ins', Image)
-        sub_lbl = message_filters.Subscriber(
-            '~input/class', ClassificationResult
-        )
+        sub_lbl = message_filters.Subscriber('~input/class', ObjectClassArray)
         self._subscribers = [sub_rgb, sub_ins, sub_lbl]
         sync = message_filters.TimeSynchronizer(
             self._subscribers, queue_size=100
@@ -40,16 +38,21 @@ class DrawInstanceSegmentation(LazyTransport):
         rgb = bridge.imgmsg_to_cv2(rgb_msg, desired_encoding='rgb8')
         ins = bridge.imgmsg_to_cv2(ins_msg)
 
-        class_ids = cls_msg.labels
-        class_names = cls_msg.label_names
-        class_confs = cls_msg.label_proba
-        captions = [
-            f'{i}: {n}: {c:.1%}'
-            for i, n, c in zip(class_ids, class_names, class_confs)
-        ]
-
-        instance_ids = np.arange(0, len(class_ids))
-        masks = np.array([ins == i for i in instance_ids])
+        instance_ids = []
+        class_ids = []
+        class_confs = []
+        masks = []
+        captions = []
+        for cls in cls_msg.classes:
+            instance_ids.append(cls.instance_id)
+            class_ids.append(cls.class_id)
+            class_confs.append(cls.confidence)
+            masks.append(ins == cls.instance_id)
+            class_name = cls_msg.class_names[cls.class_id]
+            captions.append(
+                f'{cls.class_id}: {class_name}: {cls.confidence:.1%}'
+            )
+        masks = np.array(masks)
 
         if masks.size:
             viz = imgviz.instances.instances2rgb(

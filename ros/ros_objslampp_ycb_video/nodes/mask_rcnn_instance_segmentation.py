@@ -8,8 +8,9 @@ import numpy as np
 import objslampp
 
 import cv_bridge
-from jsk_recognition_msgs.msg import ClassificationResult
 import rospy
+from ros_objslampp_msgs.msg import ObjectClass
+from ros_objslampp_msgs.msg import ObjectClassArray
 from sensor_msgs.msg import Image
 from topic_tools import LazyTransport
 
@@ -33,7 +34,7 @@ class MaskRCNNInstanceSegmentationNode(LazyTransport):
         self._model.to_gpu()
 
         self._pub_cls = self.advertise(
-            '~output/class', ClassificationResult, queue_size=1
+            '~output/class', ObjectClassArray, queue_size=1
         )
         self._pub_ins = self.advertise(
             '~output/label_ins', Image, queue_size=1
@@ -91,29 +92,43 @@ class MaskRCNNInstanceSegmentationNode(LazyTransport):
         masks = masks & ~mask_contours
 
         keep = masks.sum(axis=(1, 2)) > 0
-        masks = masks[keep]
         class_ids = class_ids[keep]
+        masks = masks[keep]
+        mask_contours = mask_contours[keep]
         confs = confs[keep]
 
-        label_ins = np.full(rgb.shape[:2], -1, dtype=np.int32)
         sort = np.argsort(confs)
         class_ids = class_ids[sort]
         masks = masks[sort]
-        for ins_id, (cls_id, mask, mask_contour) in \
-                enumerate(zip(class_ids, masks, mask_contours)):
+        mask_contours = mask_contours[sort]
+        confs = confs[sort]
+
+        instance_ids = np.arange(0, len(masks))
+        label_ins = np.full(rgb.shape[:2], -1, dtype=np.int32)
+        for ins_id, mask, mask_contour in \
+                zip(instance_ids, masks, mask_contours):
             label_ins[mask] = ins_id
             label_ins[mask_contour] = -2
-
         ins_msg = bridge.cv2_to_imgmsg(label_ins)
         ins_msg.header = imgmsg.header
         self._pub_ins.publish(ins_msg)
 
-        cls_msg = ClassificationResult()
-        cls_msg.header = imgmsg.header
-        cls_msg.labels = class_ids.tolist()
-        cls_msg.label_names = [class_names[c] for c in class_ids]
-        cls_msg.label_proba = confs.tolist()
-        cls_msg.target_names = class_names.tolist()
+        instance_ids_active = np.unique(label_ins)
+        keep = np.isin(instance_ids, instance_ids_active)
+        instance_ids = instance_ids[keep]
+        class_ids = class_ids[keep]
+        confs = confs[keep]
+
+        cls_msg = ObjectClassArray(
+            header=imgmsg.header, class_names=class_names.tolist()
+        )
+        for ins_id, cls_id, conf in zip(instance_ids, class_ids, confs):
+            cls_msg.classes.append(ObjectClass(
+                instance_id=ins_id,
+                class_id=cls_id,
+                confidence=conf,
+            ))
+
         self._pub_cls.publish(cls_msg)
 
 
