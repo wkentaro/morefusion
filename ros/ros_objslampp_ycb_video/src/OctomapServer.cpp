@@ -237,6 +237,12 @@ void OctomapServer::insertCloudCallback(
     /*reference=*/label_ins_rend,
     /*target=*/&label_ins,
     /*instance_id_to_class_id=*/&instance_id_to_class_id);
+  for (std::map<int, unsigned>::iterator it = m_classIds.begin();
+       it != m_classIds.end(); it++) {
+    if (instance_id_to_class_id.find(it->first) == instance_id_to_class_id.end()) {
+      instance_id_to_class_id.insert(std::make_pair(it->first, it->second));
+    }
+  }
 
   m_labelRenderedPub.publish(
     cv_bridge::CvImage(cloud->header, "32SC1", label_ins_rend).toImageMsg());
