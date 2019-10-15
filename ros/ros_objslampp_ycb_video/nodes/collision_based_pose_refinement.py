@@ -138,7 +138,9 @@ class CollisionBasedPoseRefinement(topic_tools.LazyTransport):
         link.translation.update_rule.hyperparam.alpha *= 0.1
 
         t_start = time.time()
-        for iteration in range(200):
+        iteration = 50
+        self._publish(poses_msg, link.quaternion, link.translation)
+        for i in range(1, iteration + 1):
             loss = link(
                 points,
                 sdfs,
@@ -151,11 +153,12 @@ class CollisionBasedPoseRefinement(topic_tools.LazyTransport):
             optimizer.update()
             link.zerograds()
 
-            if iteration % 10 == 0:
-                rospy.loginfo(f'[{iteration}] {time.time() - t_start} [s]')
+            if i % 10 == 0:
+                self._publish(poses_msg, link.quaternion, link.translation)
 
-        quaternion = cuda.to_cpu(link.quaternion.array)
-        translation = cuda.to_cpu(link.translation.array)
+    def _publish(self, poses_msg, quaternion, translation):
+        quaternion = cuda.to_cpu(quaternion.array)
+        translation = cuda.to_cpu(translation.array)
         for i, pose in enumerate(poses_msg.poses):
             pose.pose.position.x = translation[i][0]
             pose.pose.position.y = translation[i][1]
