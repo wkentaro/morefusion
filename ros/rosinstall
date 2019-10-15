@@ -27,6 +27,14 @@
     uri: https://github.com/wkentaro/vision_opencv.git
     version: kinetic-xenial
 - git:
+    local-name: ros/geometry
+    uri: https://github.com/ros/geometry.git
+    version: indigo-devel
+- git:
+    local-name: ros/geometry2
+    uri: https://github.com/ros/geometry2.git
+    version: indigo-devel
+- git:
     local-name: ros/ros_comm
     uri: https://github.com/wkentaro/ros_comm.git
     version: objslampp
