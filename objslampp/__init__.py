@@ -7,6 +7,7 @@ from . import geometry
 from . import functions
 from . import metrics
 from . import models
+from . import ros
 from . import simulation
 from . import training
 from . import utils
