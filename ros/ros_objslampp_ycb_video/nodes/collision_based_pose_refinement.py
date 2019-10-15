@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-import time
-
 import chainer
 from chainer.backends import cuda
 import numpy as np
@@ -137,10 +135,8 @@ class CollisionBasedPoseRefinement(topic_tools.LazyTransport):
         optimizer.setup(link)
         link.translation.update_rule.hyperparam.alpha *= 0.1
 
-        t_start = time.time()
         iteration = 50
-        self._publish(poses_msg, link.quaternion, link.translation)
-        for i in range(1, iteration + 1):
+        for i in range(iteration):
             loss = link(
                 points,
                 sdfs,
@@ -153,8 +149,7 @@ class CollisionBasedPoseRefinement(topic_tools.LazyTransport):
             optimizer.update()
             link.zerograds()
 
-            if i % 10 == 0:
-                self._publish(poses_msg, link.quaternion, link.translation)
+        self._publish(poses_msg, link.quaternion, link.translation)
 
     def _publish(self, poses_msg, quaternion, translation):
         quaternion = cuda.to_cpu(quaternion.array)
