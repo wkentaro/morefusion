@@ -96,24 +96,14 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   ROS_INFO_BLUE("Initialized");
 }
 
-void OctomapServer::renderOctrees(cv::Mat label_ins, cv::Mat depth) {
+void OctomapServer::renderOctrees(
+    const Eigen::Matrix4f& sensorToWorld, cv::Mat label_ins, cv::Mat depth) {
   float fx = 619.4407958984375;
   float fy = 619.3239135742188;
   float cx = 326.8212585449219;
   float cy = 239.52056884765625;
   unsigned height = 480;
   unsigned width = 640;
-
-  tf::StampedTransform sensorToWorldTf;
-  ros::Time rostime = ros::Time::now();
-  try {
-    m_tfListener.lookupTransform(m_worldFrameId, m_sensorFrameId, rostime, sensorToWorldTf);
-  } catch (tf::TransformException& ex) {
-    ROS_ERROR_STREAM("Transform error of sensor data: " << ex.what() << ", quitting callback");
-    return;
-  }
-  Eigen::Matrix4f sensorToWorld;
-  pcl_ros::transformAsMatrix(sensorToWorldTf, sensorToWorld);
 
   if (m_octrees.size() == 0) {
     return;
@@ -223,7 +213,7 @@ void OctomapServer::insertCloudCallback(
   cv::Mat label_ins_rend = cv::Mat(pc.height, pc.width, CV_32SC1, -1);
   cv::Mat depth_rend = cv::Mat(
     pc.height, pc.width, CV_32FC1, std::numeric_limits<float>::quiet_NaN());
-  renderOctrees(label_ins_rend, depth_rend);
+  renderOctrees(sensorToWorld, label_ins_rend, depth_rend);
 
   std::map<int, unsigned> instance_id_to_class_id;
   for (size_t i = 0; i < class_msg->classes.size(); i++) {

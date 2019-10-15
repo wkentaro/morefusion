@@ -113,7 +113,7 @@ class OctomapServer {
     const ros_objslampp_ycb_video::OctomapServerConfig& config,
     const uint32_t level);
 
-  void renderOctrees(cv::Mat label_ins, cv::Mat depth);
+  void renderOctrees(const Eigen::Matrix4f& sensorToWorld, cv::Mat label_ins, cv::Mat depth);
 
   ros::NodeHandle m_nh;
   ros::Publisher m_markerPub;
