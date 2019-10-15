@@ -56,6 +56,9 @@
             pkg="ros_objslampp_ycb_video" type="object_mapping.py"
             clear_params="true">
         <remap from="~input/poses" to="singleview_3d_pose_estimation/output" />
+        <rosparam subst_value="true">
+          frame_id: base
+        </rosparam>
       </node>
       <group ns="object_mapping">
         <node name="object_poses_to_markers"
@@ -105,6 +108,9 @@
                 pkg="ros_objslampp_ycb_video" type="object_mapping.py"
                 clear_params="true">
             <remap from="~input/poses" to="output" />
+            <rosparam subst_value="true">
+              frame_id: base
+            </rosparam>
           </node>
           <group ns="object_mapping">
             <node name="object_poses_to_markers"

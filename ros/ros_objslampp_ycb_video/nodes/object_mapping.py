@@ -72,7 +72,7 @@ class ObjectMapping:
 
     def __init__(self):
         self._objects = {}  # instance_id: Object()
-        self._base_frame = 'map'
+        self._base_frame = rospy.get_param('~frame_id', 'map')
         self._pub = rospy.Publisher(
             '~output/poses', ObjectPoseArray, queue_size=1
         )
