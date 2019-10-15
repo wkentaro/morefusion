@@ -15,7 +15,7 @@
     <arg name="STATIC_SCENE" value="true" />
     <arg name="OCCUPANCY" value="false" />
   </include>
-    -->
+  -->
 
   <group ns="camera">
     <node name="octomap_server"

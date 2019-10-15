@@ -3,7 +3,7 @@
   <node name="rviz"
         pkg="rviz" type="rviz"
         clear_params="true"
-        args="-d $(find ros_objslampp_ycb_video)/rvizconfig/static.rviz">
+        args="-d $(find ros_objslampp_ycb_video)/rvizconfig/static_wbase.rviz">
   </node>
 
 </launch>

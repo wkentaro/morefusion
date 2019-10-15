@@ -10,11 +10,11 @@
   </include>
 
   <group if="$(arg RVIZ)">
-    <include file="$(find ros_objslampp_ycb_video)/launch/rviz_static.launch">
+    <include file="$(find ros_objslampp_ycb_video)/launch/rviz_static_wbase.launch">
     </include>
   </group>
 
-  <include file="$(find ros_objslampp_ycb_video)/launch/setup_static.launch">
+  <include file="$(find ros_objslampp_ycb_video)/launch/setup_static_wbase.launch">
     <arg name="CONTEXT" value="[2, 3, 9]" />
   </include>
 
