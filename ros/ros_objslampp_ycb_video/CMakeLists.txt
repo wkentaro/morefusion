@@ -5,9 +5,10 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   dynamic_reconfigure
   jsk_recognition_msgs
-  octomap_server
+  pcl_ros
   ros_objslampp_msgs
   roscpp
+  tf
 )
 
 find_package(PCL REQUIRED io)

@@ -1,4 +1,8 @@
 - git:
+    local-name: OctoMap/octomap
+    uri: https://github.com/OctoMap/octomap.git
+    version: devel
+- git:
     local-name: appliedAI-Initiative/orb_slam_2_ros
     uri: https://github.com/appliedAI-Initiative/orb_slam_2_ros.git
     version: master

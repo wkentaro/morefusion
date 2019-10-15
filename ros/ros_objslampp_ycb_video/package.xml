@@ -13,9 +13,10 @@
   <build_depend>dynamic_reconfigure</build_depend>
   <build_depend>jsk_recognition_msgs</build_depend>
   <build_depend>octomap</build_depend>
-  <build_depend>octomap_server</build_depend>
+  <build_depend>pcl_ros</build_depend>
   <build_depend>ros_objslampp_msgs</build_depend>
   <build_depend>roscpp</build_depend>
+  <build_depend>tf</build_depend>
 
   <exec_depend>cv_bridge</exec_depend>
   <exec_depend>jsk_perception</exec_depend>
