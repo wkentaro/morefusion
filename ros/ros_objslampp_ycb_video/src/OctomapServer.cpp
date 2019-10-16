@@ -99,6 +99,8 @@ void OctomapServer::renderOctrees(
     const cv::Mat& mask,
     cv::Mat* label_ins,
     cv::Mat* depth) {
+  ros::WallTime t_start = ros::WallTime::now();
+
   float fx = 619.4407958984375;
   float fy = 619.3239135742188;
   float cx = 326.8212585449219;
@@ -154,7 +156,8 @@ void OctomapServer::renderOctrees(
       }
     }
   }
-  // ROS_INFO_GREEN("rendering completed");
+  ros::WallDuration elapsed_time = ros::WallTime::now() - t_start;
+  ROS_INFO_MAGENTA("Elapsed Time: %lf [s], %lf [fps]", elapsed_time.toSec(), 1. / elapsed_time.toSec());
 }
 
 OctomapServer::~OctomapServer() {
@@ -279,6 +282,8 @@ void OctomapServer::insertScan(
     const PCLPointCloud& pc,
     const cv::Mat& label_ins,
     const std::map<int, unsigned>& instance_id_to_class_id) {
+  ros::WallTime t_start = ros::WallTime::now();
+
   octomap::point3d sensorOrigin = octomap::pointTfToOctomap(sensorOriginTf);
 
   std::vector<int> instance_ids = ros_objslampp_ycb_video::utils::unique<int>(label_ins);
@@ -409,6 +414,9 @@ void OctomapServer::insertScan(
       it->second->prune();
     }
   }
+
+  ros::WallDuration elapsed_time = ros::WallTime::now() - t_start;
+  ROS_INFO_MAGENTA("Elapsed Time: %lf [s], %lf [fps]", elapsed_time.toSec(), 1. / elapsed_time.toSec());
 }
 
 
