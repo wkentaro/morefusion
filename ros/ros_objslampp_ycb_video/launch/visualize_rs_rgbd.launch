@@ -9,7 +9,8 @@
       <remap from="image" to="image_raw" />
       <rosparam subst_value="true">
         colormap: 2
-        do_dynamic_scaling: true
+        min_image_value: 300
+        max_image_value: 2000
         gui: false
       </rosparam>
     </node>

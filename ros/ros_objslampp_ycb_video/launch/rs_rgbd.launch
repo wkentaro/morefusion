@@ -1,0 +1,10 @@
+<launch>
+
+  <include file="$(find realsense2_camera)/launch/rs_rgbd.launch">
+  </include>
+
+  <include file="$(find ros_objslampp_ycb_video)/launch/visualize_rs_rgbd.launch">
+    <arg name="GUI" value="false" />
+  </include>
+
+</launch>
