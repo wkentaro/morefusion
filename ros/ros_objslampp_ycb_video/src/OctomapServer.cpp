@@ -117,7 +117,8 @@ void OctomapServer::renderOctrees(
       if (mask.at<uint8_t>(j, i) == 0) {
         continue;
       }
-      std::vector<int> instance_ids = ros_objslampp_ycb_video::utils::keys<int, OcTreeT*>(m_octrees);
+      std::vector<int> instance_ids =
+        ros_objslampp_ycb_video::utils::keys<int, OcTreeT*>(m_octrees);
       #pragma omp parallel for
       for (size_t k = 0; k < instance_ids.size(); k++) {
         int instance_id = instance_ids[k];
@@ -310,7 +311,9 @@ void OctomapServer::insertScan(
   for (size_t index = 0 ; index < pc.points.size(); index++) {
     size_t width_index = index % pc.width;
     size_t height_index = index / pc.width;
-    if (std::isnan(pc.points[index].x) || std::isnan(pc.points[index].y) || std::isnan(pc.points[index].z)) {
+    if (std::isnan(pc.points[index].x) ||
+        std::isnan(pc.points[index].y) ||
+        std::isnan(pc.points[index].z)) {
       // Skip NaN points
       continue;
     }
