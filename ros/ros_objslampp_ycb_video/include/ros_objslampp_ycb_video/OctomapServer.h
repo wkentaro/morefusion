@@ -112,7 +112,6 @@ class OctomapServer {
   ros::Publisher m_markerPub;
   ros::Publisher m_binaryMapPub;
   ros::Publisher m_fullMapPub;
-  ros::Publisher m_pointCloudPub;
   ros::Publisher m_collisionObjectPub;
   ros::Publisher m_mapPub;
   ros::Publisher m_cmapPub;

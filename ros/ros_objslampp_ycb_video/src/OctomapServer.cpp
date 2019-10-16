@@ -64,8 +64,6 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
     "occupied_cells_vis_array", 1, m_latchedTopics);
   m_binaryMapPub = m_nh.advertise<Octomap>("octomap_binary", 1, m_latchedTopics);
   m_fullMapPub = m_nh.advertise<Octomap>("octomap_full", 1, m_latchedTopics);
-  m_pointCloudPub = m_nh.advertise<sensor_msgs::PointCloud2>(
-    "octomap_point_cloud_centers", 1, m_latchedTopics);
   m_mapPub = m_nh.advertise<nav_msgs::OccupancyGrid>("projected_map", 5, m_latchedTopics);
   m_fmarkerPub = m_nh.advertise<visualization_msgs::MarkerArray>(
     "free_cells_vis_array", 1, m_latchedTopics);
@@ -401,7 +399,6 @@ void OctomapServer::publishAll(const ros::Time& rostime) {
 
   bool publishFreeMarkerArray = (m_latchedTopics || m_fmarkerPub.getNumSubscribers() > 0);
   bool publishMarkerArray = (m_latchedTopics || m_markerPub.getNumSubscribers() > 0);
-  bool publishPointCloud = (m_latchedTopics || m_pointCloudPub.getNumSubscribers() > 0);
   bool publishBinaryMap = (m_latchedTopics || m_binaryMapPub.getNumSubscribers() > 0);
   bool publishFullMap = (m_latchedTopics || m_fullMapPub.getNumSubscribers() > 0);
 
@@ -422,9 +419,6 @@ void OctomapServer::publishAll(const ros::Time& rostime) {
   }
   Eigen::Matrix4f worldToSensor;
   pcl_ros::transformAsMatrix(worldToSensorTf, worldToSensor);
-
-  // init pointcloud:
-  pcl::PointCloud<PCLPoint> pclCloud;
 
   ros_objslampp_msgs::VoxelGridArray grids;
   grids.header.frame_id = m_sensorFrameId;
@@ -562,11 +556,6 @@ void OctomapServer::publishAll(const ros::Time& rostime) {
 
             occupiedNodesVis.markers[idx].points.push_back(cubeCenter);
           }
-
-          // insert into pointcloud:
-          if (publishPointCloud) {
-            pclCloud.push_back(PCLPoint(x, y, z));
-          }
         }
       } else if (instance_id != -1) {
         continue;
@@ -657,16 +646,6 @@ void OctomapServer::publishAll(const ros::Time& rostime) {
     }
 
     m_fmarkerPub.publish(freeNodesVis);
-  }
-
-
-  // finish pointcloud:
-  if (publishPointCloud) {
-    sensor_msgs::PointCloud2 cloud;
-    pcl::toROSMsg(pclCloud, cloud);
-    cloud.header.frame_id = m_worldFrameId;
-    cloud.header.stamp = rostime;
-    m_pointCloudPub.publish(cloud);
   }
 
   if (publishBinaryMap) {
