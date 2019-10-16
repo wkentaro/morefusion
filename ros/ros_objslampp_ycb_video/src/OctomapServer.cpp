@@ -109,12 +109,15 @@ void OctomapServer::renderOctrees(
     return;
   }
 
-  // ROS_INFO_GREEN("rendering");
+  #pragma omp parallel for
   for (size_t j = 0; j < height; j++) {
+    #pragma omp parallel for
     for (size_t i = 0; i < width; i++) {
-      for (std::map<int, OcTreeT*>::iterator it = m_octrees.begin(); it != m_octrees.end(); it++) {
-        int instance_id = it->first;
-        OcTreeT* octree = it->second;
+      std::vector<int> instance_ids = ros_objslampp_ycb_video::utils::keys<int, OcTreeT*>(m_octrees);
+      #pragma omp parallel for
+      for (size_t k = 0; k < instance_ids.size(); k++) {
+        int instance_id = instance_ids[k];
+        OcTreeT* octree = m_octrees.find(instance_id)->second;
 
         pcl::PointCloud<PCLPoint> pc;
         pc.push_back(PCLPoint(0, 0, 0));
@@ -134,10 +137,13 @@ void OctomapServer::renderOctrees(
           pc.push_back(PCLPoint(end.x(), end.y(), end.z()));
           pcl::transformPointCloud(pc, pc, sensorToWorld.inverse());
 
-          float depth_ij = depth.at<float>(j, i);
-          if (isnan(depth_ij) || (pc[0].z < depth_ij)) {
-            depth.at<float>(j, i) = pc[0].z;
-            label_ins.at<int32_t>(j, i) = instance_id;
+          #pragma omp critical
+          {
+            float depth_ij = depth.at<float>(j, i);
+            if (isnan(depth_ij) || (pc[0].z < depth_ij)) {
+              depth.at<float>(j, i) = pc[0].z;
+              label_ins.at<int32_t>(j, i) = instance_id;
+            }
           }
         }
       }
