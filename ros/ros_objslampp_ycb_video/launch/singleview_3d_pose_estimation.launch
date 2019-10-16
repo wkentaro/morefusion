@@ -1,5 +1,7 @@
 <launch>
 
+  <arg name="FRAME_ID" />
+
   <arg name="STATIC_SCENE" default="false" />
   <arg name="OCCUPANCY" default="false" />
 
@@ -57,7 +59,7 @@
             clear_params="true">
         <remap from="~input/poses" to="singleview_3d_pose_estimation/output" />
         <rosparam subst_value="true">
-          frame_id: base
+          frame_id: $(arg FRAME_ID)
         </rosparam>
       </node>
       <group ns="object_mapping">
@@ -109,7 +111,7 @@
                 clear_params="true">
             <remap from="~input/poses" to="output" />
             <rosparam subst_value="true">
-              frame_id: base
+              frame_id: $(arg FRAME_ID)
             </rosparam>
           </node>
           <group ns="object_mapping">
