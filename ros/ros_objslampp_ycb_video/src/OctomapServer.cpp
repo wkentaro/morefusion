@@ -310,6 +310,7 @@ void OctomapServer::insertScan(
   }
 
   // all other points: free on ray, occupied on endpoint:
+  std::map<int, PCLPointCloud> instance_id_to_points;
   #pragma omp parallel for
   for (size_t index = 0 ; index < pc.points.size(); index++) {
     size_t width_index = index % pc.width;
@@ -327,6 +328,15 @@ void OctomapServer::insertScan(
       continue;
     }
     OcTreeT* octree = m_octrees.find(instance_id)->second;
+
+    #pragma omp critical
+    {
+      if (instance_id_to_points.find(instance_id) == instance_id_to_points.end()) {
+        instance_id_to_points.insert(std::make_pair(instance_id, PCLPointCloud()));
+      } else {
+        instance_id_to_points.find(instance_id)->second.push_back(pc.points[index]);
+      }
+    }
 
     // maxrange check
     if ((m_maxRange < 0.0) || ((point - sensorOrigin).norm() <= m_maxRange)) {
@@ -365,19 +375,13 @@ void OctomapServer::insertScan(
     }
   }
 
-  for (std::map<int, OcTreeT*>::iterator it = m_octrees.begin(); it != m_octrees.end(); it++) {
+  for (std::map<int, PCLPointCloud>::iterator it = instance_id_to_points.begin();
+       it != instance_id_to_points.end(); it++) {
     int instance_id = it->first;
-    OcTreeT* octree = it->second;
-    unsigned class_id = m_classIds.find(instance_id)->second;
-
-    double min_x, min_y, min_z;
-    octree->getMetricMin(min_x, min_y, min_z);
-    double max_x, max_y, max_z;
-    octree->getMetricMax(max_x, max_y, max_z);
-    double center_x = (min_x + max_x) / 2;
-    double center_y = (min_y + max_y) / 2;
-    double center_z = (min_z + max_z) / 3;
-    octomap::point3d center(center_x, center_y, center_z);
+    Eigen::Matrix<float, 4, 1> centroid;
+    pcl::compute3DCentroid<PCLPoint, float>(
+      /*cloud=*/it->second, /*centroid=*/centroid);
+    octomap::point3d center(centroid(0, 0), centroid(1, 0), centroid(2, 0));
     m_centers.insert(std::make_pair(instance_id, center));
   }
 
