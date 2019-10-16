@@ -97,7 +97,10 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
 }
 
 void OctomapServer::renderOctrees(
-    const Eigen::Matrix4f& sensorToWorld, cv::Mat label_ins, cv::Mat depth) {
+    const Eigen::Matrix4f& sensorToWorld,
+    const cv::Mat& mask,
+    cv::Mat* label_ins,
+    cv::Mat* depth) {
   float fx = 619.4407958984375;
   float fy = 619.3239135742188;
   float cx = 326.8212585449219;
@@ -113,6 +116,9 @@ void OctomapServer::renderOctrees(
   for (size_t j = 0; j < height; j++) {
     #pragma omp parallel for
     for (size_t i = 0; i < width; i++) {
+      if (mask.at<uint8_t>(j, i) == 0) {
+        continue;
+      }
       std::vector<int> instance_ids = ros_objslampp_ycb_video::utils::keys<int, OcTreeT*>(m_octrees);
       #pragma omp parallel for
       for (size_t k = 0; k < instance_ids.size(); k++) {
@@ -139,10 +145,10 @@ void OctomapServer::renderOctrees(
 
           #pragma omp critical
           {
-            float depth_ij = depth.at<float>(j, i);
-            if (isnan(depth_ij) || (pc[0].z < depth_ij)) {
-              depth.at<float>(j, i) = pc[0].z;
-              label_ins.at<int32_t>(j, i) = instance_id;
+            float depth_ij = depth->at<float>(j, i);
+            if (std::isnan(depth_ij) || (pc[0].z < depth_ij)) {
+              depth->at<float>(j, i) = pc[0].z;
+              label_ins->at<int32_t>(j, i) = instance_id;
             }
           }
         }
@@ -216,10 +222,11 @@ void OctomapServer::insertCloudCallback(
     return;
   }
 
+  cv::Mat mask_rend = ros_objslampp_ycb_video::utils::rendering_mask(label_ins);
   cv::Mat label_ins_rend = cv::Mat(pc.height, pc.width, CV_32SC1, -1);
   cv::Mat depth_rend = cv::Mat(
     pc.height, pc.width, CV_32FC1, std::numeric_limits<float>::quiet_NaN());
-  renderOctrees(sensorToWorld, label_ins_rend, depth_rend);
+  renderOctrees(sensorToWorld, mask_rend, &label_ins_rend, &depth_rend);
 
   std::map<int, unsigned> instance_id_to_class_id;
   for (size_t i = 0; i < class_msg->classes.size(); i++) {
@@ -306,7 +313,7 @@ void OctomapServer::insertScan(
   for (size_t index = 0 ; index < pc.points.size(); index++) {
     size_t width_index = index % pc.width;
     size_t height_index = index / pc.width;
-    if (isnan(pc.points[index].x) || isnan(pc.points[index].y) || isnan(pc.points[index].z)) {
+    if (std::isnan(pc.points[index].x) || std::isnan(pc.points[index].y) || std::isnan(pc.points[index].z)) {
       // Skip NaN points
       continue;
     }

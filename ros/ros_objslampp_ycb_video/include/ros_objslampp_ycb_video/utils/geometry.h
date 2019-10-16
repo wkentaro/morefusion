@@ -5,6 +5,7 @@
 
 #include <vector>
 #include <map>
+#include <tuple>
 #include <utility>
 
 #include <opencv2/opencv.hpp>
@@ -80,6 +81,66 @@ void track_instance_id(
     }
   }
 }
+
+cv::Mat rendering_mask(const cv::Mat& label_ins) {
+  // aabb: y1, x1, y2, x2
+  std::map<int, std::tuple<int, int, int, int> > instance_id_to_aabb;
+
+  int height = label_ins.rows;
+  int width = label_ins.cols;
+  for (int j = 0; j < height; j++) {
+    for (int i = 0; i < width; i++) {
+      int instance_id = label_ins.at<int>(j, i);
+      if (instance_id < 0) {
+        continue;
+      }
+
+      int y1, x1, y2, x2;
+      if (instance_id_to_aabb.find(instance_id) == instance_id_to_aabb.end()) {
+        y1 = std::max(j - 1, 0);
+        x1 = std::max(i - 1, 0);
+        y2 = std::min(j + 1, height - 1);
+        x2 = std::min(i + 1, width - 1);
+        instance_id_to_aabb.insert(std::make_pair(instance_id, std::make_tuple(y1, x1, y2, x2)));
+      } else {
+        std::tuple<int, int, int, int> aabb = instance_id_to_aabb.find(instance_id)->second;
+        y1 = std::max(std::min(j - 1, std::get<0>(aabb)), 0);
+        x1 = std::max(std::min(i - 1, std::get<1>(aabb)), 0);
+        y2 = std::min(std::max(j + 1, std::get<2>(aabb)), height - 1);
+        x2 = std::min(std::max(i + 1, std::get<3>(aabb)), width - 1);
+        instance_id_to_aabb.find(instance_id)->second = std::make_tuple(y1, x1, y2, x2);
+      }
+    }
+  }
+
+  cv::Mat mask = cv::Mat::zeros(label_ins.rows, label_ins.cols, CV_8UC1);
+  for (std::map<int, std::tuple<int, int, int, int> >::iterator it =
+       instance_id_to_aabb.begin(); it != instance_id_to_aabb.end(); it++) {
+    std::tuple<int, int, int, int> aabb = it->second;
+    int y1 = std::get<0>(aabb);
+    int x1 = std::get<1>(aabb);
+    int y2 = std::get<2>(aabb);
+    int x2 = std::get<3>(aabb);
+
+    // render 10% larger ROI
+    float cy = (y1 + y2) / 2.0;
+    float cx = (x1 + x2) / 2.0;
+    float roi_h = y2 - y1;
+    float roi_w = x2 - x1;
+    roi_h *= 1.1;
+    roi_w *= 1.1;
+
+    y1 = cy - static_cast<int>(std::round(roi_h / 2.0));
+    y2 = y1 + static_cast<int>(roi_h);
+    x1 = cx - static_cast<int>(std::round(roi_w / 2.0));
+    x2 = x1 + static_cast<int>(roi_w);
+
+    cv::rectangle(mask, cv::Point(x1, y1), cv::Point(x2, y2), /*color=*/255, /*thickness=*/CV_FILLED);
+  }
+
+  return mask;
+}
+
 
 }  // namespace utils
 
