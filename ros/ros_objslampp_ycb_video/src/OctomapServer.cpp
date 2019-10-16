@@ -101,12 +101,12 @@ void OctomapServer::renderOctrees(
     cv::Mat* depth) {
   ros::WallTime t_start = ros::WallTime::now();
 
-  float fx = 619.4407958984375;
-  float fy = 619.3239135742188;
-  float cx = 326.8212585449219;
-  float cy = 239.52056884765625;
-  unsigned height = 480;
-  unsigned width = 640;
+  float fx = 619.4407958984375 / 2.0;
+  float fy = 619.3239135742188 / 2.0;
+  float cx = 326.8212585449219 / 2.0;
+  float cy = 239.52056884765625 / 2.0;
+  unsigned height = 480 / 2;
+  unsigned width = 640 / 2;
 
   if (m_octrees.size() == 0) {
     return;
@@ -156,6 +156,7 @@ void OctomapServer::renderOctrees(
       }
     }
   }
+
   ros::WallDuration elapsed_time = ros::WallTime::now() - t_start;
   ROS_INFO_MAGENTA("Elapsed Time: %lf [s], %lf [fps]", elapsed_time.toSec(), 1. / elapsed_time.toSec());
 }
@@ -229,7 +230,11 @@ void OctomapServer::insertCloudCallback(
   cv::Mat depth_rend = cv::Mat(
     pc.height, pc.width, CV_32FC1, std::numeric_limits<float>::quiet_NaN());
   if (m_octrees.size() > 0) {
+    cv::resize(mask_rend, mask_rend, cv::Size(), 0.5, 0.5, cv::INTER_NEAREST);
+    cv::resize(label_ins_rend, label_ins_rend, cv::Size(), 0.5, 0.5, cv::INTER_NEAREST);
+    cv::resize(depth_rend, depth_rend, cv::Size(), 0.5, 0.5, cv::INTER_NEAREST);
     renderOctrees(m_lastSensorToWorld, mask_rend, &label_ins_rend, &depth_rend);
+    cv::resize(label_ins_rend, label_ins_rend, cv::Size(pc.width, pc.height), 0, 0, cv::INTER_NEAREST);
   }
   m_lastSensorHeader = cloud->header;
   m_lastSensorToWorld = sensorToWorld;
@@ -324,6 +329,9 @@ void OctomapServer::insertScan(
   for (size_t index = 0 ; index < pc.points.size(); index++) {
     size_t width_index = index % pc.width;
     size_t height_index = index / pc.width;
+    if (width_index % 2 == 0 || height_index % 2 != 0) {
+      continue;
+    }
     if (std::isnan(pc.points[index].x) ||
         std::isnan(pc.points[index].y) ||
         std::isnan(pc.points[index].z)) {

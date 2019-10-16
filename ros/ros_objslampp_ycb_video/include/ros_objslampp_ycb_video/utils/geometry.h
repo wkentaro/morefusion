@@ -127,8 +127,8 @@ cv::Mat rendering_mask(const cv::Mat& label_ins) {
     float cx = (x1 + x2) / 2.0;
     float roi_h = y2 - y1;
     float roi_w = x2 - x1;
-    roi_h *= 1.1;
-    roi_w *= 1.1;
+    roi_h *= 1.5;
+    roi_w *= 1.5;
 
     y1 = cy - static_cast<int>(std::round(roi_h / 2.0));
     y2 = y1 + static_cast<int>(roi_h);
