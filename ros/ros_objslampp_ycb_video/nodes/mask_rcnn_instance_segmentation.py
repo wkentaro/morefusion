@@ -70,37 +70,38 @@ class MaskRCNNInstanceSegmentationNode(LazyTransport):
             confs = confs[keep]
 
         mask_contours = []
-        for mask in masks:
-            contours, _ = cv2.findContours(
-                mask.astype(np.uint8),
-                cv2.RETR_TREE,
-                method=cv2.CHAIN_APPROX_SIMPLE,
-            )
-            mask_contour = np.zeros(mask.shape, dtype=np.uint8)
-            if contours:
-                cv2.drawContours(
-                    mask_contour,
-                    contours,
-                    contourIdx=-1,
-                    color=1,
-                    thickness=10,
+        if len(masks) > 0:
+            for mask in masks:
+                contours, _ = cv2.findContours(
+                    mask.astype(np.uint8),
+                    cv2.RETR_TREE,
+                    method=cv2.CHAIN_APPROX_SIMPLE,
                 )
-            mask_contours.append(mask_contour.astype(bool))
-        mask_contours = np.array(mask_contours)
+                mask_contour = np.zeros(mask.shape, dtype=np.uint8)
+                if contours:
+                    cv2.drawContours(
+                        mask_contour,
+                        contours,
+                        contourIdx=-1,
+                        color=1,
+                        thickness=10,
+                    )
+                mask_contours.append(mask_contour.astype(bool))
+            mask_contours = np.array(mask_contours)
+            masks = masks & ~mask_contours
 
-        masks = masks & ~mask_contours
+            keep = masks.sum(axis=(1, 2)) > 0
+            class_ids = class_ids[keep]
+            masks = masks[keep]
+            mask_contours = mask_contours[keep]
+            confs = confs[keep]
 
-        keep = masks.sum(axis=(1, 2)) > 0
-        class_ids = class_ids[keep]
-        masks = masks[keep]
-        mask_contours = mask_contours[keep]
-        confs = confs[keep]
-
-        sort = np.argsort(confs)
-        class_ids = class_ids[sort]
-        masks = masks[sort]
-        mask_contours = mask_contours[sort]
-        confs = confs[sort]
+        if len(confs) > 0:
+            sort = np.argsort(confs)
+            class_ids = class_ids[sort]
+            masks = masks[sort]
+            mask_contours = mask_contours[sort]
+            confs = confs[sort]
 
         instance_ids = np.arange(0, len(masks))
         label_ins = np.full(rgb.shape[:2], -1, dtype=np.int32)
