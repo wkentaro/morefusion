@@ -272,18 +272,9 @@ void OctomapServer::insertScan(
     const std::map<int, unsigned>& instance_id_to_class_id) {
   octomap::point3d sensorOrigin = octomap::pointTfToOctomap(sensorOriginTf);
 
-  // all other points: free on ray, occupied on endpoint:
-  octomap::KeySet free_cells, occupied_cells;
-  for (size_t index = 0 ; index < pc.points.size(); index++) {
-    size_t width_index = index % pc.width;
-    size_t height_index = index / pc.width;
-    if (isnan(pc.points[index].x) || isnan(pc.points[index].y) || isnan(pc.points[index].z)) {
-      // Skip NaN points
-      continue;
-    }
-
-    octomap::point3d point(pc.points[index].x, pc.points[index].y, pc.points[index].z);
-    int instance_id = label_ins.at<int32_t>(height_index, width_index);
+  std::vector<int> instance_ids = ros_objslampp_ycb_video::utils::unique<int>(label_ins);
+  for (size_t i = 0; i < instance_ids.size(); i++) {
+    int instance_id = instance_ids[i];
     if (instance_id == -2) {
       // -1: background, -2: uncertain (e.g., boundary)
       continue;
@@ -307,32 +298,56 @@ void OctomapServer::insertScan(
       m_octrees.insert(std::make_pair(instance_id, octree));
       m_classIds.insert(std::make_pair(instance_id, class_id));
     }
+  }
+
+  // all other points: free on ray, occupied on endpoint:
+  octomap::KeySet free_cells, occupied_cells;
+  #pragma omp parallel for
+  for (size_t index = 0 ; index < pc.points.size(); index++) {
+    size_t width_index = index % pc.width;
+    size_t height_index = index / pc.width;
+    if (isnan(pc.points[index].x) || isnan(pc.points[index].y) || isnan(pc.points[index].z)) {
+      // Skip NaN points
+      continue;
+    }
+
+    octomap::point3d point(pc.points[index].x, pc.points[index].y, pc.points[index].z);
+    int instance_id = label_ins.at<int32_t>(height_index, width_index);
+    if (m_octrees.find(instance_id) == m_octrees.end()) {
+      continue;
+    }
     OcTreeT* octree = m_octrees.find(instance_id)->second;
 
     // maxrange check
     if ((m_maxRange < 0.0) || ((point - sensorOrigin).norm() <= m_maxRange)) {
       // free cells
       if (octree->computeRayKeys(sensorOrigin, point, m_keyRay)) {
+        #pragma omp critical
         free_cells.insert(m_keyRay.begin(), m_keyRay.end());
       }
       // occupied endpoint
       octomap::OcTreeKey key;
       if (octree->coordToKeyChecked(point, key)) {
-        occupied_cells.insert(key);
-        octree->updateNode(key, true);
-        updateMinKey(key, &m_updateBBXMin);
-        updateMaxKey(key, &m_updateBBXMax);
+        #pragma omp critical
+        {
+          occupied_cells.insert(key);
+          octree->updateNode(key, true);
+        // updateMinKey(key, &m_updateBBXMin);
+        // updateMaxKey(key, &m_updateBBXMax);
+        }
       }
     } else {  // ray longer than maxrange:;
       octomap::point3d new_end = sensorOrigin + (point - sensorOrigin).normalized() * m_maxRange;
       if (octree->computeRayKeys(sensorOrigin, new_end, m_keyRay)) {
+        #pragma omp critical
         free_cells.insert(m_keyRay.begin(), m_keyRay.end());
 
         octomap::OcTreeKey endKey;
         if (octree->coordToKeyChecked(new_end, endKey)) {
+          #pragma omp critical
           free_cells.insert(endKey);
-          updateMinKey(endKey, &m_updateBBXMin);
-          updateMaxKey(endKey, &m_updateBBXMax);
+          // updateMinKey(endKey, &m_updateBBXMin);
+          // updateMaxKey(endKey, &m_updateBBXMax);
         } else {
           ROS_ERROR_STREAM("Could not generate Key for endpoint " << new_end);
         }

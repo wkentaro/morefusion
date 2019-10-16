@@ -73,16 +73,16 @@ class OctomapServer {
     const ros_objslampp_msgs::ObjectClassArrayConstPtr& class_msg);
 
  protected:
-  inline static void updateMinKey(const octomap::OcTreeKey& in, octomap::OcTreeKey* min) {
-    for (unsigned i = 0; i < 3; ++i) {
-      (*min)[i] = std::min(in[i], (*min)[i]);
-    }
-  }
+  // inline static void updateMinKey(const octomap::OcTreeKey& in, octomap::OcTreeKey* min) {
+  //   for (unsigned i = 0; i < 3; ++i) {
+  //     (*min)[i] = std::min(in[i], (*min)[i]);
+  //   }
+  // }
 
-  inline static void updateMaxKey(const octomap::OcTreeKey& in, octomap::OcTreeKey* max) {
-    for (unsigned i = 0; i < 3; ++i)
-     (*max)[i] = std::max(in[i], (*max)[i]);
-  }
+  // inline static void updateMaxKey(const octomap::OcTreeKey& in, octomap::OcTreeKey* max) {
+  //   for (unsigned i = 0; i < 3; ++i)
+  //    (*max)[i] = std::max(in[i], (*max)[i]);
+  // }
 
   void publishBinaryOctoMap(const ros::Time& rostime = ros::Time::now()) const;
   void publishFullOctoMap(const ros::Time& rostime = ros::Time::now()) const;
@@ -143,8 +143,8 @@ class OctomapServer {
   std::map<int, unsigned> m_classIds;
   std::map<int, octomap::point3d> m_centers;
   octomap::KeyRay m_keyRay;  // temp storage for ray casting
-  octomap::OcTreeKey m_updateBBXMin;
-  octomap::OcTreeKey m_updateBBXMax;
+  // octomap::OcTreeKey m_updateBBXMin;
+  // octomap::OcTreeKey m_updateBBXMax;
 
   double m_maxRange;
   std::string m_worldFrameId;  // the map frame
