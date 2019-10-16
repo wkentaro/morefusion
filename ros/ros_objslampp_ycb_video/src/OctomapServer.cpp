@@ -332,8 +332,6 @@ void OctomapServer::insertScan(
         {
           occupied_cells.insert(key);
           octree->updateNode(key, true);
-        // updateMinKey(key, &m_updateBBXMin);
-        // updateMaxKey(key, &m_updateBBXMax);
         }
       }
     } else {  // ray longer than maxrange:;
@@ -346,8 +344,6 @@ void OctomapServer::insertScan(
         if (octree->coordToKeyChecked(new_end, endKey)) {
           #pragma omp critical
           free_cells.insert(endKey);
-          // updateMinKey(endKey, &m_updateBBXMin);
-          // updateMaxKey(endKey, &m_updateBBXMax);
         } else {
           ROS_ERROR_STREAM("Could not generate Key for endpoint " << new_end);
         }
