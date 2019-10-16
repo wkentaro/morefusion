@@ -225,7 +225,11 @@ void OctomapServer::insertCloudCallback(
   cv::Mat label_ins_rend = cv::Mat(pc.height, pc.width, CV_32SC1, -1);
   cv::Mat depth_rend = cv::Mat(
     pc.height, pc.width, CV_32FC1, std::numeric_limits<float>::quiet_NaN());
-  renderOctrees(sensorToWorld, mask_rend, &label_ins_rend, &depth_rend);
+  if (m_octrees.size() > 0) {
+    renderOctrees(m_lastSensorToWorld, mask_rend, &label_ins_rend, &depth_rend);
+  }
+  m_lastSensorHeader = cloud->header;
+  m_lastSensorToWorld = sensorToWorld;
 
   std::map<int, unsigned> instance_id_to_class_id;
   for (size_t i = 0; i < class_msg->classes.size(); i++) {
@@ -234,7 +238,6 @@ void OctomapServer::insertCloudCallback(
         class_msg->classes[i].instance_id,
         class_msg->classes[i].class_id));
   }
-
   ros_objslampp_ycb_video::utils::track_instance_id(
     /*reference=*/label_ins_rend,
     /*target=*/&label_ins,
@@ -246,10 +249,10 @@ void OctomapServer::insertCloudCallback(
     }
   }
 
-  m_labelRenderedPub.publish(
-    cv_bridge::CvImage(cloud->header, "32SC1", label_ins_rend).toImageMsg());
   m_labelTrackedPub.publish(
-    cv_bridge::CvImage(cloud->header, "32SC1", label_ins).toImageMsg());
+    cv_bridge::CvImage(ins_msg->header, "32SC1", label_ins).toImageMsg());
+  m_labelRenderedPub.publish(
+    cv_bridge::CvImage(m_lastSensorHeader, "32SC1", label_ins_rend).toImageMsg());
 
   ros_objslampp_msgs::ObjectClassArray cls_rend_msg;
   cls_rend_msg.header = cloud->header;
@@ -336,7 +339,7 @@ void OctomapServer::insertScan(
         }
       }
       if (instance_id != -1) {
-        OcTreeT* octree_bg = m_octrees.find(instance_id)->second;
+        OcTreeT* octree_bg = m_octrees.find(-1)->second;
         if (octree_bg->computeRayKeys(sensorOrigin, point, key_ray)) {
           #pragma omp critical
           for (octomap::KeyRay::iterator it = key_ray.begin(); it != key_ray.end(); it++) {
