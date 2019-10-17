@@ -1,0 +1,59 @@
+<launch>
+
+  <include file="$(find ros_objslampp_ycb_video)/launch/mask_rcnn_instance_segmentation.launch">
+    <arg name="GUI" value="false" />
+  </include>
+
+  <!-- <include file="$(find ros_objslampp_ycb_video)/launch/singleview_3d_pose_estimation.launch"> -->
+  <!--   <arg name="FRAME_ID" value="map" /> -->
+  <!--   <arg name="STATIC_SCENE" value="true" /> -->
+  <!--   <arg name="OCCUPANCY" value="true" /> -->
+  <!-- </include> -->
+
+  <include file="$(find ros_objslampp_ycb_video)/launch/orb_slam2_d435_rgbd.launch">
+  </include>
+
+  <group ns="camera">
+    <node name="octomap_server"
+          pkg="ros_objslampp_ycb_video" type="octomap_server"
+          clear_params="true"
+          output="screen">
+      <remap from="cloud_in" to="depth_registered/points" />
+      <remap from="label_ins_in" to="mask_rcnn_instance_segmentation/output/label_ins" />
+      <remap from="class_in" to="mask_rcnn_instance_segmentation/output/class" />
+      <rosparam subst_value="true">
+        frame_id: map
+        resolution: 0.01
+        ground_as_noentry: false
+      </rosparam>
+    </node>
+    <group ns="octomap_server">
+      <node name="draw_instance_segmentation"
+            pkg="ros_objslampp_ycb_video" type="draw_instance_segmentation.py"
+            clear_params="true">
+        <remap from="~input/rgb" to="/camera/color/image_rect_color_throttle/output" />
+        <remap from="~input/label_ins" to="output/label_rendered" />
+        <remap from="~input/class" to="output/class" />
+        <rosparam subst_value="true">
+          approximate_sync: true
+        </rosparam>
+      </node>
+    </group>
+    <node name="grids_to_mesh_markers"
+          pkg="ros_objslampp_ycb_video" type="voxel_grids_to_mesh_markers.py"
+          clear_params="true">
+      <remap from="~input" to="octomap_server/output/grids" />
+    </node>
+    <node name="grids_to_markers"
+          pkg="ros_objslampp_ycb_video" type="voxel_grids_to_markers.py"
+          clear_params="true">
+      <remap from="~input" to="octomap_server/output/grids" />
+    </node>
+    <node name="grids_noentry_to_markers"
+          pkg="ros_objslampp_ycb_video" type="voxel_grids_to_markers.py"
+          clear_params="true">
+      <remap from="~input" to="octomap_server/output/grids_noentry" />
+    </node>
+  </group>
+
+</launch>
