@@ -131,14 +131,26 @@ void OctomapServer::renderOctrees(
         pc.push_back(PCLPoint(x, y, z));
         pcl::transformPointCloud(pc, pc, sensorToWorld);
 
+        octomap::point3d origin(pc[0].x, pc[0].y, pc[0].z);
+        octomap::point3d direction(
+          pc[1].x - pc[0].x,
+          pc[1].y - pc[0].y,
+          pc[1].z - pc[0].z);
         octomap::point3d end;
         bool hit = octree->castRay(
-          /*origin=*/octomap::point3d(pc[0].x, pc[0].y, pc[0].z),
-          /*direction=*/octomap::point3d(pc[1].x - pc[0].x, pc[1].y - pc[0].y, pc[1].z - pc[0].z),
+          /*origin=*/origin,
+          /*direction=*/direction,
           /*end=*/end);
         if (hit) {
+          octomap::point3d intersection;
+          octree->getRayIntersection(
+            /*origin=*/origin,
+            /*direction=*/direction,
+            /*center=*/end,
+            /*intersection=*/intersection);
+
           pc.clear();
-          pc.push_back(PCLPoint(end.x(), end.y(), end.z()));
+          pc.push_back(PCLPoint(intersection.x(), intersection.y(), intersection.z()));
           pcl::transformPointCloud(pc, pc, sensorToWorld.inverse());
 
           #pragma omp critical
