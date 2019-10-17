@@ -97,7 +97,6 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
 
 void OctomapServer::renderOctrees(
     const Eigen::Matrix4f& sensorToWorld,
-    const cv::Mat& mask,
     cv::Mat* label_ins,
     cv::Mat* depth) {
   ros::WallTime t_start = ros::WallTime::now();
@@ -117,9 +116,6 @@ void OctomapServer::renderOctrees(
   for (size_t j = 0; j < height; j++) {
     #pragma omp parallel for
     for (size_t i = 0; i < width; i++) {
-      if (mask.at<uint8_t>(j, i) == 0) {
-        continue;
-      }
       std::vector<int> instance_ids =
         ros_objslampp_ycb_video::utils::keys<int, OcTreeT*>(m_octrees);
       #pragma omp parallel for
@@ -226,15 +222,13 @@ void OctomapServer::insertCloudCallback(
     return;
   }
 
-  cv::Mat mask_rend = ros_objslampp_ycb_video::utils::rendering_mask(label_ins);
   cv::Mat label_ins_rend = cv::Mat(pc.height, pc.width, CV_32SC1, -1);
   cv::Mat depth_rend = cv::Mat(
     pc.height, pc.width, CV_32FC1, std::numeric_limits<float>::quiet_NaN());
   if (m_octrees.size() > 0) {
-    cv::resize(mask_rend, mask_rend, cv::Size(), 0.5, 0.5, cv::INTER_NEAREST);
     cv::resize(label_ins_rend, label_ins_rend, cv::Size(), 0.5, 0.5, cv::INTER_NEAREST);
     cv::resize(depth_rend, depth_rend, cv::Size(), 0.5, 0.5, cv::INTER_NEAREST);
-    renderOctrees(m_lastSensorToWorld, mask_rend, &label_ins_rend, &depth_rend);
+    renderOctrees(m_lastSensorToWorld, &label_ins_rend, &depth_rend);
     cv::resize(label_ins_rend, label_ins_rend, cv::Size(pc.width, pc.height), 0, 0, cv::INTER_NEAREST);
   }
   m_lastSensorHeader = cloud->header;

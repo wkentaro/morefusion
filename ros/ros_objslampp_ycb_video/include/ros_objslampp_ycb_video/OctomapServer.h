@@ -104,7 +104,6 @@ class OctomapServer {
 
   void renderOctrees(
     const Eigen::Matrix4f& sensorToWorld,
-    const cv::Mat& mask,
     cv::Mat* label_ins,
     cv::Mat* depth);
 
