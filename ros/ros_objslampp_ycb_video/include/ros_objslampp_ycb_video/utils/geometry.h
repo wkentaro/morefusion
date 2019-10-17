@@ -46,7 +46,9 @@ void track_instance_id(
       cv::Mat mask_intersection, mask_union;
       cv::bitwise_and(mask1, mask2, mask_intersection);
       cv::bitwise_or(mask1, mask2, mask_union);
-      float iou = (cv::sum(mask_intersection) / cv::sum(mask_union))[0];
+      float iou =
+        static_cast<float>(cv::countNonZero(mask_intersection)) /
+        static_cast<float>(cv::countNonZero(mask_union));
       std::map<int, std::pair<int, float> >::iterator it2 = ins_id2to1.find(ins_id2);
       if (iou > it2->second.second) {
         it2->second = std::make_pair(ins_id1, iou);
