@@ -3,6 +3,10 @@
     uri: https://github.com/OctoMap/octomap.git
     version: devel
 - git:
+    local-name: OctoMap/octomap_ros
+    uri: https://github.com/OctoMap/octomap_ros
+    version: kinetic-devel
+- git:
     local-name: appliedAI-Initiative/orb_slam_2_ros
     uri: https://github.com/appliedAI-Initiative/orb_slam_2_ros.git
     version: master

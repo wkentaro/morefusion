@@ -7,6 +7,7 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   dynamic_reconfigure
   jsk_recognition_msgs
+  octomap_ros
   pcl_ros
   ros_objslampp_msgs
   roscpp
