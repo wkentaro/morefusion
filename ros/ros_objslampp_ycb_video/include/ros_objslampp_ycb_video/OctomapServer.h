@@ -108,7 +108,6 @@ class OctomapServer {
     cv::Mat* depth);
 
   ros::NodeHandle m_nh;
-  ros::Publisher m_markerPub;
   ros::Publisher m_binaryMapPub;
   ros::Publisher m_fullMapPub;
   ros::Publisher m_collisionObjectPub;
@@ -118,6 +117,8 @@ class OctomapServer {
   ros::Publisher m_fmarkerPub;
   ros::Publisher m_gridsPub;
   ros::Publisher m_gridsNoEntryPub;
+  ros::Publisher m_bgMarkerPub;
+  ros::Publisher m_fgMarkerPub;
   ros::Publisher m_labelTrackedPub;
   ros::Publisher m_labelRenderedPub;
   ros::Publisher m_classPub;

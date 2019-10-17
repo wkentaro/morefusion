@@ -61,8 +61,6 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
              "will only be re-published on map change");
   }
 
-  m_markerPub = m_nh.advertise<visualization_msgs::MarkerArray>(
-    "occupied_cells_vis_array", 1, m_latchedTopics);
   m_binaryMapPub = m_nh.advertise<Octomap>("octomap_binary", 1, m_latchedTopics);
   m_fullMapPub = m_nh.advertise<Octomap>("octomap_full", 1, m_latchedTopics);
   m_mapPub = m_nh.advertise<nav_msgs::OccupancyGrid>("projected_map", 5, m_latchedTopics);
@@ -72,6 +70,10 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
     "output/grids", 1, m_latchedTopics);
   m_gridsNoEntryPub = private_nh.advertise<ros_objslampp_msgs::VoxelGridArray>(
     "output/grids_noentry", 1, m_latchedTopics);
+  m_bgMarkerPub = private_nh.advertise<visualization_msgs::MarkerArray>(
+    "output/markers_bg", 1, m_latchedTopics);
+  m_fgMarkerPub = private_nh.advertise<visualization_msgs::MarkerArray>(
+    "output/markers_fg", 1, m_latchedTopics);
   m_labelTrackedPub = private_nh.advertise<sensor_msgs::Image>("debug/label_tracked", 1);
   m_labelRenderedPub = private_nh.advertise<sensor_msgs::Image>("output/label_rendered", 1);
   m_classPub = private_nh.advertise<ros_objslampp_msgs::ObjectClassArray>("output/class", 1);
@@ -354,7 +356,6 @@ void OctomapServer::insertScan(
     if (std::isnan(pc.points[index].x) ||
         std::isnan(pc.points[index].y) ||
         std::isnan(pc.points[index].z)) {
-      // Skip NaN points
       continue;
     }
 
@@ -456,7 +457,7 @@ void OctomapServer::publishAll(const ros::Time& rostime) {
   ros::WallTime startTime = ros::WallTime::now();
 
   bool publishFreeMarkerArray = (m_latchedTopics || m_fmarkerPub.getNumSubscribers() > 0);
-  bool publishMarkerArray = (m_latchedTopics || m_markerPub.getNumSubscribers() > 0);
+  bool publishMarkerArray = (m_latchedTopics || m_bgMarkerPub.getNumSubscribers() > 0 || m_fgMarkerPub.getNumSubscribers() > 0);
   bool publishBinaryMap = (m_latchedTopics || m_binaryMapPub.getNumSubscribers() > 0);
   bool publishFullMap = (m_latchedTopics || m_fullMapPub.getNumSubscribers() > 0);
 
@@ -576,7 +577,7 @@ void OctomapServer::publishAll(const ros::Time& rostime) {
   m_gridsNoEntryPub.publish(grids_noentry);
 
   // now, traverse all leafs in the tree:
-  std::vector<visualization_msgs::MarkerArray> occupiedNodesVisAll;
+  std::map<int, visualization_msgs::MarkerArray> occupiedNodesVisAll;
   for (std::map<int, OcTreeT*>::iterator it_octree = m_octrees.begin();
        it_octree != m_octrees.end(); it_octree++) {
     // init markers:
@@ -584,7 +585,7 @@ void OctomapServer::publishAll(const ros::Time& rostime) {
     // each array stores all cubes of a different size, one for each depth level:
     occupiedNodesVis.markers.resize(m_treeDepth+1);
 
-    int instance_id = it_octree->first;
+    const int instance_id = it_octree->first;
     OcTreeT* octree = it_octree->second;
     for (OcTreeT::iterator it = octree->begin(m_maxTreeDepth);
          it != octree->end(); it++) {
@@ -663,17 +664,25 @@ void OctomapServer::publishAll(const ros::Time& rostime) {
           occupiedNodesVis.markers[i].action = visualization_msgs::Marker::DELETE;
       }
     }
-    occupiedNodesVisAll.push_back(occupiedNodesVis);
+    occupiedNodesVisAll.insert(std::make_pair(instance_id, occupiedNodesVis));
   }
 
   if (publishMarkerArray) {
-    visualization_msgs::MarkerArray occupiedNodesVis;
-    for (size_t i = 0; i < occupiedNodesVisAll.size(); i++) {
-      for (size_t j = 0; j < occupiedNodesVisAll[i].markers.size(); j++) {
-        occupiedNodesVis.markers.push_back(occupiedNodesVisAll[i].markers[j]);
+    visualization_msgs::MarkerArray occupiedNodesVisBG;
+    visualization_msgs::MarkerArray occupiedNodesVisFG;
+    for (std::map<int, visualization_msgs::MarkerArray>::iterator it = occupiedNodesVisAll.begin();
+         it != occupiedNodesVisAll.end(); it++) {
+      const int instance_id = it->first;
+      for (size_t j = 0; j < it->second.markers.size(); j++) {
+        if (instance_id == -1) {
+          occupiedNodesVisBG.markers.push_back(it->second.markers[j]);
+        } else {
+          occupiedNodesVisFG.markers.push_back(it->second.markers[j]);
+        }
       }
     }
-    m_markerPub.publish(occupiedNodesVis);
+    m_bgMarkerPub.publish(occupiedNodesVisBG);
+    m_fgMarkerPub.publish(occupiedNodesVisFG);
   }
 
   // finish FreeMarkerArray:
@@ -720,41 +729,41 @@ void OctomapServer::publishAll(const ros::Time& rostime) {
 
 
 bool OctomapServer::resetSrv(std_srvs::Empty::Request& req, std_srvs::Empty::Response& resp) {  // NOLINT
-  visualization_msgs::MarkerArray occupiedNodesVis;
-  occupiedNodesVis.markers.resize(m_treeDepth +1);
-  ros::Time rostime = ros::Time::now();
-  OcTreeT* octree_bg = m_octrees.find(-1)->second;
-  octree_bg->clear();
-
-  ROS_INFO("Cleared octomap");
-  publishAll(rostime);
-
-  publishBinaryOctoMap(rostime);
-  for (unsigned i= 0; i < occupiedNodesVis.markers.size(); ++i) {
-    occupiedNodesVis.markers[i].header.frame_id = m_worldFrameId;
-    occupiedNodesVis.markers[i].header.stamp = rostime;
-    occupiedNodesVis.markers[i].ns = "map";
-    occupiedNodesVis.markers[i].id = i;
-    occupiedNodesVis.markers[i].type = visualization_msgs::Marker::CUBE_LIST;
-    occupiedNodesVis.markers[i].action = visualization_msgs::Marker::DELETE;
-  }
-
-  m_markerPub.publish(occupiedNodesVis);
-
-  visualization_msgs::MarkerArray freeNodesVis;
-  freeNodesVis.markers.resize(m_treeDepth +1);
-
-  for (unsigned i= 0; i < freeNodesVis.markers.size(); ++i) {
-    freeNodesVis.markers[i].header.frame_id = m_worldFrameId;
-    freeNodesVis.markers[i].header.stamp = rostime;
-    freeNodesVis.markers[i].ns = "map";
-    freeNodesVis.markers[i].id = i;
-    freeNodesVis.markers[i].type = visualization_msgs::Marker::CUBE_LIST;
-    freeNodesVis.markers[i].action = visualization_msgs::Marker::DELETE;
-  }
-  m_fmarkerPub.publish(freeNodesVis);
-
-  return true;
+  // visualization_msgs::MarkerArray occupiedNodesVis;
+  // occupiedNodesVis.markers.resize(m_treeDepth +1);
+  // ros::Time rostime = ros::Time::now();
+  // OcTreeT* octree_bg = m_octrees.find(-1)->second;
+  // octree_bg->clear();
+  //
+  // ROS_INFO("Cleared octomap");
+  // publishAll(rostime);
+  //
+  // publishBinaryOctoMap(rostime);
+  // for (unsigned i= 0; i < occupiedNodesVis.markers.size(); ++i) {
+  //   occupiedNodesVis.markers[i].header.frame_id = m_worldFrameId;
+  //   occupiedNodesVis.markers[i].header.stamp = rostime;
+  //   occupiedNodesVis.markers[i].ns = "map";
+  //   occupiedNodesVis.markers[i].id = i;
+  //   occupiedNodesVis.markers[i].type = visualization_msgs::Marker::CUBE_LIST;
+  //   occupiedNodesVis.markers[i].action = visualization_msgs::Marker::DELETE;
+  // }
+  //
+  // m_markerPub.publish(occupiedNodesVis);
+  //
+  // visualization_msgs::MarkerArray freeNodesVis;
+  // freeNodesVis.markers.resize(m_treeDepth +1);
+  //
+  // for (unsigned i= 0; i < freeNodesVis.markers.size(); ++i) {
+  //   freeNodesVis.markers[i].header.frame_id = m_worldFrameId;
+  //   freeNodesVis.markers[i].header.stamp = rostime;
+  //   freeNodesVis.markers[i].ns = "map";
+  //   freeNodesVis.markers[i].id = i;
+  //   freeNodesVis.markers[i].type = visualization_msgs::Marker::CUBE_LIST;
+  //   freeNodesVis.markers[i].action = visualization_msgs::Marker::DELETE;
+  // }
+  // m_fmarkerPub.publish(freeNodesVis);
+  //
+  // return true;
 }
 
 void OctomapServer::publishBinaryOctoMap(const ros::Time& rostime) const {
