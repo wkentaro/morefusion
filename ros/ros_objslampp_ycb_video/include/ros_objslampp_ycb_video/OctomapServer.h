@@ -134,6 +134,7 @@ class OctomapServer {
   std::map<int, OcTreeT*> m_octrees;
   std::map<int, unsigned> m_classIds;
   std::map<int, octomap::point3d> m_centers;
+  unsigned m_instanceCounter;
 
   double m_maxRange;
   std::string m_worldFrameId;  // the map frame

@@ -10,6 +10,7 @@ namespace ros_objslampp_ycb_video {
 OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
 : m_nh(),
   m_octrees(),
+  m_instanceCounter(0),
   m_classIds(),
   m_centers(),
   m_pointCloudSub(NULL),
@@ -249,7 +250,8 @@ void OctomapServer::insertCloudCallback(
   ros_objslampp_ycb_video::utils::track_instance_id(
     /*reference=*/label_ins_rend,
     /*target=*/&label_ins,
-    /*instance_id_to_class_id=*/&instance_id_to_class_id);
+    /*instance_id_to_class_id=*/&instance_id_to_class_id,
+    /*instance_counter=*/&m_instanceCounter);
   for (std::map<int, unsigned>::iterator it = m_classIds.begin();
        it != m_classIds.end(); it++) {
     if (instance_id_to_class_id.find(it->first) == instance_id_to_class_id.end()) {
@@ -304,7 +306,8 @@ void OctomapServer::insertScan(
     double pitch = m_res;
     if (instance_id >= 0) {
       if (instance_id_to_class_id.find(instance_id) == instance_id_to_class_id.end()) {
-        ROS_FATAL("Can't find instance_id [%d] in class_msg->classes", instance_id);
+        ROS_FATAL("Can't find instance_id [%d] in instance_id_to_class_id", instance_id);
+        return;
       } else {
         class_id = instance_id_to_class_id.find(instance_id)->second;
       }
