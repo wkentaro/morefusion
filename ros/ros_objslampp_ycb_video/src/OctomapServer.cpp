@@ -193,27 +193,14 @@ void OctomapServer::configCallback(
 }
 
 void OctomapServer::insertCloudCallback(
-  const sensor_msgs::PointCloud2ConstPtr& cloud,
-  const sensor_msgs::ImageConstPtr& ins_msg,
-  const ros_objslampp_msgs::ObjectClassArrayConstPtr& class_msg) {
-  // ROS_INFO_BLUE("insertCloudCallback");
-
+    const sensor_msgs::PointCloud2ConstPtr& cloud,
+    const sensor_msgs::ImageConstPtr& ins_msg,
+    const ros_objslampp_msgs::ObjectClassArrayConstPtr& class_msg) {
+  // ROSMsg -> PCL
   PCLPointCloud pc;
   pcl::fromROSMsg(*cloud, pc);
 
-  tf::StampedTransform sensorToWorldTf;
-  try {
-    m_tfListener.lookupTransform(
-      m_worldFrameId, cloud->header.frame_id, cloud->header.stamp, sensorToWorldTf);
-  } catch (tf::TransformException& ex) {
-    ROS_ERROR_STREAM("Transform error of sensor data: " << ex.what() << ", quitting callback");
-    return;
-  }
-
-  Eigen::Matrix4f sensorToWorld;
-  pcl_ros::transformAsMatrix(sensorToWorldTf, sensorToWorld);
-  pcl::transformPointCloud(pc, pc, sensorToWorld);
-
+  // ROSMsg -> OpenCV
   cv::Mat label_ins = cv_bridge::toCvCopy(ins_msg, ins_msg->encoding)->image;
   if (!((cloud->height == ins_msg->height) && (cloud->width == ins_msg->width))) {
     ROS_ERROR("Point cloud and instance label must be same size!");
@@ -222,6 +209,25 @@ void OctomapServer::insertCloudCallback(
     return;
   }
 
+  // Get TF
+  tf::StampedTransform sensorToWorldTf;
+  try {
+    m_tfListener.lookupTransform(
+      m_worldFrameId, cloud->header.frame_id, cloud->header.stamp, sensorToWorldTf);
+  } catch (tf::TransformException& ex) {
+    ROS_ERROR_STREAM("Transform error of sensor data: " << ex.what() << ", quitting callback");
+    return;
+  }
+  Eigen::Matrix4f sensorToWorld;
+  pcl_ros::transformAsMatrix(sensorToWorldTf, sensorToWorld);
+
+  // TODO(wkentaro): compute centroid and size of each instance,
+  // and remove some of them from integration
+
+  // Transform pointcloud: sensor -> world (map)
+  pcl::transformPointCloud(pc, pc, sensorToWorld);
+
+  // Render OcTrees
   cv::Mat label_ins_rend = cv::Mat(pc.height, pc.width, CV_32SC1, -1);
   cv::Mat depth_rend = cv::Mat(
     pc.height, pc.width, CV_32FC1, std::numeric_limits<float>::quiet_NaN());
@@ -234,6 +240,7 @@ void OctomapServer::insertCloudCallback(
   m_lastSensorHeader = cloud->header;
   m_lastSensorToWorld = sensorToWorld;
 
+  // Track Instance IDs
   std::map<int, unsigned> instance_id_to_class_id;
   for (size_t i = 0; i < class_msg->classes.size(); i++) {
     instance_id_to_class_id.insert(
@@ -252,12 +259,13 @@ void OctomapServer::insertCloudCallback(
       instance_id_to_class_id.insert(std::make_pair(it->first, it->second));
     }
   }
-
+  // Publish Tracked Instance Label
   m_labelTrackedPub.publish(
     cv_bridge::CvImage(ins_msg->header, "32SC1", label_ins).toImageMsg());
+
+  // Publish Rendering
   m_labelRenderedPub.publish(
     cv_bridge::CvImage(m_lastSensorHeader, "32SC1", label_ins_rend).toImageMsg());
-
   ros_objslampp_msgs::ObjectClassArray cls_rend_msg;
   cls_rend_msg.header = cloud->header;
   for (std::map<int, unsigned>::iterator it = m_classIds.begin();
@@ -273,8 +281,10 @@ void OctomapServer::insertCloudCallback(
   }
   m_classPub.publish(cls_rend_msg);
 
+  // Update Map
   insertScan(sensorToWorldTf.getOrigin(), pc, label_ins, instance_id_to_class_id);
 
+  // Publish Map
   publishAll(cloud->header.stamp);
 }
 
