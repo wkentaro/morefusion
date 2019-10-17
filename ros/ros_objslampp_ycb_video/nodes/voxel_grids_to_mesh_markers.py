@@ -40,7 +40,12 @@ class VoxelGridsToMeshMarkers(topic_tools.LazyTransport):
 
     def _callback(self, grids_msg):
         markers_msg = MarkerArray()
+        nsec = grids_msg.header.stamp.to_nsec()
         for grid in grids_msg.grids:
+            # skip empty voxel grid
+            if not grid.indices:
+                continue
+
             pitch = grid.pitch
             origin = (grid.origin.x, grid.origin.y, grid.origin.z)
             dims = (grid.dims.x, grid.dims.y, grid.dims.z)
@@ -54,7 +59,7 @@ class VoxelGridsToMeshMarkers(topic_tools.LazyTransport):
             )
             mesh = trimesh.smoothing.filter_humphrey(mesh)
             color = self._colormap[grid.instance_id + 1]
-            mesh_file = self._tmp_dir / f'{grid.instance_id:04d}.ply'
+            mesh_file = self._tmp_dir / f'{nsec}_{grid.instance_id:04d}.ply'
             trimesh.exchange.export.export_mesh(mesh, mesh_file)
 
             marker = Marker()
