@@ -89,8 +89,7 @@ class OctomapServer {
     const tf::Point& sensorOrigin,
     const PCLPointCloud& pc,
     const cv::Mat& label_ins,
-    const std::map<int, unsigned>& instance_id_to_class_id,
-    const cv::Mat& mask_update_as_occupied);
+    const std::map<int, unsigned>& instance_id_to_class_id);
 
   /**
   * @brief Find speckle nodes (single occupied voxels with no neighbors). Only works on lowest resolution!

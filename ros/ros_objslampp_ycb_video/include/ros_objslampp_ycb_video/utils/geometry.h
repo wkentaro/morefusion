@@ -21,8 +21,7 @@ void track_instance_id(
     const cv::Mat& reference,
     cv::Mat* target,
     std::map<int, unsigned>* instance_id_to_class_id,
-    unsigned* instance_counter,
-    cv::Mat* mask_update_as_occupied) {
+    unsigned* instance_counter) {
   std::vector<int> instance_ids1 = ros_objslampp_ycb_video::utils::unique<int>(reference);
   std::vector<int> instance_ids2 = ros_objslampp_ycb_video::utils::unique<int>(*target);
 
@@ -145,7 +144,6 @@ void track_instance_id(
         // TODO(wkentaro): copy rendered but don't update occupied space with this,
         // since it's renderd with previous frame.
         target->at<int>(j, i) = reference.at<int>(j, i);
-        mask_update_as_occupied->at<uint8_t>(j, i) = 0;
         continue;
       }
       std::map<int, std::pair<int, float> >::iterator it2 = ins_id2to1.find(ins_id2);

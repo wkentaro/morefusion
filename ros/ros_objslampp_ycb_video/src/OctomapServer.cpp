@@ -74,7 +74,6 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
     "output/markers_bg", 1, m_latchedTopics);
   m_fgMarkerPub = private_nh.advertise<visualization_msgs::MarkerArray>(
     "output/markers_fg", 1, m_latchedTopics);
-  m_maskUpdateAsOccupiedPub = private_nh.advertise<sensor_msgs::Image>("debug/mask_update_as_occupied", 1);
   m_labelTrackedPub = private_nh.advertise<sensor_msgs::Image>("debug/label_tracked", 1);
   m_labelRenderedPub = private_nh.advertise<sensor_msgs::Image>("output/label_rendered", 1);
   m_depthRenderedPub = private_nh.advertise<sensor_msgs::Image>("debug/depth_rendered", 1);
@@ -268,21 +267,17 @@ void OctomapServer::insertCloudCallback(
         class_msg->classes[i].instance_id,
         class_msg->classes[i].class_id));
   }
-  cv::Mat mask_update_as_occupied = cv::Mat(pc.height, pc.width, CV_8UC1, 255);
   ros_objslampp_ycb_video::utils::track_instance_id(
     /*reference=*/label_ins_rend,
     /*target=*/&label_ins,
     /*instance_id_to_class_id=*/&instance_id_to_class_id,
-    /*instance_counter=*/&m_instanceCounter,
-    /*mask_update_as_occupied=*/&mask_update_as_occupied);
+    /*instance_counter=*/&m_instanceCounter);
   for (std::map<int, unsigned>::iterator it = m_classIds.begin();
        it != m_classIds.end(); it++) {
     if (instance_id_to_class_id.find(it->first) == instance_id_to_class_id.end()) {
       instance_id_to_class_id.insert(std::make_pair(it->first, it->second));
     }
   }
-  m_maskUpdateAsOccupiedPub.publish(
-    cv_bridge::CvImage(ins_msg->header, "mono8", mask_update_as_occupied).toImageMsg());
   // Publish Tracked Instance Label
   m_labelTrackedPub.publish(
     cv_bridge::CvImage(ins_msg->header, "32SC1", label_ins).toImageMsg());
@@ -308,7 +303,7 @@ void OctomapServer::insertCloudCallback(
   m_classPub.publish(cls_rend_msg);
 
   // Update Map
-  insertScan(sensorToWorldTf.getOrigin(), pc, label_ins, instance_id_to_class_id, mask_update_as_occupied);
+  insertScan(sensorToWorldTf.getOrigin(), pc, label_ins, instance_id_to_class_id);
 
   // Publish Map
   publishAll(cloud->header.stamp);
@@ -318,8 +313,7 @@ void OctomapServer::insertScan(
     const tf::Point& sensorOriginTf,
     const PCLPointCloud& pc,
     const cv::Mat& label_ins,
-    const std::map<int, unsigned>& instance_id_to_class_id,
-    const cv::Mat& mask_update_as_occupied) {
+    const std::map<int, unsigned>& instance_id_to_class_id) {
   ros::WallTime t_start = ros::WallTime::now();
 
   octomap::point3d sensorOrigin = octomap::pointTfToOctomap(sensorOriginTf);
@@ -407,17 +401,9 @@ void OctomapServer::insertScan(
       }
       // occupied endpoint
       octomap::OcTreeKey key;
-      // if (mask_update_as_occupied.at<uint8_t>(height_index, width_index) == 0) {
-      if (0) {
-        if (m_octrees.find(instance_id)->second->coordToKeyChecked(point, key)) {
-          #pragma omp critical
-          suspicious_occupied_cells.find(instance_id)->second.insert(key);
-        }
-      } else {
-        if (m_octrees.find(instance_id)->second->coordToKeyChecked(point, key)) {
-          #pragma omp critical
-          occupied_cells.find(instance_id)->second.insert(key);
-        }
+      if (m_octrees.find(instance_id)->second->coordToKeyChecked(point, key)) {
+        #pragma omp critical
+        occupied_cells.find(instance_id)->second.insert(key);
       }
     } else {  // ray longer than maxrange:;
       octomap::point3d new_end = sensorOrigin + (point - sensorOrigin).normalized() * m_maxRange;
