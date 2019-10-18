@@ -78,9 +78,9 @@ class VoxelGridsToMeshMarkers(topic_tools.LazyTransport):
             marker.scale.y = 1
             marker.scale.z = 1
             marker.color.a = 1
-            marker.color.r = color[0]
-            marker.color.g = color[1]
-            marker.color.b = color[2]
+            marker.color.r = color[0] / 255
+            marker.color.g = color[1] / 255
+            marker.color.b = color[2] / 255
             marker.type = Marker.MESH_RESOURCE
             marker.mesh_resource = f'file://{mesh_file}'
             marker.action = Marker.ADD
