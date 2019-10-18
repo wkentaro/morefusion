@@ -129,7 +129,7 @@ void track_instance_id(
   }
 }
 
-cv::Mat rendering_mask(const cv::Mat& label_ins) {
+std::map<int, std::tuple<int, int, int, int> > label_ins_to_bboxes(const cv::Mat& label_ins) {
   // aabb: y1, x1, y2, x2
   std::map<int, std::tuple<int, int, int, int> > instance_id_to_aabb;
 
@@ -159,6 +159,13 @@ cv::Mat rendering_mask(const cv::Mat& label_ins) {
       }
     }
   }
+
+  return instance_id_to_aabb;
+}
+
+cv::Mat rendering_mask(const cv::Mat& label_ins) {
+  std::map<int, std::tuple<int, int, int, int> > instance_id_to_aabb =
+    label_ins_to_bboxes(label_ins);
 
   cv::Mat mask = cv::Mat::zeros(label_ins.rows, label_ins.cols, CV_8UC1);
   for (std::map<int, std::tuple<int, int, int, int> >::iterator it =
