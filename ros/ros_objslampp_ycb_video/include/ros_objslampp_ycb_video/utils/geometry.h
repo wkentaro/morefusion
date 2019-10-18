@@ -103,7 +103,7 @@ void track_instance_id(
     }
     int ins_id1 = it->second.first;
     float iou = it->second.second;
-    if (iou < 0.3) {
+    if (iou < 0.5) {
       it->second.first = *instance_counter;
       // new instance
       (*instance_counter)++;
