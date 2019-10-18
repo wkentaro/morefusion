@@ -320,6 +320,8 @@ void OctomapServer::insertScan(
     const PCLPointCloud& pc,
     const cv::Mat& label_ins,
     const std::map<int, unsigned>& instance_id_to_class_id) {
+  boost::mutex::scoped_lock lock(mutex_);
+
   ros::WallTime t_start = ros::WallTime::now();
 
   octomap::point3d sensorOrigin = octomap::pointTfToOctomap(sensorOriginTf);
@@ -465,6 +467,8 @@ void OctomapServer::insertScan(
 }
 
 void OctomapServer::publishGridsForRender(const ros::Time& rostime) {
+  boost::mutex::scoped_lock lock(mutex_);
+
   ros_objslampp_msgs::VoxelGridArray grids;
   grids.header.frame_id = m_worldFrameId;
   grids.header.stamp = rostime;
@@ -520,6 +524,8 @@ void OctomapServer::publishGridsForRender(const ros::Time& rostime) {
 void OctomapServer::publishGrids(
     const ros::Time& rostime,
     const Eigen::Matrix4f& sensorToWorld) {
+  boost::mutex::scoped_lock lock(mutex_);
+
   if (m_octrees.size() == 0) {
     return;
   }

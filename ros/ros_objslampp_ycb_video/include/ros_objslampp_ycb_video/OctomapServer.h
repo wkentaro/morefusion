@@ -112,6 +112,8 @@ class OctomapServer {
     cv::Mat* label_ins,
     cv::Mat* depth);
 
+  boost::mutex mutex_;
+
   ros::NodeHandle m_nh;
   ros::Publisher m_binaryMapPub;
   ros::Publisher m_fullMapPub;
