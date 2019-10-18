@@ -56,6 +56,20 @@ void track_instance_id(
       ins_ids2_on_edge.insert(ins_id2);
     }
 
+    int dilation_size = 10;
+    cv::Mat element = cv::getStructuringElement(
+      cv::MORPH_ELLIPSE,
+      cv::Size(2 * dilation_size + 1, 2 * dilation_size + 1),
+      cv::Point(dilation_size, dilation_size));
+    // std::stringstream ss;
+    // ss.str("");
+    // ss << "ins_id2." << ins_id2 << ".org.jpg";
+    // cv::imwrite(ss.str(), mask2);
+    cv::dilate(mask2, mask2, element, /*anchor=*/cv::Point(-1, -1), /*iterations=*/5);
+    // ss.str("");
+    // ss << "ins_id2." << ins_id2 << ".dilated.jpg";
+    // cv::imwrite(ss.str(), mask2);
+
     for (size_t j = 0; j < instance_ids1.size(); j++) {
       // ins_id1: instance_id in the map
       int ins_id1 = instance_ids1[j];
@@ -64,6 +78,8 @@ void track_instance_id(
       }
 
       cv::Mat mask1 = reference == ins_id1;
+      cv::dilate(mask1, mask1, element, /*anchor=*/cv::Point(-1, -1), /*iterations=*/5);
+
       cv::Mat mask_intersection, mask_union;
       cv::bitwise_and(mask1, mask2, mask_intersection);
       cv::bitwise_or(mask1, mask2, mask_union);
