@@ -39,6 +39,7 @@ void track_instance_id(
   // Compute IOU
   std::map<int, std::pair<int, float> > ins_id2to1;
   std::set<int> ins_ids2_on_edge;
+  std::set<int> ins_ids2_too_small;
   for (size_t i = 0; i < instance_ids2.size(); i++) {
     // ins_id2: instance_id in the mask-rcnn output
     int ins_id2 = instance_ids2[i];
@@ -48,6 +49,11 @@ void track_instance_id(
 
     cv::Mat mask2 = (*target) == ins_id2;
     ins_id2to1.insert(std::make_pair(ins_id2, std::make_pair(-1, 0)));
+
+    if (cv::countNonZero(mask2) < (10 * 10)) {
+      // not only on_edge, but too small
+      ins_ids2_on_edge.insert(ins_id2);
+    }
 
     cv::Mat mask_intersect_edge, mask_intersect_nonedge;
     cv::bitwise_and(mask_edge, mask2, mask_intersect_edge);

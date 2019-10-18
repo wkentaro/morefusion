@@ -407,7 +407,8 @@ void OctomapServer::insertScan(
       }
       // occupied endpoint
       octomap::OcTreeKey key;
-      if (mask_update_as_occupied.at<uint8_t>(height_index, width_index) == 0) {
+      // if (mask_update_as_occupied.at<uint8_t>(height_index, width_index) == 0) {
+      if (0) {
         if (m_octrees.find(instance_id)->second->coordToKeyChecked(point, key)) {
           #pragma omp critical
           suspicious_occupied_cells.find(instance_id)->second.insert(key);
