@@ -19,7 +19,6 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_maxRange(-1.0),
   m_worldFrameId("/map"),
   m_sensorFrameId("camera_color_optical_frame"),
-  m_latchedTopics(true),
   m_res(0.05),
   m_probHit(0.7),
   m_probMiss(0.4),
@@ -53,27 +52,14 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   private_nh.param("sensor_model/max", m_thresMax, m_thresMax);
   private_nh.param("compress_map", m_compressMap, m_compressMap);
 
-  private_nh.param("latch", m_latchedTopics, m_latchedTopics);
-  if (m_latchedTopics) {
-    ROS_INFO("Publishing latched (single publish will take longer, all topics are prepared)");
-  } else {
-    ROS_INFO("Publishing non-latched (topics are only prepared as needed, "
-             "will only be re-published on map change");
-  }
-
-  m_binaryMapPub = m_nh.advertise<Octomap>("octomap_binary", 1, m_latchedTopics);
-  m_fullMapPub = m_nh.advertise<Octomap>("octomap_full", 1, m_latchedTopics);
-  m_mapPub = m_nh.advertise<nav_msgs::OccupancyGrid>("projected_map", 5, m_latchedTopics);
-  m_fmarkerPub = m_nh.advertise<visualization_msgs::MarkerArray>(
-    "free_cells_vis_array", 1, m_latchedTopics);
-  m_gridsPub = private_nh.advertise<ros_objslampp_msgs::VoxelGridArray>(
-    "output/grids", 1, m_latchedTopics);
-  m_gridsNoEntryPub = private_nh.advertise<ros_objslampp_msgs::VoxelGridArray>(
-    "output/grids_noentry", 1, m_latchedTopics);
-  m_bgMarkerPub = private_nh.advertise<visualization_msgs::MarkerArray>(
-    "output/markers_bg", 1, m_latchedTopics);
-  m_fgMarkerPub = private_nh.advertise<visualization_msgs::MarkerArray>(
-    "output/markers_fg", 1, m_latchedTopics);
+  m_binaryMapPub = m_nh.advertise<Octomap>("octomap_binary", 1);
+  m_fullMapPub = m_nh.advertise<Octomap>("octomap_full", 1);
+  m_mapPub = m_nh.advertise<nav_msgs::OccupancyGrid>("projected_map", 5);
+  m_fmarkerPub = m_nh.advertise<visualization_msgs::MarkerArray>("free_cells_vis_array", 1);
+  m_gridsPub = private_nh.advertise<ros_objslampp_msgs::VoxelGridArray>("output/grids", 1);
+  m_gridsNoEntryPub = private_nh.advertise<ros_objslampp_msgs::VoxelGridArray>("output/grids_noentry", 1);
+  m_bgMarkerPub = private_nh.advertise<visualization_msgs::MarkerArray>("output/markers_bg", 1);
+  m_fgMarkerPub = private_nh.advertise<visualization_msgs::MarkerArray>("output/markers_fg", 1);
   m_labelTrackedPub = private_nh.advertise<sensor_msgs::Image>("debug/label_tracked", 1);
   m_labelRenderedPub = private_nh.advertise<sensor_msgs::Image>("output/label_rendered", 1);
   m_depthRenderedPub = private_nh.advertise<sensor_msgs::Image>("debug/depth_rendered", 1);
@@ -306,6 +292,9 @@ void OctomapServer::insertCloudCallback(
   // Update Map
   insertScan(sensorToWorldTf.getOrigin(), pc, label_ins, instance_id_to_class_id);
 
+  // Publish Object Grids
+  publishGrids(cloud->header.stamp, sensorToWorld);
+
   // Publish Map
   publishAll(cloud->header.stamp);
 }
@@ -459,37 +448,12 @@ void OctomapServer::insertScan(
   ROS_INFO_MAGENTA("Elapsed Time: %lf [s], %lf [fps]", elapsed_time.toSec(), 1. / elapsed_time.toSec());
 }
 
-
-void OctomapServer::publishAll(const ros::Time& rostime) {
+void OctomapServer::publishGrids(
+    const ros::Time& rostime,
+    const Eigen::Matrix4f& sensorToWorld) {
   if (m_octrees.size() == 0) {
     return;
   }
-  // ROS_INFO_BLUE("publishAll");
-
-  ros::WallTime startTime = ros::WallTime::now();
-
-  bool publishFreeMarkerArray = (m_latchedTopics || m_fmarkerPub.getNumSubscribers() > 0);
-  bool publishMarkerArray = (m_latchedTopics || m_bgMarkerPub.getNumSubscribers() > 0 || m_fgMarkerPub.getNumSubscribers() > 0);
-  bool publishBinaryMap = (m_latchedTopics || m_binaryMapPub.getNumSubscribers() > 0);
-  bool publishFullMap = (m_latchedTopics || m_fullMapPub.getNumSubscribers() > 0);
-
-  // init markers for free space:
-  visualization_msgs::MarkerArray freeNodesVis;
-  // each array stores all cubes of a different size, one for each depth level:
-  freeNodesVis.markers.resize(m_treeDepth+1);
-
-  geometry_msgs::Pose pose;
-  pose.orientation = tf::createQuaternionMsgFromYaw(0.0);
-
-  tf::StampedTransform worldToSensorTf;
-  try {
-    m_tfListener.lookupTransform(m_sensorFrameId, m_worldFrameId, rostime, worldToSensorTf);
-  } catch (tf::TransformException& ex) {
-    ROS_ERROR_STREAM("Transform error of sensor data: " << ex.what() << ", quitting callback");
-    return;
-  }
-  Eigen::Matrix4f worldToSensor;
-  pcl_ros::transformAsMatrix(worldToSensorTf, worldToSensor);
 
   ros_objslampp_msgs::VoxelGridArray grids;
   grids.header.frame_id = m_sensorFrameId;
@@ -511,7 +475,7 @@ void OctomapServer::publishAll(const ros::Time& rostime) {
 
     PCLPointCloud center_sensor;
     center_sensor.push_back(PCLPoint(center.x(), center.y(), center.z()));
-    pcl::transformPointCloud(center_sensor, center_sensor, worldToSensor);
+    pcl::transformPointCloud(center_sensor, center_sensor, sensorToWorld.inverse());
 
     ros_objslampp_msgs::VoxelGrid grid;
     grid.pitch = pitch;
@@ -542,7 +506,7 @@ void OctomapServer::publishAll(const ros::Time& rostime) {
           // in world
           PCLPointCloud p_world;
           p_world.push_back(PCLPoint(x, y, z));  // sensor
-          pcl::transformPointCloud(p_world, p_world, worldToSensor.inverse());
+          pcl::transformPointCloud(p_world, p_world, sensorToWorld);
           x = p_world.points[0].x;
           y = p_world.points[0].y;
           z = p_world.points[0].z;
@@ -587,6 +551,25 @@ void OctomapServer::publishAll(const ros::Time& rostime) {
   }
   m_gridsPub.publish(grids);
   m_gridsNoEntryPub.publish(grids_noentry);
+}
+
+void OctomapServer::publishAll(const ros::Time& rostime) {
+  if (m_octrees.size() == 0) {
+    return;
+  }
+
+  bool publishFreeMarkerArray = m_fmarkerPub.getNumSubscribers() > 0;
+  bool publishMarkerArray = m_bgMarkerPub.getNumSubscribers() > 0 || m_fgMarkerPub.getNumSubscribers() > 0;
+  bool publishBinaryMap = m_binaryMapPub.getNumSubscribers() > 0;
+  bool publishFullMap = m_fullMapPub.getNumSubscribers() > 0;
+
+  // init markers for free space:
+  visualization_msgs::MarkerArray freeNodesVis;
+  // each array stores all cubes of a different size, one for each depth level:
+  freeNodesVis.markers.resize(m_treeDepth+1);
+
+  geometry_msgs::Pose pose;
+  pose.orientation = tf::createQuaternionMsgFromYaw(0.0);
 
   // now, traverse all leafs in the tree:
   std::map<int, visualization_msgs::MarkerArray> occupiedNodesVisAll;
@@ -734,9 +717,6 @@ void OctomapServer::publishAll(const ros::Time& rostime) {
   if (publishFullMap) {
     publishFullOctoMap(rostime);
   }
-
-  double total_elapsed = (ros::WallTime::now() - startTime).toSec();
-  ROS_DEBUG("Map publishing in OctomapServer took %f sec", total_elapsed);
 }
 
 

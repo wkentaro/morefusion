@@ -77,6 +77,8 @@ class OctomapServer {
   void publishFullOctoMap(const ros::Time& rostime = ros::Time::now()) const;
   virtual void publishAll(const ros::Time& rostime = ros::Time::now());
 
+  void publishGrids(const ros::Time& rostime, const Eigen::Matrix4f& sensorToWorld);
+
   /**
   * @brief update occupancy map with a scan labeled as ground and nonground.
   * The scans should be in the global map frame.
@@ -141,8 +143,6 @@ class OctomapServer {
   double m_maxRange;
   std::string m_worldFrameId;  // the map frame
   std::string m_sensorFrameId;  // base of the robot for ground plane filtering
-
-  bool m_latchedTopics;
 
   double m_res;
   double m_probHit;
