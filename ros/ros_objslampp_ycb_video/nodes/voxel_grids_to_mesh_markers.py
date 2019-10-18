@@ -51,28 +51,14 @@ class VoxelGridsToMeshMarkers(topic_tools.LazyTransport):
 
         nsec = grids_msg.header.stamp.to_nsec()
         for grid in grids_msg.grids:
-            # skip empty voxel grid
-            if not grid.indices:
+            mesh = grid_msg_to_mesh(grid)
+            if mesh is None:
                 continue
 
-            pitch = grid.pitch
-            origin = (grid.origin.x, grid.origin.y, grid.origin.z)
-            dims = (grid.dims.x, grid.dims.y, grid.dims.z)
-
-            matrix = np.zeros(dims, dtype=np.float32)
-            matrix = matrix.flatten()
-            matrix[list(grid.indices)] = grid.values
-            matrix = matrix.reshape(dims)
-            matrix = scipy.ndimage.morphology.grey_dilation(
-                matrix, size=(2, 2, 2)
-            )
-            mesh = trimesh.voxel.matrix_to_marching_cubes(
-                matrix, pitch, origin
-            )
-            mesh = trimesh.smoothing.filter_humphrey(mesh)
-            color = self._colormap[grid.instance_id + 1]
             mesh_file = self._tmp_dir / f'{nsec}_{grid.instance_id:04d}.ply'
             trimesh.exchange.export.export_mesh(mesh, mesh_file)
+
+            color = self._colormap[grid.instance_id + 1]
 
             marker = Marker()
             marker.header = grids_msg.header
@@ -90,6 +76,28 @@ class VoxelGridsToMeshMarkers(topic_tools.LazyTransport):
             marker.action = Marker.ADD
             markers_msg.markers.append(marker)
         self._pub.publish(markers_msg)
+
+
+def grid_msg_to_mesh(grid):
+    if not grid.indices:
+        return
+
+    pitch = grid.pitch
+    origin = (grid.origin.x, grid.origin.y, grid.origin.z)
+    dims = (grid.dims.x, grid.dims.y, grid.dims.z)
+
+    matrix = np.zeros(dims, dtype=np.float32)
+    matrix = matrix.flatten()
+    matrix[list(grid.indices)] = grid.values
+    matrix = matrix.reshape(dims)
+    matrix = scipy.ndimage.morphology.grey_dilation(
+        matrix, size=(2, 2, 2)
+    )
+    mesh = trimesh.voxel.matrix_to_marching_cubes(
+        matrix, pitch, origin
+    )
+    mesh = trimesh.smoothing.filter_humphrey(mesh)
+    return mesh
 
 
 if __name__ == '__main__':
