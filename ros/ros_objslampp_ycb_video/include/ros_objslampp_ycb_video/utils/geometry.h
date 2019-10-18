@@ -25,7 +25,17 @@ void track_instance_id(
   std::vector<int> instance_ids1 = ros_objslampp_ycb_video::utils::unique<int>(reference);
   std::vector<int> instance_ids2 = ros_objslampp_ycb_video::utils::unique<int>(*target);
 
+  cv::Mat mask_center = cv::Mat::zeros(reference.rows, reference.cols, CV_8UC1);
+  cv::rectangle(
+    mask_center,
+    cv::Point(reference.cols * 0.2, reference.rows * 0.2),
+    cv::Point(reference.cols * 0.8, reference.rows * 0.8),
+    /*color=*/255,
+    /*thickness=*/CV_FILLED);
+
+  // Compute IOU
   std::map<int, std::pair<int, float> > ins_id2to1;
+  std::set<int> ins_ids2_on_edge;
   for (size_t i = 0; i < instance_ids2.size(); i++) {
     // ins_id2: instance_id in the mask-rcnn output
     int ins_id2 = instance_ids2[i];
@@ -35,6 +45,11 @@ void track_instance_id(
 
     cv::Mat mask2 = (*target) == ins_id2;
     ins_id2to1.insert(std::make_pair(ins_id2, std::make_pair(-1, 0)));
+    cv::Mat mask_intersect;
+    cv::bitwise_and(mask_center, mask2, mask_intersect);
+    if (cv::countNonZero(mask_intersect) == 0) {
+      ins_ids2_on_edge.insert(ins_id2);
+    }
     for (size_t j = 0; j < instance_ids1.size(); j++) {
       // ins_id1: instance_id in the map
       int ins_id1 = instance_ids1[j];
@@ -56,9 +71,14 @@ void track_instance_id(
     }
   }
 
+  // Initialize new object
   for (std::map<int, std::pair<int, float> >::iterator it = ins_id2to1.begin();
        it != ins_id2to1.end(); it++) {
     int ins_id2 = it->first;
+    if (ins_ids2_on_edge.find(ins_id2) != ins_ids2_on_edge.end()) {
+      // it's on the edge, so don't initialize
+      continue;
+    }
     int ins_id1 = it->second.first;
     float iou = it->second.second;
     if (iou < 0.3) {
@@ -72,6 +92,10 @@ void track_instance_id(
   for (std::map<int, unsigned>::iterator it = instance_id_to_class_id->begin();
        it != instance_id_to_class_id->end(); it++) {
     int ins_id2 = it->first;
+    if (ins_ids2_on_edge.find(ins_id2) != ins_ids2_on_edge.end()) {
+      // it's on the edge, so skip inserting instance_id_to_class_id_updated
+      continue;
+    }
     int ins_id1 = ins_id2to1.find(ins_id2)->second.first;
     unsigned class_id = it->second;
     instance_id_to_class_id_updated.insert(std::make_pair(ins_id1, class_id));
@@ -86,6 +110,13 @@ void track_instance_id(
     for (size_t i = 0; i < target->cols; i++) {
       int ins_id2 = target->at<int>(j, i);
       if (ins_id2 < 0) {
+        continue;
+      }
+      if (ins_ids2_on_edge.find(ins_id2) != ins_ids2_on_edge.end()) {
+        // it's on the edge, so copy rendering
+        // TODO(wkentaro): copy rendered but don't update occupied space with this,
+        // since it's renderd with previous frame.
+        target->at<int>(j, i) = reference.at<int>(j, i);
         continue;
       }
       std::map<int, std::pair<int, float> >::iterator it2 = ins_id2to1.find(ins_id2);

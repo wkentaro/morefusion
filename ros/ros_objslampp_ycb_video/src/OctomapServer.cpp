@@ -242,7 +242,7 @@ void OctomapServer::insertCloudCallback(
   pcl::transformPointCloud(pc, pc, sensorToWorld);
 
   // Render OcTrees
-  cv::Mat label_ins_rend = cv::Mat(pc.height, pc.width, CV_32SC1, -1);
+  cv::Mat label_ins_rend = cv::Mat(pc.height, pc.width, CV_32SC1, -2);
   cv::Mat depth_rend = cv::Mat(
     pc.height, pc.width, CV_32FC1, std::numeric_limits<float>::quiet_NaN());
   if (m_octrees.size() > 0) {
