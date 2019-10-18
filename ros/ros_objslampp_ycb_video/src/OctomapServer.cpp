@@ -73,11 +73,13 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
     m_nh, "cloud_in", 5);
   m_labelInsSub = new message_filters::Subscriber<sensor_msgs::Image>(
     m_nh, "label_ins_in", 5);
+  m_labelInsRenderedSub = new message_filters::Subscriber<sensor_msgs::Image>(
+    m_nh, "label_ins_rendered_in", 5);
   m_classSub = new message_filters::Subscriber<ros_objslampp_msgs::ObjectClassArray>(
     m_nh, "class_in", 5);
   m_sync = new message_filters::Synchronizer<ExactSyncPolicy>(100);
-  m_sync->connectInput(*m_pointCloudSub, *m_labelInsSub, *m_classSub);
-  m_sync->registerCallback(boost::bind(&OctomapServer::insertCloudCallback, this, _1, _2, _3));
+  m_sync->connectInput(*m_pointCloudSub, *m_labelInsSub, *m_classSub, *m_labelInsRenderedSub);
+  m_sync->registerCallback(boost::bind(&OctomapServer::insertCloudCallback, this, _1, _2, _3, _4));
 
   m_resetService = private_nh.advertiseService("reset", &OctomapServer::resetSrv, this);
 
@@ -207,13 +209,18 @@ void OctomapServer::configCallback(
 void OctomapServer::insertCloudCallback(
     const sensor_msgs::PointCloud2ConstPtr& cloud,
     const sensor_msgs::ImageConstPtr& ins_msg,
-    const ros_objslampp_msgs::ObjectClassArrayConstPtr& class_msg) {
+    const ros_objslampp_msgs::ObjectClassArrayConstPtr& class_msg,
+    const sensor_msgs::ImageConstPtr& ins_rendered_msg) {
+  ROS_INFO_MAGENTA("insertCloudCallback");
+
   // ROSMsg -> PCL
   PCLPointCloud pc;
   pcl::fromROSMsg(*cloud, pc);
 
   // ROSMsg -> OpenCV
   cv::Mat label_ins = cv_bridge::toCvCopy(ins_msg, ins_msg->encoding)->image;
+  cv::Mat label_ins_rend = cv_bridge::toCvCopy(
+    ins_rendered_msg, ins_rendered_msg->encoding)->image;
   if (!((cloud->height == ins_msg->height) && (cloud->width == ins_msg->width))) {
     ROS_ERROR("Point cloud and instance label must be same size!");
     ROS_ERROR("point cloud: (%d, %d), label instance: (%d, %d)",
@@ -240,15 +247,16 @@ void OctomapServer::insertCloudCallback(
   pcl::transformPointCloud(pc, pc, sensorToWorld);
 
   // Render OcTrees
-  cv::Mat label_ins_rend = cv::Mat(pc.height / 2, pc.width / 2, CV_32SC1, -2);
-  cv::Mat depth_rend = cv::Mat(
-    pc.height / 2, pc.width / 2, CV_32FC1, std::numeric_limits<float>::quiet_NaN());
+  // cv::Mat label_ins_rend = cv::Mat(pc.height / 2, pc.width / 2, CV_32SC1, -2);
+  // cv::Mat depth_rend = cv::Mat(
+  //   pc.height / 2, pc.width / 2, CV_32FC1, std::numeric_limits<float>::quiet_NaN());
   cv::resize(label_ins, label_ins, cv::Size(pc.width / 2, pc.height / 2), 0, 0, cv::INTER_NEAREST);
-  if (m_octrees.size() > 0) {
-    renderOctrees(m_lastSensorToWorld, &label_ins_rend, &depth_rend);
-  }
-  m_lastSensorHeader = cloud->header;
-  m_lastSensorToWorld = sensorToWorld;
+  cv::resize(label_ins_rend, label_ins_rend, cv::Size(pc.width / 2, pc.height / 2), 0, 0, cv::INTER_NEAREST);
+  // if (m_octrees.size() > 0) {
+  //   renderOctrees(m_lastSensorToWorld, &label_ins_rend, &depth_rend);
+  // }
+  // m_lastSensorHeader = cloud->header;
+  // m_lastSensorToWorld = sensorToWorld;
 
   // Track Instance IDs
   std::map<int, unsigned> instance_id_to_class_id;
@@ -272,7 +280,7 @@ void OctomapServer::insertCloudCallback(
   // Publish Tracked Instance Label
   cv::Mat label_ins_full, depth_rend_full, label_ins_rend_full;
   cv::resize(label_ins, label_ins_full, cv::Size(pc.width, pc.height), 0, 0, cv::INTER_NEAREST);
-  cv::resize(depth_rend, depth_rend_full, cv::Size(pc.width, pc.height), 0, 0, cv::INTER_LINEAR);
+  // cv::resize(depth_rend, depth_rend_full, cv::Size(pc.width, pc.height), 0, 0, cv::INTER_LINEAR);
   cv::resize(label_ins_rend, label_ins_rend_full, cv::Size(pc.width, pc.height), 0, 0, cv::INTER_NEAREST);
   m_labelTrackedPub.publish(
     cv_bridge::CvImage(ins_msg->header, "32SC1", label_ins_full).toImageMsg());

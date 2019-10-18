@@ -60,7 +60,7 @@ class OctomapServer {
   typedef octomap_msgs::BoundingBoxQuery BBXSrv;
 
   typedef message_filters::sync_policies::ExactTime<
-    sensor_msgs::PointCloud2, sensor_msgs::Image, ros_objslampp_msgs::ObjectClassArray>
+    sensor_msgs::PointCloud2, sensor_msgs::Image, ros_objslampp_msgs::ObjectClassArray, sensor_msgs::Image>
     ExactSyncPolicy;
 
   explicit OctomapServer(ros::NodeHandle private_nh_ = ros::NodeHandle("~"));
@@ -70,7 +70,8 @@ class OctomapServer {
   virtual void insertCloudCallback(
     const sensor_msgs::PointCloud2ConstPtr& cloud,
     const sensor_msgs::ImageConstPtr& ins_msg,
-    const ros_objslampp_msgs::ObjectClassArrayConstPtr& class_msg);
+    const ros_objslampp_msgs::ObjectClassArrayConstPtr& class_msg,
+    const sensor_msgs::ImageConstPtr& ins_rendered_msg);
 
  protected:
   void publishBinaryOctoMap(const ros::Time& rostime = ros::Time::now()) const;
@@ -134,6 +135,7 @@ class OctomapServer {
   message_filters::Subscriber<sensor_msgs::PointCloud2>* m_pointCloudSub;
   message_filters::Subscriber<sensor_msgs::Image>* m_labelInsSub;
   message_filters::Subscriber<ros_objslampp_msgs::ObjectClassArray>* m_classSub;
+  message_filters::Subscriber<sensor_msgs::Image>* m_labelInsRenderedSub;
   tf::MessageFilter<sensor_msgs::PointCloud2>* m_tfPointCloudSub;
   message_filters::Synchronizer<ExactSyncPolicy>* m_sync;
   ros::ServiceServer m_resetService;
