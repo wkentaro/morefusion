@@ -246,15 +246,12 @@ void OctomapServer::insertCloudCallback(
   pcl::transformPointCloud(pc, pc, sensorToWorld);
 
   // Render OcTrees
-  cv::Mat label_ins_rend = cv::Mat(pc.height, pc.width, CV_32SC1, -2);
+  cv::Mat label_ins_rend = cv::Mat(pc.height / 2, pc.width / 2, CV_32SC1, -2);
   cv::Mat depth_rend = cv::Mat(
-    pc.height, pc.width, CV_32FC1, std::numeric_limits<float>::quiet_NaN());
+    pc.height / 2, pc.width / 2, CV_32FC1, std::numeric_limits<float>::quiet_NaN());
+  cv::resize(label_ins, label_ins, cv::Size(pc.width / 2, pc.height / 2), 0, 0, cv::INTER_NEAREST);
   if (m_octrees.size() > 0) {
-    cv::resize(label_ins_rend, label_ins_rend, cv::Size(), 0.5, 0.5, cv::INTER_NEAREST);
-    cv::resize(depth_rend, depth_rend, cv::Size(), 0.5, 0.5, cv::INTER_NEAREST);
     renderOctrees(m_lastSensorToWorld, &label_ins_rend, &depth_rend);
-    cv::resize(label_ins_rend, label_ins_rend, cv::Size(pc.width, pc.height), 0, 0, cv::INTER_NEAREST);
-    cv::resize(depth_rend, depth_rend, cv::Size(pc.width, pc.height), 0, 0, cv::INTER_LINEAR);
   }
   m_lastSensorHeader = cloud->header;
   m_lastSensorToWorld = sensorToWorld;
@@ -279,14 +276,18 @@ void OctomapServer::insertCloudCallback(
     }
   }
   // Publish Tracked Instance Label
+  cv::Mat label_ins_full, depth_rend_full, label_ins_rend_full;
+  cv::resize(label_ins, label_ins_full, cv::Size(pc.width, pc.height), 0, 0, cv::INTER_NEAREST);
+  cv::resize(depth_rend, depth_rend_full, cv::Size(pc.width, pc.height), 0, 0, cv::INTER_LINEAR);
+  cv::resize(label_ins_rend, label_ins_rend_full, cv::Size(pc.width, pc.height), 0, 0, cv::INTER_NEAREST);
   m_labelTrackedPub.publish(
-    cv_bridge::CvImage(ins_msg->header, "32SC1", label_ins).toImageMsg());
+    cv_bridge::CvImage(ins_msg->header, "32SC1", label_ins_full).toImageMsg());
   m_depthRenderedPub.publish(
-    cv_bridge::CvImage(ins_msg->header, "32FC1", depth_rend).toImageMsg());
+    cv_bridge::CvImage(ins_msg->header, "32FC1", depth_rend_full).toImageMsg());
 
   // Publish Rendering
   m_labelRenderedPub.publish(
-    cv_bridge::CvImage(m_lastSensorHeader, "32SC1", label_ins_rend).toImageMsg());
+    cv_bridge::CvImage(m_lastSensorHeader, "32SC1", label_ins_rend_full).toImageMsg());
   ros_objslampp_msgs::ObjectClassArray cls_rend_msg;
   cls_rend_msg.header = cloud->header;
   for (std::map<int, unsigned>::iterator it = m_classIds.begin();
@@ -359,7 +360,7 @@ void OctomapServer::insertScan(
   for (size_t index = 0 ; index < pc.points.size(); index++) {
     size_t width_index = index % pc.width;
     size_t height_index = index / pc.width;
-    if (width_index % 2 == 0 || height_index % 2 != 0) {
+    if (width_index % 2 != 0 || height_index % 2 != 0) {
       continue;
     }
     if (std::isnan(pc.points[index].x) ||
@@ -369,7 +370,7 @@ void OctomapServer::insertScan(
     }
 
     octomap::point3d point(pc.points[index].x, pc.points[index].y, pc.points[index].z);
-    int instance_id = label_ins.at<int32_t>(height_index, width_index);
+    int instance_id = label_ins.at<int32_t>(height_index / 2, width_index / 2);
     if (instance_id == -2) {
       continue;
     }
