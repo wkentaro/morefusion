@@ -56,6 +56,7 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_fullMapPub = m_nh.advertise<Octomap>("octomap_full", 1);
   m_mapPub = m_nh.advertise<nav_msgs::OccupancyGrid>("projected_map", 5);
   m_fmarkerPub = m_nh.advertise<visualization_msgs::MarkerArray>("free_cells_vis_array", 1);
+  m_gridsForRenderPub = private_nh.advertise<ros_objslampp_msgs::VoxelGridArray>("output/grids_for_render", 1);
   m_gridsPub = private_nh.advertise<ros_objslampp_msgs::VoxelGridArray>("output/grids", 1);
   m_gridsNoEntryPub = private_nh.advertise<ros_objslampp_msgs::VoxelGridArray>("output/grids_noentry", 1);
   m_bgMarkerPub = private_nh.advertise<visualization_msgs::MarkerArray>("output/markers_bg", 1);
@@ -64,6 +65,9 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_labelRenderedPub = private_nh.advertise<sensor_msgs::Image>("output/label_rendered", 1);
   m_depthRenderedPub = private_nh.advertise<sensor_msgs::Image>("debug/depth_rendered", 1);
   m_classPub = private_nh.advertise<ros_objslampp_msgs::ObjectClassArray>("output/class", 1);
+
+  m_labelInsForRenderSub = m_nh.subscribe(
+    "label_ins_in", 1, &OctomapServer::publishGridsForRenderCallback, this);
 
   m_pointCloudSub = new message_filters::Subscriber<sensor_msgs::PointCloud2>(
     m_nh, "cloud_in", 5);
@@ -82,6 +86,10 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_reconfigSrv.setCallback(f);
 
   ROS_INFO_BLUE("Initialized");
+}
+
+void OctomapServer::publishGridsForRenderCallback(const sensor_msgs::ImageConstPtr& ins_msg) {
+  publishGridsForRender(ins_msg->header.stamp);
 }
 
 void OctomapServer::renderOctrees(
@@ -446,6 +454,59 @@ void OctomapServer::insertScan(
 
   ros::WallDuration elapsed_time = ros::WallTime::now() - t_start;
   ROS_INFO_MAGENTA("Elapsed Time: %lf [s], %lf [fps]", elapsed_time.toSec(), 1. / elapsed_time.toSec());
+}
+
+void OctomapServer::publishGridsForRender(const ros::Time& rostime) {
+  ros_objslampp_msgs::VoxelGridArray grids;
+  grids.header.frame_id = m_worldFrameId;
+  grids.header.stamp = rostime;
+  for (std::map<int, OcTreeT*>::iterator it_octree = m_octrees.begin();
+       it_octree != m_octrees.end(); it_octree++) {
+    int instance_id = it_octree->first;
+    OcTreeT* octree = it_octree->second;
+
+    if (instance_id == -1) {
+      continue;
+    }
+    unsigned class_id = m_classIds.find(instance_id)->second;
+    double pitch = ros_objslampp_ycb_video::utils::class_id_to_voxel_pitch(class_id);
+
+    // world frame
+    octomap::point3d center = m_centers.find(instance_id)->second;
+
+    ros_objslampp_msgs::VoxelGrid grid;
+    grid.pitch = pitch;
+    grid.dims.x = 32;
+    grid.dims.y = 32;
+    grid.dims.z = 32;
+    grid.origin.x = center.x() - (grid.dims.x / 2.0 - 0.5) * grid.pitch;
+    grid.origin.y = center.y() - (grid.dims.y / 2.0 - 0.5) * grid.pitch;
+    grid.origin.z = center.z() - (grid.dims.z / 2.0 - 0.5) * grid.pitch;
+    grid.instance_id = instance_id;
+    grid.class_id = class_id;
+
+    for (size_t i = 0; i < grid.dims.x; i++) {
+      for (size_t j = 0; j < grid.dims.y; j++) {
+        for (size_t k = 0; k < grid.dims.z; k++) {
+          double x, y, z;
+          // in world
+          x = grid.origin.x + grid.pitch * i;
+          y = grid.origin.y + grid.pitch * j;
+          z = grid.origin.z + grid.pitch * k;
+
+          size_t index = i * grid.dims.y * grid.dims.z + j * grid.dims.z + k;
+
+          octomap::OcTreeNode* node = octree->search(x, y, z, /*depth=*/0);
+          if ((node != NULL) && (node->getOccupancy() > 0.5)) {
+            grid.indices.push_back(index);
+            grid.values.push_back(node->getOccupancy());
+          }
+        }
+      }
+    }
+    grids.grids.push_back(grid);
+  }
+  m_gridsForRenderPub.publish(grids);
 }
 
 void OctomapServer::publishGrids(

@@ -77,6 +77,8 @@ class OctomapServer {
   void publishFullOctoMap(const ros::Time& rostime = ros::Time::now()) const;
   virtual void publishAll(const ros::Time& rostime = ros::Time::now());
 
+  void publishGridsForRenderCallback(const sensor_msgs::ImageConstPtr& ins_msg);
+  void publishGridsForRender(const ros::Time& rostime);
   void publishGrids(const ros::Time& rostime, const Eigen::Matrix4f& sensorToWorld);
 
   /**
@@ -117,6 +119,7 @@ class OctomapServer {
   ros::Publisher m_cmapPub;
   ros::Publisher m_fmapPub;
   ros::Publisher m_fmarkerPub;
+  ros::Publisher m_gridsForRenderPub;
   ros::Publisher m_gridsPub;
   ros::Publisher m_gridsNoEntryPub;
   ros::Publisher m_bgMarkerPub;
@@ -127,6 +130,7 @@ class OctomapServer {
   ros::Publisher m_depthRenderedPub;
   ros::Publisher m_classPub;
   dynamic_reconfigure::Server<ros_objslampp_ycb_video::OctomapServerConfig> m_reconfigSrv;
+  ros::Subscriber m_labelInsForRenderSub;
   message_filters::Subscriber<sensor_msgs::PointCloud2>* m_pointCloudSub;
   message_filters::Subscriber<sensor_msgs::Image>* m_labelInsSub;
   message_filters::Subscriber<ros_objslampp_msgs::ObjectClassArray>* m_classSub;
