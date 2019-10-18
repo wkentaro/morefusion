@@ -5,6 +5,7 @@ import tempfile
 import imgviz
 import numpy as np
 import path
+import scipy.ndimage
 import trimesh
 
 from visualization_msgs.msg import Marker, MarkerArray
@@ -62,6 +63,9 @@ class VoxelGridsToMeshMarkers(topic_tools.LazyTransport):
             matrix = matrix.flatten()
             matrix[list(grid.indices)] = grid.values
             matrix = matrix.reshape(dims)
+            matrix = scipy.ndimage.morphology.grey_dilation(
+                matrix, size=(2, 2, 2)
+            )
             mesh = trimesh.voxel.matrix_to_marching_cubes(
                 matrix, pitch, origin
             )
