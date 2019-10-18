@@ -89,7 +89,8 @@ class OctomapServer {
     const tf::Point& sensorOrigin,
     const PCLPointCloud& pc,
     const cv::Mat& label_ins,
-    const std::map<int, unsigned>& instance_id_to_class_id);
+    const std::map<int, unsigned>& instance_id_to_class_id,
+    const cv::Mat& mask_update_as_occupied);
 
   /**
   * @brief Find speckle nodes (single occupied voxels with no neighbors). Only works on lowest resolution!
@@ -119,8 +120,10 @@ class OctomapServer {
   ros::Publisher m_gridsNoEntryPub;
   ros::Publisher m_bgMarkerPub;
   ros::Publisher m_fgMarkerPub;
+  ros::Publisher m_maskUpdateAsOccupiedPub;
   ros::Publisher m_labelTrackedPub;
   ros::Publisher m_labelRenderedPub;
+  ros::Publisher m_depthRenderedPub;
   ros::Publisher m_classPub;
   dynamic_reconfigure::Server<ros_objslampp_ycb_video::OctomapServerConfig> m_reconfigSrv;
   message_filters::Subscriber<sensor_msgs::PointCloud2>* m_pointCloudSub;

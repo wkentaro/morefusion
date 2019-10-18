@@ -74,8 +74,10 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
     "output/markers_bg", 1, m_latchedTopics);
   m_fgMarkerPub = private_nh.advertise<visualization_msgs::MarkerArray>(
     "output/markers_fg", 1, m_latchedTopics);
+  m_maskUpdateAsOccupiedPub = private_nh.advertise<sensor_msgs::Image>("debug/mask_update_as_occupied", 1);
   m_labelTrackedPub = private_nh.advertise<sensor_msgs::Image>("debug/label_tracked", 1);
   m_labelRenderedPub = private_nh.advertise<sensor_msgs::Image>("output/label_rendered", 1);
+  m_depthRenderedPub = private_nh.advertise<sensor_msgs::Image>("debug/depth_rendered", 1);
   m_classPub = private_nh.advertise<ros_objslampp_msgs::ObjectClassArray>("output/class", 1);
 
   m_pointCloudSub = new message_filters::Subscriber<sensor_msgs::PointCloud2>(
@@ -123,6 +125,9 @@ void OctomapServer::renderOctrees(
       #pragma omp parallel for
       for (size_t k = 0; k < instance_ids.size(); k++) {
         int instance_id = instance_ids[k];
+        if (instance_id == -1) {
+          continue;
+        }
         OcTreeT* octree = m_octrees.find(instance_id)->second;
 
         pcl::PointCloud<PCLPoint> pc;
@@ -250,6 +255,7 @@ void OctomapServer::insertCloudCallback(
     cv::resize(depth_rend, depth_rend, cv::Size(), 0.5, 0.5, cv::INTER_NEAREST);
     renderOctrees(m_lastSensorToWorld, &label_ins_rend, &depth_rend);
     cv::resize(label_ins_rend, label_ins_rend, cv::Size(pc.width, pc.height), 0, 0, cv::INTER_NEAREST);
+    cv::resize(depth_rend, depth_rend, cv::Size(pc.width, pc.height), 0, 0, cv::INTER_LINEAR);
   }
   m_lastSensorHeader = cloud->header;
   m_lastSensorToWorld = sensorToWorld;
@@ -262,20 +268,26 @@ void OctomapServer::insertCloudCallback(
         class_msg->classes[i].instance_id,
         class_msg->classes[i].class_id));
   }
+  cv::Mat mask_update_as_occupied = cv::Mat(pc.height, pc.width, CV_8UC1, 255);
   ros_objslampp_ycb_video::utils::track_instance_id(
     /*reference=*/label_ins_rend,
     /*target=*/&label_ins,
     /*instance_id_to_class_id=*/&instance_id_to_class_id,
-    /*instance_counter=*/&m_instanceCounter);
+    /*instance_counter=*/&m_instanceCounter,
+    /*mask_update_as_occupied=*/&mask_update_as_occupied);
   for (std::map<int, unsigned>::iterator it = m_classIds.begin();
        it != m_classIds.end(); it++) {
     if (instance_id_to_class_id.find(it->first) == instance_id_to_class_id.end()) {
       instance_id_to_class_id.insert(std::make_pair(it->first, it->second));
     }
   }
+  m_maskUpdateAsOccupiedPub.publish(
+    cv_bridge::CvImage(ins_msg->header, "mono8", mask_update_as_occupied).toImageMsg());
   // Publish Tracked Instance Label
   m_labelTrackedPub.publish(
     cv_bridge::CvImage(ins_msg->header, "32SC1", label_ins).toImageMsg());
+  m_depthRenderedPub.publish(
+    cv_bridge::CvImage(ins_msg->header, "32FC1", depth_rend).toImageMsg());
 
   // Publish Rendering
   m_labelRenderedPub.publish(
@@ -296,7 +308,7 @@ void OctomapServer::insertCloudCallback(
   m_classPub.publish(cls_rend_msg);
 
   // Update Map
-  insertScan(sensorToWorldTf.getOrigin(), pc, label_ins, instance_id_to_class_id);
+  insertScan(sensorToWorldTf.getOrigin(), pc, label_ins, instance_id_to_class_id, mask_update_as_occupied);
 
   // Publish Map
   publishAll(cloud->header.stamp);
@@ -306,7 +318,8 @@ void OctomapServer::insertScan(
     const tf::Point& sensorOriginTf,
     const PCLPointCloud& pc,
     const cv::Mat& label_ins,
-    const std::map<int, unsigned>& instance_id_to_class_id) {
+    const std::map<int, unsigned>& instance_id_to_class_id,
+    const cv::Mat& mask_update_as_occupied) {
   ros::WallTime t_start = ros::WallTime::now();
 
   octomap::point3d sensorOrigin = octomap::pointTfToOctomap(sensorOriginTf);
@@ -314,6 +327,7 @@ void OctomapServer::insertScan(
   std::vector<int> instance_ids = ros_objslampp_ycb_video::utils::unique<int>(label_ins);
   std::map<int, octomap::KeySet> free_cells;
   std::map<int, octomap::KeySet> occupied_cells;
+  std::map<int, octomap::KeySet> suspicious_occupied_cells;
   for (size_t i = 0; i < instance_ids.size(); i++) {
     int instance_id = instance_ids[i];
     if (instance_id == -2) {
@@ -342,6 +356,7 @@ void OctomapServer::insertScan(
     }
     free_cells.insert(std::make_pair(instance_id, octomap::KeySet()));
     occupied_cells.insert(std::make_pair(instance_id, octomap::KeySet()));
+    suspicious_occupied_cells.insert(std::make_pair(instance_id, octomap::KeySet()));
   }
 
   // all other points: free on ray, occupied on endpoint:
@@ -392,9 +407,16 @@ void OctomapServer::insertScan(
       }
       // occupied endpoint
       octomap::OcTreeKey key;
-      if (octree->coordToKeyChecked(point, key)) {
-        #pragma omp critical
-        occupied_cells.find(instance_id)->second.insert(key);
+      if (mask_update_as_occupied.at<uint8_t>(height_index, width_index) == 0) {
+        if (m_octrees.find(instance_id)->second->coordToKeyChecked(point, key)) {
+          #pragma omp critical
+          suspicious_occupied_cells.find(instance_id)->second.insert(key);
+        }
+      } else {
+        if (m_octrees.find(instance_id)->second->coordToKeyChecked(point, key)) {
+          #pragma omp critical
+          occupied_cells.find(instance_id)->second.insert(key);
+        }
       }
     } else {  // ray longer than maxrange:;
       octomap::point3d new_end = sensorOrigin + (point - sensorOrigin).normalized() * m_maxRange;
@@ -410,9 +432,11 @@ void OctomapServer::insertScan(
     int instance_id = i->first;
     octomap::KeySet key_set_free = i->second;
     octomap::KeySet key_set_occupied = occupied_cells.find(instance_id)->second;
+    octomap::KeySet key_set_suspicious_occupied = suspicious_occupied_cells.find(instance_id)->second;
     OcTreeT* octree = m_octrees.find(instance_id)->second;
     for (octomap::KeySet::iterator j = key_set_free.begin(); j != key_set_free.end(); j++) {
-      if (key_set_occupied.find(*j) == key_set_occupied.end()) {
+      if (key_set_occupied.find(*j) == key_set_occupied.end() &&
+          key_set_suspicious_occupied.find(*j) == key_set_suspicious_occupied.end()) {
         octree->updateNode(*j, false);
       }
     }

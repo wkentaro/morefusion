@@ -21,17 +21,20 @@ void track_instance_id(
     const cv::Mat& reference,
     cv::Mat* target,
     std::map<int, unsigned>* instance_id_to_class_id,
-    unsigned* instance_counter) {
+    unsigned* instance_counter,
+    cv::Mat* mask_update_as_occupied) {
   std::vector<int> instance_ids1 = ros_objslampp_ycb_video::utils::unique<int>(reference);
   std::vector<int> instance_ids2 = ros_objslampp_ycb_video::utils::unique<int>(*target);
 
-  cv::Mat mask_center = cv::Mat::zeros(reference.rows, reference.cols, CV_8UC1);
+  cv::Mat mask_nonedge = cv::Mat::zeros(reference.rows, reference.cols, CV_8UC1);
   cv::rectangle(
-    mask_center,
-    cv::Point(reference.cols * 0.2, reference.rows * 0.2),
-    cv::Point(reference.cols * 0.8, reference.rows * 0.8),
+    mask_nonedge,
+    cv::Point(reference.cols * 0.1, reference.rows * 0.1),
+    cv::Point(reference.cols * 0.9, reference.rows * 0.9),
     /*color=*/255,
     /*thickness=*/CV_FILLED);
+  cv::Mat mask_edge;
+  cv::bitwise_not(mask_nonedge, mask_edge);
 
   // Compute IOU
   std::map<int, std::pair<int, float> > ins_id2to1;
@@ -45,11 +48,14 @@ void track_instance_id(
 
     cv::Mat mask2 = (*target) == ins_id2;
     ins_id2to1.insert(std::make_pair(ins_id2, std::make_pair(-1, 0)));
-    cv::Mat mask_intersect;
-    cv::bitwise_and(mask_center, mask2, mask_intersect);
-    if (cv::countNonZero(mask_intersect) == 0) {
+
+    cv::Mat mask_intersect_edge, mask_intersect_nonedge;
+    cv::bitwise_and(mask_edge, mask2, mask_intersect_edge);
+    cv::bitwise_and(mask_nonedge, mask2, mask_intersect_nonedge);
+    if (cv::countNonZero(mask_intersect_edge) > cv::countNonZero(mask_intersect_nonedge)) {
       ins_ids2_on_edge.insert(ins_id2);
     }
+
     for (size_t j = 0; j < instance_ids1.size(); j++) {
       // ins_id1: instance_id in the map
       int ins_id1 = instance_ids1[j];
@@ -117,6 +123,7 @@ void track_instance_id(
         // TODO(wkentaro): copy rendered but don't update occupied space with this,
         // since it's renderd with previous frame.
         target->at<int>(j, i) = reference.at<int>(j, i);
+        mask_update_as_occupied->at<uint8_t>(j, i) = 0;
         continue;
       }
       std::map<int, std::pair<int, float> >::iterator it2 = ins_id2to1.find(ins_id2);
@@ -199,7 +206,6 @@ cv::Mat rendering_mask(const cv::Mat& label_ins) {
 
   return mask;
 }
-
 
 }  // namespace utils
 
