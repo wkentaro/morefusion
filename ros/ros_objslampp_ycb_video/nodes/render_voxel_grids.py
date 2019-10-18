@@ -33,10 +33,13 @@ class RenderVoxelGrids(topic_tools.LazyTransport):
         sub_cam = message_filters.Subscriber(
             '~input/camera_info', CameraInfo, queue_size=1
         )
+        sub_depth = message_filters.Subscriber(
+            '~input/depth', Image, queue_size=1
+        )
         sub_grids = message_filters.Subscriber(
             '~input/grids', VoxelGridArray, queue_size=1
         )
-        self._subscribers = [sub_cam, sub_grids]
+        self._subscribers = [sub_cam, sub_depth, sub_grids]
         sync = message_filters.TimeSynchronizer(
             self._subscribers, queue_size=100
         )
@@ -66,14 +69,20 @@ class RenderVoxelGrids(topic_tools.LazyTransport):
         ).array
         return T_cam2base
 
-    def _callback(self, cam_msg, grids_msg):
+    def _callback(self, cam_msg, depth_msg, grids_msg):
         assert grids_msg.header.frame_id == self._base_frame
         T_cam2base = self._get_transform(
             cam_msg.header.frame_id, cam_msg.header.stamp)
         if T_cam2base is None:
             return
-
         T_base2cam = np.linalg.inv(T_cam2base)
+
+        bridge = cv_bridge.CvBridge()
+        depth = bridge.imgmsg_to_cv2(depth_msg)
+        if depth.dtype == np.uint16:
+            depth = depth.astype(np.float32) / 1000
+            depth[depth == 0] = np.nan
+        assert depth.dtype == np.float32
 
         meshes = {}
         for grid in grids_msg.grids:
@@ -105,7 +114,7 @@ class RenderVoxelGrids(topic_tools.LazyTransport):
                 resolution=(cam_msg.width, cam_msg.height),
                 focal=(K[0, 0], K[1, 1])
             )
-            _, _, uniq = objslampp.extra.pybullet.render_camera(
+            _, depth_rend, uniq = objslampp.extra.pybullet.render_camera(
                 np.eye(4),
                 fovy=camera.fov[1],
                 height=camera.resolution[1],
@@ -117,6 +126,7 @@ class RenderVoxelGrids(topic_tools.LazyTransport):
 
             for uniq_id, ins_id in uniq_id_to_ins_id.items():
                 ins[uniq == uniq_id] = ins_id
+            ins[(uniq != -1) & (depth_rend > depth)] = -2
 
         bridge = cv_bridge.CvBridge()
         ins_msg = bridge.cv2_to_imgmsg(ins)
