@@ -3,7 +3,13 @@
   <arg name="RVIZ" default="true" />
 
   <include file="$(find ros_objslampp_ycb_video)/launch/rosbag_play_rs_rgbd.launch">
+    <arg name="FILE" value="rs_rosbag_play_static_wbase.py" />
   </include>
+
+  <node name="static_transform_publisher"
+        pkg="tf" type="static_transform_publisher"
+        args="0 0 0.67 0 3.2 -0.17 camera_color_optical_frame base 100">
+  </node>
 
   <include file="$(find ros_objslampp_ycb_video)/launch/visualize_rs_rgbd.launch">
     <arg name="GUI" value="false" />
