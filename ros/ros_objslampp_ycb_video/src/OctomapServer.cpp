@@ -101,8 +101,6 @@ void OctomapServer::insertCloudCallback(
     const sensor_msgs::PointCloud2ConstPtr& cloud,
     const sensor_msgs::ImageConstPtr& ins_msg,
     const ros_objslampp_msgs::ObjectClassArrayConstPtr& class_msg) {
-  ROS_INFO_MAGENTA("insertCloudCallback");
-
   // Get TF
   tf::StampedTransform sensorToWorldTf;
   try {
@@ -193,7 +191,7 @@ void OctomapServer::insertScan(
     const PCLPointCloud& pc,
     const cv::Mat& label_ins,
     const std::map<int, unsigned>& instance_id_to_class_id) {
-  ros::WallTime t_start = ros::WallTime::now();
+  // ros::WallTime t_start = ros::WallTime::now();
 
   octomap::point3d sensorOrigin = octomap::pointTfToOctomap(sensorOriginTf);
 
@@ -319,8 +317,8 @@ void OctomapServer::insertScan(
     }
   }
 
-  ros::WallDuration elapsed_time = ros::WallTime::now() - t_start;
-  ROS_INFO_MAGENTA("Elapsed Time: %lf [s], %lf [fps]", elapsed_time.toSec(), 1. / elapsed_time.toSec());
+  // ros::WallDuration elapsed_time = ros::WallTime::now() - t_start;
+  // ROS_INFO_MAGENTA("Elapsed Time: %lf [s], %lf [fps]", elapsed_time.toSec(), 1. / elapsed_time.toSec());
 }
 
 void OctomapServer::getGridsInWorldFrame(const ros::Time& rostime, ros_objslampp_msgs::VoxelGridArray& grids) {
