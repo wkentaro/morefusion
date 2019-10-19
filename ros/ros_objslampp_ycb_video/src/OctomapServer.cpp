@@ -180,7 +180,8 @@ void OctomapServer::insertCloudCallback(
   insertScan(sensorToWorldTf.getOrigin(), pc, label_ins, instance_id_to_class_id);
 
   // Publish Object Grids
-  publishGrids(cloud->header.stamp, sensorToWorld);
+  std::set<int> instance_ids_active = ros_objslampp_ycb_video::utils::unique<int>(label_ins);
+  publishGrids(cloud->header.stamp, sensorToWorld, instance_ids_active);
 
   // Publish Map
   publishAll(cloud->header.stamp);
@@ -195,11 +196,10 @@ void OctomapServer::insertScan(
 
   octomap::point3d sensorOrigin = octomap::pointTfToOctomap(sensorOriginTf);
 
-  std::vector<int> instance_ids = ros_objslampp_ycb_video::utils::unique<int>(label_ins);
+  std::set<int> instance_ids = ros_objslampp_ycb_video::utils::unique<int>(label_ins);
   octomap::KeySet free_cells_bg;
   std::map<int, octomap::KeySet> occupied_cells;
-  for (size_t i = 0; i < instance_ids.size(); i++) {
-    int instance_id = instance_ids[i];
+  for (int instance_id : instance_ids) {
     if (instance_id == -2) {
       // -1: background, -2: uncertain (e.g., boundary)
       continue;
@@ -374,7 +374,8 @@ void OctomapServer::getGridsInWorldFrame(const ros::Time& rostime, ros_objslampp
 
 void OctomapServer::publishGrids(
     const ros::Time& rostime,
-    const Eigen::Matrix4f& sensorToWorld) {
+    const Eigen::Matrix4f& sensorToWorld,
+    const std::set<int>& instance_ids_active) {
   if (m_octrees.size() == 0) {
     return;
   }
@@ -387,11 +388,15 @@ void OctomapServer::publishGrids(
   for (std::map<int, OcTreeT*>::iterator it_octree = m_octrees.begin();
        it_octree != m_octrees.end(); it_octree++) {
     int instance_id = it_octree->first;
-    OcTreeT* octree = it_octree->second;
-
     if (instance_id == -1) {
       continue;
     }
+    if (instance_ids_active.find(instance_id) == instance_ids_active.end()) {
+      // inactive
+      continue;
+    }
+
+    OcTreeT* octree = it_octree->second;
     unsigned class_id = m_classIds.find(instance_id)->second;
     double pitch = ros_objslampp_ycb_video::utils::class_id_to_voxel_pitch(class_id);
 

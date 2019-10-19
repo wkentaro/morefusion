@@ -251,7 +251,8 @@ Visualization Manager:
       Marker Topic: /camera/grids_to_markers/output
       Name: Grids
       Namespaces:
-        {}
+        0: true
+        1: true
       Queue Size: 1
       Value: true
     - Class: rviz/MarkerArray
@@ -265,13 +266,13 @@ Visualization Manager:
     - Class: rviz/Group
       Displays:
         - Class: rviz/MarkerArray
-          Enabled: false
+          Enabled: true
           Marker Topic: /camera/with_occupancy/object_poses_to_markers/output
           Name: Predicted
           Namespaces:
-            {}
+            "": true
           Queue Size: 1
-          Value: false
+          Value: true
         - Class: rviz/MarkerArray
           Enabled: false
           Marker Topic: /camera/with_occupancy/collision_based_pose_refinement/object_poses_to_markers/output
@@ -281,13 +282,13 @@ Visualization Manager:
           Queue Size: 1
           Value: false
         - Class: rviz/MarkerArray
-          Enabled: true
+          Enabled: false
           Marker Topic: /camera/with_occupancy/object_mapping/object_poses_to_markers/output
           Name: Spawned
           Namespaces:
             {}
           Queue Size: 1
-          Value: true
+          Value: false
       Enabled: true
       Name: Full
   Enabled: true
@@ -330,10 +331,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.360398293
+      Pitch: 0.0997962952
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 2.51040196
+      Yaw: 2.97040367
     Saved: ~
 Window Geometry:
   Displays:

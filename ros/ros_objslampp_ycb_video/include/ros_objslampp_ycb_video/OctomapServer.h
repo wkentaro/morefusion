@@ -82,7 +82,10 @@ class OctomapServer {
   virtual void publishAll(const ros::Time& rostime = ros::Time::now());
 
   void getGridsInWorldFrame(const ros::Time& rostime, ros_objslampp_msgs::VoxelGridArray& grids);
-  void publishGrids(const ros::Time& rostime, const Eigen::Matrix4f& sensorToWorld);
+  void publishGrids(
+      const ros::Time& rostime,
+      const Eigen::Matrix4f& sensorToWorld,
+      const std::set<int>& instance_ids_active);
 
   /**
   * @brief update occupancy map with a scan labeled as ground and nonground.

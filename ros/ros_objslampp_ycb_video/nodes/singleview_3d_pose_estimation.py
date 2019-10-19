@@ -147,6 +147,10 @@ class SingleViewPoseEstimation3D(topic_tools.LazyTransport):
         keep = []
         nanmask = np.isnan(pcd).any(axis=2)
         for i, (ins_id, cls_id) in enumerate(zip(instance_ids, class_ids)):
+            if self._with_occupancy and ins_id not in grids_noentry:
+                # it is inactive in some reason (e.g., on the edge)
+                continue
+
             mask = ins == ins_id
             if (~nanmask & mask).sum() < 50:
                 continue
