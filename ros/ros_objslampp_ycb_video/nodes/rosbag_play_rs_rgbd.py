@@ -16,7 +16,10 @@ def get_bag_file(bag_id):
             md5='5bfb6eb7f80773dd2b8a6b16a93823e9',
         )
     elif bag_id == 'static':
-        bag_file = '/home/wkentaro/rs_rgbd_2019-10-18-19-53-41.bag'
+        bag_file = gdown.cached_download(
+            url='https://drive.google.com/uc?id=1mArVTWl2f0Uws_mRoCtDzttV2s6AahZa',  # NOQA
+            md5='a70a792577447a414c8ac7fe5f4aa316',
+        )
     elif bag_id == 'static_wbase':
         bag_file = gdown.cached_download(
             url='https://drive.google.com/uc?id=1UxUg4IozQvQNrCALXkzk23v3fBjpFCqZ',  # NOQA
