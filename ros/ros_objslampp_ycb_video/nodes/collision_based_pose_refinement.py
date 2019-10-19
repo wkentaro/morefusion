@@ -29,10 +29,16 @@ class CollisionBasedPoseRefinement(topic_tools.LazyTransport):
             '~input/poses', ObjectPoseArray, queue_size=1
         )
         sub_grid = message_filters.Subscriber(
-            '~input/grids', VoxelGridArray, queue_size=1
+            '~input/grids',
+            VoxelGridArray,
+            queue_size=1,
+            buff_size=2 ** 24,
         )
         sub_grid_noentry = message_filters.Subscriber(
-            '~input/grids_noentry', VoxelGridArray, queue_size=1
+            '~input/grids_noentry',
+            VoxelGridArray,
+            queue_size=1,
+            buff_size=2 ** 24,
         )
         self._subscribers = [sub_pose, sub_grid, sub_grid_noentry]
         sync = message_filters.TimeSynchronizer(
