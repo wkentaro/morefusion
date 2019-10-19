@@ -3,7 +3,7 @@
   <arg name="RVIZ" default="true" />
 
   <include file="$(find ros_objslampp_ycb_video)/launch/rosbag_play_rs_rgbd.launch">
-    <arg name="FILE" value="rs_rosbag_play_static_wbase.py" />
+    <arg name="BAG_ID" value="static_wbase" />
   </include>
 
   <node name="static_transform_publisher"

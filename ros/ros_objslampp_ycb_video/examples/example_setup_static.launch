@@ -1,7 +1,7 @@
 <launch>
 
   <include file="$(find ros_objslampp_ycb_video)/launch/rosbag_play_rs_rgbd.launch">
-    <arg name="FILE" value="rosbag_play_rs_rgbd_static.py" />
+    <arg name="BAG_ID" value="static" />
   </include>
 
   <include file="$(find ros_objslampp_ycb_video)/launch/visualize_rs_rgbd.launch">

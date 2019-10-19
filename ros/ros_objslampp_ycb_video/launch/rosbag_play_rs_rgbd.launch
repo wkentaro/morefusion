@@ -1,13 +1,13 @@
 <launch>
 
-  <arg name="FILE" />
+  <arg name="BAG_ID" />
 
   <param name="/use_sim_time" value="true" />
 
   <node name="rosbag_play_rs_rgbd"
-        pkg="ros_objslampp_ycb_video" type="$(arg FILE)"
+        pkg="ros_objslampp_ycb_video" type="rosbag_play_rs_rgbd.py"
         clear_params="true"
-        args="--clock --loop"
+        args="--id $(arg BAG_ID) --rosbag-args --clock --loop"
         output="screen">
   </node>
 
