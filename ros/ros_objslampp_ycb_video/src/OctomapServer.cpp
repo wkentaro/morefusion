@@ -61,8 +61,8 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_gridsNoEntryPub = private_nh.advertise<ros_objslampp_msgs::VoxelGridArray>("output/grids_noentry", 1);
   m_bgMarkerPub = private_nh.advertise<visualization_msgs::MarkerArray>("output/markers_bg", 1);
   m_fgMarkerPub = private_nh.advertise<visualization_msgs::MarkerArray>("output/markers_fg", 1);
-  m_labelRenderedPub = private_nh.advertise<sensor_msgs::Image>("debug/label_rendered", 1);
-  m_labelTrackedPub = private_nh.advertise<sensor_msgs::Image>("debug/label_tracked", 1);
+  m_labelRenderedPub = private_nh.advertise<sensor_msgs::Image>("output/label_rendered", 1);
+  m_labelTrackedPub = private_nh.advertise<sensor_msgs::Image>("output/label_tracked", 1);
   m_classPub = private_nh.advertise<ros_objslampp_msgs::ObjectClassArray>("output/class", 1);
 
   m_camSub = new message_filters::Subscriber<sensor_msgs::CameraInfo>(
