@@ -61,7 +61,7 @@
     <node name="label_rendered_to_rgb"
           pkg="jsk_perception" type="label_image_decomposer.py"
           clear_params="true">
-      <remap from="~input/label" to="octomap_server/debug/label_rendered" />
+      <remap from="~input/label" to="octomap_server/output/label_rendered" />
       <rosparam subst_value="true">
         only_label: true
         bg_label: -2
@@ -70,7 +70,7 @@
     <node name="label_tracked_to_rgb"
           pkg="jsk_perception" type="label_image_decomposer.py"
           clear_params="true">
-      <remap from="~input/label" to="octomap_server/debug/label_tracked" />
+      <remap from="~input/label" to="octomap_server/output/label_tracked" />
       <rosparam subst_value="true">
         only_label: true
         bg_label: -2
@@ -81,7 +81,7 @@
             pkg="ros_objslampp_ycb_video" type="draw_instance_segmentation.py"
             clear_params="true">
         <remap from="~input/rgb" to="/camera/color/image_rect_color_throttle/output" />
-        <remap from="~input/label_ins" to="debug/label_rendered" />
+        <remap from="~input/label_ins" to="output/label_rendered" />
         <remap from="~input/class" to="output/class" />
         <rosparam subst_value="true">
           approximate_sync: true
