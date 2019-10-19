@@ -12,10 +12,31 @@
 #include <opencv2/opencv.hpp>
 
 #include "ros_objslampp_ycb_video/utils/opencv.h"
+// #include "ros_objslampp_ycb_video/utils/log.h"
 
 
 namespace ros_objslampp_ycb_video {
 namespace utils {
+
+std::tuple<int, int, int, int> mask_to_bbox(const cv::Mat& mask) {
+  int height = mask.rows;
+  int width = mask.cols;
+  int y1 = height - 1;
+  int x1 = width - 1;
+  int y2 = 0;
+  int x2 = 0;
+  for (int j = 0; j < height; j++) {
+    for (int i = 0; i < width; i++) {
+      if (mask.at<uint8_t>(j, i) != 0) {
+        y1 = std::max(std::min(j - 1, y1), 0);
+        x1 = std::max(std::min(i - 1, x1), 0);
+        y2 = std::min(std::max(j + 1, y2), height - 1);
+        x2 = std::min(std::max(i + 1, x2), width - 1);
+      }
+    }
+  }
+  return std::make_tuple(y1, x1, y2, x2);
+}
 
 void track_instance_id(
     const cv::Mat& reference,
@@ -37,7 +58,7 @@ void track_instance_id(
 
   // Compute IOU
   std::map<int, std::pair<int, float> > ins_id2to1;
-  std::set<int> ins_ids2_on_edge;
+  std::set<int> ins_ids2_suspicious;
   for (size_t i = 0; i < instance_ids2.size(); i++) {
     // ins_id2: instance_id in the mask-rcnn output
     int ins_id2 = instance_ids2[i];
@@ -48,11 +69,41 @@ void track_instance_id(
     cv::Mat mask2 = (*target) == ins_id2;
     ins_id2to1.insert(std::make_pair(ins_id2, std::make_pair(-1, 0)));
 
+    std::vector<std::vector<cv::Point> > contours;
+    std::vector<cv::Vec4i> hierarchy;
+    cv::findContours(mask2, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
+    cv::Mat mask2_denoised;
+    mask2.copyTo(mask2_denoised);
+    for (size_t j = 0; j < contours.size(); j++) {
+      if (cv::contourArea(contours[j]) < (20 * 20)) {
+        cv::drawContours(mask2_denoised, contours, j, /*color=*/0, /*thickness=*/CV_FILLED);
+      }
+    }
+    std::tuple<int, int, int, int> bbox2 = ros_objslampp_ycb_video::utils::mask_to_bbox(mask2_denoised);
+    int y1 = std::get<0>(bbox2);
+    int x1 = std::get<1>(bbox2);
+    int y2 = std::get<2>(bbox2);
+    int x2 = std::get<3>(bbox2);
+    int bbox_height = y2 - y1;
+    int bbox_width = x2 - x1;
+    int mask_size = cv::countNonZero(mask2_denoised);
+    int bbox_size = bbox_height * bbox_width;
+    float mask_ratio_in_bbox = static_cast<float>(mask_size) / static_cast<float>(bbox_size);
+    // ROS_INFO_GREEN("ins_id2: %d, mask_size: %f, bbox_size: %f, bbox_height: %d, bbox_width: %d, mask_ratio_in_bbox: %f",
+    //                ins_id2, std::sqrt(mask_size), std::sqrt(bbox_size), bbox_height, bbox_width, mask_ratio_in_bbox);
+    if (mask_size < (80 * 80) ||
+        bbox_size < (120 * 120) ||
+        bbox_height < 100 ||
+        bbox_width < 100 ||
+        mask_ratio_in_bbox < 0.3) {
+      ins_ids2_suspicious.insert(ins_id2);
+    }
+
     cv::Mat mask_intersect_edge, mask_intersect_nonedge;
     cv::bitwise_and(mask_edge, mask2, mask_intersect_edge);
     cv::bitwise_and(mask_nonedge, mask2, mask_intersect_nonedge);
     if (cv::countNonZero(mask_intersect_edge) > cv::countNonZero(mask_intersect_nonedge)) {
-      ins_ids2_on_edge.insert(ins_id2);
+      ins_ids2_suspicious.insert(ins_id2);
     }
 
     for (size_t j = 0; j < instance_ids1.size(); j++) {
@@ -80,7 +131,7 @@ void track_instance_id(
   for (std::map<int, std::pair<int, float> >::iterator it = ins_id2to1.begin();
        it != ins_id2to1.end(); it++) {
     int ins_id2 = it->first;
-    if (ins_ids2_on_edge.find(ins_id2) != ins_ids2_on_edge.end()) {
+    if (ins_ids2_suspicious.find(ins_id2) != ins_ids2_suspicious.end()) {
       // it's on the edge, so don't initialize
       continue;
     }
@@ -97,7 +148,7 @@ void track_instance_id(
   for (std::map<int, unsigned>::iterator it = instance_id_to_class_id->begin();
        it != instance_id_to_class_id->end(); it++) {
     int ins_id2 = it->first;
-    if (ins_ids2_on_edge.find(ins_id2) != ins_ids2_on_edge.end()) {
+    if (ins_ids2_suspicious.find(ins_id2) != ins_ids2_suspicious.end()) {
       // it's on the edge, so skip inserting instance_id_to_class_id_updated
       continue;
     }
@@ -120,7 +171,7 @@ void track_instance_id(
         }
         continue;
       }
-      if (ins_ids2_on_edge.find(ins_id2) != ins_ids2_on_edge.end()) {
+      if (ins_ids2_suspicious.find(ins_id2) != ins_ids2_suspicious.end()) {
         target->at<int>(j, i) = -2;
         continue;
       }
@@ -144,7 +195,11 @@ void track_instance_id(
     std::vector<cv::Vec4i> hierarchy;
     cv::findContours(mask, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
     for (size_t j = 0; j < contours.size(); j++) {
-      cv::drawContours(*target, contours, j, /*color=*/-2, /*thickness=*/10);
+      if (cv::contourArea(contours[j]) < (20 * 20)) {
+        cv::drawContours(*target, contours, j, /*color=*/-2, /*thickness=*/CV_FILLED);
+      } else {
+        cv::drawContours(*target, contours, j, /*color=*/-2, /*thickness=*/20);
+      }
     }
   }
 }
