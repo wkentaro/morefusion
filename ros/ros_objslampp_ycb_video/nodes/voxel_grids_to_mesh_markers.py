@@ -42,12 +42,12 @@ class VoxelGridsToMeshMarkers(topic_tools.LazyTransport):
     def _callback(self, grids_msg):
         markers_msg = MarkerArray()
 
-        marker = Marker(
-            header=grids_msg.header,
-            id=-1,
-            action=Marker.DELETEALL
-        )
-        markers_msg.markers.append(marker)
+        # marker = Marker(
+        #     header=grids_msg.header,
+        #     id=-1,
+        #     action=Marker.DELETEALL
+        # )
+        # markers_msg.markers.append(marker)
 
         nsec = grids_msg.header.stamp.to_nsec()
         for grid in grids_msg.grids:

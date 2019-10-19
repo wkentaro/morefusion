@@ -49,8 +49,7 @@ class VoxelGridsToMarkers(topic_tools.LazyTransport):
             dims = np.array([grid.dims.x, grid.dims.y, grid.dims.z])
 
             marker = Marker()
-            marker.ns = str(instance_id)
-            marker.id = len(markers.markers)
+            marker.id = (instance_id + 1) * 2
             marker.header = grids_msg.header
             marker.action = Marker.ADD
             marker.type = Marker.CUBE_LIST
@@ -70,8 +69,7 @@ class VoxelGridsToMarkers(topic_tools.LazyTransport):
             bbox.apply_translation(center)
 
             marker = Marker()
-            marker.ns = str(instance_id)
-            marker.id = len(markers.markers)
+            marker.id = (instance_id + 1) * 2 + 1
             marker.header = grids_msg.header
             marker.action = Marker.ADD
             marker.type = Marker.LINE_LIST
