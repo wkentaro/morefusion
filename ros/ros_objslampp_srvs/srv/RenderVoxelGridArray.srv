@@ -1,4 +1,4 @@
-geometry_msgs/Transform transform  # transform for grids canonical to camera
+geometry_msgs/TransformStamped transform
 sensor_msgs/CameraInfo camera_info
 sensor_msgs/Image depth
 ros_objslampp_msgs/VoxelGridArray grids
