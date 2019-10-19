@@ -5,9 +5,9 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Global Options1
-        - /Full1
         - /Partial1
         - /Partial1/OctreeBG1/Namespaces1
+        - /Full1
       Splitter Ratio: 0.400000006
     Tree Height: 973
   - Class: rviz/Selection
@@ -52,14 +52,6 @@ Visualization Manager:
       Plane Cell Count: 10
       Reference Frame: <Fixed Frame>
       Value: true
-    - Class: rviz/MarkerArray
-      Enabled: false
-      Marker Topic: /camera/with_occupancy/object_poses_to_markers/output
-      Name: Full
-      Namespaces:
-        {}
-      Queue Size: 1
-      Value: false
     - Alpha: 0.300000012
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
@@ -200,6 +192,17 @@ Visualization Manager:
       left: 900
       top: 0
       width: 300
+    - Class: jsk_rviz_plugin/OverlayImage
+      Enabled: true
+      Name: LabelRendered
+      Topic: /camera/octomap_server/draw_instance_segmentation/output
+      Value: true
+      alpha: 1
+      height: 128
+      keep aspect ratio: true
+      left: 900
+      top: 226
+      width: 300
     - Class: jsk_rviz_plugin/CameraInfo
       Enabled: true
       Image Topic: ""
@@ -218,21 +221,21 @@ Visualization Manager:
     - Class: rviz/Group
       Displays:
         - Class: rviz/MarkerArray
-          Enabled: true
+          Enabled: false
           Marker Topic: /camera/grids_to_mesh_markers/output
           Name: PartialMesh
           Namespaces:
-            "": true
+            {}
           Queue Size: 1
-          Value: true
+          Value: false
         - Class: rviz/MarkerArray
-          Enabled: true
+          Enabled: false
           Marker Topic: /camera/octomap_server/output/markers_bg
           Name: OctreeBG
           Namespaces:
-            -1: true
+            {}
           Queue Size: 1
-          Value: true
+          Value: false
         - Class: rviz/MarkerArray
           Enabled: false
           Marker Topic: /camera/free_cells_vis_array
@@ -244,13 +247,49 @@ Visualization Manager:
       Enabled: true
       Name: Partial
     - Class: rviz/MarkerArray
-      Enabled: false
+      Enabled: true
       Marker Topic: /camera/grids_to_markers/output
       Name: Grids
       Namespaces:
         {}
       Queue Size: 1
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: false
+      Marker Topic: /camera/grids_noentry_to_markers/output
+      Name: GridsNoEntry
+      Namespaces:
+        {}
+      Queue Size: 1
       Value: false
+    - Class: rviz/Group
+      Displays:
+        - Class: rviz/MarkerArray
+          Enabled: false
+          Marker Topic: /camera/with_occupancy/object_poses_to_markers/output
+          Name: Predicted
+          Namespaces:
+            {}
+          Queue Size: 1
+          Value: false
+        - Class: rviz/MarkerArray
+          Enabled: false
+          Marker Topic: /camera/with_occupancy/collision_based_pose_refinement/object_poses_to_markers/output
+          Name: Refined
+          Namespaces:
+            {}
+          Queue Size: 1
+          Value: false
+        - Class: rviz/MarkerArray
+          Enabled: true
+          Marker Topic: /camera/with_occupancy/object_mapping/object_poses_to_markers/output
+          Name: Spawned
+          Namespaces:
+            {}
+          Queue Size: 1
+          Value: true
+      Enabled: true
+      Name: Full
   Enabled: true
   Global Options:
     Background Color: 230; 230; 230
@@ -291,10 +330,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.110398188
+      Pitch: 0.360398293
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 2.94039536
+      Yaw: 2.51040196
     Saved: ~
 Window Geometry:
   Displays:
