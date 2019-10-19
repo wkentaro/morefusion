@@ -11,13 +11,13 @@ namespace ros_objslampp_ycb_video {
 namespace utils {
 
 template<typename T>
-std::vector<T> unique(const cv::Mat& input) {
-  std::vector<T> out;
+std::set<T> unique(const cv::Mat& input) {
+  std::set<T> out;
   for (size_t j = 0; j < input.rows; ++j) {
     for (size_t i = 0; i < input.cols; ++i) {
       T value = input.at<T>(j, i);
-      if (std::find(out.begin(), out.end(), value) == out.end()) {
-        out.push_back(value);
+      if (out.find(value) == out.end()) {
+        out.insert(value);
       }
     }
   }

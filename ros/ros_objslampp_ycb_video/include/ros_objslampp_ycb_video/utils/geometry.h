@@ -43,8 +43,8 @@ void track_instance_id(
     cv::Mat* target,
     std::map<int, unsigned>* instance_id_to_class_id,
     unsigned* instance_counter) {
-  std::vector<int> instance_ids1 = ros_objslampp_ycb_video::utils::unique<int>(reference);
-  std::vector<int> instance_ids2 = ros_objslampp_ycb_video::utils::unique<int>(*target);
+  std::set<int> instance_ids1 = ros_objslampp_ycb_video::utils::unique<int>(reference);
+  std::set<int> instance_ids2 = ros_objslampp_ycb_video::utils::unique<int>(*target);
 
   cv::Mat mask_nonedge = cv::Mat::zeros(reference.rows, reference.cols, CV_8UC1);
   cv::rectangle(
@@ -59,9 +59,8 @@ void track_instance_id(
   // Compute IOU
   std::map<int, std::pair<int, float> > ins_id2to1;
   std::set<int> ins_ids2_suspicious;
-  for (size_t i = 0; i < instance_ids2.size(); i++) {
+  for (int ins_id2 : instance_ids2) {
     // ins_id2: instance_id in the mask-rcnn output
-    int ins_id2 = instance_ids2[i];
     if (ins_id2 < 0) {
       continue;
     }
@@ -74,9 +73,9 @@ void track_instance_id(
     cv::findContours(mask2, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
     cv::Mat mask2_denoised;
     mask2.copyTo(mask2_denoised);
-    for (size_t j = 0; j < contours.size(); j++) {
-      if (cv::contourArea(contours[j]) < (20 * 20)) {
-        cv::drawContours(mask2_denoised, contours, j, /*color=*/0, /*thickness=*/CV_FILLED);
+    for (size_t i = 0; i < contours.size(); i++) {
+      if (cv::contourArea(contours[i]) < (20 * 20)) {
+        cv::drawContours(mask2_denoised, contours, i, /*color=*/0, /*thickness=*/CV_FILLED);
       }
     }
     std::tuple<int, int, int, int> bbox2 = ros_objslampp_ycb_video::utils::mask_to_bbox(mask2_denoised);
@@ -106,9 +105,8 @@ void track_instance_id(
       ins_ids2_suspicious.insert(ins_id2);
     }
 
-    for (size_t j = 0; j < instance_ids1.size(); j++) {
+    for (int ins_id1 : instance_ids1) {
       // ins_id1: instance_id in the map
-      int ins_id1 = instance_ids1[j];
       if (ins_id1 < 0) {
         continue;
       }
@@ -184,13 +182,12 @@ void track_instance_id(
     }
   }
 
-  std::vector<int> instance_ids_active = ros_objslampp_ycb_video::utils::unique<int>(*target);
-  for (size_t i = 0; i < instance_ids_active.size(); i++) {
-    int ins_id2 = instance_ids_active[i];
-    if (ins_id2 < 0) {
+  std::set<int> instance_ids_active = ros_objslampp_ycb_video::utils::unique<int>(*target);
+  for (int ins_id : instance_ids_active) {
+    if (ins_id < 0) {
       continue;
     }
-    cv::Mat mask = (*target) == ins_id2;
+    cv::Mat mask = (*target) == ins_id;
     std::vector<std::vector<cv::Point> > contours;
     std::vector<cv::Vec4i> hierarchy;
     cv::findContours(mask, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
