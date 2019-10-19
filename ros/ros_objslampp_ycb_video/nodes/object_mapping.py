@@ -87,7 +87,7 @@ class ObjectMapping:
                 self._base_frame,
                 poses_msg.header.frame_id,
                 poses_msg.header.stamp,
-                timeout=rospy.Duration(1),
+                timeout=rospy.Duration(0.1),
             )
         except Exception as e:
             rospy.logerr(e)
