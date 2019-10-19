@@ -8,7 +8,7 @@ Panels:
         - /Partial1
         - /Partial1/OctreeBG1/Namespaces1
         - /Full1
-      Splitter Ratio: 0.400000006
+      Splitter Ratio: 0.501369834
     Tree Height: 973
   - Class: rviz/Selection
     Name: Selection
@@ -192,17 +192,6 @@ Visualization Manager:
       left: 900
       top: 0
       width: 300
-    - Class: jsk_rviz_plugin/OverlayImage
-      Enabled: true
-      Name: LabelRendered
-      Topic: /camera/octomap_server/draw_instance_segmentation/output
-      Value: true
-      alpha: 1
-      height: 128
-      keep aspect ratio: true
-      left: 900
-      top: 226
-      width: 300
     - Class: jsk_rviz_plugin/CameraInfo
       Enabled: true
       Image Topic: ""
@@ -229,13 +218,13 @@ Visualization Manager:
           Queue Size: 1
           Value: false
         - Class: rviz/MarkerArray
-          Enabled: false
+          Enabled: true
           Marker Topic: /camera/octomap_server/output/markers_bg
           Name: OctreeBG
           Namespaces:
             {}
           Queue Size: 1
-          Value: false
+          Value: true
         - Class: rviz/MarkerArray
           Enabled: false
           Marker Topic: /camera/free_cells_vis_array
@@ -251,8 +240,7 @@ Visualization Manager:
       Marker Topic: /camera/grids_to_markers/output
       Name: Grids
       Namespaces:
-        0: true
-        1: true
+        "": true
       Queue Size: 1
       Value: true
     - Class: rviz/MarkerArray
@@ -266,13 +254,13 @@ Visualization Manager:
     - Class: rviz/Group
       Displays:
         - Class: rviz/MarkerArray
-          Enabled: true
+          Enabled: false
           Marker Topic: /camera/with_occupancy/object_poses_to_markers/output
           Name: Predicted
           Namespaces:
-            "": true
+            {}
           Queue Size: 1
-          Value: true
+          Value: false
         - Class: rviz/MarkerArray
           Enabled: false
           Marker Topic: /camera/with_occupancy/collision_based_pose_refinement/object_poses_to_markers/output
@@ -282,15 +270,67 @@ Visualization Manager:
           Queue Size: 1
           Value: false
         - Class: rviz/MarkerArray
-          Enabled: false
+          Enabled: true
           Marker Topic: /camera/with_occupancy/object_mapping/object_poses_to_markers/output
           Name: Spawned
+          Namespaces:
+            {}
+          Queue Size: 1
+          Value: true
+        - Class: rviz/MarkerArray
+          Enabled: false
+          Marker Topic: /camera/with_occupancy/collision_based_pose_refinement/object_mapping/object_poses_to_markers/output
+          Name: RefinedSpawned
           Namespaces:
             {}
           Queue Size: 1
           Value: false
       Enabled: true
       Name: Full
+    - Class: jsk_rviz_plugin/OverlayImage
+      Enabled: true
+      Name: LabelRendered2
+      Topic: /camera/octomap_server/draw_instance_segmentation/output
+      Value: true
+      alpha: 1
+      height: 128
+      keep aspect ratio: true
+      left: 0
+      top: 226
+      width: 300
+    - Class: jsk_rviz_plugin/OverlayImage
+      Enabled: true
+      Name: PoseNetInput
+      Topic: /camera/with_occupancy/singleview_3d_pose_estimation/output/debug/rgbd
+      Value: true
+      alpha: 1
+      height: 128
+      keep aspect ratio: true
+      left: 300
+      top: 226
+      width: 300
+    - Class: jsk_rviz_plugin/OverlayImage
+      Enabled: false
+      Name: Predicted
+      Topic: /camera/with_occupancy/render_marker_array/tile_image/output
+      Value: false
+      alpha: 1
+      height: 128
+      keep aspect ratio: true
+      left: 600
+      top: 226
+      width: 600
+    - Class: jsk_rviz_plugin/OverlayImage
+      Enabled: false
+      Name: Refined
+      Topic: /camera/with_occupancy/collision_based_pose_refinement/render_marker_array/tile_image/output
+      Value: false
+      alpha: 1
+      height: 128
+      keep aspect ratio: true
+      left: 600
+      top: 226
+      width: 600
   Enabled: true
   Global Options:
     Background Color: 230; 230; 230
@@ -331,10 +371,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.0997962952
+      Pitch: -0.00520364661
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 2.97040367
+      Yaw: 2.69040656
     Saved: ~
 Window Geometry:
   Displays:
