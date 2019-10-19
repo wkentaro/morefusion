@@ -204,7 +204,7 @@ void OctomapServer::insertScan(
   octomap::point3d sensorOrigin = octomap::pointTfToOctomap(sensorOriginTf);
 
   std::vector<int> instance_ids = ros_objslampp_ycb_video::utils::unique<int>(label_ins);
-  std::map<int, octomap::KeySet> free_cells;
+  octomap::KeySet free_cells_bg;
   std::map<int, octomap::KeySet> occupied_cells;
   for (size_t i = 0; i < instance_ids.size(); i++) {
     int instance_id = instance_ids[i];
@@ -232,7 +232,6 @@ void OctomapServer::insertScan(
       m_octrees.insert(std::make_pair(instance_id, octree));
       m_classIds.insert(std::make_pair(instance_id, class_id));
     }
-    free_cells.insert(std::make_pair(instance_id, octomap::KeySet()));
     occupied_cells.insert(std::make_pair(instance_id, octomap::KeySet()));
   }
 
@@ -271,16 +270,10 @@ void OctomapServer::insertScan(
     if ((m_maxRange < 0.0) || ((point - sensorOrigin).norm() <= m_maxRange)) {
       // free cells
       octomap::KeyRay key_ray;
-      if (octree->computeRayKeys(sensorOrigin, point, key_ray)) {
+      OcTreeT* octree_bg = m_octrees.find(-1)->second;
+      if (octree_bg->computeRayKeys(sensorOrigin, point, key_ray)) {
         #pragma omp critical
-        free_cells.find(instance_id)->second.insert(key_ray.begin(), key_ray.end());
-      }
-      if (instance_id != -1) {
-        OcTreeT* octree_bg = m_octrees.find(-1)->second;
-        if (octree_bg->computeRayKeys(sensorOrigin, point, key_ray)) {
-          #pragma omp critical
-          free_cells.find(-1)->second.insert(key_ray.begin(), key_ray.end());
-        }
+        free_cells_bg.insert(key_ray.begin(), key_ray.end());
       }
       // occupied endpoint
       octomap::OcTreeKey key;
@@ -291,22 +284,19 @@ void OctomapServer::insertScan(
     } else {  // ray longer than maxrange:;
       octomap::point3d new_end = sensorOrigin + (point - sensorOrigin).normalized() * m_maxRange;
       octomap::KeyRay key_ray;
-      if (octree->computeRayKeys(sensorOrigin, new_end, key_ray)) {
+      OcTreeT* octree_bg = m_octrees.find(-1)->second;
+      if (octree_bg->computeRayKeys(sensorOrigin, new_end, key_ray)) {
         #pragma omp critical
-        free_cells.find(instance_id)->second.insert(key_ray.begin(), key_ray.end());
+        free_cells_bg.insert(key_ray.begin(), key_ray.end());
       }
     }
   }
 
-  for (std::map<int, octomap::KeySet>::iterator i = free_cells.begin(); i != free_cells.end(); i++) {
-    int instance_id = i->first;
-    octomap::KeySet key_set_free = i->second;
-    octomap::KeySet key_set_occupied = occupied_cells.find(instance_id)->second;
-    OcTreeT* octree = m_octrees.find(instance_id)->second;
-    for (octomap::KeySet::iterator j = key_set_free.begin(); j != key_set_free.end(); j++) {
-      if (key_set_occupied.find(*j) == key_set_occupied.end()) {
-        octree->updateNode(*j, false);
-      }
+  OcTreeT* octree_bg = m_octrees.find(-1)->second;
+  octomap::KeySet occupied_cells_bg = occupied_cells.find(-1)->second;
+  for (octomap::KeySet::iterator it = free_cells_bg.begin(); it != free_cells_bg.end(); it++) {
+    if (occupied_cells_bg.find(*it) == occupied_cells_bg.end()) {
+      octree_bg->updateNode(*it, false);
     }
   }
 
