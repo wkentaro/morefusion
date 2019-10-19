@@ -149,40 +149,6 @@ void track_instance_id(
   }
 }
 
-std::map<int, std::tuple<int, int, int, int> > label_ins_to_bboxes(const cv::Mat& label_ins) {
-  // aabb: y1, x1, y2, x2
-  std::map<int, std::tuple<int, int, int, int> > instance_id_to_aabb;
-
-  int height = label_ins.rows;
-  int width = label_ins.cols;
-  for (int j = 0; j < height; j++) {
-    for (int i = 0; i < width; i++) {
-      int instance_id = label_ins.at<int>(j, i);
-      if (instance_id < 0) {
-        continue;
-      }
-
-      int y1, x1, y2, x2;
-      if (instance_id_to_aabb.find(instance_id) == instance_id_to_aabb.end()) {
-        y1 = std::max(j - 1, 0);
-        x1 = std::max(i - 1, 0);
-        y2 = std::min(j + 1, height - 1);
-        x2 = std::min(i + 1, width - 1);
-        instance_id_to_aabb.insert(std::make_pair(instance_id, std::make_tuple(y1, x1, y2, x2)));
-      } else {
-        std::tuple<int, int, int, int> aabb = instance_id_to_aabb.find(instance_id)->second;
-        y1 = std::max(std::min(j - 1, std::get<0>(aabb)), 0);
-        x1 = std::max(std::min(i - 1, std::get<1>(aabb)), 0);
-        y2 = std::min(std::max(j + 1, std::get<2>(aabb)), height - 1);
-        x2 = std::min(std::max(i + 1, std::get<3>(aabb)), width - 1);
-        instance_id_to_aabb.find(instance_id)->second = std::make_tuple(y1, x1, y2, x2);
-      }
-    }
-  }
-
-  return instance_id_to_aabb;
-}
-
 }  // namespace utils
 
 }  // namespace ros_objslampp_ycb_video
