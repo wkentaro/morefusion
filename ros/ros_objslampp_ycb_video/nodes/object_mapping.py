@@ -76,7 +76,7 @@ class ObjectMapping:
         self._pub = rospy.Publisher(
             '~output/poses', ObjectPoseArray, queue_size=1
         )
-        self._tf_listener = tf.TransformListener()
+        self._tf_listener = tf.TransformListener(cache_time=rospy.Duration(30))
         self._sub = rospy.Subscriber(
             '~input/poses', ObjectPoseArray, self._callback, queue_size=1
         )
