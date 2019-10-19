@@ -132,6 +132,21 @@ void track_instance_id(
       }
     }
   }
+
+  std::vector<int> instance_ids_active = ros_objslampp_ycb_video::utils::unique<int>(*target);
+  for (size_t i = 0; i < instance_ids_active.size(); i++) {
+    int ins_id2 = instance_ids_active[i];
+    if (ins_id2 < 0) {
+      continue;
+    }
+    cv::Mat mask = (*target) == ins_id2;
+    std::vector<std::vector<cv::Point> > contours;
+    std::vector<cv::Vec4i> hierarchy;
+    cv::findContours(mask, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
+    for (size_t j = 0; j < contours.size(); j++) {
+      cv::drawContours(*target, contours, j, /*color=*/-2, /*thickness=*/10);
+    }
+  }
 }
 
 std::map<int, std::tuple<int, int, int, int> > label_ins_to_bboxes(const cv::Mat& label_ins) {
