@@ -115,11 +115,12 @@ void track_instance_id(
     for (size_t i = 0; i < target->cols; i++) {
       int ins_id2 = target->at<int>(j, i);
       if (ins_id2 < 0) {
+        if (mask_edge.at<uint8_t>(j, i) != 0) {
+          target->at<int>(j, i) = -2;
+        }
         continue;
       }
       if (ins_ids2_on_edge.find(ins_id2) != ins_ids2_on_edge.end()) {
-        // it's on the edge, so copy rendering (?)
-        // target->at<int>(j, i) = reference.at<int>(j, i);
         target->at<int>(j, i) = -2;
         continue;
       }
