@@ -10,72 +10,27 @@ import trimesh
 import objslampp
 
 import cv_bridge
-import message_filters
 import rospy
-from sensor_msgs.msg import Image, CameraInfo
-from ros_objslampp_msgs.msg import VoxelGridArray
-import tf
-import topic_tools
+from ros_objslampp_msgs.srv import RenderVoxelGridArray
 
 from voxel_grids_to_mesh_markers import grid_msg_to_mesh
 
 
-class RenderVoxelGrids(topic_tools.LazyTransport):
+class RenderVoxelGrids:
 
     def __init__(self):
         super().__init__()
-        self._base_frame = rospy.get_param('~frame_id', 'map')
-        self._tf_listener = tf.TransformListener()
-        self._pub = self.advertise('~output', Image, queue_size=1)
-        self._post_init()
+        self._srv = rospy.Service(
+            '~render', RenderVoxelGridArray, self._callback
+        )
 
-    def subscribe(self):
-        sub_cam = message_filters.Subscriber(
-            '~input/camera_info', CameraInfo, queue_size=1
-        )
-        sub_depth = message_filters.Subscriber(
-            '~input/depth', Image, queue_size=1
-        )
-        sub_grids = message_filters.Subscriber(
-            '~input/grids', VoxelGridArray, queue_size=1
-        )
-        self._subscribers = [sub_cam, sub_depth, sub_grids]
-        sync = message_filters.TimeSynchronizer(
-            self._subscribers, queue_size=100
-        )
-        sync.registerCallback(self._callback)
+    def _callback(self, request):
+        transform_msg = request.transform
+        cam_msg = request.camera_info
+        depth_msg = request.depth
+        grids_msg = request.grids
 
-    def _get_transform(self, sensor_frame, sensor_stamp):
-        try:
-            self._tf_listener.waitForTransform(
-                self._base_frame,
-                sensor_frame,
-                sensor_stamp,
-                timeout=rospy.Duration(1),
-            )
-        except Exception as e:
-            rospy.logerr(e)
-            return
-
-        translation, quaternion = self._tf_listener.lookupTransform(
-            self._base_frame,
-            sensor_frame,
-            sensor_stamp,
-        )
-        translation = np.asarray(translation)
-        quaternion = np.asarray(quaternion)[[3, 0, 1, 2]]
-        T_cam2base = objslampp.functions.transformation_matrix(
-            quaternion, translation
-        ).array
-        return T_cam2base
-
-    def _callback(self, cam_msg, depth_msg, grids_msg):
-        assert grids_msg.header.frame_id == self._base_frame
-        T_cam2base = self._get_transform(
-            cam_msg.header.frame_id, cam_msg.header.stamp)
-        if T_cam2base is None:
-            return
-        T_base2cam = np.linalg.inv(T_cam2base)
+        T_base2cam = objslampp.ros.from_ros_transform(transform_msg)
 
         bridge = cv_bridge.CvBridge()
         depth = bridge.imgmsg_to_cv2(depth_msg)
