@@ -68,7 +68,6 @@ class OctomapServer {
 
   explicit OctomapServer(ros::NodeHandle private_nh_ = ros::NodeHandle("~"));
   virtual ~OctomapServer() {};
-  bool resetSrv(std_srvs::Empty::Request& req, std_srvs::Empty::Response& resp);  // NOLINT
 
   virtual void insertCloudCallback(
     const sensor_msgs::CameraInfoConstPtr& camera_info,
@@ -135,7 +134,6 @@ class OctomapServer {
   message_filters::Subscriber<ros_objslampp_msgs::ObjectClassArray>* m_classSub;
   message_filters::Synchronizer<ExactSyncPolicy>* m_sync;
   ros::ServiceClient m_renderClient;
-  ros::ServiceServer m_resetService;
   tf::TransformListener m_tfListener;
 
   std::map<int, OcTreeT*> m_octrees;

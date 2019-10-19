@@ -81,8 +81,6 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
 
   m_renderClient = private_nh.serviceClient<ros_objslampp_srvs::RenderVoxelGridArray>("render");
 
-  m_resetService = private_nh.advertiseService("reset", &OctomapServer::resetSrv, this);
-
   dynamic_reconfigure::Server<ros_objslampp_ycb_video::OctomapServerConfig>::CallbackType f =
     boost::bind(&OctomapServer::configCallback, this, _1, _2);
   m_reconfigSrv.setCallback(f);
@@ -667,44 +665,6 @@ void OctomapServer::publishAll(const ros::Time& rostime) {
   }
 }
 
-
-bool OctomapServer::resetSrv(std_srvs::Empty::Request& req, std_srvs::Empty::Response& resp) {  // NOLINT
-  // visualization_msgs::MarkerArray occupiedNodesVis;
-  // occupiedNodesVis.markers.resize(m_treeDepth +1);
-  // ros::Time rostime = ros::Time::now();
-  // OcTreeT* octree_bg = m_octrees.find(-1)->second;
-  // octree_bg->clear();
-  //
-  // ROS_INFO("Cleared octomap");
-  // publishAll(rostime);
-  //
-  // publishBinaryOctoMap(rostime);
-  // for (unsigned i= 0; i < occupiedNodesVis.markers.size(); ++i) {
-  //   occupiedNodesVis.markers[i].header.frame_id = m_worldFrameId;
-  //   occupiedNodesVis.markers[i].header.stamp = rostime;
-  //   occupiedNodesVis.markers[i].ns = "map";
-  //   occupiedNodesVis.markers[i].id = i;
-  //   occupiedNodesVis.markers[i].type = visualization_msgs::Marker::CUBE_LIST;
-  //   occupiedNodesVis.markers[i].action = visualization_msgs::Marker::DELETE;
-  // }
-  //
-  // m_markerPub.publish(occupiedNodesVis);
-  //
-  // visualization_msgs::MarkerArray freeNodesVis;
-  // freeNodesVis.markers.resize(m_treeDepth +1);
-  //
-  // for (unsigned i= 0; i < freeNodesVis.markers.size(); ++i) {
-  //   freeNodesVis.markers[i].header.frame_id = m_worldFrameId;
-  //   freeNodesVis.markers[i].header.stamp = rostime;
-  //   freeNodesVis.markers[i].ns = "map";
-  //   freeNodesVis.markers[i].id = i;
-  //   freeNodesVis.markers[i].type = visualization_msgs::Marker::CUBE_LIST;
-  //   freeNodesVis.markers[i].action = visualization_msgs::Marker::DELETE;
-  // }
-  // m_fmarkerPub.publish(freeNodesVis);
-  //
-  // return true;
-}
 
 void OctomapServer::publishBinaryOctoMap(const ros::Time& rostime) const {
   Octomap map;
