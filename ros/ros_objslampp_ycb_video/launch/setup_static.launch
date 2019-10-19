@@ -17,36 +17,23 @@
     <node name="render_voxel_grids"
           pkg="ros_objslampp_ycb_video" type="render_voxel_grids.py"
           clear_params="true">
-      <remap from="~input/camera_info" to="color/camera_info" />
-      <remap from="~input/depth" to="aligned_depth_to_color/image_raw" />
-      <remap from="~input/grids" to="octomap_server/output/grids_for_render" />
     </node>
     <node name="octomap_server"
           pkg="ros_objslampp_ycb_video" type="octomap_server"
           clear_params="true"
           output="screen">
-      <remap from="cloud_in" to="depth_registered/points" />
-      <remap from="label_ins_in" to="mask_rcnn_instance_segmentation/output/label_ins" />
-      <remap from="label_ins_rendered_in" to="render_voxel_grids/output" />
-      <remap from="class_in" to="mask_rcnn_instance_segmentation/output/class" />
+      <remap from="~render" to="render_voxel_grids/render" />
+      <remap from="~input/camera_info" to="color/camera_info" />
+      <remap from="~input/depth" to="aligned_depth_to_color/image_raw" />
+      <remap from="~input/points" to="depth_registered/points" />
+      <remap from="~input/label_ins" to="mask_rcnn_instance_segmentation/output/label_ins" />
+      <remap from="~input/class" to="mask_rcnn_instance_segmentation/output/class" />
       <rosparam subst_value="true">
         frame_id: map
         resolution: 0.01
         ground_as_noentry: false
       </rosparam>
     </node>
-    <group ns="octomap_server">
-      <node name="draw_instance_segmentation"
-            pkg="ros_objslampp_ycb_video" type="draw_instance_segmentation.py"
-            clear_params="true">
-        <remap from="~input/rgb" to="/camera/color/image_rect_color_throttle/output" />
-        <remap from="~input/label_ins" to="output/label_rendered" />
-        <remap from="~input/class" to="output/class" />
-        <rosparam subst_value="true">
-          approximate_sync: true
-        </rosparam>
-      </node>
-    </group>
     <node name="grids_to_mesh_markers"
           pkg="ros_objslampp_ycb_video" type="voxel_grids_to_mesh_markers.py"
           clear_params="true">
@@ -74,7 +61,7 @@
     <node name="label_rendered_to_rgb"
           pkg="jsk_perception" type="label_image_decomposer.py"
           clear_params="true">
-      <remap from="~input/label" to="octomap_server/output/label_rendered" />
+      <remap from="~input/label" to="octomap_server/debug/label_rendered" />
       <rosparam subst_value="true">
         only_label: true
         bg_label: -2

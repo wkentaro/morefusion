@@ -2,6 +2,7 @@
 
 #include "ros_objslampp_ycb_video/OctomapServer.h"
 #include "ros_objslampp_ycb_video/utils.h"
+#include <ros_objslampp_srvs/RenderVoxelGridArray.h>
 
 using octomap_msgs::Octomap;
 
@@ -15,7 +16,6 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_centers(),
   m_pointCloudSub(NULL),
   m_labelInsSub(NULL),
-  m_tfPointCloudSub(NULL),
   m_maxRange(-1.0),
   m_worldFrameId("/map"),
   m_sensorFrameId("camera_color_optical_frame"),
@@ -61,25 +61,25 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_gridsNoEntryPub = private_nh.advertise<ros_objslampp_msgs::VoxelGridArray>("output/grids_noentry", 1);
   m_bgMarkerPub = private_nh.advertise<visualization_msgs::MarkerArray>("output/markers_bg", 1);
   m_fgMarkerPub = private_nh.advertise<visualization_msgs::MarkerArray>("output/markers_fg", 1);
+  m_labelRenderedPub = private_nh.advertise<sensor_msgs::Image>("debug/label_rendered", 1);
   m_labelTrackedPub = private_nh.advertise<sensor_msgs::Image>("debug/label_tracked", 1);
-  m_labelRenderedPub = private_nh.advertise<sensor_msgs::Image>("output/label_rendered", 1);
-  m_depthRenderedPub = private_nh.advertise<sensor_msgs::Image>("debug/depth_rendered", 1);
   m_classPub = private_nh.advertise<ros_objslampp_msgs::ObjectClassArray>("output/class", 1);
 
-  m_labelInsForRenderSub = m_nh.subscribe(
-    "label_ins_in", 1, &OctomapServer::publishGridsForRenderCallback, this);
-
+  m_camSub = new message_filters::Subscriber<sensor_msgs::CameraInfo>(
+    private_nh, "input/camera_info", 5);
+  m_depthSub = new message_filters::Subscriber<sensor_msgs::Image>(
+    private_nh, "input/depth", 5);
   m_pointCloudSub = new message_filters::Subscriber<sensor_msgs::PointCloud2>(
-    m_nh, "cloud_in", 5);
+    private_nh, "input/points", 5);
   m_labelInsSub = new message_filters::Subscriber<sensor_msgs::Image>(
-    m_nh, "label_ins_in", 5);
-  m_labelInsRenderedSub = new message_filters::Subscriber<sensor_msgs::Image>(
-    m_nh, "label_ins_rendered_in", 5);
+    private_nh, "input/label_ins", 5);
   m_classSub = new message_filters::Subscriber<ros_objslampp_msgs::ObjectClassArray>(
-    m_nh, "class_in", 5);
+    private_nh, "input/class", 5);
   m_sync = new message_filters::Synchronizer<ExactSyncPolicy>(100);
-  m_sync->connectInput(*m_pointCloudSub, *m_labelInsSub, *m_classSub, *m_labelInsRenderedSub);
-  m_sync->registerCallback(boost::bind(&OctomapServer::insertCloudCallback, this, _1, _2, _3, _4));
+  m_sync->connectInput(*m_camSub, *m_depthSub, *m_pointCloudSub, *m_labelInsSub, *m_classSub);
+  m_sync->registerCallback(boost::bind(&OctomapServer::insertCloudCallback, this, _1, _2, _3, _4, _5));
+
+  m_renderClient = private_nh.serviceClient<ros_objslampp_srvs::RenderVoxelGridArray>("render");
 
   m_resetService = private_nh.advertiseService("reset", &OctomapServer::resetSrv, this);
 
@@ -90,115 +90,6 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   ROS_INFO_BLUE("Initialized");
 }
 
-void OctomapServer::publishGridsForRenderCallback(const sensor_msgs::ImageConstPtr& ins_msg) {
-  publishGridsForRender(ins_msg->header.stamp);
-}
-
-void OctomapServer::renderOctrees(
-    const Eigen::Matrix4f& sensorToWorld,
-    cv::Mat* label_ins,
-    cv::Mat* depth) {
-  ros::WallTime t_start = ros::WallTime::now();
-
-  float fx = 619.4407958984375 / 2.0;
-  float fy = 619.3239135742188 / 2.0;
-  float cx = 326.8212585449219 / 2.0;
-  float cy = 239.52056884765625 / 2.0;
-  unsigned height = 480 / 2;
-  unsigned width = 640 / 2;
-
-  if (m_octrees.size() == 0) {
-    return;
-  }
-
-  #pragma omp parallel for
-  for (size_t j = 0; j < height; j++) {
-    #pragma omp parallel for
-    for (size_t i = 0; i < width; i++) {
-      std::vector<int> instance_ids =
-        ros_objslampp_ycb_video::utils::keys<int, OcTreeT*>(m_octrees);
-      #pragma omp parallel for
-      for (size_t k = 0; k < instance_ids.size(); k++) {
-        int instance_id = instance_ids[k];
-        if (instance_id == -1) {
-          continue;
-        }
-        OcTreeT* octree = m_octrees.find(instance_id)->second;
-
-        pcl::PointCloud<PCLPoint> pc;
-        pc.push_back(PCLPoint(0, 0, 0));
-        float z = 1;
-        float x = (i - cx) / fx;
-        float y = (j - cy) / fy;
-        pc.push_back(PCLPoint(x, y, z));
-        pcl::transformPointCloud(pc, pc, sensorToWorld);
-
-        octomap::point3d origin(pc[0].x, pc[0].y, pc[0].z);
-        octomap::point3d direction(
-          pc[1].x - pc[0].x,
-          pc[1].y - pc[0].y,
-          pc[1].z - pc[0].z);
-        octomap::point3d end;
-        bool hit = octree->castRay(
-          /*origin=*/origin,
-          /*direction=*/direction,
-          /*end=*/end);
-        if (hit) {
-          octomap::point3d intersection;
-          octree->getRayIntersection(
-            /*origin=*/origin,
-            /*direction=*/direction,
-            /*center=*/end,
-            /*intersection=*/intersection);
-
-          pc.clear();
-          pc.push_back(PCLPoint(intersection.x(), intersection.y(), intersection.z()));
-          pcl::transformPointCloud(pc, pc, sensorToWorld.inverse());
-
-          #pragma omp critical
-          {
-            float depth_ij = depth->at<float>(j, i);
-            if (std::isnan(depth_ij) || (pc[0].z < depth_ij)) {
-              depth->at<float>(j, i) = pc[0].z;
-              label_ins->at<int32_t>(j, i) = instance_id;
-            }
-          }
-        }
-      }
-    }
-  }
-
-  ros::WallDuration elapsed_time = ros::WallTime::now() - t_start;
-  ROS_INFO_MAGENTA("Elapsed Time: %lf [s], %lf [fps]", elapsed_time.toSec(), 1. / elapsed_time.toSec());
-}
-
-OctomapServer::~OctomapServer() {
-  if (m_tfPointCloudSub) {
-    delete m_tfPointCloudSub;
-    m_tfPointCloudSub = NULL;
-  }
-
-  if (m_pointCloudSub) {
-    delete m_pointCloudSub;
-    m_pointCloudSub = NULL;
-  }
-
-  if (m_labelInsSub) {
-    delete m_labelInsSub;
-    m_labelInsSub = NULL;
-  }
-
-  if (m_octrees.size()) {
-    delete &m_octrees;
-    m_octrees.clear();
-  }
-
-  if (m_classIds.size()) {
-    delete &m_classIds;
-    m_classIds.clear();
-  }
-}
-
 void OctomapServer::configCallback(
   const ros_objslampp_ycb_video::OctomapServerConfig& config, const uint32_t level) {
   ROS_INFO_BLUE("configCallback");
@@ -207,26 +98,12 @@ void OctomapServer::configCallback(
 }
 
 void OctomapServer::insertCloudCallback(
+    const sensor_msgs::CameraInfoConstPtr& camera_info_msg,
+    const sensor_msgs::ImageConstPtr& depth_msg,
     const sensor_msgs::PointCloud2ConstPtr& cloud,
     const sensor_msgs::ImageConstPtr& ins_msg,
-    const ros_objslampp_msgs::ObjectClassArrayConstPtr& class_msg,
-    const sensor_msgs::ImageConstPtr& ins_rendered_msg) {
+    const ros_objslampp_msgs::ObjectClassArrayConstPtr& class_msg) {
   ROS_INFO_MAGENTA("insertCloudCallback");
-
-  // ROSMsg -> PCL
-  PCLPointCloud pc;
-  pcl::fromROSMsg(*cloud, pc);
-
-  // ROSMsg -> OpenCV
-  cv::Mat label_ins = cv_bridge::toCvCopy(ins_msg, ins_msg->encoding)->image;
-  cv::Mat label_ins_rend = cv_bridge::toCvCopy(
-    ins_rendered_msg, ins_rendered_msg->encoding)->image;
-  if (!((cloud->height == ins_msg->height) && (cloud->width == ins_msg->width))) {
-    ROS_ERROR("Point cloud and instance label must be same size!");
-    ROS_ERROR("point cloud: (%d, %d), label instance: (%d, %d)",
-              cloud->height, cloud->width, ins_msg->height, ins_msg->width);
-    return;
-  }
 
   // Get TF
   tf::StampedTransform sensorToWorldTf;
@@ -240,6 +117,25 @@ void OctomapServer::insertCloudCallback(
   Eigen::Matrix4f sensorToWorld;
   pcl_ros::transformAsMatrix(sensorToWorldTf, sensorToWorld);
 
+  ros_objslampp_srvs::RenderVoxelGridArray srv;
+  tf::transformStampedTFToMsg(sensorToWorldTf, srv.request.transform);
+  srv.request.camera_info = *camera_info_msg;
+  srv.request.depth = *depth_msg;
+  getGridsInWorldFrame(camera_info_msg->header.stamp, srv.request.grids);
+  m_renderClient.call(srv);
+  m_labelRenderedPub.publish(srv.response.label_ins);
+
+  sensor_msgs::Image ins_rendered_msg = srv.response.label_ins;
+
+  // ROSMsg -> PCL
+  PCLPointCloud pc;
+  pcl::fromROSMsg(*cloud, pc);
+
+  // ROSMsg -> OpenCV
+  cv::Mat label_ins = cv_bridge::toCvCopy(ins_msg, ins_msg->encoding)->image;
+  cv::Mat label_ins_rend = cv_bridge::toCvCopy(
+    srv.response.label_ins, srv.response.label_ins.encoding)->image;
+
   // TODO(wkentaro): compute centroid and size of each instance,
   // and remove some of them from integration
 
@@ -247,16 +143,8 @@ void OctomapServer::insertCloudCallback(
   pcl::transformPointCloud(pc, pc, sensorToWorld);
 
   // Render OcTrees
-  // cv::Mat label_ins_rend = cv::Mat(pc.height / 2, pc.width / 2, CV_32SC1, -2);
-  // cv::Mat depth_rend = cv::Mat(
-  //   pc.height / 2, pc.width / 2, CV_32FC1, std::numeric_limits<float>::quiet_NaN());
   cv::resize(label_ins, label_ins, cv::Size(pc.width / 2, pc.height / 2), 0, 0, cv::INTER_NEAREST);
   cv::resize(label_ins_rend, label_ins_rend, cv::Size(pc.width / 2, pc.height / 2), 0, 0, cv::INTER_NEAREST);
-  // if (m_octrees.size() > 0) {
-  //   renderOctrees(m_lastSensorToWorld, &label_ins_rend, &depth_rend);
-  // }
-  // m_lastSensorHeader = cloud->header;
-  // m_lastSensorToWorld = sensorToWorld;
 
   // Track Instance IDs
   std::map<int, unsigned> instance_id_to_class_id;
@@ -278,18 +166,11 @@ void OctomapServer::insertCloudCallback(
     }
   }
   // Publish Tracked Instance Label
-  cv::Mat label_ins_full, depth_rend_full, label_ins_rend_full;
+  cv::Mat label_ins_full;
   cv::resize(label_ins, label_ins_full, cv::Size(pc.width, pc.height), 0, 0, cv::INTER_NEAREST);
-  // cv::resize(depth_rend, depth_rend_full, cv::Size(pc.width, pc.height), 0, 0, cv::INTER_LINEAR);
-  cv::resize(label_ins_rend, label_ins_rend_full, cv::Size(pc.width, pc.height), 0, 0, cv::INTER_NEAREST);
   m_labelTrackedPub.publish(
     cv_bridge::CvImage(ins_msg->header, "32SC1", label_ins_full).toImageMsg());
-  m_depthRenderedPub.publish(
-    cv_bridge::CvImage(ins_msg->header, "32FC1", depth_rend_full).toImageMsg());
 
-  // Publish Rendering
-  m_labelRenderedPub.publish(
-    cv_bridge::CvImage(m_lastSensorHeader, "32SC1", label_ins_rend_full).toImageMsg());
   ros_objslampp_msgs::ObjectClassArray cls_rend_msg;
   cls_rend_msg.header = cloud->header;
   for (std::map<int, unsigned>::iterator it = m_classIds.begin();
@@ -320,8 +201,6 @@ void OctomapServer::insertScan(
     const PCLPointCloud& pc,
     const cv::Mat& label_ins,
     const std::map<int, unsigned>& instance_id_to_class_id) {
-  boost::mutex::scoped_lock lock(mutex_);
-
   ros::WallTime t_start = ros::WallTime::now();
 
   octomap::point3d sensorOrigin = octomap::pointTfToOctomap(sensorOriginTf);
@@ -466,10 +345,7 @@ void OctomapServer::insertScan(
   ROS_INFO_MAGENTA("Elapsed Time: %lf [s], %lf [fps]", elapsed_time.toSec(), 1. / elapsed_time.toSec());
 }
 
-void OctomapServer::publishGridsForRender(const ros::Time& rostime) {
-  boost::mutex::scoped_lock lock(mutex_);
-
-  ros_objslampp_msgs::VoxelGridArray grids;
+void OctomapServer::getGridsInWorldFrame(const ros::Time& rostime, ros_objslampp_msgs::VoxelGridArray& grids) {
   grids.header.frame_id = m_worldFrameId;
   grids.header.stamp = rostime;
   for (std::map<int, OcTreeT*>::iterator it_octree = m_octrees.begin();
@@ -518,14 +394,11 @@ void OctomapServer::publishGridsForRender(const ros::Time& rostime) {
     }
     grids.grids.push_back(grid);
   }
-  m_gridsForRenderPub.publish(grids);
 }
 
 void OctomapServer::publishGrids(
     const ros::Time& rostime,
     const Eigen::Matrix4f& sensorToWorld) {
-  boost::mutex::scoped_lock lock(mutex_);
-
   if (m_octrees.size() == 0) {
     return;
   }

@@ -90,6 +90,9 @@ def grid_msg_to_mesh(grid):
     matrix = matrix.flatten()
     matrix[list(grid.indices)] = grid.values
     matrix = matrix.reshape(dims)
+    matrix = scipy.ndimage.morphology.grey_opening(
+        matrix, size=(1, 1, 1)
+    )
     matrix = scipy.ndimage.morphology.grey_dilation(
         matrix, size=(2, 2, 2)
     )

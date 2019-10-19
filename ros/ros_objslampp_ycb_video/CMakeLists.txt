@@ -10,6 +10,7 @@ find_package(catkin REQUIRED COMPONENTS
   octomap_ros
   pcl_ros
   ros_objslampp_msgs
+  ros_objslampp_srvs
   roscpp
   tf
 )

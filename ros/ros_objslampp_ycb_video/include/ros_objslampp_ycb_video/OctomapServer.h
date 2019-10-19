@@ -60,26 +60,29 @@ class OctomapServer {
   typedef octomap_msgs::BoundingBoxQuery BBXSrv;
 
   typedef message_filters::sync_policies::ExactTime<
-    sensor_msgs::PointCloud2, sensor_msgs::Image, ros_objslampp_msgs::ObjectClassArray, sensor_msgs::Image>
-    ExactSyncPolicy;
+    sensor_msgs::CameraInfo,
+    sensor_msgs::Image,
+    sensor_msgs::PointCloud2,
+    sensor_msgs::Image,
+    ros_objslampp_msgs::ObjectClassArray> ExactSyncPolicy;
 
   explicit OctomapServer(ros::NodeHandle private_nh_ = ros::NodeHandle("~"));
-  virtual ~OctomapServer();
+  virtual ~OctomapServer() {};
   bool resetSrv(std_srvs::Empty::Request& req, std_srvs::Empty::Response& resp);  // NOLINT
 
   virtual void insertCloudCallback(
+    const sensor_msgs::CameraInfoConstPtr& camera_info,
+    const sensor_msgs::ImageConstPtr& depth_msg,
     const sensor_msgs::PointCloud2ConstPtr& cloud,
     const sensor_msgs::ImageConstPtr& ins_msg,
-    const ros_objslampp_msgs::ObjectClassArrayConstPtr& class_msg,
-    const sensor_msgs::ImageConstPtr& ins_rendered_msg);
+    const ros_objslampp_msgs::ObjectClassArrayConstPtr& class_msg);
 
  protected:
   void publishBinaryOctoMap(const ros::Time& rostime = ros::Time::now()) const;
   void publishFullOctoMap(const ros::Time& rostime = ros::Time::now()) const;
   virtual void publishAll(const ros::Time& rostime = ros::Time::now());
 
-  void publishGridsForRenderCallback(const sensor_msgs::ImageConstPtr& ins_msg);
-  void publishGridsForRender(const ros::Time& rostime);
+  void getGridsInWorldFrame(const ros::Time& rostime, ros_objslampp_msgs::VoxelGridArray& grids);
   void publishGrids(const ros::Time& rostime, const Eigen::Matrix4f& sensorToWorld);
 
   /**
@@ -107,13 +110,6 @@ class OctomapServer {
     const ros_objslampp_ycb_video::OctomapServerConfig& config,
     const uint32_t level);
 
-  void renderOctrees(
-    const Eigen::Matrix4f& sensorToWorld,
-    cv::Mat* label_ins,
-    cv::Mat* depth);
-
-  boost::mutex mutex_;
-
   ros::NodeHandle m_nh;
   ros::Publisher m_binaryMapPub;
   ros::Publisher m_fullMapPub;
@@ -130,16 +126,15 @@ class OctomapServer {
   ros::Publisher m_maskUpdateAsOccupiedPub;
   ros::Publisher m_labelTrackedPub;
   ros::Publisher m_labelRenderedPub;
-  ros::Publisher m_depthRenderedPub;
   ros::Publisher m_classPub;
   dynamic_reconfigure::Server<ros_objslampp_ycb_video::OctomapServerConfig> m_reconfigSrv;
-  ros::Subscriber m_labelInsForRenderSub;
+  message_filters::Subscriber<sensor_msgs::CameraInfo>* m_camSub;
+  message_filters::Subscriber<sensor_msgs::Image>* m_depthSub;
   message_filters::Subscriber<sensor_msgs::PointCloud2>* m_pointCloudSub;
   message_filters::Subscriber<sensor_msgs::Image>* m_labelInsSub;
   message_filters::Subscriber<ros_objslampp_msgs::ObjectClassArray>* m_classSub;
-  message_filters::Subscriber<sensor_msgs::Image>* m_labelInsRenderedSub;
-  tf::MessageFilter<sensor_msgs::PointCloud2>* m_tfPointCloudSub;
   message_filters::Synchronizer<ExactSyncPolicy>* m_sync;
+  ros::ServiceClient m_renderClient;
   ros::ServiceServer m_resetService;
   tf::TransformListener m_tfListener;
 

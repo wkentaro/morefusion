@@ -28,8 +28,8 @@ void track_instance_id(
   cv::Mat mask_nonedge = cv::Mat::zeros(reference.rows, reference.cols, CV_8UC1);
   cv::rectangle(
     mask_nonedge,
-    cv::Point(reference.cols * 0.2, reference.rows * 0.2),
-    cv::Point(reference.cols * 0.8, reference.rows * 0.8),
+    cv::Point(reference.cols * 0.15, reference.rows * 0.15),
+    cv::Point(reference.cols * 0.85, reference.rows * 0.85),
     /*color=*/255,
     /*thickness=*/CV_FILLED);
   cv::Mat mask_edge;
@@ -38,7 +38,6 @@ void track_instance_id(
   // Compute IOU
   std::map<int, std::pair<int, float> > ins_id2to1;
   std::set<int> ins_ids2_on_edge;
-  std::set<int> ins_ids2_too_small;
   for (size_t i = 0; i < instance_ids2.size(); i++) {
     // ins_id2: instance_id in the mask-rcnn output
     int ins_id2 = instance_ids2[i];
@@ -49,31 +48,12 @@ void track_instance_id(
     cv::Mat mask2 = (*target) == ins_id2;
     ins_id2to1.insert(std::make_pair(ins_id2, std::make_pair(-1, 0)));
 
-    if (cv::countNonZero(mask2) < (10 * 10)) {
-      // not only on_edge, but too small
-      ins_ids2_on_edge.insert(ins_id2);
-    }
-
     cv::Mat mask_intersect_edge, mask_intersect_nonedge;
     cv::bitwise_and(mask_edge, mask2, mask_intersect_edge);
     cv::bitwise_and(mask_nonedge, mask2, mask_intersect_nonedge);
     if (cv::countNonZero(mask_intersect_edge) > cv::countNonZero(mask_intersect_nonedge)) {
       ins_ids2_on_edge.insert(ins_id2);
     }
-
-    // int dilation_size = 10;
-    // cv::Mat element = cv::getStructuringElement(
-    //   cv::MORPH_ELLIPSE,
-    //   cv::Size(2 * dilation_size + 1, 2 * dilation_size + 1),
-    //   cv::Point(dilation_size, dilation_size));
-    // std::stringstream ss;
-    // ss.str("");
-    // ss << "ins_id2." << ins_id2 << ".org.jpg";
-    // cv::imwrite(ss.str(), mask2);
-    // cv::dilate(mask2, mask2, element, /*anchor=*/cv::Point(-1, -1), /*iterations=*/5);
-    // ss.str("");
-    // ss << "ins_id2." << ins_id2 << ".dilated.jpg";
-    // cv::imwrite(ss.str(), mask2);
 
     for (size_t j = 0; j < instance_ids1.size(); j++) {
       // ins_id1: instance_id in the map
@@ -83,8 +63,6 @@ void track_instance_id(
       }
 
       cv::Mat mask1 = reference == ins_id1;
-      // cv::dilate(mask1, mask1, element, /*anchor=*/cv::Point(-1, -1), /*iterations=*/5);
-
       cv::Mat mask_intersection, mask_union;
       cv::bitwise_and(mask1, mask2, mask_intersection);
       cv::bitwise_or(mask1, mask2, mask_union);
@@ -140,10 +118,9 @@ void track_instance_id(
         continue;
       }
       if (ins_ids2_on_edge.find(ins_id2) != ins_ids2_on_edge.end()) {
-        // it's on the edge, so copy rendering
-        // TODO(wkentaro): copy rendered but don't update occupied space with this,
-        // since it's renderd with previous frame.
-        target->at<int>(j, i) = reference.at<int>(j, i);
+        // it's on the edge, so copy rendering (?)
+        // target->at<int>(j, i) = reference.at<int>(j, i);
+        target->at<int>(j, i) = -2;
         continue;
       }
       std::map<int, std::pair<int, float> >::iterator it2 = ins_id2to1.find(ins_id2);

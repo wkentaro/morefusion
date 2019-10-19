@@ -11,7 +11,8 @@ import objslampp
 
 import cv_bridge
 import rospy
-from ros_objslampp_msgs.srv import RenderVoxelGridArray
+from ros_objslampp_srvs.srv import RenderVoxelGridArray
+from ros_objslampp_srvs.srv import RenderVoxelGridArrayResponse
 
 from voxel_grids_to_mesh_markers import grid_msg_to_mesh
 
@@ -25,12 +26,28 @@ class RenderVoxelGrids:
         )
 
     def _callback(self, request):
-        transform_msg = request.transform
+        transform_msg = request.transform  # sensor to world
         cam_msg = request.camera_info
         depth_msg = request.depth
         grids_msg = request.grids
 
-        T_base2cam = objslampp.ros.from_ros_transform(transform_msg)
+        if transform_msg.child_frame_id == cam_msg.header.frame_id:
+            # cam2base
+            quaternion, translation = objslampp.ros.from_ros_transform(
+                transform_msg.transform
+            )
+            T_cam2base = objslampp.functions.transformation_matrix(
+                quaternion, translation
+            ).array
+            T_base2cam = np.linalg.inv(T_cam2base)
+        else:
+            # base2cam
+            quaternion, translation = objslampp.ros.from_ros_transform(
+                transform_msg.transform
+            )
+            T_base2cam = objslampp.functions.transformation_matrix(
+                quaternion, translation
+            ).array
 
         bridge = cv_bridge.CvBridge()
         depth = bridge.imgmsg_to_cv2(depth_msg)
@@ -86,7 +103,7 @@ class RenderVoxelGrids:
         bridge = cv_bridge.CvBridge()
         ins_msg = bridge.cv2_to_imgmsg(ins)
         ins_msg.header = cam_msg.header
-        self._pub.publish(ins_msg)
+        return RenderVoxelGridArrayResponse(ins_msg)
 
 
 if __name__ == '__main__':
