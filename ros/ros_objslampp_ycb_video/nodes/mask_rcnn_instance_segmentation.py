@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 from chainercv.links.model.fpn import MaskRCNNFPNResNet50
-import cv2
 import gdown
 import numpy as np
 
@@ -69,46 +68,22 @@ class MaskRCNNInstanceSegmentationNode(LazyTransport):
             class_ids = class_ids[keep]
             confs = confs[keep]
 
-        mask_contours = []
         if len(masks) > 0:
-            for mask in masks:
-                contours, _ = cv2.findContours(
-                    mask.astype(np.uint8),
-                    cv2.RETR_TREE,
-                    method=cv2.CHAIN_APPROX_SIMPLE,
-                )
-                mask_contour = np.zeros(mask.shape, dtype=np.uint8)
-                if contours:
-                    cv2.drawContours(
-                        mask_contour,
-                        contours,
-                        contourIdx=-1,
-                        color=1,
-                        thickness=10,
-                    )
-                mask_contours.append(mask_contour.astype(bool))
-            mask_contours = np.array(mask_contours)
-            masks = masks & ~mask_contours
-
             keep = masks.sum(axis=(1, 2)) > 0
             class_ids = class_ids[keep]
             masks = masks[keep]
-            mask_contours = mask_contours[keep]
             confs = confs[keep]
 
         if len(confs) > 0:
             sort = np.argsort(confs)
             class_ids = class_ids[sort]
             masks = masks[sort]
-            mask_contours = mask_contours[sort]
             confs = confs[sort]
 
         instance_ids = np.arange(0, len(masks))
         label_ins = np.full(rgb.shape[:2], -1, dtype=np.int32)
-        for ins_id, mask, mask_contour in \
-                zip(instance_ids, masks, mask_contours):
+        for ins_id, mask in zip(instance_ids, masks):
             label_ins[mask] = ins_id
-            label_ins[mask_contour] = -2
         ins_msg = bridge.cv2_to_imgmsg(label_ins)
         ins_msg.header = imgmsg.header
         self._pub_ins.publish(ins_msg)
