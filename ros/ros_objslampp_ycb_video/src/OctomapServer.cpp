@@ -206,7 +206,6 @@ void OctomapServer::insertScan(
   std::vector<int> instance_ids = ros_objslampp_ycb_video::utils::unique<int>(label_ins);
   std::map<int, octomap::KeySet> free_cells;
   std::map<int, octomap::KeySet> occupied_cells;
-  std::map<int, octomap::KeySet> suspicious_occupied_cells;
   for (size_t i = 0; i < instance_ids.size(); i++) {
     int instance_id = instance_ids[i];
     if (instance_id == -2) {
@@ -235,7 +234,6 @@ void OctomapServer::insertScan(
     }
     free_cells.insert(std::make_pair(instance_id, octomap::KeySet()));
     occupied_cells.insert(std::make_pair(instance_id, octomap::KeySet()));
-    suspicious_occupied_cells.insert(std::make_pair(instance_id, octomap::KeySet()));
   }
 
   // all other points: free on ray, occupied on endpoint:
@@ -304,11 +302,9 @@ void OctomapServer::insertScan(
     int instance_id = i->first;
     octomap::KeySet key_set_free = i->second;
     octomap::KeySet key_set_occupied = occupied_cells.find(instance_id)->second;
-    octomap::KeySet key_set_suspicious_occupied = suspicious_occupied_cells.find(instance_id)->second;
     OcTreeT* octree = m_octrees.find(instance_id)->second;
     for (octomap::KeySet::iterator j = key_set_free.begin(); j != key_set_free.end(); j++) {
-      if (key_set_occupied.find(*j) == key_set_occupied.end() &&
-          key_set_suspicious_occupied.find(*j) == key_set_suspicious_occupied.end()) {
+      if (key_set_occupied.find(*j) == key_set_occupied.end()) {
         octree->updateNode(*j, false);
       }
     }
