@@ -140,10 +140,6 @@ void OctomapServer::insertCloudCallback(
   // Transform pointcloud: sensor -> world (map)
   pcl::transformPointCloud(pc, pc, sensorToWorld);
 
-  // Render OcTrees
-  cv::resize(label_ins, label_ins, cv::Size(pc.width / 2, pc.height / 2), 0, 0, cv::INTER_NEAREST);
-  cv::resize(label_ins_rend, label_ins_rend, cv::Size(pc.width / 2, pc.height / 2), 0, 0, cv::INTER_NEAREST);
-
   // Track Instance IDs
   std::map<int, unsigned> instance_id_to_class_id;
   for (size_t i = 0; i < class_msg->classes.size(); i++) {
@@ -164,10 +160,8 @@ void OctomapServer::insertCloudCallback(
     }
   }
   // Publish Tracked Instance Label
-  cv::Mat label_ins_full;
-  cv::resize(label_ins, label_ins_full, cv::Size(pc.width, pc.height), 0, 0, cv::INTER_NEAREST);
   m_labelTrackedPub.publish(
-    cv_bridge::CvImage(ins_msg->header, "32SC1", label_ins_full).toImageMsg());
+    cv_bridge::CvImage(ins_msg->header, "32SC1", label_ins).toImageMsg());
 
   ros_objslampp_msgs::ObjectClassArray cls_rend_msg;
   cls_rend_msg.header = cloud->header;
@@ -251,7 +245,7 @@ void OctomapServer::insertScan(
     }
 
     octomap::point3d point(pc.points[index].x, pc.points[index].y, pc.points[index].z);
-    int instance_id = label_ins.at<int32_t>(height_index / 2, width_index / 2);
+    int instance_id = label_ins.at<int32_t>(height_index, width_index);
     if (instance_id == -2) {
       continue;
     }
