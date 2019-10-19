@@ -183,43 +183,6 @@ std::map<int, std::tuple<int, int, int, int> > label_ins_to_bboxes(const cv::Mat
   return instance_id_to_aabb;
 }
 
-cv::Mat rendering_mask(const cv::Mat& label_ins) {
-  std::map<int, std::tuple<int, int, int, int> > instance_id_to_aabb =
-    label_ins_to_bboxes(label_ins);
-
-  cv::Mat mask = cv::Mat::zeros(label_ins.rows, label_ins.cols, CV_8UC1);
-  for (std::map<int, std::tuple<int, int, int, int> >::iterator it =
-       instance_id_to_aabb.begin(); it != instance_id_to_aabb.end(); it++) {
-    std::tuple<int, int, int, int> aabb = it->second;
-    int y1 = std::get<0>(aabb);
-    int x1 = std::get<1>(aabb);
-    int y2 = std::get<2>(aabb);
-    int x2 = std::get<3>(aabb);
-
-    // render 10% larger ROI
-    float cy = (y1 + y2) / 2.0;
-    float cx = (x1 + x2) / 2.0;
-    float roi_h = y2 - y1;
-    float roi_w = x2 - x1;
-    roi_h *= 1.5;
-    roi_w *= 1.5;
-
-    y1 = cy - static_cast<int>(std::round(roi_h / 2.0));
-    y2 = y1 + static_cast<int>(roi_h);
-    x1 = cx - static_cast<int>(std::round(roi_w / 2.0));
-    x2 = x1 + static_cast<int>(roi_w);
-
-    cv::rectangle(
-      mask,
-      cv::Point(x1, y1),
-      cv::Point(x2, y2),
-      /*color=*/255,
-      /*thickness=*/CV_FILLED);
-  }
-
-  return mask;
-}
-
 }  // namespace utils
 
 }  // namespace ros_objslampp_ycb_video
