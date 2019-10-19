@@ -109,7 +109,7 @@ class ObjectMapping:
         for pose in poses_msg.poses:
             instance_id = pose.instance_id
             class_id = pose.class_id
-            quaternion, translation = objslampp.ros.pose_from_pose(pose.pose)
+            quaternion, translation = objslampp.ros.from_ros_pose(pose.pose)
             T_cad2cam = objslampp.functions.transformation_matrix(
                 quaternion, translation
             ).array
