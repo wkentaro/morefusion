@@ -108,6 +108,10 @@ class CollisionBasedPoseRefinement(topic_tools.LazyTransport):
         return self._sdf[class_id]
 
     def _callback(self, poses_msg, grids_msg, grids_noentry_msg):
+        if not poses_msg.poses:
+            self._pub.publish(poses_msg)
+            return
+
         grids = {
             g.instance_id: self._grid_msg_to_matrix(g)
             for g in grids_msg.grids
