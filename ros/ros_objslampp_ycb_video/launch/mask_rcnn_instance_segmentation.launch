@@ -10,7 +10,7 @@
             args="standalone jsk_topic_tools/LightweightThrottle">
         <remap from="~input" to="image_rect_color" />
         <rosparam subst_value="true">
-          update_rate: 5
+          update_rate: 1
         </rosparam>
       </node>
     </group>
