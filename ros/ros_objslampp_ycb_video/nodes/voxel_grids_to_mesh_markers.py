@@ -51,7 +51,7 @@ class VoxelGridsToMeshMarkers(topic_tools.LazyTransport):
         # markers_msg.markers.append(marker)
 
         for grid in grids_msg.grids:
-            mesh = grid_msg_to_mesh(grid, smoothing='laplacian')
+            mesh = grid_msg_to_mesh(grid)
             if mesh is None:
                 continue
 
@@ -76,7 +76,7 @@ class VoxelGridsToMeshMarkers(topic_tools.LazyTransport):
         self._pub.publish(markers_msg)
 
 
-def grid_msg_to_mesh(grid, smoothing='humphrey'):
+def grid_msg_to_mesh(grid):
     if not grid.indices:
         return
 
@@ -92,16 +92,12 @@ def grid_msg_to_mesh(grid, smoothing='humphrey'):
         matrix, size=(1, 1, 1)
     )
     matrix = scipy.ndimage.morphology.grey_dilation(
-        matrix, size=(2, 2, 2)
+        matrix, size=(1, 1, 1)
     )
     mesh = trimesh.voxel.matrix_to_marching_cubes(
         matrix, pitch, origin
     )
-    if smoothing == 'humphrey':
-        mesh = trimesh.smoothing.filter_humphrey(mesh)
-    else:
-        assert smoothing == 'laplacian'
-        mesh = trimesh.smoothing.filter_laplacian(mesh)
+    mesh = trimesh.smoothing.filter_humphrey(mesh)
     return mesh
 
 
