@@ -8,6 +8,7 @@ import path
 import scipy.ndimage
 import trimesh
 
+from geometry_msgs.msg import Point
 from visualization_msgs.msg import Marker, MarkerArray
 from ros_objslampp_msgs.msg import VoxelGridArray
 import rospy
@@ -49,14 +50,10 @@ class VoxelGridsToMeshMarkers(topic_tools.LazyTransport):
         # )
         # markers_msg.markers.append(marker)
 
-        nsec = grids_msg.header.stamp.to_nsec()
         for grid in grids_msg.grids:
-            mesh = grid_msg_to_mesh(grid)
+            mesh = grid_msg_to_mesh(grid, smoothing='laplacian')
             if mesh is None:
                 continue
-
-            mesh_file = self._tmp_dir / f'{nsec}_{grid.instance_id:04d}.ply'
-            trimesh.exchange.export.export_mesh(mesh, mesh_file)
 
             color = self._colormap[grid.instance_id + 1]
 
@@ -71,14 +68,15 @@ class VoxelGridsToMeshMarkers(topic_tools.LazyTransport):
             marker.color.r = color[0] / 255
             marker.color.g = color[1] / 255
             marker.color.b = color[2] / 255
-            marker.type = Marker.MESH_RESOURCE
-            marker.mesh_resource = f'file://{mesh_file}'
+            marker.type = Marker.TRIANGLE_LIST
+            points = mesh.vertices[mesh.faces.flatten()]
+            marker.points = [Point(*p) for p in points]
             marker.action = Marker.ADD
             markers_msg.markers.append(marker)
         self._pub.publish(markers_msg)
 
 
-def grid_msg_to_mesh(grid):
+def grid_msg_to_mesh(grid, smoothing='humphrey'):
     if not grid.indices:
         return
 
@@ -99,7 +97,11 @@ def grid_msg_to_mesh(grid):
     mesh = trimesh.voxel.matrix_to_marching_cubes(
         matrix, pitch, origin
     )
-    mesh = trimesh.smoothing.filter_humphrey(mesh)
+    if smoothing == 'humphrey':
+        mesh = trimesh.smoothing.filter_humphrey(mesh)
+    else:
+        assert smoothing == 'laplacian'
+        mesh = trimesh.smoothing.filter_laplacian(mesh)
     return mesh
 
 
