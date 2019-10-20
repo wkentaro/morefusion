@@ -206,11 +206,14 @@ class SingleViewPoseEstimation3D(topic_tools.LazyTransport):
             quaternion, translation, confidence = self._model.predict(**inputs)
         indices = confidence.array.argmax(axis=1)
         B = quaternion.shape[0]
+        confidence = confidence[np.arange(B), indices]
         quaternion = quaternion[np.arange(B), indices]
         translation = translation[np.arange(B), indices]
+        confidence = chainer.cuda.to_cpu(confidence.array)
         quaternion = chainer.cuda.to_cpu(quaternion.array)
         translation = chainer.cuda.to_cpu(translation.array)
 
+        '''
         transforms = objslampp.functions.transformation_matrix(
             quaternion, translation
         ).array
@@ -227,10 +230,23 @@ class SingleViewPoseEstimation3D(topic_tools.LazyTransport):
             quaternion[i] = ttf.quaternion_from_matrix(transform)
             translation[i] = ttf.translation_from_matrix(transform)
         del transforms
+        '''
 
         poses = ObjectPoseArray()
         poses.header = rgb_msg.header
         for i, (ins_id, example) in enumerate(zip(instance_ids, examples)):
+            '''
+            cls_id = example['class_id']
+            class_name = objslampp.datasets.ycb_video.class_names[cls_id]
+            objslampp.ros.loginfo_green(
+                f'instance_id={ins_id}, class_id={cls_id}, '
+                f'class_name={class_name}, confidence={confidence[i].item()}'
+            )
+            '''
+
+            if confidence[i].item() < 0.9:
+                continue
+
             pose = ObjectPose()
             pose.pose.position.x = translation[i][0]
             pose.pose.position.y = translation[i][1]
