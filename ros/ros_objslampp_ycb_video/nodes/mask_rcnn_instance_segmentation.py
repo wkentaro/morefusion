@@ -20,16 +20,19 @@ class MaskRCNNInstanceSegmentationNode(LazyTransport):
         super().__init__()
 
         self._class_names = objslampp.datasets.ycb_video.class_names
-        self._context = rospy.get_param('~context')
+        self._blacklist = [10, 12]  # missing in DRL
+        self._one_instance_per_class = True
 
+        # logs.20191003.bg_composite_false
         pretrained_model = gdown.cached_download(
-            url='https://drive.google.com/uc?id=1Ge2S9JudxC5ODdsrjOy5XoW7l7Zcz65E',  # NOQA
-            md5='fc06b1292a7e99f9c1deb063accbf7ea',
+            url='https://drive.google.com/uc?id=1MS2OgvjYF6aPIDjDr_fU-IhPN700Cv4V',  # NOQA
+            md5='f169417a5bab67e8b48337b2a341e890',
         )
         self._model = MaskRCNNFPNResNet50(
             n_fg_class=len(self._class_names[1:]),
             pretrained_model=pretrained_model,
         )
+        self._model.score_thresh = 0.9
         self._model.to_gpu()
 
         self._pub_cls = self.advertise(
@@ -51,10 +54,9 @@ class MaskRCNNInstanceSegmentationNode(LazyTransport):
         bridge = cv_bridge.CvBridge()
         rgb = bridge.imgmsg_to_cv2(imgmsg, desired_encoding='rgb8')
 
-        with objslampp.utils.timer():
-            masks, labels, confs = self._model.predict(
-                [rgb.astype(np.float32).transpose(2, 0, 1)]
-            )
+        masks, labels, confs = self._model.predict(
+            [rgb.astype(np.float32).transpose(2, 0, 1)]
+        )
         masks = masks[0]
         labels = labels[0]
         confs = confs[0]
@@ -62,19 +64,32 @@ class MaskRCNNInstanceSegmentationNode(LazyTransport):
         class_ids = labels + 1
         del labels
 
-        if self._context:
-            keep = np.isin(class_ids, self._context)
+        if self._blacklist:
+            keep = ~np.isin(class_ids, self._blacklist)
             masks = masks[keep]
             class_ids = class_ids[keep]
             confs = confs[keep]
 
-        if len(masks) > 0:
+        if len(class_ids) > 0:
             keep = masks.sum(axis=(1, 2)) > 0
             class_ids = class_ids[keep]
             masks = masks[keep]
             confs = confs[keep]
 
-        if len(confs) > 0:
+        if len(class_ids) > 0:
+            uniq, counts = np.unique(class_ids, return_counts=True)
+            keep = []
+            for cls_id, count in zip(uniq, counts):
+                if count == 1:
+                    index = np.argwhere(class_ids == cls_id)[0, 0]
+                else:
+                    index = np.argmax(confs[class_ids == cls_id])
+                keep.append(index)
+            class_ids = class_ids[keep]
+            masks = masks[keep]
+            confs = confs[keep]
+
+        if len(class_ids) > 0:
             sort = np.argsort(confs)
             class_ids = class_ids[sort]
             masks = masks[sort]
