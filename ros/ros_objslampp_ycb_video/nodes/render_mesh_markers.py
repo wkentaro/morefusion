@@ -14,7 +14,7 @@ from topic_tools import LazyTransport
 from visualization_msgs.msg import Marker, MarkerArray
 
 
-class RenderMarkerArray(LazyTransport):
+class RenderMeshMarkers(LazyTransport):
 
     def __init__(self):
         super().__init__()
@@ -85,6 +85,6 @@ class RenderMarkerArray(LazyTransport):
 
 
 if __name__ == '__main__':
-    rospy.init_node('render_marker_array')
-    RenderMarkerArray()
+    rospy.init_node('render_mesh_markers')
+    RenderMeshMarkers()
     rospy.spin()

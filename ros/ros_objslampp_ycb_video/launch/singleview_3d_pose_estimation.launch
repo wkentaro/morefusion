@@ -33,13 +33,13 @@
           clear_params="true">
       <remap from="~input" to="singleview_3d_pose_estimation/output" />
     </node>
-    <node name="render_marker_array"
-          pkg="ros_objslampp_ycb_video" type="render_marker_array.py"
+    <node name="render_mesh_markers"
+          pkg="ros_objslampp_ycb_video" type="render_mesh_markers.py"
           clear_params="true">
       <remap from="~input/camera_info" to="/camera/color/camera_info" />
       <remap from="~input/markers" to="object_poses_to_markers/output" />
     </node>
-    <group ns="render_marker_array">
+    <group ns="render_mesh_markers">
       <node name="tile_image"
             pkg="jsk_perception" type="tile_image.py"
             clear_params="true">
@@ -86,13 +86,13 @@
               clear_params="true">
           <remap from="~input" to="output" />
         </node>
-        <node name="render_marker_array"
-              pkg="ros_objslampp_ycb_video" type="render_marker_array.py"
+        <node name="render_mesh_markers"
+              pkg="ros_objslampp_ycb_video" type="render_mesh_markers.py"
               clear_params="true">
           <remap from="~input/camera_info" to="/camera/color/camera_info" />
           <remap from="~input/markers" to="object_poses_to_markers/output" />
         </node>
-        <group ns="render_marker_array">
+        <group ns="render_mesh_markers">
           <node name="tile_image"
                 pkg="jsk_perception" type="tile_image.py"
                 clear_params="true">
