@@ -36,6 +36,12 @@ cd ~/ros_objslampp
 ln -s src/objslampp/ros/catkin_init.sh
 
 ./catkin_init.sh
+
+ln -s src/objslampp/ros/template.autoenv.zsh .autoenv.zsh
+ln -s src/objslampp/ros/template.autoenv_leave.zsh .autoenv_leave.zsh
+source .autoenv.zsh
+
+catkin build ros_objslampp_ycb_video
 ```
 
 
