@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import queue
+
 import chainer
 from chainer.backends import cuda
 import numpy as np
@@ -11,6 +13,37 @@ from ros_objslampp_msgs.msg import ObjectPoseArray
 from ros_objslampp_msgs.msg import VoxelGridArray
 import rospy
 import topic_tools
+
+
+class LossObserver:
+
+    def __init__(self):
+        self._last = None
+        self._deltas = queue.deque([], 10)
+        self._n_passed = 0
+
+        self._max_delta_threshold = 0.009
+        self._n_passed_threshold = 3
+
+    def add(self, loss):
+        loss = loss.array.item()
+
+        if self._last is not None:
+            delta = abs(self._last - loss)
+            self._deltas.append(delta)
+        self._last = loss
+
+        max_delta = None
+        if self._deltas:
+            max_delta = max(self._deltas)
+            if max_delta < self._max_delta_threshold:
+                self._n_passed += 1
+            else:
+                self._n_passed = 0
+        return max_delta
+
+    def validate(self):
+        return self._n_passed >= self._n_passed_threshold
 
 
 class CollisionBasedPoseRefinement(topic_tools.LazyTransport):
@@ -141,7 +174,9 @@ class CollisionBasedPoseRefinement(topic_tools.LazyTransport):
         optimizer.setup(link)
         link.translation.update_rule.hyperparam.alpha *= 0.1
 
-        iteration = 50
+        iteration = 30
+        loss_observer = LossObserver()
+        # objslampp.ros.loginfo_green('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>')
         for i in range(iteration):
             loss = link(
                 points,
@@ -154,6 +189,12 @@ class CollisionBasedPoseRefinement(topic_tools.LazyTransport):
             loss.backward()
             optimizer.update()
             link.zerograds()
+
+            max_delta = loss_observer.add(loss)  # NOQA
+            # objslampp.ros.loginfo_green(f"{i:04d}: max_delta={max_delta}")
+            if loss_observer.validate():
+                break
+        # objslampp.ros.loginfo_green('<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<')
 
         self._publish(poses_msg, link.quaternion, link.translation)
 
