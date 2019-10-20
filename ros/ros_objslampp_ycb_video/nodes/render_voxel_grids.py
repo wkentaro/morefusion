@@ -98,7 +98,9 @@ class RenderVoxelGrids:
 
             for uniq_id, ins_id in uniq_id_to_ins_id.items():
                 ins[uniq == uniq_id] = ins_id
-            ins[(uniq != -1) & (depth_rend > depth)] = -2
+            with np.errstate(invalid='ignore'):
+                ins[(uniq != -1) &
+                    (np.isnan(depth) | (depth_rend > depth))] = -2
 
         bridge = cv_bridge.CvBridge()
         ins_msg = bridge.cv2_to_imgmsg(ins)
