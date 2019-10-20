@@ -72,9 +72,11 @@ class CollisionBasedPoseRefinementLink(chainer.Link):
                 dims=(self._voxel_dim,) * 3,
                 threshold=self._voxel_threshold,
             )
-            grid_nontarget_empty[i] = F.maximum(
-                grid_nontarget_empty[i], grid_other
-            )
+            # TODO(wkentaro): Fix this properly
+            if not self.xp.isnan(grid_other.array).any():
+                grid_nontarget_empty[i] = F.maximum(
+                    grid_nontarget_empty[i], grid_other
+                )
         grid_uniform = F.stack(grid_uniform)
         grid_surface = F.stack(grid_surface)
         grid_inside = F.stack(grid_inside)
