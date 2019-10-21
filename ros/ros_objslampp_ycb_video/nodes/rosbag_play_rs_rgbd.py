@@ -16,7 +16,7 @@ def get_bag_file(bag_id):
             md5='5bfb6eb7f80773dd2b8a6b16a93823e9',
         )
     elif bag_id == 'static.robot':
-        bag_file = '/home/wkentaro/Gdrive/objslampp/ros_objslampp/rs_rgbd_2019-10-21-16-56-28.bag'  # NOQA
+        bag_file = '/home/wkentaro/Gdrive/objslampp/ros_objslampp/rs_rgbd_2019-10-21-21-23-49.bag'  # NOQA
     elif bag_id == 'static.desk':
         bag_file = gdown.cached_download(
             url='https://drive.google.com/uc?id=1XPJMTw4VVmUvaMgPXHN0izSWYXRgnhl8',  # NOQA
