@@ -7,8 +7,8 @@
   <node name="rosbag_play_rs_rgbd"
         pkg="ros_objslampp_ycb_video" type="rosbag_play_rs_rgbd.py"
         clear_params="true"
-        args="--id $(arg BAG_ID) --rosbag-args --clock --loop"
-        output="screen" launch-prefix="xterm -geometry 100x30 -e">
+        args="--id $(arg BAG_ID) --rosbag-args --clock"
+        output="screen" launch-prefix="xterm -geometry 100x30 -e" required="true">
   </node>
 
   <group ns="camera">
