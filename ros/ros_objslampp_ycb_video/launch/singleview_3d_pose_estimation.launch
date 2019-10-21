@@ -45,10 +45,10 @@
             clear_params="true">
         <rosparam subst_value="true">
           input_topics:
-            - /camera/color/image_rect_color_throttle/output
+            - /camera/color/image_rect_color
             - output
           queue_size: 100
-          approximate_sync: true
+          approximate_sync: false
         </rosparam>
       </node>
     </group>
@@ -80,10 +80,10 @@
                 clear_params="true">
             <rosparam subst_value="true">
               input_topics:
-                - /camera/color/image_rect_color_throttle/output
+                - /camera/color/image_rect_color
                 - output
               queue_size: 100
-              approximate_sync: true
+              approximate_sync: false
             </rosparam>
           </node>
         </group>
@@ -117,10 +117,10 @@
                 clear_params="true">
             <rosparam subst_value="true">
               input_topics:
-                - /camera/color/image_rect_color_throttle/output
+                - /camera/color/image_rect_color
                 - output
               queue_size: 100
-              approximate_sync: true
+              approximate_sync: false
             </rosparam>
           </node>
         </group>
@@ -151,10 +151,10 @@
                     clear_params="true">
                 <rosparam subst_value="true">
                   input_topics:
-                    - /camera/color/image_rect_color_throttle/output
+                    - /camera/color/image_rect_color
                     - output
                   queue_size: 100
-                  approximate_sync: true
+                  approximate_sync: false
                 </rosparam>
               </node>
             </group>
