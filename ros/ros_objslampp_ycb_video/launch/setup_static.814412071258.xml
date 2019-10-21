@@ -2,6 +2,7 @@
 
   <include file="$(find ros_objslampp_ycb_video)/launch/setup_static.xml">
     <arg name="SERIAL_NUMBER" value="814412071258" />
+    <arg name="CAMERA_FRAME_ID" value="panda_link0" />
   </include>
 
 </launch>
