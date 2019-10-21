@@ -1,6 +1,6 @@
 <launch>
 
-  <include file="$(find ros_objslampp_ycb_video)/launch/rs_rgbd_robot.launch">
+  <include file="$(find ros_objslampp_ycb_video)/launch/rs_rgbd.robot.launch">
   </include>
 
   <node name="rviz"
