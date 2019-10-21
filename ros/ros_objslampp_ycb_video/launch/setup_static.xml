@@ -1,5 +1,7 @@
 <launch>
 
+  <arg name="SERIAL_NUMBER" doc="serial number of realsense D435" />
+
   <include file="$(find ros_objslampp_ycb_video)/launch/mask_rcnn_instance_segmentation.launch">
     <arg name="GUI" value="false" />
   </include>
@@ -11,6 +13,7 @@
   </include>
 
   <include file="$(find ros_objslampp_ycb_video)/launch/orb_slam2_d435_rgbd.launch">
+    <arg name="SERIAL_NUMBER" value="$(arg SERIAL_NUMBER)" />
   </include>
 
   <group ns="camera">
