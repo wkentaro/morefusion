@@ -1,0 +1,27 @@
+<launch>
+
+  <arg name="GUI" default="false" />
+
+  <include file="$(find ros_objslampp_ycb_video)/launch/rs_rgbd.launch">
+    <arg name="GUI" value="$(arg GUI)" />
+  </include>
+
+  <node name="marker_6dof"
+        pkg="jsk_interactive_marker" type="marker_6dof"
+        clear_params="true">
+    <rosparam subst_value="true">
+      frame_id: panda_link8  # parent
+      tf_frame: camera_link  # child
+      object_type: cube
+      publish_tf: true
+      object_x: 0.1
+      object_y: 0.1
+      object_z: 0.1
+      initial_x: 0.028
+      initial_y: -0.070
+      initial_z: 0.054
+      initial_orientation: [0.658, -0.257, 0.653, 0.272]
+    </rosparam>
+  </node>
+
+</launch>
