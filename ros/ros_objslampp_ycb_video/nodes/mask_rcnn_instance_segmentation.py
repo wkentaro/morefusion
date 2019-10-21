@@ -32,7 +32,7 @@ class MaskRCNNInstanceSegmentationNode(LazyTransport):
             n_fg_class=len(self._class_names[1:]),
             pretrained_model=pretrained_model,
         )
-        self._model.score_thresh = 0.9
+        self._model.score_thresh = 0.85
         self._model.to_gpu()
 
         self._pub_cls = self.advertise(
