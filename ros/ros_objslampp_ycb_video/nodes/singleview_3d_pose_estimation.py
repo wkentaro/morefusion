@@ -6,7 +6,6 @@ import chainer
 import gdown
 import numpy as np
 import imgviz
-import trimesh.transformations as ttf
 
 import objslampp
 import objslampp.contrib.singleview_3d as contrib
