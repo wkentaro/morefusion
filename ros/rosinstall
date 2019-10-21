@@ -11,6 +11,10 @@
     uri: https://github.com/appliedAI-Initiative/orb_slam_2_ros.git
     version: master
 - git:
+    local-name: frankaemika/franka_ros
+    uri: https://github.com/frankaemika/franka_ros.git
+    version: kinetic-devel
+- git:
     local-name: ikalnytskyi/termcolor
     uri: https://github.com/ikalnytskyi/termcolor.git
     version: master
