@@ -17,8 +17,8 @@ def get_bag_file(bag_id):
         )
     elif bag_id == 'static':
         bag_file = gdown.cached_download(
-            url='https://drive.google.com/uc?id=1mArVTWl2f0Uws_mRoCtDzttV2s6AahZa',  # NOQA
-            md5='a70a792577447a414c8ac7fe5f4aa316',
+            url='https://drive.google.com/uc?id=1XPJMTw4VVmUvaMgPXHN0izSWYXRgnhl8',  # NOQA
+            md5='4615655dc096d6bad85d15a51a98341b',
         )
     else:
         raise ValueError(f'Unknown bag_id: {bag_id}')
