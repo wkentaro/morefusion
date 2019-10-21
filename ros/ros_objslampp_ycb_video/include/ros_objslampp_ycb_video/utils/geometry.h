@@ -38,6 +38,37 @@ std::tuple<int, int, int, int> mask_to_bbox(const cv::Mat& mask) {
   return std::make_tuple(y1, x1, y2, x2);
 }
 
+bool is_detected_mask_too_small(const cv::Mat& mask2) {
+  std::vector<std::vector<cv::Point> > contours;
+  std::vector<cv::Vec4i> hierarchy;
+  cv::findContours(mask2, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
+  cv::Mat mask2_denoised;
+  mask2.copyTo(mask2_denoised);
+  for (size_t i = 0; i < contours.size(); i++) {
+    if (cv::contourArea(contours[i]) < (20 * 20)) {
+      cv::drawContours(mask2_denoised, contours, i, /*color=*/0, /*thickness=*/CV_FILLED);
+    }
+  }
+  std::tuple<int, int, int, int> bbox2 = ros_objslampp_ycb_video::utils::mask_to_bbox(mask2_denoised);
+  int y1 = std::get<0>(bbox2);
+  int x1 = std::get<1>(bbox2);
+  int y2 = std::get<2>(bbox2);
+  int x2 = std::get<3>(bbox2);
+  int bbox_height = y2 - y1;
+  int bbox_width = x2 - x1;
+  int mask_size = cv::countNonZero(mask2_denoised);
+  int bbox_size = bbox_height * bbox_width;
+  float mask_ratio_in_bbox = static_cast<float>(mask_size) / static_cast<float>(bbox_size);
+  if (mask_size < (80 * 80) ||
+      bbox_size < (120 * 120) ||
+      bbox_height < 100 ||
+      bbox_width < 100 ||
+      mask_ratio_in_bbox < 0.3) {
+    return true;
+  }
+  return false;
+}
+
 void track_instance_id(
     const cv::Mat& reference,
     cv::Mat* target,
@@ -68,33 +99,7 @@ void track_instance_id(
     cv::Mat mask2 = (*target) == ins_id2;
     ins_id2to1.insert(std::make_pair(ins_id2, std::make_pair(-1, 0)));
 
-    std::vector<std::vector<cv::Point> > contours;
-    std::vector<cv::Vec4i> hierarchy;
-    cv::findContours(mask2, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
-    cv::Mat mask2_denoised;
-    mask2.copyTo(mask2_denoised);
-    for (size_t i = 0; i < contours.size(); i++) {
-      if (cv::contourArea(contours[i]) < (20 * 20)) {
-        cv::drawContours(mask2_denoised, contours, i, /*color=*/0, /*thickness=*/CV_FILLED);
-      }
-    }
-    std::tuple<int, int, int, int> bbox2 = ros_objslampp_ycb_video::utils::mask_to_bbox(mask2_denoised);
-    int y1 = std::get<0>(bbox2);
-    int x1 = std::get<1>(bbox2);
-    int y2 = std::get<2>(bbox2);
-    int x2 = std::get<3>(bbox2);
-    int bbox_height = y2 - y1;
-    int bbox_width = x2 - x1;
-    int mask_size = cv::countNonZero(mask2_denoised);
-    int bbox_size = bbox_height * bbox_width;
-    float mask_ratio_in_bbox = static_cast<float>(mask_size) / static_cast<float>(bbox_size);
-    // ROS_INFO_GREEN("ins_id2: %d, mask_size: %f, bbox_size: %f, bbox_height: %d, bbox_width: %d, mask_ratio_in_bbox: %f",
-    //                ins_id2, std::sqrt(mask_size), std::sqrt(bbox_size), bbox_height, bbox_width, mask_ratio_in_bbox);
-    if (mask_size < (80 * 80) ||
-        bbox_size < (120 * 120) ||
-        bbox_height < 100 ||
-        bbox_width < 100 ||
-        mask_ratio_in_bbox < 0.3) {
+    if (ros_objslampp_ycb_video::utils::is_detected_mask_too_small(mask2)) {
       ins_ids2_suspicious.insert(ins_id2);
     }
 
