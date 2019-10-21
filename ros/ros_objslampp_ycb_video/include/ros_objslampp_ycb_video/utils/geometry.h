@@ -70,7 +70,7 @@ bool is_detected_mask_too_small(const cv::Mat& mask2) {
 }
 
 void track_instance_id(
-    const cv::Mat& reference,
+    cv::Mat& reference,
     cv::Mat* target,
     std::map<int, unsigned>* instance_id_to_class_id,
     unsigned* instance_counter) {
@@ -89,6 +89,7 @@ void track_instance_id(
 
   // Compute IOU
   std::map<int, std::pair<int, float> > ins_id2to1;
+  std::set<int> ins_ids1_suspicious;
   std::set<int> ins_ids2_suspicious;
   for (int ins_id2 : instance_ids2) {
     // ins_id2: instance_id in the mask-rcnn output
@@ -103,11 +104,14 @@ void track_instance_id(
       ins_ids2_suspicious.insert(ins_id2);
     }
 
-    cv::Mat mask_intersect_edge, mask_intersect_nonedge;
-    cv::bitwise_and(mask_edge, mask2, mask_intersect_edge);
-    cv::bitwise_and(mask_nonedge, mask2, mask_intersect_nonedge);
-    if (cv::countNonZero(mask_intersect_edge) > cv::countNonZero(mask_intersect_nonedge)) {
-      ins_ids2_suspicious.insert(ins_id2);
+    {
+      // Check if mask2 is not on the edge of the image
+      cv::Mat mask_intersect_edge, mask_intersect_nonedge;
+      cv::bitwise_and(mask_edge, mask2, mask_intersect_edge);
+      cv::bitwise_and(mask_nonedge, mask2, mask_intersect_nonedge);
+      if (cv::countNonZero(mask_intersect_edge) > cv::countNonZero(mask_intersect_nonedge)) {
+        ins_ids2_suspicious.insert(ins_id2);
+      }
     }
 
     for (int ins_id1 : instance_ids1) {
@@ -117,6 +121,18 @@ void track_instance_id(
       }
 
       cv::Mat mask1 = reference == ins_id1;
+
+      {
+        // Check if mask1 is not on the edge of the image
+        cv::Mat mask_intersect_edge, mask_intersect_nonedge;
+        cv::bitwise_and(mask_edge, mask1, mask_intersect_edge);
+        cv::bitwise_and(mask_nonedge, mask1, mask_intersect_nonedge);
+        if (cv::countNonZero(mask_intersect_edge) > cv::countNonZero(mask_intersect_nonedge)) {
+          ins_ids1_suspicious.insert(ins_id1);
+        }
+      }
+
+      // IOU between mask1 and mask2
       cv::Mat mask_intersection, mask_union;
       cv::bitwise_and(mask1, mask2, mask_intersection);
       cv::bitwise_or(mask1, mask2, mask_union);
@@ -187,6 +203,7 @@ void track_instance_id(
     }
   }
 
+  // Manipulate target
   std::set<int> instance_ids_active = ros_objslampp_ycb_video::utils::unique<int>(*target);
   for (int ins_id : instance_ids_active) {
     if (ins_id < 0) {
@@ -200,9 +217,17 @@ void track_instance_id(
       if (cv::contourArea(contours[j]) < (20 * 20)) {
         cv::drawContours(*target, contours, j, /*color=*/-2, /*thickness=*/CV_FILLED);
       } else {
-        cv::drawContours(*target, contours, j, /*color=*/-2, /*thickness=*/20);
+        cv::drawContours(*target, contours, j, /*color=*/-2, /*thickness=*/10);
       }
     }
+  }
+
+  // Manipulate reference
+  for (int ins_id : ins_ids1_suspicious) {
+    if (ins_id < 0) {
+      continue;
+    }
+    reference.setTo(-2, reference == ins_id);
   }
 }
 

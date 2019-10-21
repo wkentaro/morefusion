@@ -119,7 +119,6 @@ void OctomapServer::insertCloudCallback(
   srv.request.depth = *depth_msg;
   getGridsInWorldFrame(camera_info_msg->header.stamp, srv.request.grids);
   m_renderClient.call(srv);
-  m_labelRenderedPub.publish(srv.response.label_ins);
 
   sensor_msgs::Image ins_rendered_msg = srv.response.label_ins;
 
@@ -157,6 +156,9 @@ void OctomapServer::insertCloudCallback(
       instance_id_to_class_id.insert(std::make_pair(it->first, it->second));
     }
   }
+  // Publish Rendered Instance Label
+  m_labelRenderedPub.publish(
+    cv_bridge::CvImage(ins_msg->header, "32SC1", label_ins_rend).toImageMsg());
   // Publish Tracked Instance Label
   m_labelTrackedPub.publish(
     cv_bridge::CvImage(ins_msg->header, "32SC1", label_ins).toImageMsg());
@@ -180,7 +182,7 @@ void OctomapServer::insertCloudCallback(
   insertScan(sensorToWorldTf.getOrigin(), pc, label_ins, instance_id_to_class_id);
 
   // Publish Object Grids
-  std::set<int> instance_ids_active = ros_objslampp_ycb_video::utils::unique<int>(label_ins);
+  std::set<int> instance_ids_active = ros_objslampp_ycb_video::utils::unique<int>(label_ins_rend);
   publishGrids(cloud->header.stamp, sensorToWorld, instance_ids_active);
 
   // Publish Map
