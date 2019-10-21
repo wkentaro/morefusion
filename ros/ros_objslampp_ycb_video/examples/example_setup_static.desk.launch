@@ -1,0 +1,17 @@
+<launch>
+
+  <include file="$(find ros_objslampp_ycb_video)/launch/rosbag_play_rs_rgbd.launch">
+    <arg name="BAG_ID" value="static.desk" />
+  </include>
+
+  <include file="$(find ros_objslampp_ycb_video)/launch/visualize_rs_rgbd.launch">
+    <arg name="GUI" value="false" />
+  </include>
+
+  <include file="$(find ros_objslampp_ycb_video)/launch/rviz_static.launch">
+  </include>
+
+  <include file="$(find ros_objslampp_ycb_video)/launch/setup_static.desk.launch">
+  </include>
+
+</launch>
