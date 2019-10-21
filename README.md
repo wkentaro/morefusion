@@ -45,7 +45,22 @@ catkin build ros_objslampp_ycb_video
 ```
 
 
-## Contents
+### Demonstrations
 
-- [System Overview](https://drive.google.com/open?id=1EnOtEawvWUcihlsnSrIbNeB5oE-UJGDv)
-- [Dataset Synthesizing](https://github.com/wkentaro/scenenetrgb-d/tree/master/python/examples#object-level-slam-full-recon-and-physical-sim-for-navi-and-manip-in-heavy-clutter)
+#### Dynamic Scene
+
+```bash
+roslaunch ros_objslampp_ycb_video rs_rgbd.robot.launch
+roslaunch ros_objslampp_ycb_video rviz_dynamic.robot.launch
+roslaunch ros_objslampp_ycb_video setup_dynamic.robot.launch
+```
+
+#### Static Scene
+
+```bash
+roslaunch ros_objslampp_ycb_video rs_rgbd.robot.launch
+roslaunch ros_objslampp_ycb_video rviz_static.robot.launch
+roslaunch ros_objslampp_ycb_video setup_static.robot.launch
+```
+
+<img src="https://drive.google.com/uc?id=1BbjWZPTZhoqbsH4OlzIghOO0VZhG69mK" />
