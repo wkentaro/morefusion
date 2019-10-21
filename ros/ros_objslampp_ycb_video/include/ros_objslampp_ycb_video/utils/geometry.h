@@ -223,12 +223,48 @@ void track_instance_id(
   }
 
   // Manipulate reference
-  for (int ins_id : ins_ids1_suspicious) {
-    if (ins_id < 0) {
+  for (int ins_id : ros_objslampp_ycb_video::utils::unique<int>(reference)) {
+     if (ins_id < 0) {
+       continue;
+     }
+
+    cv::Mat mask = reference == ins_id;
+
+    if (ins_ids1_suspicious.find(ins_id) != ins_ids1_suspicious.end()) {
+      reference.setTo(-2, mask);
       continue;
     }
-    reference.setTo(-2, reference == ins_id);
+
+    // Remove boundary
+    std::vector<std::vector<cv::Point> > contours;
+    std::vector<cv::Vec4i> hierarchy;
+    cv::findContours(mask, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
+    for (size_t j = 0; j < contours.size(); j++) {
+      if (cv::contourArea(contours[j]) < (20 * 20)) {
+        cv::drawContours(reference, contours, j, /*color=*/-2, /*thickness=*/CV_FILLED);
+      } else {
+        cv::drawContours(reference, contours, j, /*color=*/-2, /*thickness=*/10);
+      }
+    }
   }
+
+  // Merge target and reference for pose estimation (this trusts mask-rcnn more than reconstruction)
+  instance_ids1 = ros_objslampp_ycb_video::utils::unique<int>(*target);
+  cv::Mat merged(reference.size(), CV_32SC1, -2);
+  for (int ins_id2 : ros_objslampp_ycb_video::utils::unique<int>(reference)) {
+    if (ins_id2 < 0) {
+      continue;
+    }
+
+    cv::Mat mask;
+    if (instance_ids1.find(ins_id2) != instance_ids1.end()) {
+      mask = *target == ins_id2;
+    } else {
+      mask = reference == ins_id2;
+    }
+    merged.setTo(ins_id2, mask);
+  }
+  merged.copyTo(reference);
 }
 
 }  // namespace utils
