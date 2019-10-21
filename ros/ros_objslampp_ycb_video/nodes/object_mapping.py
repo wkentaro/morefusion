@@ -24,7 +24,7 @@ class Object:
         self._pcd = pcd
         self._is_symmetric = is_symmetric
 
-        self._poses = queue.deque([], 20)
+        self._poses = queue.deque([], 6)
         self._spawn = False
 
     @property
