@@ -16,7 +16,10 @@ def get_bag_file(bag_id):
             md5='5bfb6eb7f80773dd2b8a6b16a93823e9',
         )
     elif bag_id == 'static.robot':
-        bag_file = '/home/wkentaro/Gdrive/objslampp/ros_objslampp/rs_rgbd_2019-10-21-21-23-49.bag'  # NOQA
+        bag_file = gdown.cached_download(
+            url='https://drive.google.com/uc?id=1WQNL9yfVTfAXZwWClAiziZLQML4Jetzl',  # NOQA
+            md5='2e3c7f7cd2409b8da8d6f85ee2adeb36',
+        )
     elif bag_id == 'static.desk':
         bag_file = gdown.cached_download(
             url='https://drive.google.com/uc?id=1XPJMTw4VVmUvaMgPXHN0izSWYXRgnhl8',  # NOQA
