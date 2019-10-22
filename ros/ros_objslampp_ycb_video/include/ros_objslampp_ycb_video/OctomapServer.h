@@ -31,6 +31,7 @@
 #include <ros/ros.h>
 #include <ros_objslampp_msgs/VoxelGridArray.h>
 #include <ros_objslampp_msgs/ObjectClassArray.h>
+#include <ros_objslampp_srvs/RenderVoxelGridArray.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/CameraInfo.h>
 #include <std_msgs/ColorRGBA.h>
@@ -41,6 +42,7 @@
 
 #include <algorithm>
 #include <map>
+#include <set>
 #include <string>
 
 #include <boost/lexical_cast.hpp>
@@ -67,7 +69,7 @@ class OctomapServer {
     ros_objslampp_msgs::ObjectClassArray> ExactSyncPolicy;
 
   explicit OctomapServer(ros::NodeHandle private_nh_ = ros::NodeHandle("~"));
-  virtual ~OctomapServer() {};
+  virtual ~OctomapServer() {}
 
   virtual void insertCloudCallback(
     const sensor_msgs::CameraInfoConstPtr& camera_info,

@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <vector>
 #include <map>
+#include <set>
 #include <tuple>
 #include <utility>
 
@@ -41,7 +42,8 @@ std::tuple<int, int, int, int> mask_to_bbox(const cv::Mat& mask) {
 bool is_detected_mask_too_small(const cv::Mat& mask2) {
   std::vector<std::vector<cv::Point> > contours;
   std::vector<cv::Vec4i> hierarchy;
-  cv::findContours(mask2, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
+  cv::findContours(
+    mask2, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
   cv::Mat mask2_denoised;
   mask2.copyTo(mask2_denoised);
   for (size_t i = 0; i < contours.size(); i++) {
@@ -49,7 +51,8 @@ bool is_detected_mask_too_small(const cv::Mat& mask2) {
       cv::drawContours(mask2_denoised, contours, i, /*color=*/0, /*thickness=*/CV_FILLED);
     }
   }
-  std::tuple<int, int, int, int> bbox2 = ros_objslampp_ycb_video::utils::mask_to_bbox(mask2_denoised);
+  std::tuple<int, int, int, int> bbox2 = ros_objslampp_ycb_video::utils::mask_to_bbox(
+    mask2_denoised);
   int y1 = std::get<0>(bbox2);
   int x1 = std::get<1>(bbox2);
   int y2 = std::get<2>(bbox2);
@@ -212,7 +215,8 @@ void track_instance_id(
     cv::Mat mask = (*target) == ins_id;
     std::vector<std::vector<cv::Point> > contours;
     std::vector<cv::Vec4i> hierarchy;
-    cv::findContours(mask, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
+    cv::findContours(
+      mask, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
     for (size_t j = 0; j < contours.size(); j++) {
       if (cv::contourArea(contours[j]) < (20 * 20)) {
         cv::drawContours(*target, contours, j, /*color=*/-2, /*thickness=*/CV_FILLED);
@@ -238,7 +242,8 @@ void track_instance_id(
     // Remove boundary
     std::vector<std::vector<cv::Point> > contours;
     std::vector<cv::Vec4i> hierarchy;
-    cv::findContours(mask, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
+    cv::findContours(
+      mask, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
     for (size_t j = 0; j < contours.size(); j++) {
       if (cv::contourArea(contours[j]) < (20 * 20)) {
         cv::drawContours(reference, contours, j, /*color=*/-2, /*thickness=*/CV_FILLED);
@@ -248,7 +253,7 @@ void track_instance_id(
     }
   }
 
-  // Merge target and reference for pose estimation (this trusts mask-rcnn more than reconstruction)
+  // Merge target and reference for pose estimation
   instance_ids1 = ros_objslampp_ycb_video::utils::unique<int>(*target);
   cv::Mat merged(reference.size(), CV_32SC1, -2);
   for (int ins_id2 : ros_objslampp_ycb_video::utils::unique<int>(reference)) {

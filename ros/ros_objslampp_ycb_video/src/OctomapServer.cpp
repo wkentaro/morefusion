@@ -2,7 +2,6 @@
 
 #include "ros_objslampp_ycb_video/OctomapServer.h"
 #include "ros_objslampp_ycb_video/utils.h"
-#include <ros_objslampp_srvs/RenderVoxelGridArray.h>
 
 using octomap_msgs::Octomap;
 
@@ -56,9 +55,11 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_fullMapPub = m_nh.advertise<Octomap>("octomap_full", 1);
   m_mapPub = m_nh.advertise<nav_msgs::OccupancyGrid>("projected_map", 5);
   m_fmarkerPub = m_nh.advertise<visualization_msgs::MarkerArray>("free_cells_vis_array", 1);
-  m_gridsForRenderPub = private_nh.advertise<ros_objslampp_msgs::VoxelGridArray>("output/grids_for_render", 1);
+  m_gridsForRenderPub = private_nh.advertise<ros_objslampp_msgs::VoxelGridArray>(
+    "output/grids_for_render", 1);
   m_gridsPub = private_nh.advertise<ros_objslampp_msgs::VoxelGridArray>("output/grids", 1);
-  m_gridsNoEntryPub = private_nh.advertise<ros_objslampp_msgs::VoxelGridArray>("output/grids_noentry", 1);
+  m_gridsNoEntryPub = private_nh.advertise<ros_objslampp_msgs::VoxelGridArray>(
+    "output/grids_noentry", 1);
   m_bgMarkerPub = private_nh.advertise<visualization_msgs::MarkerArray>("output/markers_bg", 1);
   m_fgMarkerPub = private_nh.advertise<visualization_msgs::MarkerArray>("output/markers_fg", 1);
   m_labelRenderedPub = private_nh.advertise<sensor_msgs::Image>("output/label_rendered", 1);
@@ -77,7 +78,8 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
     private_nh, "input/class", 5);
   m_sync = new message_filters::Synchronizer<ExactSyncPolicy>(100);
   m_sync->connectInput(*m_camSub, *m_depthSub, *m_pointCloudSub, *m_labelInsSub, *m_classSub);
-  m_sync->registerCallback(boost::bind(&OctomapServer::insertCloudCallback, this, _1, _2, _3, _4, _5));
+  m_sync->registerCallback(
+    boost::bind(&OctomapServer::insertCloudCallback, this, _1, _2, _3, _4, _5));
 
   m_renderClient = private_nh.serviceClient<ros_objslampp_srvs::RenderVoxelGridArray>("render");
 
@@ -194,8 +196,6 @@ void OctomapServer::insertScan(
     const PCLPointCloud& pc,
     const cv::Mat& label_ins,
     const std::map<int, unsigned>& instance_id_to_class_id) {
-  // ros::WallTime t_start = ros::WallTime::now();
-
   octomap::point3d sensorOrigin = octomap::pointTfToOctomap(sensorOriginTf);
 
   std::set<int> instance_ids = ros_objslampp_ycb_video::utils::unique<int>(label_ins);
@@ -294,7 +294,8 @@ void OctomapServer::insertScan(
     }
   }
 
-  for (std::map<int, octomap::KeySet>::iterator i = occupied_cells.begin(); i != occupied_cells.end(); i++) {
+  for (std::map<int, octomap::KeySet>::iterator i = occupied_cells.begin();
+       i != occupied_cells.end(); i++) {
     int instance_id = i->first;
     octomap::KeySet key_set_occupied = i->second;
     OcTreeT* octree = m_octrees.find(instance_id)->second;
@@ -318,12 +319,11 @@ void OctomapServer::insertScan(
       it->second->prune();
     }
   }
-
-  // ros::WallDuration elapsed_time = ros::WallTime::now() - t_start;
-  // ROS_INFO_MAGENTA("Elapsed Time: %lf [s], %lf [fps]", elapsed_time.toSec(), 1. / elapsed_time.toSec());
 }
 
-void OctomapServer::getGridsInWorldFrame(const ros::Time& rostime, ros_objslampp_msgs::VoxelGridArray& grids) {
+void OctomapServer::getGridsInWorldFrame(
+    const ros::Time& rostime,
+    ros_objslampp_msgs::VoxelGridArray& grids) {
   grids.header.frame_id = m_worldFrameId;
   grids.header.stamp = rostime;
   for (std::map<int, OcTreeT*>::iterator it_octree = m_octrees.begin();
@@ -490,7 +490,8 @@ void OctomapServer::publishAll(const ros::Time& rostime) {
   }
 
   bool publishFreeMarkerArray = m_fmarkerPub.getNumSubscribers() > 0;
-  bool publishMarkerArray = m_bgMarkerPub.getNumSubscribers() > 0 || m_fgMarkerPub.getNumSubscribers() > 0;
+  bool publishMarkerArray = m_bgMarkerPub.getNumSubscribers() > 0 ||
+                            m_fgMarkerPub.getNumSubscribers() > 0;
   bool publishBinaryMap = m_binaryMapPub.getNumSubscribers() > 0;
   bool publishFullMap = m_fullMapPub.getNumSubscribers() > 0;
 
@@ -524,7 +525,9 @@ void OctomapServer::publishAll(const ros::Time& rostime) {
           double y = it.getY();
 
           // Ignore speckles in the map:
-          if (m_filterSpeckles && (it.getDepth() == m_treeDepth +1) && isSpeckleNode(it.getKey())) {
+          if (m_filterSpeckles &&
+              (it.getDepth() == m_treeDepth + 1) &&
+              isSpeckleNode(it.getKey())) {
             ROS_DEBUG("Ignoring single speckle at (%f,%f,%f)", x, y, z);
             continue;
           }  // else: current octree node is no speckle, send it out
