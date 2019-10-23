@@ -1,7 +1,6 @@
 // Copyright (c) 2019 Kentaro Wada
 
 #include "ros_objslampp_ycb_video/OctomapServer.h"
-#include "ros_objslampp_ycb_video/utils.h"
 
 using octomap_msgs::Octomap;
 

@@ -49,6 +49,7 @@
 #include <opencv2/opencv.hpp>
 
 #include "ros_objslampp_ycb_video/OctomapServerConfig.h"
+#include "ros_objslampp_ycb_video/utils.h"
 
 namespace ros_objslampp_ycb_video {
 
