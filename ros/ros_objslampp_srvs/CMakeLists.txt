@@ -12,6 +12,8 @@ find_package(catkin REQUIRED COMPONENTS
 add_service_files(
   FILES
   RenderVoxelGridArray.srv
+  MoveToHome.srv
+  MoveToPose.srv
 )
 
 generate_messages(
