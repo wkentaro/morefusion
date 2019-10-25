@@ -34,6 +34,9 @@ source .anaconda3/bin/activate
 # trimesh dependency
 conda_check_installed libspatialindex || conda install libspatialindex -y
 
+# pygraphviz
+conda_check_installed pygraphviz || conda install -c anaconda pygraphviz -y
+
 if [ "$CI" = "true" ]; then
   # it fails with following error with pip install:
   # ImportError: dlopen: cannot load any more object with static TLS
