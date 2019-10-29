@@ -2,10 +2,12 @@
 
 import io
 
+import imgviz
 import networkx
 import numpy as np
 import PIL.Image
 import pybullet
+import skimage.segmentation
 import trimesh
 import trimesh.transformations as ttf
 
@@ -16,6 +18,7 @@ import message_filters
 import tf
 import topic_tools
 import rospy
+from geometry_msgs.msg import PoseArray
 from ros_objslampp_msgs.msg import ObjectPoseArray
 from sensor_msgs.msg import CameraInfo, Image
 
@@ -75,6 +78,9 @@ class SelectPickingOrder(topic_tools.LazyTransport):
         self._pub_poses = self.advertise(
             '~output/poses', ObjectPoseArray, queue_size=1
         )
+        self._pub_poses_viz = self.advertise(
+            '~output/poses_viz', PoseArray, queue_size=1
+        )
         self._pub_graph = self.advertise('~output/graph', Image, queue_size=1)
         self._tf_listener = tf.TransformListener(cache_time=rospy.Duration(30))
         self._post_init()
@@ -121,10 +127,11 @@ class SelectPickingOrder(topic_tools.LazyTransport):
         return transform
 
     def _render_object_pose_array(self, cam_msg, poses_msg, instance_id=None):
+        rgb = np.zeros((cam_msg.height, cam_msg.width, 3), np.uint8)
         depth = np.full((cam_msg.height, cam_msg.width), np.nan, np.float32)
         ins = np.full((cam_msg.height, cam_msg.width), -1, np.int32)
         if not poses_msg.poses:
-            return depth, ins
+            return rgb, depth, ins
 
         T_pose2cam = None
         if poses_msg.header.frame_id != cam_msg.header.frame_id:
@@ -169,7 +176,7 @@ class SelectPickingOrder(topic_tools.LazyTransport):
             resolution=(cam_msg.width, cam_msg.height),
             focal=(K[0, 0], K[1, 1]),
         )
-        _, depth, uniq = objslampp.extra.pybullet.render_camera(
+        rgb, depth, uniq = objslampp.extra.pybullet.render_camera(
             np.eye(4),
             fovy=camera.fov[1],
             height=camera.resolution[1],
@@ -181,7 +188,7 @@ class SelectPickingOrder(topic_tools.LazyTransport):
         for uniq_id, ins_id in uniq_id_to_ins_id.items():
             ins[uniq == uniq_id] = ins_id
 
-        return depth, ins
+        return rgb, depth, ins
 
     def _callback(self, cam_msg, poses_msg):
         bridge = cv_bridge.CvBridge()
@@ -195,7 +202,7 @@ class SelectPickingOrder(topic_tools.LazyTransport):
             return
         del class_ids
 
-        depth_rend, ins_rend = self._render_object_pose_array(
+        _, _, ins_rend = self._render_object_pose_array(
             cam_msg, poses_msg
         )
 
@@ -203,17 +210,33 @@ class SelectPickingOrder(topic_tools.LazyTransport):
         graph = networkx.DiGraph()
         class_names = objslampp.datasets.ycb_video.class_names
         mask_center = get_mask_center((cam_msg.height, cam_msg.width))
-        for ins_id_i in ins_id_to_pose:
+        K = np.array(cam_msg.K).reshape(3, 3)
+        for ins_id_i in np.unique(ins_rend):
+            if ins_id_i == -1:
+                continue
+
             mask_i = ins_rend == ins_id_i
             if (mask_i & mask_center).sum() < (mask_i & ~mask_center).sum():
                 continue
 
-            _, ins = self._render_object_pose_array(
+            rgb, depth, ins = self._render_object_pose_array(
                 cam_msg, poses_msg, instance_id=ins_id_i
             )
             mask_whole = ins == ins_id_i
             mask_visible = ins_rend == ins_id_i
             mask_occluded = mask_whole & ~mask_visible
+
+            pcd = objslampp.geometry.pointcloud_from_depth(
+                depth, fx=K[0, 0], fy=K[1, 1], cx=K[0, 2], cy=K[1, 2]
+            )
+            quaternion, translation = get_grasp_pose(rgb, pcd, mask_whole)
+            ins_id_to_pose[ins_id_i].pose.orientation.w = quaternion[0]
+            ins_id_to_pose[ins_id_i].pose.orientation.x = quaternion[1]
+            ins_id_to_pose[ins_id_i].pose.orientation.y = quaternion[2]
+            ins_id_to_pose[ins_id_i].pose.orientation.z = quaternion[3]
+            ins_id_to_pose[ins_id_i].pose.position.x = translation[0]
+            ins_id_to_pose[ins_id_i].pose.position.y = translation[1]
+            ins_id_to_pose[ins_id_i].pose.position.z = translation[2]
 
             cls_id_i = ins_id_to_pose[ins_id_i].class_id
             class_name_i = class_names[cls_id_i]
@@ -238,17 +261,67 @@ class SelectPickingOrder(topic_tools.LazyTransport):
                 id_j = (ins_id_j, cls_id_j, class_name_j)
                 graph.add_edge(id_i, id_j)
 
-        poses_msg.poses = []
+        poses_msg = ObjectPoseArray()
+        poses_msg.header = cam_msg.header
+        poses_viz_msg = PoseArray()
+        poses_viz_msg.header = cam_msg.header
         if target_node_id is not None:
             order = get_picking_order(graph, target=target_node_id)
             for ins_id, _, _ in order:
                 poses_msg.poses.append(ins_id_to_pose[ins_id])
+                poses_viz_msg.poses.append(pose.pose)
         self._pub_poses.publish(poses_msg)
+        self._pub_poses_viz.publish(poses_viz_msg)
 
         img = nx_graph_to_image(graph)
         img_msg = bridge.cv2_to_imgmsg(img, 'rgb8')
         img_msg.header = cam_msg.header
         self._pub_graph.publish(img_msg)
+
+
+def get_grasp_pose(rgb, pcd, mask):
+    y1, x1, y2, x2 = imgviz.instances.mask_to_bbox(
+        [mask]
+    )[0].round().astype(int)
+
+    lbl = np.full(rgb.shape[:2], -1, dtype=np.int32)
+    lbl[y1:y2, x1:x2] = skimage.segmentation.slic(
+        rgb[y1:y2, x1:x2], n_segments=30, slic_zero=True
+    )
+    lbl[~mask] = -1
+    props = skimage.measure.regionprops(lbl)
+
+    labels = []
+    centroids = []
+    for prop in props:
+        if prop.label == -1:
+            continue
+        labels.append(prop.label)
+        centroids.append(prop.centroid)
+    centroid_avg = np.mean(centroids, axis=0)
+    index = np.argmin(np.linalg.norm(centroids - centroid_avg, axis=1))
+    label = labels[index]
+
+    normals = np.full_like(pcd, np.nan)
+    normals[y1:y2, x1:x2] = objslampp.geometry.estimate_pointcloud_normals(
+        pcd[y1:y2, x1:x2]
+    )
+
+    mask = lbl == label
+    translation = pcd[mask].mean(axis=0)
+    normal = normals[mask].mean(axis=0)
+    quaternion = quaternion_from_two_vectors(np.array([0, 0, 1]), normal)
+    return quaternion, translation
+
+
+def quaternion_from_two_vectors(v1, v2):
+    v3 = np.cross(v1, v2)
+    x, y, z = v3
+    w = np.sqrt(
+        np.linalg.norm(v1) ** 2 + np.linalg.norm(v2) ** 2
+    ) + np.dot(v1, v2)
+    quaternion = np.array([w, x, y, z], dtype=np.float64)
+    return quaternion / np.linalg.norm(quaternion)
 
 
 if __name__ == '__main__':
