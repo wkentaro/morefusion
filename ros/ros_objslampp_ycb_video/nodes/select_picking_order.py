@@ -44,6 +44,27 @@ def get_picking_order(graph, target):
     return order
 
 
+def nx_graph_to_image(graph, dpi=300):
+    with io.BytesIO() as f:
+        agraph = networkx.nx_agraph.to_agraph(graph)
+        agraph.graph_attr.update(dpi=300)
+        agraph.layout(prog='dot')
+        agraph.draw(f, format='png')
+        img = np.asarray(PIL.Image.open(f))[:, :, :3]
+        return img
+
+
+def get_mask_center(shape, edge_ratio=0.15):
+    H, W = shape[:2]
+    mask_center = np.zeros((H, W), dtype=bool)
+    x1 = int(round(W * 0.15))
+    x2 = W - x1
+    y1 = int(round(H * 0.15))
+    y2 = H - y1
+    mask_center[y1:y2, x1:x2] = True
+    return mask_center
+
+
 class SelectPickingOrder(topic_tools.LazyTransport):
 
     _models = objslampp.datasets.YCBVideoModels()
@@ -172,27 +193,17 @@ class SelectPickingOrder(topic_tools.LazyTransport):
             class_ids.append(pose.class_id)
         if self._target not in class_ids:
             return
+        del class_ids
 
         depth_rend, ins_rend = self._render_object_pose_array(
             cam_msg, poses_msg
         )
 
-        H, W = ins_rend.shape
-        mask_center = np.zeros((H, W), dtype=bool)
-        x1 = int(round(W * 0.15))
-        x2 = W - x1
-        y1 = int(round(H * 0.15))
-        y2 = H - y1
-        mask_center[y1:y2, x1:x2] = True
-
         target_node_id = None
-
         graph = networkx.DiGraph()
         class_names = objslampp.datasets.ycb_video.class_names
-        for ins_id_i in np.unique(ins_rend):
-            if ins_id_i == -1:
-                continue
-
+        mask_center = get_mask_center((cam_msg.height, cam_msg.width))
+        for ins_id_i in ins_id_to_pose:
             mask_i = ins_rend == ins_id_i
             if (mask_i & mask_center).sum() < (mask_i & ~mask_center).sum():
                 continue
@@ -234,12 +245,7 @@ class SelectPickingOrder(topic_tools.LazyTransport):
                 poses_msg.poses.append(ins_id_to_pose[ins_id])
         self._pub_poses.publish(poses_msg)
 
-        with io.BytesIO() as f:
-            agraph = networkx.nx_agraph.to_agraph(graph)
-            agraph.graph_attr.update(dpi=300)
-            agraph.layout(prog='dot')
-            agraph.draw(f, format='png')
-            img = np.asarray(PIL.Image.open(f))[:, :, :3]
+        img = nx_graph_to_image(graph)
         img_msg = bridge.cv2_to_imgmsg(img, 'rgb8')
         img_msg.header = cam_msg.header
         self._pub_graph.publish(img_msg)
