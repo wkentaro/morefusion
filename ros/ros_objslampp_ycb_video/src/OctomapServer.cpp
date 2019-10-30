@@ -602,6 +602,7 @@ void OctomapServer::publishAll(const ros::Time& rostime) {
         occupiedNodesVis.markers[i].scale.z = size;
         occupiedNodesVis.markers[i].color =
           ros_objslampp_ycb_video::utils::colorCategory40(instance_id + 1);
+        occupiedNodesVis.markers[i].color.a = 0.5;
 
         if (occupiedNodesVis.markers[i].points.size() > 0)
           occupiedNodesVis.markers[i].action = visualization_msgs::Marker::ADD;
