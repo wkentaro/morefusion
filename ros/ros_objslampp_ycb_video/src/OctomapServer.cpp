@@ -531,6 +531,23 @@ void OctomapServer::publishAll(const ros::Time& rostime) {
             continue;
           }  // else: current octree node is no speckle, send it out
 
+          if (instance_id == -1) {
+            bool is_occupied_by_fg = false;
+            for (const auto& kv : m_octrees) {
+              if (kv.first == -1) {
+                continue;
+              }
+              octomap::OcTreeNode* node = kv.second->search(x, y, z, /*depth=*/0);
+              if ((node != NULL) && (node->getOccupancy() > 0.5)) {
+                is_occupied_by_fg = true;
+                break;
+              }
+            }
+            if (is_occupied_by_fg) {
+              continue;
+            }
+          }
+
           // create marker:
           if (publishMarkerArray) {
             unsigned idx = it.getDepth();
