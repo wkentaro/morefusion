@@ -91,7 +91,7 @@ void track_instance_id(
   cv::bitwise_not(mask_nonedge, mask_edge);
 
   // Compute IOU
-  std::map<int, std::pair<int, float> > ins_id2to1;
+  std::map<int, std::tuple<int, float, float> > ins_id2to1;  // ins_id1, iou, coverage
   std::set<int> ins_ids1_suspicious;
   std::set<int> ins_ids2_suspicious;
   for (int ins_id2 : instance_ids2) {
@@ -101,7 +101,7 @@ void track_instance_id(
     }
 
     cv::Mat mask2 = (*target) == ins_id2;
-    ins_id2to1.insert(std::make_pair(ins_id2, std::make_pair(-1, 0)));
+    ins_id2to1.insert(std::make_pair(ins_id2, std::make_tuple(-1, 0, 0)));
 
     if (ros_objslampp_ycb_video::utils::is_detected_mask_too_small(mask2)) {
       ins_ids2_suspicious.insert(ins_id2);
@@ -135,35 +135,39 @@ void track_instance_id(
         }
       }
 
-      // IOU between mask1 and mask2
+      // IOU between mask1 (from map) and mask2 (from detection)
       cv::Mat mask_intersection, mask_union;
       cv::bitwise_and(mask1, mask2, mask_intersection);
       cv::bitwise_or(mask1, mask2, mask_union);
       float iou =
         static_cast<float>(cv::countNonZero(mask_intersection)) /
         static_cast<float>(cv::countNonZero(mask_union));
-      std::map<int, std::pair<int, float> >::iterator it2 = ins_id2to1.find(ins_id2);
-      if (iou > it2->second.second) {
-        it2->second = std::make_pair(ins_id1, iou);
+      float coverage =
+        static_cast<float>(cv::countNonZero(mask_intersection)) /
+        static_cast<float>(cv::countNonZero(mask1));
+      auto it2 = ins_id2to1.find(ins_id2);
+      if (iou > std::get<1>(it2->second)) {
+        it2->second = std::make_tuple(ins_id1, iou, coverage);
       }
     }
   }
 
   // Initialize new object
-  for (std::map<int, std::pair<int, float> >::iterator it = ins_id2to1.begin();
-       it != ins_id2to1.end(); it++) {
-    int ins_id2 = it->first;
+  for (auto& kv : ins_id2to1) {
+    int ins_id2 = kv.first;
     if (ins_ids2_suspicious.find(ins_id2) != ins_ids2_suspicious.end()) {
       // it's on the edge, so don't initialize
       continue;
     }
-    int ins_id1 = it->second.first;
-    float iou = it->second.second;
-    if (iou < 0.5) {
-      it->second.first = *instance_counter;
-      // new instance
-      (*instance_counter)++;
+    int ins_id1 = std::get<0>(kv.second);
+    float iou = std::get<1>(kv.second);
+    float coverage = std::get<2>(kv.second);
+    if ((iou >= 0.5) || (coverage >= 0.9)) {
+      continue;
     }
+    // create new instance
+    std::get<0>(kv.second) = *instance_counter;
+    (*instance_counter)++;
   }
 
   std::map<int, unsigned> instance_id_to_class_id_updated;
@@ -174,7 +178,7 @@ void track_instance_id(
       // it's on the edge, so skip inserting instance_id_to_class_id_updated
       continue;
     }
-    int ins_id1 = ins_id2to1.find(ins_id2)->second.first;
+    int ins_id1 = std::get<0>(ins_id2to1.find(ins_id2)->second);
     unsigned class_id = it->second;
     instance_id_to_class_id_updated.insert(std::make_pair(ins_id1, class_id));
   }
@@ -197,9 +201,9 @@ void track_instance_id(
         target->at<int>(j, i) = -2;
         continue;
       }
-      std::map<int, std::pair<int, float> >::iterator it2 = ins_id2to1.find(ins_id2);
+      auto it2 = ins_id2to1.find(ins_id2);
       assert(it2 != ins_id2to1.end());
-      int ins_id1 = it2->second.first;
+      int ins_id1 = std::get<0>(it2->second);
       if (ins_id1 != ins_id2) {
         target->at<int>(j, i) = ins_id1;
       }
