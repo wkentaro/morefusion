@@ -183,16 +183,6 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: ""
-        panda_hand:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        panda_leftfinger:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
         panda_link0:
           Alpha: 1
           Show Axes: false
@@ -237,7 +227,12 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        panda_rightfinger:
+        panda_suction_cup:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        panda_suction_gripper:
           Alpha: 1
           Show Axes: false
           Show Trail: false
