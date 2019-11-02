@@ -35,7 +35,15 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        '--id', choices=['dynamic.desk', 'static.desk', 'static.robot']
+        '--id',
+        choices=['dynamic.desk', 'static.desk', 'static.robot'],
+        help='id'
+    )
+    parser.add_argument(
+        '--sleep',
+        type=float,
+        default=10,
+        help='sleep [sec]',
     )
     parser.add_argument('--rosbag-args', nargs=argparse.REMAINDER)
     args = parser.parse_args(rospy.myargv()[1:])
@@ -43,7 +51,7 @@ def main():
     bag_file = get_bag_file(args.id)
 
     # wait for some nodes launched
-    time.sleep(10)
+    time.sleep(args.sleep)
 
     cmd = f"rosbag play {bag_file} {' '.join(args.rosbag_args)}"
     print(f'+ {cmd}')

@@ -1,13 +1,14 @@
 <launch>
 
   <arg name="BAG_ID" />
+  <arg name="SLEEP" default="10" />
 
   <param name="/use_sim_time" value="true" />
 
   <node name="rosbag_play_rs_rgbd"
         pkg="ros_objslampp_ycb_video" type="rosbag_play_rs_rgbd.py"
         clear_params="true"
-        args="--id $(arg BAG_ID) --rosbag-args --clock"
+        args="--id $(arg BAG_ID) --sleep $(arg SLEEP) --rosbag-args --clock"
         output="screen" launch-prefix="xterm -geometry 100x30 -e" required="true">
   </node>
 
