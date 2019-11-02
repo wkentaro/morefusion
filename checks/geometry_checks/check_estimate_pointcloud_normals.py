@@ -20,8 +20,8 @@ def main():
     normals_unorganized[nonnan] = \
         objslampp.geometry.estimate_pointcloud_normals(pcd[nonnan])
 
-    normals_organized = np.uint8((normals_organized + 1) * 128)
-    normals_unorganized = np.uint8((normals_unorganized + 1) * 128)
+    normals_organized = np.uint8((normals_organized + 1) / 2 * 255)
+    normals_unorganized = np.uint8((normals_unorganized + 1) / 2 * 255)
 
     viz = imgviz.tile([normals_organized, normals_unorganized],
                       (1, 2), border=(255, 255, 255))
