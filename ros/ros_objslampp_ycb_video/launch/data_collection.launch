@@ -24,7 +24,7 @@
   </group>
 
   <node name="tile_image"
-        pkg="jsk_perception" type="tile_image.py"
+        pkg="ros_objslampp_ycb_video" type="tile_image.py"
         clear_params="true">
     <rosparam subst_value="true">
       input_topics:

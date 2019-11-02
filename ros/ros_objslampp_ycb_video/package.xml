@@ -24,6 +24,7 @@
   <exec_depend>franka_description</exec_depend>
   <exec_depend>jsk_interactive_marker</exec_depend>
   <exec_depend>jsk_perception</exec_depend>
+  <exec_depend>jsk_recognition_utils</exec_depend>
   <exec_depend>jsk_rviz_plugins</exec_depend>
   <exec_depend>orb_slam2_ros</exec_depend>
   <exec_depend>realsense2_camera</exec_depend>
