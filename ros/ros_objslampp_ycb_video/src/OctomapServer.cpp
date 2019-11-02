@@ -392,10 +392,10 @@ void OctomapServer::publishGrids(
     if (instance_id == -1) {
       continue;
     }
-    if (instance_ids_active.find(instance_id) == instance_ids_active.end()) {
-      // inactive
-      continue;
-    }
+    //if (instance_ids_active.find(instance_id) == instance_ids_active.end()) {
+    //  // inactive
+    //  continue;
+    //}
 
     OcTreeT* octree = it_octree->second;
     unsigned class_id = m_classIds.find(instance_id)->second;
