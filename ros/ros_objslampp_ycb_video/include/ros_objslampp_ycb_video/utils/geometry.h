@@ -162,7 +162,7 @@ void track_instance_id(
     int ins_id1 = std::get<0>(kv.second);
     float iou = std::get<1>(kv.second);
     float coverage = std::get<2>(kv.second);
-    if ((iou >= 0.5) || (coverage >= 0.9)) {
+    if ((iou >= 0.4) || (coverage >= 0.9)) {
       continue;
     }
     // create new instance
