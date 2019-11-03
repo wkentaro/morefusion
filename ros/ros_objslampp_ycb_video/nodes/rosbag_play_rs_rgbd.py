@@ -17,8 +17,8 @@ def get_bag_file(bag_id):
         )
     elif bag_id == 'static.robot':
         bag_file = gdown.cached_download(
-            url='https://drive.google.com/uc?id=1WQNL9yfVTfAXZwWClAiziZLQML4Jetzl',  # NOQA
-            md5='2e3c7f7cd2409b8da8d6f85ee2adeb36',
+            url='https://drive.google.com/uc?id=1DwSQLhrtciKCO566R2TqdPc81QOi7tlN',  # NOQA
+            md5='ec155c5eacab3d90e72d7b1286c7aff3',
         )
     elif bag_id == 'static.desk':
         bag_file = gdown.cached_download(
