@@ -25,6 +25,11 @@ def get_bag_file(bag_id):
             url='https://drive.google.com/uc?id=1mArVTWl2f0Uws_mRoCtDzttV2s6AahZa',  # NOQA
             md5='a70a792577447a414c8ac7fe5f4aa316',
         )
+    elif bag_id == 'static.desk.topdown':
+        bag_file = gdown.cached_download(
+            url='https://drive.google.com/uc?id=1UxUg4IozQvQNrCALXkzk23v3fBjpFCqZ',
+            md5='3625c11cd130a06557f38b8ff390882e',
+        )
     else:
         raise ValueError(f'Unknown bag_id: {bag_id}')
     return bag_file
@@ -36,7 +41,12 @@ def main():
     )
     parser.add_argument(
         '--id',
-        choices=['dynamic.desk', 'static.desk', 'static.robot'],
+        choices=[
+            'dynamic.desk',
+            'static.robot',
+            'static.desk',
+            'static.desk.topdown',
+        ],
         help='id'
     )
     parser.add_argument(
