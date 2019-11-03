@@ -245,18 +245,18 @@ void OctomapServer::insertScan(
 
     octomap::point3d point(pc.points[index].x, pc.points[index].y, pc.points[index].z);
     int instance_id = label_ins.at<int32_t>(height_index, width_index);
-    if (instance_id == -2) {
-      continue;
-    }
-    OcTreeT* octree = m_octrees.find(instance_id)->second;
 
     #pragma omp critical
-    {
+    if (instance_id != -2) {
       if (instance_id_to_points.find(instance_id) == instance_id_to_points.end()) {
         instance_id_to_points.insert(std::make_pair(instance_id, PCLPointCloud()));
       } else {
         instance_id_to_points.find(instance_id)->second.push_back(pc.points[index]);
       }
+    }
+
+    if (instance_id == -2) {
+      instance_id = -1;
     }
 
     // maxrange check
