@@ -45,7 +45,7 @@ def main():
         default=10,
         help='sleep [sec]',
     )
-    parser.add_argument('--rosbag-args', nargs=argparse.REMAINDER)
+    parser.add_argument('--rosbag-args', nargs=argparse.REMAINDER, default=[])
     args = parser.parse_args(rospy.myargv()[1:])
 
     bag_file = get_bag_file(args.id)
