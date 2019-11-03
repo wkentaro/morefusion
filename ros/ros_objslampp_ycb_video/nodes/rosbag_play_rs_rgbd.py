@@ -53,7 +53,8 @@ def main():
     # wait for some nodes launched
     time.sleep(args.sleep)
 
-    cmd = f"rosbag play {bag_file} {' '.join(args.rosbag_args)}"
+    cmd = f"rosbag play {bag_file} {' '.join(args.rosbag_args)} "\
+           "/tf_static_republished:=/tf_static"
     print(f'+ {cmd}')
     subprocess.call(cmd, shell=True)
 
