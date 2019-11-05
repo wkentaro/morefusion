@@ -224,13 +224,39 @@ def get_top_image(visual_file: str) -> np.ndarray:
     return rgb
 
 
+def compute_projection_matrix_fov(fovy, aspect, znear, zfar):
+    fovx = fovy * aspect  # aspect = width / height
+    projection_matrix = (
+        1.0 / np.tan(np.radians(fovx) / 2),
+        0,
+        0,
+        0,
+
+        0,
+        1.0 / np.tan(np.radians(fovy) / 2),
+        0,
+        0,
+
+        0,
+        0,
+        (znear + zfar) / (znear - zfar),
+        -1,
+
+        0,
+        0,
+        (2 * zfar * znear) / (znear - zfar),
+        0
+    )
+    return projection_matrix
+
+
 def get_camera_image(view_matrix, fovy, height, width):
     import pybullet
 
     far = 1000
     near = 0.01
-    projection_matrix = pybullet.computeProjectionMatrixFOV(
-        fov=fovy, aspect=1. * width / height, farVal=far, nearVal=near
+    projection_matrix = compute_projection_matrix_fov(
+        fovy=fovy, aspect=1. * width / height, zfar=far, znear=near
     )
     _, _, rgba, depth, segm = pybullet.getCameraImage(
         width=width,
