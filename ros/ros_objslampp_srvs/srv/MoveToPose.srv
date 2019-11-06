@@ -1,3 +1,5 @@
-float64[7] pose
+geometry_msgs/Pose pose
+float64 velocity_scaling
+float64 acceleration_scaling
 ---
 bool pose_reached
