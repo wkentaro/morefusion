@@ -1,2 +1,4 @@
+float64 velocity_scaling
+float64 acceleration_scaling
 ---
 bool home_reached

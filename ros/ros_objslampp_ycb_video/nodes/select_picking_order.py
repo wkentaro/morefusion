@@ -76,12 +76,14 @@ class SelectPickingOrder(topic_tools.LazyTransport):
         super().__init__()
         self._target = rospy.get_param('~target')
         self._pub_poses = self.advertise(
-            '~output/poses', ObjectPoseArray, queue_size=1
+            '~output/poses', ObjectPoseArray, queue_size=1, latch=True
         )
         self._pub_poses_viz = self.advertise(
-            '~output/poses_viz', PoseArray, queue_size=1
+            '~output/poses_viz', PoseArray, queue_size=1, latch=True
         )
-        self._pub_graph = self.advertise('~output/graph', Image, queue_size=1)
+        self._pub_graph = self.advertise(
+            '~output/graph', Image, queue_size=1, latch=True
+        )
         self._tf_listener = tf.TransformListener(cache_time=rospy.Duration(30))
         self._post_init()
 
@@ -253,7 +255,7 @@ class SelectPickingOrder(topic_tools.LazyTransport):
 
             for ins_id_j, count in zip(occluded_by, counts):
                 ratio = count / mask_whole.sum()
-                if ratio < 0.01:
+                if ratio < 0.1:
                     continue
 
                 cls_id_j = ins_id_to_pose[ins_id_j].class_id
@@ -268,7 +270,8 @@ class SelectPickingOrder(topic_tools.LazyTransport):
         if target_node_id is not None:
             order = get_picking_order(graph, target=target_node_id)
             for ins_id, _, _ in order:
-                poses_msg.poses.append(ins_id_to_pose[ins_id])
+                pose = ins_id_to_pose[ins_id]
+                poses_msg.poses.append(pose)
                 poses_viz_msg.poses.append(pose.pose)
         self._pub_poses.publish(poses_msg)
         self._pub_poses_viz.publish(poses_viz_msg)

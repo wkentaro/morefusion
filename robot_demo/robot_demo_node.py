@@ -1,13 +1,14 @@
+import tf
 import time
 import math
 import numpy as np
 import robot_demo.general_kinematics as gk
 import rospy
-import tf
 from robot_demo.robot_interface import RobotInterface
 from ros_objslampp_msgs.msg import ObjectPoseArray
+from geometry_msgs.msg import Pose, PoseStamped, Point, Quaternion
 import objslampp.datasets.ycb_video as ycb_video_dataset
-
+from threading import Lock
 
 class RobotDemo:
 
@@ -17,134 +18,104 @@ class RobotDemo:
 
         rospy.init_node('robot_demo')
         self._robot_interface = RobotInterface()
-        self._all_objects_collected = False
+
+        self._all_objects_removed = False
+        self._all_distractors_removed = False
 
         self._define_robot_poses()
-        self._object_tree_found = False
-        self._pose_received = False
+
         self._object_id_to_grasp = None
         self._picked_objects = list()
 
-        self._link_to_ef_dist = 0.1034
+        self._grasp_overlap = 0.0065
 
-        self._tf_listener = tf.TransformListener()
+        self._over_target_box_pose = Pose()
+        self._over_target_box_pose.position = Point(0.386, -0.492, 0.575)
+        self._over_target_box_pose.orientation = Quaternion(0.8, -0.6, 0.008, -0.01)
+
+        self._in_target_box_pose = Pose()
+        self._in_target_box_pose.position = Point(0.386, -0.492, 0.233)
+        self._in_target_box_pose.orientation = Quaternion(0.8, -0.6, 0.008, -0.01)
+
+        self._over_distractor_box_pose = Pose()
+        self._over_distractor_box_pose.position = Point(0.453, 0.474, 0.585)
+        self._over_distractor_box_pose.orientation = Quaternion(0.891, 0.45, 0.034, -0.0192)
+
+        self._in_distractor_box_pose = Pose()
+        self._in_distractor_box_pose.position = Point(0.453, 0.474, 0.372)
+        self._in_distractor_box_pose.orientation = Quaternion(0.891, 0.45, 0.034, -0.0192)
+
+        self._object_poses_in_world_frame = dict()
+        self._object_mats_in_world_frame = dict()
+
+        self._lock = Lock()
+
+        self._tf_listener = tf.TransformListener(cache_time=rospy.Duration(1000))
         self._tf_broadcaster = tf.TransformBroadcaster()
-
 
     # Object Pose Functions #
     # ----------------------#
 
-    def _object_grasp_order_callback(self, object_poses):
-        self._ordered_object_ids_to_grasp = [object_pose.class_id for object_pose in object_poses.poses]
-        print('object tree:')
-        for class_id in self._ordered_object_ids_to_grasp:
-            print(ycb_video_dataset.class_names[class_id])
-        self._object_tree_found = True
+    def _get_grasp_pose(self):
 
+        grasp_mat_in_obj_frame = np.array([[1, 0, 0, 0],
+                                           [0, 1, 0, 0],
+                                           [0, 0, 1, self._grasp_overlap],
+                                           [0, 0, 0, 1]])
 
-    def _object_poses_callback(self, object_poses):
+        grasp_mat_in_world_frame = np.matmul(self._object_mats_in_world_frame[self._object_id_to_grasp], grasp_mat_in_obj_frame)
+        grasp_pose_in_world_frame = gk.mat_to_quaternion_pose(np, grasp_mat_in_world_frame)
+        translation = grasp_pose_in_world_frame[0:3]
+        rotation = grasp_pose_in_world_frame[3:]
 
-        # decompose pose array
-        object_poses_header = object_poses.header
-        object_pose = None
-        if len(object_poses.poses) == 0:
-            return
-        for i in range(len(object_poses.poses)):
-            object_pose = object_poses.poses[i]
-            if object_pose.class_id == self._object_id_to_grasp:
-                break
-        pose = object_pose.pose
-        position = pose.position
-        orientation = pose.orientation
+        self._tf_broadcaster.sendTransform(translation, rotation, self._object_ros_time, 'grasp', 'panda_link0')
 
-        # construct object frame transform
-        translation = (position.x, position.y, position.z)
-        rotation = (orientation.x, orientation.y, orientation.z, orientation.w)
-        ros_time = object_poses_header.stamp
-        child_frame = 'object_frame'
-        parent_frame = object_poses_header.frame_id
+        pose = Pose()
+        pose.position = Point(translation[0], translation[1], translation[2])
+        pose.orientation = Quaternion(rotation[0], rotation[1], rotation[2], rotation[3])
 
-        # publish transform
-        self._tf_broadcaster.sendTransform(translation, rotation, ros_time, child_frame, parent_frame)
-
-        # grasping information
-        object_class_id = object_pose.class_id
-        object_class_name = ycb_video_dataset.class_names[object_class_id]
-        grasping_axis = ycb_video_dataset.grasping_axes[object_class_name]
-
-        # publish grasp transform
-        translation = [0, 0, 0]
-        translation[grasping_axis] =\
-            self._object_models.get_cad(class_name=object_class_name).extents[grasping_axis]/2 + self._link_to_ef_dist
-        translation = tuple(translation)
-
-        if grasping_axis == 0:
-            rotation_vector = np.array([0,-math.pi/2,0])
-            rotation = tuple(gk.rotation_vector_to_quaternion(np, rotation_vector))
-        elif grasping_axis == 1:
-            rotation_vector = np.array([math.pi/2,0,0])
-            rotation = tuple(gk.rotation_vector_to_quaternion(np, rotation_vector))
-        elif grasping_axis == 2:
-            rotation = (0, 0, 0, 1)
-        ros_time = object_poses_header.stamp
-        child_frame = 'grasp_frame'
-        parent_frame = 'object_frame'
-        self._tf_broadcaster.sendTransform(translation, rotation, ros_time, child_frame, parent_frame)
-
-        # publish pre grasp transform
-        translation = (0, 0, -0.05)
-        rotation = (0, 0, 0, 1)
-        ros_time = object_poses_header.stamp
-        child_frame = 'pre_grasp_frame'
-        parent_frame = 'grasp_frame'
-        self._tf_broadcaster.sendTransform(translation, rotation, ros_time, child_frame, parent_frame)
-
-        self._pose_received = True
-
-    def _get_pose(self, frame_name):
-        common_time = None
-        while True:
-            try:
-                common_time = self._tf_listener.getLatestCommonTime('map', frame_name)
-                break
-            except:
-                continue
-        object_transform_tuple = self._tf_listener.lookupTransform('map', frame_name, common_time)
-        object_position = object_transform_tuple[0]
-        object_orientation = object_transform_tuple[1]
-        return np.concatenate((np.array(object_position), np.array(object_orientation)), -1)
+        return pose
 
     def _get_pre_grasp_pose(self):
-        return self._get_pose('pre_grasp_frame')
 
-    def _get_grasp_pose(self):
-        return self._get_pose('grasp_frame')
+        pre_grasp_mat_in_obj_frame = np.array([[1, 0, 0, 0],
+                                               [0, 1, 0, 0],
+                                               [0, 0, 1, -0.05],
+                                               [0, 0, 0, 1]])
+
+        pre_grasp_mat_in_world_frame = np.matmul(self._object_mats_in_world_frame[self._object_id_to_grasp], pre_grasp_mat_in_obj_frame)
+        pre_grasp_pose_in_world_frame = gk.mat_to_quaternion_pose(np, pre_grasp_mat_in_world_frame)
+        translation = pre_grasp_pose_in_world_frame[0:3]
+        rotation = pre_grasp_pose_in_world_frame[3:]
+
+        self._tf_broadcaster.sendTransform(translation, rotation, self._object_ros_time, 'pre_grasp', 'panda_link0')
+
+        pose = Pose()
+        pose.position = Point(translation[0], translation[1], translation[2])
+        pose.orientation = Quaternion(rotation[0], rotation[1], rotation[2], rotation[3])
+
+        return pose
 
     # Robot Functions #
     # ----------------#
 
     def _define_robot_poses(self):
 
-        x_offset = 0
+        x_offset = 0.2
 
         z0 = 0
 
         x1 = 0.15
         y1 = 0.15
         z1 = -0.1
+
         angle1 = math.pi/8
-
-        x2 = 0.1
-        y2 = 0.1
-        z2 = -0.05
-        angle2 = math.pi/12
-
-        z3 = -0.2
 
         # define robot poses
         robot_position_offsets = [np.array([x_offset, 0, z0]),
 
-                                  np.array([x_offset, 0, z1]),
+                                  np.array([x_offset, 0, z1])]#,
+        '''
                                   np.array([x_offset+ x1, 0, z1]),
                                   np.array([x_offset + x1, y1, z1]),
                                   np.array([x_offset, y1, z1]),
@@ -152,23 +123,12 @@ class RobotDemo:
                                   np.array([x_offset-x1, 0, z1]),
                                   np.array([x_offset-x1, -y1, z1]),
                                   np.array([x_offset, -y1, z1]),
-                                  np.array([x_offset + x1, -y1, z1])]#,
-        '''
-                                  np.array([x_offset, 0, z2]),
-                                  np.array([x_offset + x2, 0, z2]),
-                                  np.array([x_offset + x2, y2, z2]),
-                                  np.array([x_offset, y2, z2]),
-                                  np.array([x_offset-x2, y2, z2]),
-                                  np.array([x_offset-x2, 0, z2]),
-                                  np.array([x_offset-x2, -y2, z2]),
-                                  np.array([x_offset, -y2, z2]),
-                                  np.array([x_offset + x2, -y2, z2]),
-
-                                  np.array([x_offset, 0, z3])]'''
+                                  np.array([x_offset + x1, -y1, z1])]'''
 
         robot_rotation_vectors = [np.array([0, 0, 0]),
 
-                                  np.array([0, 0, 0]),
+                                  np.array([0, 0, 0])]#,
+        '''
                                   np.array([0, 1, 0])*angle1,
                                   np.array([-0.5**0.5, 0.5**0.5, 0])*angle1,
                                   np.array([-1, 0, 0])*angle1,
@@ -176,19 +136,7 @@ class RobotDemo:
                                   np.array([0, -1, 0])*angle1,
                                   np.array([0.5**0.5, -0.5**0.5, 0])*angle1,
                                   np.array([1, 0, 0])*angle1,
-                                  np.array([0.5**0.5, 0.5**0.5, 0])*angle1]#,
-        '''
-                                  np.array([0, 0, 0]),
-                                  np.array([0, 1, 0]) * angle2,
-                                  np.array([-0.5 ** 0.5, 0.5 ** 0.5, 0]) * angle2,
-                                  np.array([-1, 0, 0]) * angle2,
-                                  np.array([-0.5 ** 0.5, -0.5 ** 0.5, 0]) * angle2,
-                                  np.array([0, -1, 0]) * angle2,
-                                  np.array([0.5 ** 0.5, -0.5 ** 0.5, 0]) * angle2,
-                                  np.array([1, 0, 0]) * angle2,
-                                  np.array([0.5 ** 0.5, 0.5 ** 0.5, 0]) * angle2,
-
-                                  np.array([0, 0, 0])]'''
+                                  np.array([0.5**0.5, 0.5**0.5, 0])*angle1]'''
 
         robot_quaternion_offsets = [gk.rotation_vector_to_quaternion(np, aa) for aa in robot_rotation_vectors]
 
@@ -199,69 +147,142 @@ class RobotDemo:
         self._robot_poses = [np.concatenate((pos, quat),-1) for pos, quat in zip(robot_positions, robot_quaternions)]
 
     def _initialization_motion(self):
-        self._robot_interface.move_to_home()
+        self._robot_interface.move_to_home(0.025, 0.025)
         for robot_pose in self._robot_poses:
-            self._robot_interface.set_end_effector_quaternion_pose(robot_pose)
+
+            pose = Pose()
+            pose.position = Point(robot_pose[0], robot_pose[1], robot_pose[2])
+            pose.orientation = Quaternion(robot_pose[3], robot_pose[4], robot_pose[5], robot_pose[6])
+
+            self._robot_interface.set_end_effector_quaternion_pose(pose, 0.025, 0.025)
+        self._robot_interface.move_to_home(0.025, 0.025)
 
     def _move_robot_over_table(self):
-        self._robot_interface.move_to_home()
+        self._robot_interface.move_to_home(0.9, 0.9)
 
     def _move_robot_to_pre_grasp_pose(self, pre_grasp_pose):
-        pre_grasp_pose = pre_grasp_pose.copy()
-        self._robot_interface.set_end_effector_quaternion_pose(pre_grasp_pose)
+        #self._robot_interface.set_end_effector_quaternion_pointing_pose(pre_grasp_pose)
+        self._robot_interface.set_end_effector_quaternion_pose(pre_grasp_pose, 0.9, 0.9)
 
-    def _move_robot_until_force_feedback(self, grasp_pose):
-        grasp_pose = grasp_pose.copy()
-        self._robot_interface.set_end_effector_quaternion_pose(grasp_pose)
+    def _move_robot_to_grasp_pose(self, grasp_pose):
+        self._robot_interface.set_end_effector_position(grasp_pose.position, 0.25, 0.25)
+
+    def _move_robot_to_post_grasp_pose(self, post_grasp_pose):
+        self._robot_interface.set_end_effector_position(post_grasp_pose.position, 0.25, 0.25)
 
     def _suction_grip_object(self):
-        pass
+        time.sleep(2)
 
-    def _place_object_on_table(self):
-        pass
+    def _move_robot_over_target_box(self):
+        self._robot_interface.set_end_effector_quaternion_pose(self._over_target_box_pose, 0.9, 0.9)
+
+    def _move_robot_over_distractor_box(self):
+        self._robot_interface.set_end_effector_quaternion_pose(self._over_distractor_box_pose, 0.9, 0.9)
+
+    def _move_robot_in_target_box(self):
+        self._robot_interface.set_end_effector_position(self._in_target_box_pose.position, 0.9, 0.9)
+
+    def _move_robot_in_distractor_box(self):
+        self._robot_interface.set_end_effector_position(self._in_distractor_box_pose.position, 0.9, 0.9)
+
+    def _release_suction_grip(self):
+        time.sleep(8)
 
     # Object Checking #
     # ----------------#
 
-    def _check_if_all_objects_collected(self):
+    def _check_if_all_objects_removed(self):
         if len(self._picked_objects) < len(self._ordered_object_ids_to_grasp):
             return False
         return True
 
-    def run(self):
-        #self._initialization_motion()
+    def _check_if_all_distractors_removed(self):
+        if len(self._picked_objects) < len(self._ordered_object_ids_to_grasp) - 1:
+            return False
+        return True
 
-        self._obj_grasp_order_sub = rospy.Subscriber('/camera/select_picking_order/output/poses', ObjectPoseArray, self._object_grasp_order_callback)
-        self._obj_poses_sub = rospy.Subscriber('/camera/with_occupancy/collision_based_pose_refinement/object_mapping/output/poses', ObjectPoseArray, self._object_poses_callback)
+    def _choose_next_object_to_grasp(self):
+        for id in self._ordered_object_ids_to_grasp:
+            if id in self._picked_objects:
+                continue
+            return id
+
+    def _object_pose_callback(self, object_poses):
+
+        if len(object_poses.poses) == 0:
+            return
+
+        self._object_ros_time = object_poses.header.stamp
+        frame_id = object_poses.header.frame_id
+
+        for object_pose in object_poses.poses:
+
+            pose_stamped = PoseStamped()
+            pose_stamped.header.frame_id = frame_id
+            pose_stamped.header.stamp = self._object_ros_time
+            pose_stamped.pose = object_pose.pose
+
+            object_pose_in_world_frame = self._tf_listener.transformPose('panda_link0', pose_stamped).pose
+            pos = object_pose_in_world_frame.position
+            ori = object_pose_in_world_frame.orientation
+            object_pose_array_in_world_frame = np.array([pos.x, pos.y, pos.z, ori.x, ori.y, ori.z, ori.w])
+            self._object_poses_in_world_frame[object_pose.class_id] = (object_pose_array_in_world_frame)
+
+            object_mat_in_world_frame = gk.quaternion_pose_to_mat(np, object_pose_array_in_world_frame)
+            self._object_mats_in_world_frame[object_pose.class_id] = (object_mat_in_world_frame)
+
+        self._ordered_object_ids_to_grasp = [object_pose.class_id for object_pose in object_poses.poses]
+
+        print('object tree:')
+        for class_id in self._ordered_object_ids_to_grasp:
+            print(ycb_video_dataset.class_names[class_id])
+
+    def run(self):
+
+        print('performing initialization motion...')
+        self._initialization_motion()
 
         print('waiting for object tree')
-        while not self._object_tree_found:
-            continue
-        print('computed object tree')
+        try:
+            object_poses = rospy.wait_for_message('/camera/select_picking_order/output/poses', ObjectPoseArray, timeout=15)
+        except:
+            raise Exception('Object Tree Not Found.')
+        self._object_pose_callback(object_poses)
 
-        while not self._all_objects_collected:
+        print('initialization complete')
 
-            for id in self._ordered_object_ids_to_grasp:
-                if id in self._picked_objects:
-                    continue
-                self._object_id_to_grasp = id
-                break
-            self._pose_received = False
-            while not self._pose_received:
-                continue
+        while not self._all_objects_removed:
+
+            self._object_id_to_grasp = self._choose_next_object_to_grasp()
+            translation = self._object_poses_in_world_frame[self._object_id_to_grasp][0:3]
+            rotation = self._object_poses_in_world_frame[self._object_id_to_grasp][3:]
+            self._tf_broadcaster.sendTransform(translation, rotation, self._object_ros_time, 'object', 'panda_link0')
 
             pre_grasp_pose = self._get_pre_grasp_pose()
             grasp_pose = self._get_grasp_pose()
+            post_grasp_pose = pre_grasp_pose
+
             print('picking up ' + str(ycb_video_dataset.class_names[self._object_id_to_grasp]))
+
             self._move_robot_over_table()
             self._move_robot_to_pre_grasp_pose(pre_grasp_pose)
-            self._move_robot_until_force_feedback(grasp_pose)
+            self._move_robot_to_grasp_pose(grasp_pose)
             self._suction_grip_object()
-            self._move_robot_to_pre_grasp_pose(pre_grasp_pose)
-            self._place_object_on_table()
+            self._move_robot_to_post_grasp_pose(post_grasp_pose)
+
+            self._move_robot_over_table()
+            if self._all_distractors_removed:
+                self._move_robot_over_target_box()
+                self._move_robot_in_target_box()
+            else:
+                self._move_robot_over_distractor_box()
+                self._move_robot_in_distractor_box()
+            self._release_suction_grip()
+
             self._move_robot_over_table()
             self._picked_objects.append(self._object_id_to_grasp)
-            self._all_objects_collected = self._check_if_all_objects_collected()
+            self._all_objects_removed = self._check_if_all_objects_removed()
+            self._all_distractors_removed = self._check_if_all_distractors_removed()
             print('pick completed')
 
         print('Demo completed!')
@@ -269,6 +290,7 @@ class RobotDemo:
 
 def main():
     robot_demo = RobotDemo()
+    input('press enter to continue demo')
     robot_demo.run()
 
 

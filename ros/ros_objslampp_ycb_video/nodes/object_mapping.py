@@ -74,7 +74,7 @@ class ObjectMapping:
         self._objects = {}  # instance_id: Object()
         self._base_frame = rospy.get_param('~frame_id', 'map')
         self._pub = rospy.Publisher(
-            '~output/poses', ObjectPoseArray, queue_size=1
+            '~output/poses', ObjectPoseArray, queue_size=1, latch=True
         )
         self._tf_listener = tf.TransformListener(cache_time=rospy.Duration(30))
         self._sub = rospy.Subscriber(
