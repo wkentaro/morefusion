@@ -14,6 +14,7 @@ add_service_files(
   RenderVoxelGridArray.srv
   MoveToHome.srv
   MoveToPose.srv
+  SetSuction.srv
 )
 
 generate_messages(

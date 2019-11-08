@@ -171,7 +171,8 @@ class RobotDemo:
         self._robot_interface.set_end_effector_position(post_grasp_pose.position, 0.25, 0.25)
 
     def _suction_grip_object(self):
-        time.sleep(2)
+        self._robot_interface.set_suction_state(True)
+        time.sleep(1)
 
     def _move_robot_over_target_box(self):
         self._robot_interface.set_end_effector_quaternion_pose(self._over_target_box_pose, 0.9, 0.9)
@@ -186,6 +187,7 @@ class RobotDemo:
         self._robot_interface.set_end_effector_position(self._in_distractor_box_pose.position, 0.9, 0.9)
 
     def _release_suction_grip(self):
+        self._robot_interface.set_suction_state(False)
         time.sleep(8)
 
     # Object Checking #
