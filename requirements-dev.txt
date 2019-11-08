@@ -3,7 +3,6 @@
 -e git+https://github.com/wkentaro/trimesh.git@objslampp#egg=trimesh[easy]
 -e git+https://github.com/wkentaro/chainer.git@objslampp#egg=chainer
 -e git+https://github.com/wkentaro/imgviz.git@master#egg=imgviz
--e git+https://github.com/wkentaro/pyrender.git@objslampp#egg=pyrender
 -r requirements.txt
 flake8
 ipdb
