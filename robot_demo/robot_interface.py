@@ -4,7 +4,7 @@ import numpy as np
 import rospy
 from std_msgs.msg import Float64MultiArray
 from geometry_msgs.msg import Quaternion, Pose
-from ros_objslampp_srvs.srv import MoveToHome, MoveToPose
+from ros_objslampp_srvs.srv import MoveToHome, MoveToPose, SetSuction
 
 
 class RobotInterface:
@@ -77,6 +77,14 @@ class RobotInterface:
         move_to_pose = rospy.ServiceProxy('/pointing_pose_service/move_to_pointing_pose', MoveToPose)
         response = move_to_pose(pose, velocity_scaling, acceleration_scaling)
         return response.pose_reached
+
+    # suction gripper #
+
+    def set_suction_state(self, state):
+        rospy.wait_for_service('/set_suction')
+        set_suction = rospy.ServiceProxy('/set_suction', SetSuction)
+        response = set_suction(state)
+        return response.suction_set
 
     # joint angles #
 
