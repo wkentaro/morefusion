@@ -4,13 +4,12 @@ import argparse
 
 import imgviz
 import numpy as np
+import path
 import pybullet
 import scipy.io
 import trimesh
 
 import objslampp
-
-import contrib
 
 
 def main():
@@ -18,24 +17,25 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        '--name',
-        choices=contrib.EVAL_RESULTS,
-        default='Densefusion_iterative_result',
+        '--result',
+        default='/home/wkentaro/data/datasets/wkentaro/objslampp/ycb_video/dense_fusion/eval_result/ycb/Densefusion_wo_refine_result',  # NOQA
+        help='result dir',
     )
     parser.add_argument(
         '--step',
         type=int,
         default=1,
+        help='step',
     )
     args = parser.parse_args()
 
-    result_dir = contrib.get_eval_result(name=args.name)
+    args.result = path.Path(args.result)
 
     class Images:
 
         offset = 0
         step = args.step
-        result_files = result_dir.glob('*.mat')
+        result_files = args.result.glob('*.mat')
         indices = np.arange(offset, len(result_files), step)
 
         def __len__(self):
@@ -43,7 +43,7 @@ def main():
 
         def __getitem__(self, index):
             index = self.indices[index]
-            result_file = result_dir / f'{index:04d}.mat'  # NOQA
+            result_file = args.result / f'{index:04d}.mat'  # NOQA
             print(result_file)
             result = scipy.io.loadmat(
                 result_file, chars_as_strings=True, squeeze_me=True
