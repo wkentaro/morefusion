@@ -123,7 +123,7 @@ def main():
                 'add_or_add_s': add_or_add_s,
                 'add_s': add_s,
                 'visibility': examples[i]['visibility'],
-                'method': '+occupancy',
+                'method': 'morefusion',
             })
 
         transform_icp = iterative_closest_point(examples, batch, transform)
@@ -145,7 +145,7 @@ def main():
                 'add_or_add_s': add_or_add_s,
                 'add_s': add_s,
                 'visibility': examples[i]['visibility'],
-                'method': '+occupancy+icp',
+                'method': 'morefusion+icp',
             })
 
         transform_icc = iterative_collision_check(examples, batch, transform)
@@ -167,7 +167,7 @@ def main():
                 'add_or_add_s': add_or_add_s,
                 'add_s': add_s,
                 'visibility': examples[i]['visibility'],
-                'method': '+occupancy+icc',
+                'method': 'morefusion+icc',
             })
 
         transform_icc_icp = iterative_closest_point(
@@ -191,15 +191,14 @@ def main():
                 'add_or_add_s': add_or_add_s,
                 'add_s': add_s,
                 'visibility': examples[i]['visibility'],
-                'method': '+occupancy+icc+icp',
+                'method': 'morefusion+icc+icp',
             })
 
-        if index % 15 == (15 - 1):
+        if (index + 1) % 15 == 0:
             df = pandas.DataFrame(data)
             df.to_csv(f'data.{index:08d}.csv')
-
-    df = pandas.DataFrame(data)
-    df.to_csv(f'data.csv')
+            if (index + 1) // 15 == 50:
+                break
 
 
 def iterative_closest_point(examples, batch, transform, n_iteration=100):
