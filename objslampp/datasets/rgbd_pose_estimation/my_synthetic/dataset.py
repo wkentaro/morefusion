@@ -41,13 +41,22 @@ class MySyntheticRGBDPoseEstimationDataset(RGBDPoseEstimationDatasetBase):
         assert len(class_ids) == n_instance
         assert len(Ts_cad2cam) == n_instance
 
+        import trimesh
+        fovy = np.deg2rad(45)
+        fovx = 2 * np.arctan(np.tan(fovy / 2) / 480 * 640)
+        fovx = np.rad2deg(fovx)
+        fovy = np.rad2deg(fovy)
+        camera = trimesh.scene.Camera(resolution=(640, 480), fov=(fovx, fovy))
+        intrinsic_matrix = camera.K
+        # intrinsic_matrix = frame['intrinsic_matrix']
+
         return dict(
             instance_ids=instance_ids,
             class_ids=class_ids,
             rgb=frame['rgb'],
             depth=frame['depth'],
             instance_label=frame['instance_label'],
-            intrinsic_matrix=frame['intrinsic_matrix'],
+            intrinsic_matrix=intrinsic_matrix,
             T_cam2world=frame['T_cam2world'],
             Ts_cad2cam=Ts_cad2cam,
             cad_files=cad_files,
