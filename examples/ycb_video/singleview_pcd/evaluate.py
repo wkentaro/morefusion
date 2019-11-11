@@ -4,13 +4,13 @@ import argparse
 import json
 
 import chainer
-import pandas
+import numpy as np
 import path
+import trimesh
 
 import objslampp
 
 import contrib
-from train import transform
 
 
 parser = argparse.ArgumentParser(
@@ -34,37 +34,48 @@ chainer.serializers.load_npz(
 )
 model.to_gpu(0)
 
-dataset = objslampp.datasets.YCBVideoPoseCNNResultsRGBDPoseEstimationDatasetReIndexed(  # NOQA
+dataset = objslampp.datasets.MySyntheticYCB20190916RGBDPoseEstimationDataset(
+    split='val',
     class_ids=args_dict['class_ids'],
 )
-dataset = chainer.datasets.TransformDataset(
-    dataset,
-    transform,
-)
-iterator = chainer.iterators.MultiprocessIterator(
-    dataset, batch_size=16, repeat=False, shuffle=False
-)
 
-evaluator = objslampp.training.extensions.PoseEstimationEvaluator(
-    iterator=iterator,
-    target=model,
-    device=0,
-    progress_bar=True,
-)
-evaluator.name = evaluator.default_name
-result = evaluator()
+models = objslampp.datasets.YCBVideoModels()
+for index in range(len(dataset)):
+    frame = dataset.get_frame(index)
+    examples = dataset.get_example(index)
 
-class_names = objslampp.datasets.ycb_video.class_names
-data = {'class_id': [], 'add_or_add_s_2cm': [], 'add_or_add_s': [], 'add_s': []}  # NOQA
-for cls_id, _ in enumerate(class_names):
-    if cls_id == 0:
-        continue
-    data['class_id'].append(cls_id)
-    data['add_or_add_s_2cm'].append(result[f'validation/main/<2cm/add_or_add_s/{cls_id:04d}'])  # NOQA
-    data['add_or_add_s'].append(result[f'validation/main/auc/add_or_add_s/{cls_id:04d}'])  # NOQA
-    data['add_s'].append(result[f'validation/main/auc/add_s/{cls_id:04d}'])
-df = pandas.DataFrame(data)
+    batch = chainer.dataset.concat_examples(examples, device=0)
+    quaternion, translation, confidence = model.predict(
+        class_id=batch['class_id'],
+        rgb=batch['rgb'],
+        pcd=batch['pcd'],
+    )
+    quaternion = chainer.cuda.to_cpu(quaternion.array)
+    translation = chainer.cuda.to_cpu(translation.array)
+    confidence = chainer.cuda.to_cpu(confidence.array)
+    indices = np.argmax(confidence, axis=1)
+    quaternion = quaternion[np.arange(len(examples)), indices]
+    translation = translation[np.arange(len(examples)), indices]
 
-print(df)
+    transform = objslampp.functions.transformation_matrix(
+        quaternion, translation,
+    ).array
+    transform_true = objslampp.functions.transformation_matrix(
+        batch['quaternion_true'], batch['translation_true']
+    ).array
+    transform_true = chainer.cuda.to_cpu(transform_true)
 
-import IPython; IPython.embed()  # NOQA
+    scene = trimesh.Scene()
+    scene_true = trimesh.Scene(camera=scene.camera)
+    for i in range(len(examples)):
+        class_id = examples[i]['class_id']
+        cad = models.get_cad(class_id)
+        if hasattr(cad.visual, 'to_color'):
+            cad.visual = cad.visual.to_color()
+        scene.add_geometry(cad, transform=transform[i])
+        scene_true.add_geometry(cad, transform=transform_true[i])
+    scene.camera.transform = objslampp.extra.trimesh.to_opengl_transform()
+    scenes = {'pose': scene, 'pose_true': scene_true, 'rgb': frame['rgb']}
+    objslampp.extra.trimesh.display_scenes(scenes, tile=(1, 3))
+
+    break
