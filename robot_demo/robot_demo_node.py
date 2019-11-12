@@ -1,4 +1,5 @@
 # general
+import math
 import time
 import trimesh
 import numpy as np
@@ -59,12 +60,13 @@ class RobotDemo:
         self._picked_objects = list()
 
         self._grasp_overlap = 0.0065
+        self._pre_placement_z_dist = 0.005
 
         self._over_target_box_pose = Pose()
-        self._over_target_box_pose.position = Point(0.386, -0.492, 0.575)
+        self._over_target_box_pose.position = Point(0.386, -0.44, 0.575)
         self._over_target_box_pose.orientation = Quaternion(0.8, -0.6, 0.008, -0.01)
 
-        self._in_target_box_position = [0.386, -0.492]
+        self._in_target_box_position = [0.386, -0.44]
 
         self._over_distractor_box_pose = Pose()
         self._over_distractor_box_pose.position = Point(0.453, 0.474, 0.585)
@@ -138,6 +140,12 @@ class RobotDemo:
 
     def _define_robot_poses(self):
 
+        _home_position = np.array([0.7, 0, 0.6])
+        _q1 = gk.quaternion_from_vector_and_angle(np, [1, 0, 0], math.pi)
+        _q2 = gk.quaternion_from_vector_and_angle(np, [0, 0, 1], -math.pi / 4)
+        _home_quaternion = gk.hamilton_product(np, _q1, _q2)
+        home_pose = np.concatenate((_home_position, _home_quaternion), -1)
+
         x_offset = 0.2
 
         robot_position_offsets = [np.array([x_offset, 0, 0]),
@@ -147,8 +155,8 @@ class RobotDemo:
                                   np.array([0, 0, 0])]
 
         robot_quaternion_offsets = [gk.rotation_vector_to_quaternion(np, aa) for aa in robot_rotation_vectors]
-        robot_positions = [self._robot_interface.home_pose[0:3] + offset for offset in robot_position_offsets]
-        robot_quaternions = [gk.hamilton_product(np, self._robot_interface.home_pose[3:], qt) for qt in robot_quaternion_offsets]
+        robot_positions = [home_pose[0:3] + offset for offset in robot_position_offsets]
+        robot_quaternions = [gk.hamilton_product(np, home_pose[3:], qt) for qt in robot_quaternion_offsets]
         self._robot_poses = [np.concatenate((pos, quat),-1) for pos, quat in zip(robot_positions, robot_quaternions)]
 
     def _initialization_motion(self):
@@ -169,7 +177,7 @@ class RobotDemo:
         self._robot_interface.set_end_effector_quaternion_pointing_pose(pre_grasp_pose)
 
     def _move_robot_to_grasp_pose(self, grasp_pose):
-        pose_reached = self._robot_interface.set_end_effector_position_linearly(grasp_pose.position, 0.25, 0.25)
+        _, pose_reached = self._robot_interface.set_end_effector_position_linearly(grasp_pose.position, 0.25, 0.25)
         return pose_reached
 
     def _move_robot_to_post_grasp_pose(self, post_grasp_pose):
@@ -185,11 +193,19 @@ class RobotDemo:
     def _move_robot_over_distractor_box(self):
         self._robot_interface.set_end_effector_quaternion_pose_linearly(self._over_distractor_box_pose, 0.7, 0.7)
 
-    def _move_robot_in_target_box(self, object_to_robot_mat):
-        robot_poses = self._object_pose_interface.get_robot_poses(self._object_id_to_grasp, object_to_robot_mat,
-                                            self._in_target_box_position)
-        robot_pose = self._robot_interface.set_end_effector_quaternion_pose([robot_poses[0]], 0.7, 0.7)
-        robot_pose = robot_poses[0] # remove this line later
+    def _move_robot_to_pre_place_pose(self, robot_poses):
+        robot_pre_poses = list()
+        for robot_pose in robot_poses:
+            robot_pre_pose = robot_pose
+            robot_pre_pose.position.z += self._pre_placement_z_dist
+            robot_pre_poses.append(robot_pre_pose)
+        _, pre_pose_reached = self._robot_interface.set_end_effector_quaternion_pose(robot_pre_poses, 0.7, 0.7)
+        return pre_pose_reached
+
+    def _move_robot_to_place_pose(self, pre_pose_reached, object_to_robot_mat):
+        place_position = pre_pose_reached.position
+        place_position.z -= self._pre_placement_z_dist
+        _, robot_pose = self._robot_interface.set_end_effector_position_linearly(place_position, 0.7, 0.7)
         pos = robot_pose.position
         ori = robot_pose.orientation
         robot_np_pose = np.array([pos.x, pos.y, pos.z, ori.x, ori.y, ori.z, ori.w])
@@ -205,7 +221,7 @@ class RobotDemo:
         object_pose.orientation.w = object_np_pose[6]
         return object_pose
 
-    def _move_robot_in_distractor_box(self):
+    def _move_robot_to_drop_pose(self):
         self._robot_interface.set_end_effector_position_linearly(self._in_distractor_box_pose.position, 0.7, 0.7)
         return self._in_distractor_box_pose
 
@@ -324,7 +340,10 @@ class RobotDemo:
         mesh_pose = self._object_pose_msgs_in_world_frame[self._object_id_to_grasp]
         self._world_interface.add_attached_meshes([str(self._object_id_to_grasp)], [mesh_to_grasp], [mesh_pose], ['panda_suction_cup'])
 
-    def _update_scene_with_release(self, pose):
+    def _update_scene_with_drop(self):
+        self._world_interface.remove_attached_meshes([str(self._object_id_to_grasp)], ['panda_suction_cup'])
+
+    def _update_scene_with_placement(self, pose):
         self._world_interface.remove_attached_meshes([str(self._object_id_to_grasp)], ['panda_suction_cup'])
         self._world_interface.add_attached_meshes([str(self._object_id_to_grasp)],
                                                 [self._collision_meshes[self._object_id_to_grasp - 1]], [pose], ['panda_link0'])
@@ -374,11 +393,9 @@ class RobotDemo:
             inv_object_mat = np.linalg.inv(self._object_mats_in_world_frame[self._object_id_to_grasp])
             post_grasp_pose = pre_grasp_pose
 
-            # object logging #
-            # ---------------#
+            # Distractors #
+            # ------------#
 
-            self._picked_objects.append(self._object_id_to_grasp)
-            self._all_objects_removed = self._check_if_all_objects_removed()
             self._all_distractors_removed = self._check_if_all_distractors_removed()
 
             # move to object #
@@ -408,13 +425,25 @@ class RobotDemo:
             self._move_robot_over_table()
             if self._all_distractors_removed:
                 self._move_robot_over_target_box()
-                obj_pose = self._move_robot_in_target_box(object_to_robot_mat)
+
+                # get possible robot poses
+                robot_poses = self._object_pose_interface.get_robot_poses(self._object_id_to_grasp, object_to_robot_mat,
+                                                                          self._in_target_box_position)
+                # make motion
+                robot_pose = self._move_robot_to_pre_place_pose(robot_poses)
+                obj_pose = self._move_robot_to_place_pose(robot_pose, object_to_robot_mat)
+                self._update_scene_with_placement(obj_pose)
             else:
                 self._move_robot_over_distractor_box()
-                obj_pose = self._move_robot_in_distractor_box()
+                self._move_robot_to_drop_pose()
+                self._update_scene_with_drop()
             self._release_suction_grip()
 
-            self._update_scene_with_release(obj_pose)
+            # object logging #
+            # ---------------#
+
+            self._picked_objects.append(self._object_id_to_grasp)
+            self._all_objects_removed = self._check_if_all_objects_removed()
 
             # reset robot #
             # ------------#

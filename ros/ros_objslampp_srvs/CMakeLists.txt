@@ -15,6 +15,7 @@ add_service_files(
   RenderVoxelGridArray.srv
   MoveToHome.srv
   MoveToPose.srv
+  MoveToJointPosition.srv
   SetSuction.srv
   UpdateScene.srv
 )

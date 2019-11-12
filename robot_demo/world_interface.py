@@ -46,7 +46,7 @@ def add_static_meshes(mesh_ids, meshes, poses):
     _rospy.wait_for_service('update_scene')
     update_scene = _rospy.ServiceProxy('update_scene', _UpdateScene)
     response = update_scene(list(), collision_objects)
-    return response.scene_updated
+    return response.success
 
 
 def remove_static_meshes(mesh_ids):
@@ -63,7 +63,7 @@ def remove_static_meshes(mesh_ids):
     _rospy.wait_for_service('update_scene')
     update_scene = _rospy.ServiceProxy('update_scene', _UpdateScene)
     response = update_scene(list(), collision_objects)
-    return response.scene_updated
+    return response.success
 
 
 def add_attached_meshes(mesh_ids, meshes, poses, link_names):
@@ -105,7 +105,7 @@ def add_attached_meshes(mesh_ids, meshes, poses, link_names):
     _rospy.wait_for_service('update_scene')
     update_scene = _rospy.ServiceProxy('update_scene', _UpdateScene)
     response = update_scene(attached_objects, list())
-    return response.scene_updated
+    return response.success
 
 
 def remove_attached_meshes(mesh_ids, link_names):
@@ -124,4 +124,4 @@ def remove_attached_meshes(mesh_ids, link_names):
     _rospy.wait_for_service('update_scene')
     update_scene = _rospy.ServiceProxy('update_scene', _UpdateScene)
     response = update_scene(attached_objects, list())
-    return response.scene_updated
+    return response.success
