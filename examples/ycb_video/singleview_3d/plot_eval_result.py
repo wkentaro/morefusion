@@ -30,9 +30,11 @@ df_noocc = pandas.read_csv(f'./data.wo_occ.{index:08d}.csv', index_col=0)
 df_noocc['visibility'] = np.clip(df_noocc['visibility'], 0, 1)
 df = pandas.concat([df_occ, df_pcd, df_noocc])
 
+df.loc[df['method'] == 'morefusion-occ', 'method'] = 'morefusion-other_depth'
+
 case = args.case
 if case == 'pred':
-    methods = ['densefusion', 'morefusion-occ', 'morefusion']
+    methods = ['densefusion', 'morefusion-other_depth', 'morefusion']
 else:
     assert case == 'refine'
     methods = ['morefusion', 'morefusion+icp', 'morefusion+icc', 'morefusion+icc+icp']  # NOQA
@@ -93,7 +95,7 @@ ax.set_ylabel('AUC of ADD/ADD-S')
 # ax.set_xlim(0, 1)
 # ax.set_xticks(np.arange(0.1, 1.05, step=0.1))
 ax.set_yticks(np.arange(0.6, 0.95, step=0.1))
-ax.set_ylim(0.65, 0.98)
+ax.set_ylim(0.60, 0.95)
 # handles, labels = ax.get_legend_handles_labels()
 # ax.legend(handles=handles[1:], labels=labels[1:])
 ax.legend(loc='lower right')
