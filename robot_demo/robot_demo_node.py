@@ -140,7 +140,7 @@ class RobotDemo:
 
     def _define_robot_poses(self):
 
-        _home_position = np.array([0.7, 0, 0.6])
+        _home_position = np.array([0.6, 0, 0.6])
         _q1 = gk.quaternion_from_vector_and_angle(np, [1, 0, 0], math.pi)
         _q2 = gk.quaternion_from_vector_and_angle(np, [0, 0, 1], -math.pi / 4)
         _home_quaternion = gk.hamilton_product(np, _q1, _q2)
@@ -148,11 +148,40 @@ class RobotDemo:
 
         x_offset = 0.2
 
-        robot_position_offsets = [np.array([x_offset, 0, 0]),
-                                  np.array([x_offset, 0, -0.1])]
+        z0 = 0
+
+        x1 = 0.15
+        y1 = 0.15
+        z1 = -0.1
+
+        angle1 = math.pi/8
+
+        # define robot poses
+        robot_position_offsets = [np.array([x_offset, 0, z0]),
+
+                                  np.array([x_offset, 0, z1]),
+
+                                  np.array([x_offset+ x1, 0, z1]),
+                                  np.array([x_offset + x1, y1, z1]),
+                                  np.array([x_offset, y1, z1]),
+                                  np.array([x_offset-x1, y1, z1]),
+                                  np.array([x_offset-x1, 0, z1]),
+                                  np.array([x_offset-x1, -y1, z1]),
+                                  np.array([x_offset, -y1, z1]),
+                                  np.array([x_offset + x1, -y1, z1])]
 
         robot_rotation_vectors = [np.array([0, 0, 0]),
-                                  np.array([0, 0, 0])]
+
+                                  np.array([0, 0, 0]),
+
+                                  np.array([0, 1, 0])*angle1,
+                                  np.array([-0.5**0.5, 0.5**0.5, 0])*angle1,
+                                  np.array([-1, 0, 0])*angle1,
+                                  np.array([-0.5**0.5, -0.5**0.5, 0])*angle1,
+                                  np.array([0, -1, 0])*angle1,
+                                  np.array([0.5**0.5, -0.5**0.5, 0])*angle1,
+                                  np.array([1, 0, 0])*angle1,
+                                  np.array([0.5**0.5, 0.5**0.5, 0])*angle1]
 
         robot_quaternion_offsets = [gk.rotation_vector_to_quaternion(np, aa) for aa in robot_rotation_vectors]
         robot_positions = [home_pose[0:3] + offset for offset in robot_position_offsets]
@@ -160,15 +189,15 @@ class RobotDemo:
         self._robot_poses = [np.concatenate((pos, quat),-1) for pos, quat in zip(robot_positions, robot_quaternions)]
 
     def _initialization_motion(self):
-        self._robot_interface.move_to_home(0.025, 0.025)
+        self._robot_interface.move_to_home(0.05, 0.05)
         for robot_pose in self._robot_poses:
 
             pose = Pose()
             pose.position = Point(robot_pose[0], robot_pose[1], robot_pose[2])
             pose.orientation = Quaternion(robot_pose[3], robot_pose[4], robot_pose[5], robot_pose[6])
 
-            self._robot_interface.set_end_effector_quaternion_pose_linearly(pose, 0.025, 0.025)
-        self._robot_interface.move_to_home(0.025, 0.025)
+            self._robot_interface.set_end_effector_quaternion_pose_linearly(pose, 0.05, 0.05)
+        self._robot_interface.move_to_home(0.05, 0.05)
 
     def _move_robot_over_table(self):
         self._robot_interface.move_to_home(0.7, 0.7)
