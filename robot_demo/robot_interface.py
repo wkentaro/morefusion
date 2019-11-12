@@ -1,99 +1,128 @@
-import math
-import robot_demo.general_kinematics as gk
-import numpy as np
+import math as _math
+import robot_demo.general_kinematics as _gk
+import numpy as _np
 import rospy
-from std_msgs.msg import Float64MultiArray
-from geometry_msgs.msg import Quaternion, Pose
-from ros_objslampp_srvs.srv import MoveToHome, MoveToPose, SetSuction
+from geometry_msgs.msg import Quaternion as _Quaternion
+from geometry_msgs.msg import Pose as _Pose
+from geometry_msgs.msg import Vector3 as _Vector3
+from ros_objslampp_srvs.srv import MoveToPose as _MoveToPose
+from ros_objslampp_srvs.srv import SetSuction as _SetSuction
 
 
-class RobotInterface:
+# move to home #
 
-    def __init__(self):
-        self._define_home_pose()
-        self._joint_angle_sub = rospy.Subscriber('/joint_angles', Float64MultiArray, self._joint_angle_callback,
-                                                 queue_size=1)
-        self._ef_pose_sub = rospy.Subscriber('/end_effector_pose', Float64MultiArray, self._ef_pose_callback,
-                                                 queue_size=1)
 
-        self._joint_angles = None
-        self._ef_pose = None
+_home_position = _np.array([0.6, 0, 0.6])
+_q1 = _gk.quaternion_from_vector_and_angle(_np, [1, 0, 0], _math.pi)
+_q2 = _gk.quaternion_from_vector_and_angle(_np, [0, 0, 1], -_math.pi/4)
+_home_quaternion = _gk.hamilton_product(_np, _q1, _q2)
+home_pose = _np.concatenate((_home_position, _home_quaternion), -1)
 
-    def _joint_angle_callback(self, data):
-        self._joint_angles = data.data[1:]
 
-    def _ef_pose_callback(self, data):
-        self._ef_pose = data.data[1:]
+def move_to_home(velocity_scaling=0.75, acceleration_scaling=0.75):
 
-    def _define_home_pose(self):
-        self._home_position = np.array([0.3, 0, 0.6])
-        q1 = gk.quaternion_from_vector_and_angle(np, [1, 0, 0], math.pi)
-        q2 = gk.quaternion_from_vector_and_angle(np, [0, 0, 1], -math.pi/4)
-        self._home_quaternion = gk.hamilton_product(np, q1, q2)
-        self.home_pose = np.concatenate((self._home_position, self._home_quaternion), -1)
+    home_pose_msg = _Pose()
 
-    def move_to_home(self, velocity_scaling=1.0, acceleration_scaling=1.0):
-        rospy.wait_for_service('move_to_home')
-        move_to_home = rospy.ServiceProxy('move_to_home', MoveToHome)
-        response = move_to_home(velocity_scaling, acceleration_scaling)
-        return response.home_reached
+    home_pose_msg.position.x = home_pose[0]
+    home_pose_msg.position.y = home_pose[1]
+    home_pose_msg.position.z = home_pose[2]
 
-    # end effector pose #
+    home_pose_msg.orientation.x = home_pose[3]
+    home_pose_msg.orientation.y = home_pose[4]
+    home_pose_msg.orientation.z = home_pose[5]
+    home_pose_msg.orientation.w = home_pose[6]
 
-    # getters
+    return set_end_effector_quaternion_pose_linearly(home_pose_msg, velocity_scaling, acceleration_scaling)
 
-    def get_end_effector_position(self):
-        pass
 
-    def get_end_effector_quaternion(self):
-        pass
+# end effector pose #
 
-    def get_end_effector_quaternion_pose(self):
-        return self._ef_pose
 
-    # setters
+def set_end_effector_position_linearly(position, velocity_scaling=0.75, acceleration_scaling=0.75):
 
-    def set_end_effector_position(self, position, velocity_scaling=1.0, acceleration_scaling=1.0):
-        rospy.wait_for_service('move_to_position_linearly')
-        move_to_position = rospy.ServiceProxy('move_to_position_linearly', MoveToPose)
-        quaternion = Quaternion(0,0,0,1)
-        pose = Pose()
-        pose.position = position
-        pose.orientation = quaternion
-        response = move_to_position(pose, velocity_scaling, acceleration_scaling)
+    rospy.wait_for_service('/move_to_pose_linearly')
+    move_to_position = rospy.ServiceProxy('/move_to_pose_linearly', _MoveToPose)
+
+    quaternion = _Quaternion(0,0,0,1)
+    pose = _Pose()
+    pose.position = position
+    pose.orientation = quaternion
+
+    response = move_to_position([pose], [], [], '', velocity_scaling, acceleration_scaling, True, False, False)
+
+    if response.success:
         return response.pose_reached
+    else:
+        raise Exception('Unable to set robot position.')
 
-    def set_end_effector_quaternion(self, quaternion):
-        pass
 
-    def set_end_effector_quaternion_pose(self, pose, velocity_scaling=1.0, acceleration_scaling=1.0):
-        rospy.wait_for_service('move_to_pose_linearly')
-        move_to_pose = rospy.ServiceProxy('move_to_pose_linearly', MoveToPose)
-        response = move_to_pose(pose, velocity_scaling, acceleration_scaling)
+def set_end_effector_quaternion_pose_linearly(pose, velocity_scaling=0.75, acceleration_scaling=0.75):
+
+    rospy.wait_for_service('/move_to_pose_linearly')
+    move_to_position = rospy.ServiceProxy('/move_to_pose_linearly', _MoveToPose)
+
+    response = move_to_position([pose], [], [], '', velocity_scaling, acceleration_scaling, False, False, False)
+
+    if response.success:
         return response.pose_reached
+    else:
+        raise Exception('Unable to set robot position.')
 
-    def set_end_effector_quaternion_pointing_pose(self, pose, velocity_scaling=1.0, acceleration_scaling=1.0):
-        rospy.wait_for_service('/pointing_pose_service/move_to_pointing_pose')
-        move_to_pose = rospy.ServiceProxy('/pointing_pose_service/move_to_pointing_pose', MoveToPose)
-        response = move_to_pose(pose, velocity_scaling, acceleration_scaling)
+
+def set_end_effector_quaternion_pose(poses, velocity_scaling=0.75, acceleration_scaling=0.75):
+
+    rospy.wait_for_service('/pose_service/move_to_pose')
+    move_to_pose = rospy.ServiceProxy('/pose_service/move_to_pose', _MoveToPose)
+
+    position_contraint = _Vector3()
+    position_contraint.x = 0.001
+    position_contraint.y = 0.001
+    position_contraint.z = 0.001
+
+    orientation_contraint = _Vector3()
+    orientation_contraint.x = 0.001
+    orientation_contraint.y = 0.001
+    orientation_contraint.z = 0.001
+
+    response = move_to_pose(poses, [position_contraint]*len(poses), [orientation_contraint]*len(poses),
+                            'panda_suction_cup', velocity_scaling, acceleration_scaling, False, False, True)
+    if response.success:
         return response.pose_reached
+    else:
+        raise Exception('Unable to set robot pose.')
 
-    # suction gripper #
 
-    def set_suction_state(self, state):
-        rospy.wait_for_service('/set_suction')
-        set_suction = rospy.ServiceProxy('/set_suction', SetSuction)
-        response = set_suction(state)
-        return response.suction_set
+def set_end_effector_quaternion_pointing_pose(pose, velocity_scaling=0.75, acceleration_scaling=0.75):
 
-    # joint angles #
+    rospy.wait_for_service('/pose_service/move_to_pose')
+    move_to_pose = rospy.ServiceProxy('/pose_service/move_to_pose', _MoveToPose)
 
-    # getters
+    position_contraint = _Vector3()
+    position_contraint.x = 0.001
+    position_contraint.y = 0.001
+    position_contraint.z = 0.001
 
-    def get_joint_angles(self):
-        return self._joint_angles
+    orientation_contraint = _Vector3()
+    orientation_contraint.x = 0.001
+    orientation_contraint.y = 0.001
+    orientation_contraint.z = 2*_math.pi
 
-    # setters
+    response = move_to_pose([pose], [position_contraint], [orientation_contraint], 'panda_suction_cup',
+                            velocity_scaling, acceleration_scaling, False, False, True)
+    if response.success:
+        return response.pose_reached
+    else:
+        raise Exception('Unable to set robot pointing pose.')
 
-    def set_joint_angles(self, joint_angles):
-        pass
+
+# suction gripper #
+
+
+def set_suction_state(state):
+    rospy.wait_for_service('/set_suction')
+    set_suction = rospy.ServiceProxy('/set_suction', _SetSuction)
+    response = set_suction(state)
+    if response.suction_set:
+        return True
+    else:
+        raise Exception('Unable to set robot suction.')

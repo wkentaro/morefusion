@@ -1,5 +1,12 @@
-geometry_msgs/Pose pose
+geometry_msgs/Pose[] goal_poses
+geometry_msgs/Vector3[] position_constraints
+geometry_msgs/Vector3[] orientation_constraints
+string link_name
 float64 velocity_scaling
 float64 acceleration_scaling
+bool pure_translation
+bool pure_rotation
+bool avoid_collisions
 ---
-bool pose_reached
+bool success
+geometry_msgs/Pose pose_reached

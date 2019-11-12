@@ -6,6 +6,7 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   roscpp
   sensor_msgs
+  moveit_msgs
   ros_objslampp_msgs
 )
 
@@ -15,12 +16,14 @@ add_service_files(
   MoveToHome.srv
   MoveToPose.srv
   SetSuction.srv
+  UpdateScene.srv
 )
 
 generate_messages(
   DEPENDENCIES
   geometry_msgs
   sensor_msgs
+  moveit_msgs
   ros_objslampp_msgs
 )
 
