@@ -18,15 +18,16 @@ args = parser.parse_args()
 #
 # plt.rcParams['font.family'] = 'Times New Roman'
 # plt.rcParams['font.size'] = 16
-seaborn.set_palette('muted')
+seaborn.set_palette('coolwarm_r')
+# seaborn.set_palette('Paired')
 
 index = 2999
 
-df_occ = pandas.read_csv(f'./data.{index:08d}.csv', index_col=0)
+df_occ = pandas.read_csv(f'./logs.csv_files/data.{index:08d}.csv', index_col=0)
 df_occ['visibility'] = np.clip(df_occ['visibility'], 0, 1)
-df_pcd = pandas.read_csv(f'../singleview_pcd/data.{index:08d}.csv', index_col=0)  # NOQA
+df_pcd = pandas.read_csv(f'../singleview_pcd/logs.csv_files/data.{index:08d}.csv', index_col=0)  # NOQA
 df_pcd['visibility'] = np.clip(df_pcd['visibility'], 0, 1)
-df_noocc = pandas.read_csv(f'./data.wo_occ.{index:08d}.csv', index_col=0)
+df_noocc = pandas.read_csv(f'./logs.csv_files/data.wo_occ.{index:08d}.csv', index_col=0)
 df_noocc['visibility'] = np.clip(df_noocc['visibility'], 0, 1)
 df = pandas.concat([df_occ, df_pcd, df_noocc])
 
@@ -53,14 +54,13 @@ df2 = []
 for cls_id in np.unique(df.class_id):
     for method in methods:
         mask = (df.class_id == cls_id) & (df.method == method)
-        step = 0.1
-        for visibility in np.arange(1, 10 + 1) * step:
-            min_visibility = visibility - step / 2
-            max_visibility = visibility + step
+        step = 0.2
+        for visibility in np.arange(1, 5 + 1) * step:
+            # min_visibility = visibility - step / 2
+            # max_visibility = visibility + step
             df_cls = df[
                 mask
-                & (df.visibility <= max_visibility)
-                & (df.visibility >= min_visibility)
+                & (df.visibility <= visibility)
             ]
             if df_cls.size == 0:
                 continue
@@ -89,14 +89,14 @@ df3 = df2.groupby(['visibility', 'method']).mean().reset_index()
 # ax = seaborn.lineplot(x='visibility', y='auc_add_or_add_s', hue='method', style='method', markers=True, dashes=False, data=df3, hue_order=methods)
 # ax = seaborn.lineplot(x='visibility', y='auc_add_s', hue='method', style='method', markers=True, dashes=False, data=df3, hue_order=methods)
 ax = seaborn.barplot(x='visibility', y='auc_add_or_add_s', hue='method', data=df3, hue_order=methods)
-# ax = seaborn.lineplot(x='visibility', y='add_s', hue='method', style='method', markers=True, dashes=False, data=df3, hue_order=methods)
-ax.set_xlabel('Visibility of Object')
-ax.set_ylabel('AUC of ADD/ADD-S')
+# ax = seaborn.lineplot(x='visibility', y='auc_add_or_add_s', hue='method', style='method', markers=True, dashes=False, data=df3, hue_order=methods)
+ax.set_xlabel('Visibility Threshold of Object')
+ax.set_ylabel('AUC of ADD(-S)')
 # ax.set_xlim(0, 1)
 # ax.set_xticks(np.arange(0.1, 1.05, step=0.1))
-ax.set_yticks(np.arange(0.6, 0.95, step=0.1))
-ax.set_ylim(0.60, 0.95)
+ax.set_yticks(np.arange(0.5, 0.95, step=0.1))
+ax.set_ylim(0.55, 0.9)
 # handles, labels = ax.get_legend_handles_labels()
 # ax.legend(handles=handles[1:], labels=labels[1:])
-ax.legend(loc='lower right')
+# ax.legend(loc='lower right')
 plt.show()
