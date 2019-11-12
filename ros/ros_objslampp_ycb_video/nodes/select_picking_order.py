@@ -272,11 +272,12 @@ class SelectPickingOrder(topic_tools.LazyTransport):
 
             for ins_id_j, count in zip(occluded_by, counts):
                 ratio = count / mask_whole.sum()
-                if ratio < 0.15:
-                    continue
-
                 cls_id_j = ins_id_to_pose[ins_id_j].class_id
                 rospy.loginfo(f'{cls_id_i} is occluded by {cls_id_j} with occlusion ratio: {ratio}')  # NOQA
+
+                if ratio < 0.1:
+                    continue
+
                 class_name_j = class_names[cls_id_j]
                 id_j = (ins_id_j, cls_id_j, class_name_j)
                 graph.add_edge(id_i, id_j)
@@ -329,8 +330,8 @@ def get_grasp_pose(rgb, pcd, mask):
     )
 
     mask = lbl == label
-    translation = pcd[mask].mean(axis=0)
-    normal = normals[mask].mean(axis=0)
+    translation = np.nanmean(pcd[mask], axis=0)
+    normal = np.nanmean(normals[mask], axis=0)
     quaternion = quaternion_from_two_vectors(np.array([0, 0, 1]), normal)
     return quaternion, translation
 
