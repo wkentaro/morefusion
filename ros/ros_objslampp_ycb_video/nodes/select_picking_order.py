@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import copy
+import queue
 import io
 
 import imgviz
@@ -73,32 +75,33 @@ class SelectPickingOrder(topic_tools.LazyTransport):
     _models = objslampp.datasets.YCBVideoModels()
 
     def __init__(self):
+        self._poses_msg = None
+
         super().__init__()
         self._target = rospy.get_param('~target')
         self._pub_poses = self.advertise(
-            '~output/poses', ObjectPoseArray, queue_size=1, latch=True
+            '~output/poses', ObjectPoseArray, queue_size=1
         )
         self._pub_poses_viz = self.advertise(
-            '~output/poses_viz', PoseArray, queue_size=1, latch=True
+            '~output/poses_viz', PoseArray, queue_size=1
         )
         self._pub_graph = self.advertise(
-            '~output/graph', Image, queue_size=1, latch=True
+            '~output/graph', Image, queue_size=1
+        )
+        self._pub_rend = self.advertise(
+            '~output/rgb_rend', Image, queue_size=1
         )
         self._tf_listener = tf.TransformListener(cache_time=rospy.Duration(30))
         self._post_init()
 
     def subscribe(self):
-        sub_cam = message_filters.Subscriber(
-            '~input/camera_info', CameraInfo, queue_size=1
+        self._sub_cam = rospy.Subscriber(
+            '~input/camera_info', CameraInfo, self._callback, queue_size=1
         )
-        sub_poses = message_filters.Subscriber(
-            '~input/poses', ObjectPoseArray, queue_size=1
+        self._sub_poses = rospy.Subscriber(
+            '~input/poses', ObjectPoseArray, self._callback_poses, queue_size=1
         )
-        self._subscribers = [sub_cam, sub_poses]
-        sync = message_filters.TimeSynchronizer(
-            self._subscribers, queue_size=100
-        )
-        sync.registerCallback(self._callback)
+        self._subscribers = [self._sub_cam, self._sub_poses]
 
     def unsubscribe(self):
         for sub in self._subscribers:
@@ -136,12 +139,13 @@ class SelectPickingOrder(topic_tools.LazyTransport):
             return rgb, depth, ins
 
         T_pose2cam = None
-        if poses_msg.header.frame_id != cam_msg.header.frame_id:
-            T_pose2cam = self._get_transform(
-                poses_msg.header.frame_id,
-                cam_msg.header.frame_id,
-                poses_msg.header.stamp,
-            )
+        if poses_msg.header.frame_id != 'map':
+            raise ValueError('poses_msg.header.frame_id is not "map"')
+        T_pose2cam = self._get_transform(
+            poses_msg.header.frame_id,
+            cam_msg.header.frame_id,
+            cam_msg.header.stamp,
+        )
 
         pybullet.connect(pybullet.DIRECT)
 
@@ -192,7 +196,15 @@ class SelectPickingOrder(topic_tools.LazyTransport):
 
         return rgb, depth, ins
 
-    def _callback(self, cam_msg, poses_msg):
+    def _callback_poses(self, poses_msg):
+        self._poses_msg = poses_msg
+
+    def _callback(self, cam_msg):
+        if self._poses_msg is None:
+            rospy.logwarn_throttle(10, 'self._poses_msg is not set, skipping')
+            return
+        poses_msg = copy.deepcopy(self._poses_msg)
+
         bridge = cv_bridge.CvBridge()
 
         ins_id_to_pose = {}
@@ -201,12 +213,17 @@ class SelectPickingOrder(topic_tools.LazyTransport):
             ins_id_to_pose[pose.instance_id] = pose
             class_ids.append(pose.class_id)
         if self._target not in class_ids:
+            rospy.logwarn_throttle(10, 'target object is not yet found')
             return
         del class_ids
 
-        _, _, ins_rend = self._render_object_pose_array(
+        rgb_rend, _, ins_rend = self._render_object_pose_array(
             cam_msg, poses_msg
         )
+        rgb_rend_msg = bridge.cv2_to_imgmsg(rgb_rend, 'rgb8')
+        rgb_rend_msg.header = cam_msg.header
+        self._pub_rend.publish(rgb_rend_msg)
+        del rgb_rend
 
         target_node_id = None
         graph = networkx.DiGraph()
@@ -255,10 +272,11 @@ class SelectPickingOrder(topic_tools.LazyTransport):
 
             for ins_id_j, count in zip(occluded_by, counts):
                 ratio = count / mask_whole.sum()
-                if ratio < 0.1:
+                if ratio < 0.15:
                     continue
 
                 cls_id_j = ins_id_to_pose[ins_id_j].class_id
+                rospy.loginfo(f'{cls_id_i} is occluded by {cls_id_j} with occlusion ratio: {ratio}')  # NOQA
                 class_name_j = class_names[cls_id_j]
                 id_j = (ins_id_j, cls_id_j, class_name_j)
                 graph.add_edge(id_i, id_j)
