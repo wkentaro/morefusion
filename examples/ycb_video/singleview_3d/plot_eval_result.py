@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import argparse
+
 from matplotlib import ticker
 import matplotlib.pyplot as plt
 import numpy as np
@@ -7,18 +9,26 @@ import pandas
 import seaborn
 
 import objslampp
+
+parser = argparse.ArgumentParser(
+    formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+)
+parser.add_argument('case')
+args = parser.parse_args()
 #
 # plt.rcParams['font.family'] = 'Times New Roman'
 # plt.rcParams['font.size'] = 16
 seaborn.set_palette('muted')
 
-df = pandas.read_csv('./data.00000149.csv', index_col=0)
-df['visibility'] = np.clip(df['visibility'], 0, 1)
-df_pcd = pandas.read_csv('../singleview_pcd/data.00000149.csv', index_col=0)
-df_pcd['visibility'] = np.clip(df['visibility'], 0, 1)
-df_noocc = pandas.read_csv('./data.wo_occ.00000149.csv', index_col=0)
-df_noocc['visibility'] = np.clip(df['visibility'], 0, 1)
-df = pandas.concat([df, df_pcd, df_noocc])
+index = 2999
+
+df_occ = pandas.read_csv(f'./data.{index:08d}.csv', index_col=0)
+df_occ['visibility'] = np.clip(df_occ['visibility'], 0, 1)
+df_pcd = pandas.read_csv(f'../singleview_pcd/data.{index:08d}.csv', index_col=0)
+df_pcd['visibility'] = np.clip(df_pcd['visibility'], 0, 1)
+df_noocc = pandas.read_csv(f'./data.wo_occ.{index:08d}.csv', index_col=0)
+df_noocc['visibility'] = np.clip(df_noocc['visibility'], 0, 1)
+df = pandas.concat([df_occ, df_pcd, df_noocc])
 
 # dfv = df.copy()
 # step = 0.1
@@ -28,7 +38,12 @@ df = pandas.concat([df, df_pcd, df_noocc])
 #     dfv.loc[(df.visibility < max_visibility) & (df.visibility >= min_visibility), 'visibility'] = visibility
 # df = dfv
 
-methods = ['densefusion', 'morefusion-occ', 'morefusion', 'morefusion+icp', 'morefusion+icc', 'morefusion+icc+icp']
+case = args.case
+if case == 'pred':
+    methods = ['densefusion', 'morefusion-occ', 'morefusion']
+else:
+    assert case == 'refine'
+    methods = ['morefusion', 'morefusion+icp', 'morefusion+icc', 'morefusion+icc+icp']  # NOQA
 
 df2 = []
 for cls_id in np.unique(df.class_id):
@@ -67,12 +82,15 @@ for cls_id in np.unique(df.class_id):
 df2 = pandas.DataFrame(df2)
 df3 = df2.groupby(['visibility', 'method']).mean().reset_index()
 
-ax = seaborn.lineplot(x='visibility', y='auc_add_or_add_s', hue='method', style='method', markers=True, dashes=False, data=df3, hue_order=methods)
+# ax = seaborn.lineplot(x='visibility', y='auc_add_or_add_s', hue='method', style='method', markers=True, dashes=False, data=df3, hue_order=methods)
+ax = seaborn.lineplot(x='visibility', y='auc_add_s', hue='method', style='method', markers=True, dashes=False, data=df3, hue_order=methods)
+# ax = seaborn.lineplot(x='visibility', y='add_s', hue='method', style='method', markers=True, dashes=False, data=df3, hue_order=methods)
 ax.set_xlabel('Visibility of Object')
 ax.set_ylabel('AUC of ADD/ADD-S')
 ax.set_xlim(0, 1)
-ax.set_yticks(np.arange(0.9, 1.05, step=0.05))
-ax.set_ylim(0.9, 1.01)
+ax.set_xticks(np.arange(0.1, 1.05, step=0.1))
+ax.set_yticks(np.arange(0.8, 1.05, step=0.05))
+ax.set_ylim(0.77, 1.0)
 handles, labels = ax.get_legend_handles_labels()
 ax.legend(handles=handles[1:], labels=labels[1:])
 plt.show()
