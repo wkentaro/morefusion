@@ -24,7 +24,7 @@ def main():
     )
     args = parser.parse_args()
 
-    args.log_dir = path.Path('./data.gdrive/logs.20191008.all_data/20191014_092021.638983636')  # NOQA
+    args.log_dir = path.Path('./data.gdrive/logs.20191008.all_data/20191019_081729.757749023')  # NOQA
 
     with open(args.log_dir / 'args') as f:
         args_dict = json.load(f)
@@ -35,7 +35,7 @@ def main():
         with_occupancy=args_dict['with_occupancy'],
     )
     assert args_dict['pretrained_resnet18'] is True
-    assert args_dict['with_occupancy'] is True
+    assert args_dict['with_occupancy'] is False
     chainer.serializers.load_npz(
         args.log_dir / 'snapshot_model_best_add.npz', model
     )
@@ -125,80 +125,80 @@ def main():
                 'add_or_add_s': add_or_add_s,
                 'add_s': add_s,
                 'visibility': examples[i]['visibility'],
-                'method': 'morefusion',
+                'method': 'morefusion-occ',
             })
 
-        transform_icp = iterative_closest_point(examples, batch, transform)
-
-        for i in range(len(examples)):
-            points = models.get_pcd(class_id=examples[i]['class_id'])
-            add, add_s = objslampp.metrics.average_distance(
-                [points], transform_true[i:i + 1], transform_icp[i:i + 1]
-            )
-            add, add_s = add[0], add_s[0]
-            if examples[i]['class_id'] in objslampp.datasets.ycb_video.class_ids_symmetric:  # NOQA
-                add_or_add_s = add_s
-            else:
-                add_or_add_s = add
-            data.append({
-                'frame_index': index,
-                'batch_index': i,
-                'class_id': examples[i]['class_id'],
-                'add_or_add_s': add_or_add_s,
-                'add_s': add_s,
-                'visibility': examples[i]['visibility'],
-                'method': 'morefusion+icp',
-            })
-
-        transform_icc = iterative_collision_check(examples, batch, transform)
-
-        for i in range(len(examples)):
-            points = models.get_pcd(class_id=examples[i]['class_id'])
-            add, add_s = objslampp.metrics.average_distance(
-                [points], transform_true[i:i + 1], transform_icc[i:i + 1]
-            )
-            add, add_s = add[0], add_s[0]
-            if examples[i]['class_id'] in objslampp.datasets.ycb_video.class_ids_symmetric:  # NOQA
-                add_or_add_s = add_s
-            else:
-                add_or_add_s = add
-            data.append({
-                'frame_index': index,
-                'batch_index': i,
-                'class_id': examples[i]['class_id'],
-                'add_or_add_s': add_or_add_s,
-                'add_s': add_s,
-                'visibility': examples[i]['visibility'],
-                'method': 'morefusion+icc',
-            })
-
-        transform_icc_icp = iterative_closest_point(
-            examples, batch, transform_icc, n_iteration=30
-        )
-
-        for i in range(len(examples)):
-            points = models.get_pcd(class_id=examples[i]['class_id'])
-            add, add_s = objslampp.metrics.average_distance(
-                [points], transform_true[i:i + 1], transform_icc_icp[i:i + 1]
-            )
-            add, add_s = add[0], add_s[0]
-            if examples[i]['class_id'] in objslampp.datasets.ycb_video.class_ids_symmetric:  # NOQA
-                add_or_add_s = add_s
-            else:
-                add_or_add_s = add
-            data.append({
-                'frame_index': index,
-                'batch_index': i,
-                'class_id': examples[i]['class_id'],
-                'add_or_add_s': add_or_add_s,
-                'add_s': add_s,
-                'visibility': examples[i]['visibility'],
-                'method': 'morefusion+icc+icp',
-            })
+        # transform_icp = iterative_closest_point(examples, batch, transform)
+        #
+        # for i in range(len(examples)):
+        #     points = models.get_pcd(class_id=examples[i]['class_id'])
+        #     add, add_s = objslampp.metrics.average_distance(
+        #         [points], transform_true[i:i + 1], transform_icp[i:i + 1]
+        #     )
+        #     add, add_s = add[0], add_s[0]
+        #     if examples[i]['class_id'] in objslampp.datasets.ycb_video.class_ids_symmetric:  # NOQA
+        #         add_or_add_s = add_s
+        #     else:
+        #         add_or_add_s = add
+        #     data.append({
+        #         'frame_index': index,
+        #         'batch_index': i,
+        #         'class_id': examples[i]['class_id'],
+        #         'add_or_add_s': add_or_add_s,
+        #         'add_s': add_s,
+        #         'visibility': examples[i]['visibility'],
+        #         'method': 'morefusion+icp',
+        #     })
+        #
+        # transform_icc = iterative_collision_check(examples, batch, transform)
+        #
+        # for i in range(len(examples)):
+        #     points = models.get_pcd(class_id=examples[i]['class_id'])
+        #     add, add_s = objslampp.metrics.average_distance(
+        #         [points], transform_true[i:i + 1], transform_icc[i:i + 1]
+        #     )
+        #     add, add_s = add[0], add_s[0]
+        #     if examples[i]['class_id'] in objslampp.datasets.ycb_video.class_ids_symmetric:  # NOQA
+        #         add_or_add_s = add_s
+        #     else:
+        #         add_or_add_s = add
+        #     data.append({
+        #         'frame_index': index,
+        #         'batch_index': i,
+        #         'class_id': examples[i]['class_id'],
+        #         'add_or_add_s': add_or_add_s,
+        #         'add_s': add_s,
+        #         'visibility': examples[i]['visibility'],
+        #         'method': 'morefusion+icc',
+        #     })
+        #
+        # transform_icc_icp = iterative_closest_point(
+        #     examples, batch, transform_icc, n_iteration=30
+        # )
+        #
+        # for i in range(len(examples)):
+        #     points = models.get_pcd(class_id=examples[i]['class_id'])
+        #     add, add_s = objslampp.metrics.average_distance(
+        #         [points], transform_true[i:i + 1], transform_icc_icp[i:i + 1]
+        #     )
+        #     add, add_s = add[0], add_s[0]
+        #     if examples[i]['class_id'] in objslampp.datasets.ycb_video.class_ids_symmetric:  # NOQA
+        #         add_or_add_s = add_s
+        #     else:
+        #         add_or_add_s = add
+        #     data.append({
+        #         'frame_index': index,
+        #         'batch_index': i,
+        #         'class_id': examples[i]['class_id'],
+        #         'add_or_add_s': add_or_add_s,
+        #         'add_s': add_s,
+        #         'visibility': examples[i]['visibility'],
+        #         'method': 'morefusion+icc+icp',
+        #     })
 
         if (index + 1) % 15 == 0:
             df = pandas.DataFrame(data)
-            df.to_csv(f'data.{index:08d}.csv')
+            df.to_csv(f'data.wo_occ.{index:08d}.csv')
 
 
 def iterative_closest_point(examples, batch, transform, n_iteration=100):
