@@ -1,4 +1,4 @@
 moveit_msgs/AttachedCollisionObject[] attached_objects
 moveit_msgs/CollisionObject[] collision_objects
 ---
-bool scene_updated
+bool success

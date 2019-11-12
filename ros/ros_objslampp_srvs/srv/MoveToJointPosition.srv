@@ -1,0 +1,6 @@
+float64[] joint_position
+float64 velocity_scaling
+float64 acceleration_scaling
+---
+bool success
+float64[] joint_position_reached
