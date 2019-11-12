@@ -20,7 +20,7 @@ class MaskRCNNInstanceSegmentationNode(LazyTransport):
         super().__init__()
 
         self._class_names = objslampp.datasets.ycb_video.class_names
-        self._blacklist = [10, 12]  # missing in DRL
+        self._blacklist = [5, 10, 12]  # missing in DRL
         self._one_instance_per_class = True
 
         # logs.20191003.bg_composite_false
