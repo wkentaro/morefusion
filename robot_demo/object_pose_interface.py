@@ -128,7 +128,7 @@ class ObjectPoseInterface:
             R_270 = np.matmul(R_180, ttf.rotation_matrix(math.pi / 2, axes[up_axis_key]))
 
             # store extents
-            # ToDo: change so that unaligned objects do not have over conservative extents, now the object is corrected
+            # ToDo: change so that unaligned objects have correct extents, now that some of the objects are z rotated
             extents = list()
             for i in range(2):
                 extents.append(
