@@ -32,13 +32,17 @@ df_noocc['visibility'] = np.clip(df_noocc['visibility'], 0, 1)
 df = pandas.concat([df_occ, df_pcd, df_noocc])
 
 df.loc[df['method'] == 'morefusion-occ', 'method'] = 'morefusion-other_depth'
+df.loc[df['method'] == 'morefusion', 'method'] = 'No Refinement'
+df.loc[df['method'] == 'morefusion+icp', 'method'] = '+ICP'
+df.loc[df['method'] == 'morefusion+icc', 'method'] = '+ICC'
+df.loc[df['method'] == 'morefusion+icc+icp', 'method'] = '+ICP+ICC'
 
 case = args.case
 if case == 'pred':
     methods = ['densefusion', 'morefusion-other_depth', 'morefusion']
 else:
     assert case == 'refine'
-    methods = ['morefusion', 'morefusion+icp', 'morefusion+icc', 'morefusion+icc+icp']  # NOQA
+    methods = ['No Refinement', '+ICP', '+ICC', '+ICP+ICC']  # NOQA
 
 # step = 0.2
 # for max_visibility in np.arange(1, 5 + 1) * step:
@@ -96,6 +100,7 @@ ax.set_ylabel('AUC of ADD(-S)')
 # ax.set_xticks(np.arange(0.1, 1.05, step=0.1))
 ax.set_yticks(np.arange(0.5, 0.95, step=0.1))
 ax.set_ylim(0.55, 0.9)
+plt.gca().legend().set_title('')
 # handles, labels = ax.get_legend_handles_labels()
 # ax.legend(handles=handles[1:], labels=labels[1:])
 # ax.legend(loc='lower right')
