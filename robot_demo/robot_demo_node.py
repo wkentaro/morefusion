@@ -447,7 +447,7 @@ class RobotDemo:
         # ----------------#
 
         print('performing initialization motion...')
-        #self._initialization_motion()
+        self._initialization_motion()
 
         print('waiting for object tree')
         try:
