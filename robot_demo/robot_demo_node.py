@@ -2,6 +2,7 @@
 import math
 import time
 import trimesh
+import trimesh.transformations as ttf
 import numpy as np
 from threading import Lock
 
@@ -59,9 +60,11 @@ class RobotDemo:
         self._object_id_to_grasp = None
         self._picked_objects = list()
 
-        self._grasp_overlap = 0.01
-        self._pre_placement_z_dist = 0.15
+        self._initialization_speed_ratio = 0.05
+        self._grasp_overlap = 0.008
+        self._pre_placement_z_dist = 0.025
         self._post_place_dist = 0.05
+        self._angle_from_vertical_limit = math.pi/4
 
         self._over_target_box_pose = Pose()
         self._over_target_box_pose.position = Point(0.6, -0.45, 0.45)
@@ -139,6 +142,21 @@ class RobotDemo:
     # Robot Functions #
     # ----------------#
 
+    def _filter_robot_poses(self, robot_poses):
+
+        filtered_robot_poses = list()
+
+        for robot_pose in robot_poses:
+            ori = robot_pose.orientation
+            R = ttf.quaternion_matrix(np.array([ori.w, ori.x, ori.y ,ori.z]))[0:3,0:3]
+            z_vector = np.array([0., 0., 1.]).transpose().reshape((3,1))
+            down_z_vector = np.array([0., 0., -1.]).transpose().reshape((3,1))
+            robot_z_vector = np.matmul(R, z_vector)
+            angle_between = ttf.angle_between_vectors(robot_z_vector, down_z_vector)
+            if angle_between < self._angle_from_vertical_limit:
+                filtered_robot_poses.append(robot_pose)
+        return filtered_robot_poses
+
     def _define_robot_poses(self):
 
         _home_position = np.array([0.5, 0, 0.6])
@@ -206,7 +224,7 @@ class RobotDemo:
         self._robot_poses = [np.concatenate((pos, quat),-1) for pos, quat in zip(robot_positions, robot_quaternions)]
 
     def _initialization_motion(self):
-        self._robot_interface.move_to_home(0.05, 0.05)
+        self._robot_interface.move_to_home(self._initialization_speed_ratio, self._initialization_speed_ratio)
         time.sleep(0.5)
         for robot_pose in self._robot_poses:
 
@@ -214,19 +232,19 @@ class RobotDemo:
             pose.position = Point(robot_pose[0], robot_pose[1], robot_pose[2])
             pose.orientation = Quaternion(robot_pose[3], robot_pose[4], robot_pose[5], robot_pose[6])
 
-            self._robot_interface.set_end_effector_quaternion_pose_linearly(pose, 0.05, 0.05)
+            self._robot_interface.set_end_effector_quaternion_pose_linearly(pose, self._initialization_speed_ratio, self._initialization_speed_ratio)
             time.sleep(0.5)
-        self._robot_interface.move_to_home(0.05, 0.05)
+        self._robot_interface.move_to_home(self._initialization_speed_ratio, self._initialization_speed_ratio)
         time.sleep(0.5)
 
     def _move_robot_over_table(self):
-        self._robot_interface.move_to_home(0.5, 0.5)
+        self._robot_interface.move_to_home()
 
     def _move_robot_to_pre_grasp_pose(self, pre_grasp_pose):
         self._robot_interface.set_end_effector_quaternion_pointing_pose(pre_grasp_pose)
 
     def _move_robot_to_grasp_pose(self, grasp_pose):
-        _, pose_reached = self._robot_interface.set_end_effector_position_linearly(grasp_pose.position, 0.25, 0.25)
+        _, pose_reached = self._robot_interface.set_end_effector_position_linearly(grasp_pose.position, 0.1, 0.1)
         return pose_reached
 
     def _move_robot_to_post_grasp_pose(self, post_grasp_pose):
@@ -237,10 +255,10 @@ class RobotDemo:
         time.sleep(1)
 
     def _move_robot_over_target_box(self):
-        self._robot_interface.set_end_effector_quaternion_pose_linearly(self._over_target_box_pose, 0.5, 0.5)
+        self._robot_interface.set_end_effector_quaternion_pose_linearly(self._over_target_box_pose)
 
     def _move_robot_over_distractor_box(self):
-        self._robot_interface.set_end_effector_quaternion_pose_linearly(self._over_distractor_box_pose, 0.5, 0.5)
+        self._robot_interface.set_end_effector_quaternion_pose_linearly(self._over_distractor_box_pose)
 
     def _move_robot_to_pre_place_pose(self, robot_poses):
         robot_pre_poses = list()
@@ -248,13 +266,13 @@ class RobotDemo:
             robot_pre_pose = robot_pose
             robot_pre_pose.position.z += self._pre_placement_z_dist
             robot_pre_poses.append(robot_pre_pose)
-        _, pre_pose_reached = self._robot_interface.set_end_effector_quaternion_pose(robot_pre_poses, 0.5, 0.5)
+        _, pre_pose_reached = self._robot_interface.set_end_effector_quaternion_pose(robot_pre_poses)
         return pre_pose_reached
 
     def _move_robot_to_place_pose(self, pre_pose_reached, object_to_robot_mat):
         place_position = pre_pose_reached.position
         place_position.z -= self._pre_placement_z_dist
-        _, robot_pose = self._robot_interface.set_end_effector_position_linearly(place_position, 0.25, 0.25)
+        _, robot_pose = self._robot_interface.set_end_effector_position_linearly(place_position, 0.1, 0.1)
         pos = robot_pose.position
         ori = robot_pose.orientation
         robot_np_pose = np.array([pos.x, pos.y, pos.z, ori.x, ori.y, ori.z, ori.w])
@@ -429,7 +447,7 @@ class RobotDemo:
         # ----------------#
 
         print('performing initialization motion...')
-        self._initialization_motion()
+        #self._initialization_motion()
 
         print('waiting for object tree')
         try:
@@ -502,8 +520,15 @@ class RobotDemo:
                 robot_poses = self._object_pose_interface.get_robot_poses(self._object_id_to_grasp, object_to_robot_mat,
                                                                           self._in_target_box_position)
 
+                # filter poses based on face down threshold
+                filtered_robot_poses = self._filter_robot_poses(robot_poses)
+
+                if len(filtered_robot_poses) == 0:
+                    raise Exception('Orientation of object in gripper is too difficult for placement in box.\n'
+                                    'Consider increasing the angle_from_vertical_limit threshold')
+
                 # make motion
-                robot_pose = self._move_robot_to_pre_place_pose(robot_poses)
+                robot_pose = self._move_robot_to_pre_place_pose(filtered_robot_poses)
                 robot_pose, obj_pose = self._move_robot_to_place_pose(robot_pose, object_to_robot_mat)
                 self._update_scene_with_placement(obj_pose)
                 self._release_suction_grip()
