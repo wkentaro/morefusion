@@ -9,7 +9,7 @@ from geometry_msgs.msg import Pose
 class ObjectPoseInterface:
 
     def __init__(self, object_models):
-        self._floor_z = 0.07
+        self._floor_z = 0.11
         self._object_models = object_models
         self._class_names = self._object_models.class_names
         self._class_ids = range(1,len(self._object_models.class_names))
@@ -17,7 +17,27 @@ class ObjectPoseInterface:
         # define class specific up axes
         # ToDo: define these for all object classes
         self._class_up_axis_keys = dict()
-        self._class_up_axis_keys[1] = ['x+']
+        self._class_up_axis_keys[1] = ['x+'] # master_chef_can
+        self._class_up_axis_keys[2] = ['x+'] # cracker box
+        self._class_up_axis_keys[3] = ['x+'] # sugar box
+        self._class_up_axis_keys[4] = ['x+'] # soup can
+        self._class_up_axis_keys[5] = ['x+'] # mustard bottle
+        self._class_up_axis_keys[6] = ['x+'] # tuna can
+        self._class_up_axis_keys[7] = ['x+'] # pudding box
+        self._class_up_axis_keys[8] = ['x+'] # gelatin box
+        self._class_up_axis_keys[9] = ['x+'] # potted meat can
+        self._class_up_axis_keys[10] = ['x+'] # banana
+        self._class_up_axis_keys[11] = ['x+'] # pitcher base
+        self._class_up_axis_keys[12] = ['x+'] # bleach cleanser
+        self._class_up_axis_keys[13] = ['x+'] # bowl
+        self._class_up_axis_keys[14] = ['x+'] # mug
+        self._class_up_axis_keys[15] = ['x+'] # power drill
+        self._class_up_axis_keys[16] = ['x+'] # wood block
+        self._class_up_axis_keys[17] = ['x+'] # scissors
+        self._class_up_axis_keys[18] = ['x+'] # large marker
+        self._class_up_axis_keys[19] = ['x+'] # large clamp
+        self._class_up_axis_keys[20] = ['x+'] # extra large clamp
+        self._class_up_axis_keys[21] = ['x+'] # foam brick
 
         # Define canonical models
         canonical_quaternions, canonical_extents = self._get_cannonical_object_rotations_and_extents()
@@ -94,10 +114,9 @@ class ObjectPoseInterface:
 
             # store quaternions
             q_s = list()
-            q_s.append(ttf.quaternion_from_matrix(R_0))
-            q_s.append(ttf.quaternion_from_matrix(R_90))
-            q_s.append(ttf.quaternion_from_matrix(R_180))
-            q_s.append(ttf.quaternion_from_matrix(R_270))
+            for R in [R_0, R_90, R_180, R_270]:
+                q = ttf.quaternion_from_matrix(R)
+                q_s.append(np.concatenate((q[1:], q[0:1])))
 
             all_q_s[up_axis_key] = q_s
             all_extents[up_axis_key] = extents
@@ -113,7 +132,7 @@ class ObjectPoseInterface:
 
             self._canonical_quaternions[class_id] = dict()
             self._canonical_extents[class_id] = dict()
-            for up_axis_key in self._class_up_axis_keys:
+            for up_axis_key in self._class_up_axis_keys[class_id]:
                 self._canonical_quaternions[class_id][up_axis_key] = cannonincal_qs[up_axis_key]
                 self._canonical_extents[class_id][up_axis_key] = cannonical_extents[up_axis_key]
 
