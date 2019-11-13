@@ -15,29 +15,28 @@ class ObjectPoseInterface:
         self._class_ids = range(1,len(self._object_models.class_names))
 
         # define class specific up axes
-        # ToDo: define these for all object classes
         self._class_up_axis_keys = dict()
-        self._class_up_axis_keys[1] = ['x+'] # master_chef_can
-        self._class_up_axis_keys[2] = ['x+'] # cracker box
-        self._class_up_axis_keys[3] = ['x+'] # sugar box
-        self._class_up_axis_keys[4] = ['x+'] # soup can
-        self._class_up_axis_keys[5] = ['x+'] # mustard bottle
-        self._class_up_axis_keys[6] = ['x+'] # tuna can
-        self._class_up_axis_keys[7] = ['x+'] # pudding box
-        self._class_up_axis_keys[8] = ['x+'] # gelatin box
-        self._class_up_axis_keys[9] = ['x+'] # potted meat can
-        self._class_up_axis_keys[10] = ['x+'] # banana
-        self._class_up_axis_keys[11] = ['x+'] # pitcher base
-        self._class_up_axis_keys[12] = ['x+'] # bleach cleanser
-        self._class_up_axis_keys[13] = ['x+'] # bowl
-        self._class_up_axis_keys[14] = ['x+'] # mug
-        self._class_up_axis_keys[15] = ['x+'] # power drill
-        self._class_up_axis_keys[16] = ['x+'] # wood block
-        self._class_up_axis_keys[17] = ['x+'] # scissors
-        self._class_up_axis_keys[18] = ['x+'] # large marker
-        self._class_up_axis_keys[19] = ['x+'] # large clamp
-        self._class_up_axis_keys[20] = ['x+'] # extra large clamp
-        self._class_up_axis_keys[21] = ['x+'] # foam brick
+        self._class_up_axis_keys[1] = ['z+', 'z-'] # master_chef_can
+        self._class_up_axis_keys[2] = ['x+', 'x-'] # cracker box
+        self._class_up_axis_keys[3] = ['x+', 'x-'] # sugar box
+        self._class_up_axis_keys[4] = ['z+', 'z-'] # soup can
+        self._class_up_axis_keys[5] = ['y+', 'y-', 'z+'] # mustard bottle
+        self._class_up_axis_keys[6] = ['z+', 'z-'] # tuna can
+        self._class_up_axis_keys[7] = ['z+', 'z-'] # pudding box
+        self._class_up_axis_keys[8] = ['z+', 'z-'] # gelatin box
+        self._class_up_axis_keys[9] = ['y+', 'y-', 'z+', 'z-'] # potted meat can
+        self._class_up_axis_keys[10] = ['z+', 'z-'] # banana
+        self._class_up_axis_keys[11] = ['z+'] # pitcher base
+        self._class_up_axis_keys[12] = ['y+', 'y-', 'z+'] # bleach cleanser
+        self._class_up_axis_keys[13] = ['z+', 'z-'] # bowl
+        self._class_up_axis_keys[14] = ['z+', 'z-'] # mug
+        self._class_up_axis_keys[15] = ['z+', 'z-'] # power drill
+        self._class_up_axis_keys[16] = ['x+', 'x-', 'y+', 'y-'] # wood block
+        self._class_up_axis_keys[17] = ['z+', 'z-'] # scissors
+        self._class_up_axis_keys[18] = ['x+', 'x-', 'z+', 'z-'] # large marker
+        self._class_up_axis_keys[19] = ['z+', 'z-'] # large clamp
+        self._class_up_axis_keys[20] = ['z+', 'z-'] # extra large clamp
+        self._class_up_axis_keys[21] = ['x+', 'x-', 'y+', 'y-', 'z+', 'z-'] # foam brick
 
         # Define canonical models
         canonical_quaternions, canonical_extents = self._get_cannonical_object_rotations_and_extents()

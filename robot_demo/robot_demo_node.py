@@ -429,7 +429,7 @@ class RobotDemo:
         # ----------------#
 
         print('performing initialization motion...')
-        #self._initialization_motion()
+        self._initialization_motion()
 
         print('waiting for object tree')
         try:
@@ -501,12 +501,6 @@ class RobotDemo:
                 # get possible robot poses
                 robot_poses = self._object_pose_interface.get_robot_poses(self._object_id_to_grasp, object_to_robot_mat,
                                                                           self._in_target_box_position)
-
-                pos = robot_poses[0].position
-                ori = robot_poses[0].orientation
-                translation = np.array([pos.x, pos.y, pos.z])
-                rotation = np.array([ori.x, ori.y, ori.z, ori.w])
-                self._tf_broadcaster.sendTransform(translation, rotation, self._object_ros_time, 'potential_robot_pose', 'panda_link0')
 
                 # make motion
                 robot_pose = self._move_robot_to_pre_place_pose(robot_poses)
