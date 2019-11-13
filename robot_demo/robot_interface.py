@@ -18,8 +18,8 @@ def move_to_home(velocity_scaling=0.75, acceleration_scaling=0.75, must_succeed=
     rospy.wait_for_service('/move_to_joint_position')
     move_to_joint_position = rospy.ServiceProxy('/move_to_joint_position', _MoveToJointPosition)
 
-    home_joint_position = [0.0030616019778607175, 0.5557888769099605, 0.012976354634814094, -0.9559145897480479,
-                           -0.03861532123552428, 1.5194854072199928, 0.8946386266640489]
+    home_joint_position = [0.0049455467613561555, 0.20376276994262754, 0.008827571982877296, -1.021473878492389,
+                           0.02799238988916705, 1.246361540502972, 0.7944748621281127]
 
     try:
         response = move_to_joint_position(home_joint_position, velocity_scaling, acceleration_scaling)

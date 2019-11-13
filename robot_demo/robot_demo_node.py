@@ -59,14 +59,14 @@ class RobotDemo:
         self._object_id_to_grasp = None
         self._picked_objects = list()
 
-        self._grasp_overlap = 0.0065
-        self._pre_placement_z_dist = 0.005
+        self._grasp_overlap = 0.01
+        self._pre_placement_z_dist = 0.15
 
         self._over_target_box_pose = Pose()
-        self._over_target_box_pose.position = Point(0.7, -0.45, 0.575)
+        self._over_target_box_pose.position = Point(0.6, -0.45, 0.575)
         self._over_target_box_pose.orientation = Quaternion(0.8, -0.6, 0.008, -0.01)
 
-        self._in_target_box_position = [0.7, -0.45]
+        self._in_target_box_position = [0.6, -0.45]
 
         self._over_distractor_box_pose = Pose()
         self._over_distractor_box_pose.position = Point(0.665, 0.445, 0.585)
@@ -140,48 +140,64 @@ class RobotDemo:
 
     def _define_robot_poses(self):
 
-        _home_position = np.array([0.6, 0, 0.6])
-        _q1 = gk.quaternion_from_vector_and_angle(np, [1, 0, 0], math.pi)
-        _q2 = gk.quaternion_from_vector_and_angle(np, [0, 0, 1], -math.pi / 4)
-        _home_quaternion = gk.hamilton_product(np, _q1, _q2)
+        _home_position = np.array([0.5, 0, 0.6])
+        _home_quaternion = gk.quaternion_from_vector_and_angle(np, [1, 0, 0], math.pi)
         home_pose = np.concatenate((_home_position, _home_quaternion), -1)
 
-        x_offset = 0.2
+        x_offset = 0.15
+        y_offset = 0.05
 
-        z0 = 0
+        z0 = -0.05
 
         x1 = 0.15
         y1 = 0.15
-        z1 = -0.1
+        z1 = -0.15
 
-        angle1 = math.pi/8
+        z2 = -0.2
+
 
         # define robot poses
-        robot_position_offsets = [np.array([x_offset, 0, z0]),
+        robot_position_offsets = [np.array([x_offset, y_offset, z0]),
 
-                                  np.array([x_offset, 0, z1]),
+                                  np.array([x_offset, y_offset, z1]),
 
-                                  np.array([x_offset+ x1, 0, z1]),
-                                  np.array([x_offset + x1, y1, z1]),
-                                  np.array([x_offset, y1, z1]),
-                                  np.array([x_offset-x1, y1, z1]),
-                                  np.array([x_offset-x1, 0, z1]),
-                                  np.array([x_offset-x1, -y1, z1]),
-                                  np.array([x_offset, -y1, z1]),
-                                  np.array([x_offset + x1, -y1, z1])]
+                                  np.array([x_offset+ x1, y_offset, z1]), # top
+                                  np.array([x_offset - x1, y_offset, z1]),  # bottom
+
+                                  np.array([x_offset, y_offset, z1]), # centre
+
+                                  np.array([x_offset, y_offset + y1, z1]),  # left
+                                  np.array([x_offset, y_offset - y1, z1]),  # right
+
+                                  np.array([x_offset, y_offset, z1]),  # centre
+
+                                  np.array([x_offset + x1, y_offset + y1, z1]),  # top left
+                                  np.array([x_offset - x1, y_offset - y1, z1]),  # bottom right
+
+                                  np.array([x_offset, y_offset, z1]),  # centre
+
+                                  np.array([x_offset-x1, y_offset + y1, z1]), # bottom left
+                                  np.array([x_offset + x1, y_offset-y1, z1]), # top right
+
+                                  np.array([x_offset, y_offset, z2])]
 
         robot_rotation_vectors = [np.array([0, 0, 0]),
 
                                   np.array([0, 0, 0]),
 
-                                  np.array([0, 1, 0])*angle1,
-                                  np.array([-0.5**0.5, 0.5**0.5, 0])*angle1,
-                                  np.array([-1, 0, 0])*angle1,
-                                  np.array([-0.5**0.5, -0.5**0.5, 0])*angle1,
-                                  np.array([0, -1, 0])*angle1,
-                                  np.array([0.5**0.5, -0.5**0.5, 0])*angle1,
-                                  np.array([1, 0, 0])*angle1,
-                                  np.array([0.5**0.5, 0.5**0.5, 0])*angle1]
+                                  np.array([0, 0, 0]),
+                                  np.array([0, 0, 0]),
+                                  np.array([0, 0, 0]),
+                                  np.array([0, 0, 0]),
+                                  np.array([0, 0, 0]),
+                                  np.array([0, 0, 0]),
+                                  np.array([0, 0, 0]),
+                                  np.array([0, 0, 0]),
+                                  np.array([0, 0, 0]),
+                                  np.array([0, 0, 0]),
+                                  np.array([0, 0, 0]),
+
+                                  np.array([0, 0, 0])]
 
         robot_quaternion_offsets = [gk.rotation_vector_to_quaternion(np, aa) for aa in robot_rotation_vectors]
         robot_positions = [home_pose[0:3] + offset for offset in robot_position_offsets]
@@ -190,6 +206,7 @@ class RobotDemo:
 
     def _initialization_motion(self):
         self._robot_interface.move_to_home(0.05, 0.05)
+        time.sleep(0.5)
         for robot_pose in self._robot_poses:
 
             pose = Pose()
@@ -197,10 +214,12 @@ class RobotDemo:
             pose.orientation = Quaternion(robot_pose[3], robot_pose[4], robot_pose[5], robot_pose[6])
 
             self._robot_interface.set_end_effector_quaternion_pose_linearly(pose, 0.05, 0.05)
+            time.sleep(0.5)
         self._robot_interface.move_to_home(0.05, 0.05)
+        time.sleep(0.5)
 
     def _move_robot_over_table(self):
-        self._robot_interface.move_to_home(0.7, 0.7)
+        self._robot_interface.move_to_home(0.5, 0.5)
 
     def _move_robot_to_pre_grasp_pose(self, pre_grasp_pose):
         self._robot_interface.set_end_effector_quaternion_pointing_pose(pre_grasp_pose)
@@ -217,10 +236,10 @@ class RobotDemo:
         time.sleep(1)
 
     def _move_robot_over_target_box(self):
-        self._robot_interface.set_end_effector_quaternion_pose_linearly(self._over_target_box_pose, 0.7, 0.7)
+        self._robot_interface.set_end_effector_quaternion_pose_linearly(self._over_target_box_pose, 0.5, 0.5)
 
     def _move_robot_over_distractor_box(self):
-        self._robot_interface.set_end_effector_quaternion_pose_linearly(self._over_distractor_box_pose, 0.7, 0.7)
+        self._robot_interface.set_end_effector_quaternion_pose_linearly(self._over_distractor_box_pose, 0.5, 0.5)
 
     def _move_robot_to_pre_place_pose(self, robot_poses):
         robot_pre_poses = list()
@@ -228,13 +247,13 @@ class RobotDemo:
             robot_pre_pose = robot_pose
             robot_pre_pose.position.z += self._pre_placement_z_dist
             robot_pre_poses.append(robot_pre_pose)
-        _, pre_pose_reached = self._robot_interface.set_end_effector_quaternion_pose(robot_pre_poses, 0.7, 0.7)
+        _, pre_pose_reached = self._robot_interface.set_end_effector_quaternion_pose(robot_pre_poses, 0.5, 0.5)
         return pre_pose_reached
 
     def _move_robot_to_place_pose(self, pre_pose_reached, object_to_robot_mat):
         place_position = pre_pose_reached.position
         place_position.z -= self._pre_placement_z_dist
-        _, robot_pose = self._robot_interface.set_end_effector_position_linearly(place_position, 0.7, 0.7)
+        _, robot_pose = self._robot_interface.set_end_effector_position_linearly(place_position, 0.5, 0.5)
         pos = robot_pose.position
         ori = robot_pose.orientation
         robot_np_pose = np.array([pos.x, pos.y, pos.z, ori.x, ori.y, ori.z, ori.w])
@@ -251,12 +270,12 @@ class RobotDemo:
         return object_pose
 
     def _move_robot_to_drop_pose(self):
-        self._robot_interface.set_end_effector_position_linearly(self._in_distractor_box_pose.position, 0.7, 0.7)
+        self._robot_interface.set_end_effector_position_linearly(self._in_distractor_box_pose.position, 0.5, 0.5)
         return self._in_distractor_box_pose
 
     def _release_suction_grip(self):
         self._robot_interface.set_suction_state(False)
-        time.sleep(8)
+        time.sleep(6)
 
     # Object Checking #
     # ----------------#
@@ -458,6 +477,7 @@ class RobotDemo:
                 # get possible robot poses
                 robot_poses = self._object_pose_interface.get_robot_poses(self._object_id_to_grasp, object_to_robot_mat,
                                                                           self._in_target_box_position)
+
                 # make motion
                 robot_pose = self._move_robot_to_pre_place_pose(robot_poses)
                 obj_pose = self._move_robot_to_place_pose(robot_pose, object_to_robot_mat)

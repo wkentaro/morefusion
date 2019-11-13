@@ -74,7 +74,7 @@ def add_attached_meshes(mesh_ids, meshes, poses, link_names):
 
         attached_object_msg = _AttachedCollisionObject()
         attached_object_msg.link_name = link_name
-        attached_object_msg.touch_links = ['panda_suction_cup']
+        attached_object_msg.touch_links = ['panda_suction_cup', 'panda_table', 'panda_target_box']
 
         triangles = list()
         for face in _np.array(mesh.faces):

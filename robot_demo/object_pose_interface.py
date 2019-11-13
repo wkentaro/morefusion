@@ -29,12 +29,10 @@ class ObjectPoseInterface:
             self._canonical_quaternions[class_id] = dict()
 
             self._canonical_quaternions[class_id]['x+'] = \
-            [gk.euler_to_quaternion(np, [0, math.pi / 2, -math.pi])]#,
-            '''
+            [gk.euler_to_quaternion(np, [0, math.pi / 2, -math.pi]),
              gk.euler_to_quaternion(np, [0, -math.pi/2, 0]),
              gk.euler_to_quaternion(np, [math.pi / 2, 0, math.pi / 2]),
              gk.euler_to_quaternion(np, [-math.pi / 2, 0, -math.pi / 2])]
-             '''
 
             self._canonical_quaternions[class_id]['x-'] = list()
             self._canonical_quaternions[class_id]['y+'] = list()
@@ -54,12 +52,10 @@ class ObjectPoseInterface:
             self._canonical_extents[class_id] = dict()
 
             self._canonical_extents[class_id]['x+'] = \
-                [[extents[2], extents[1], extents[0]]]#,
-            '''
+                [[extents[2], extents[1], extents[0]],
                  [extents[2], extents[1], extents[0]],
                  [extents[1], extents[2], extents[0]],
                  [extents[1], extents[2], extents[0]]]
-            '''
 
             self._canonical_extents[class_id]['x-'] = list()
 
@@ -87,6 +83,7 @@ class ObjectPoseInterface:
         object_mats = [gk.quaternion_pose_to_mat(np, pose) for pose in object_poses]
         robot_mats = [np.matmul(object_mat, object_to_robot_mat) for object_mat in object_mats]
         robot_poses = [gk.mat_to_quaternion_pose(np, robot_mat) for robot_mat in robot_mats]
+
         robot_pose_msgs = list()
         for robot_pose in robot_poses:
             pose_msg = Pose()
