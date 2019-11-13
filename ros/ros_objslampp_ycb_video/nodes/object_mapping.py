@@ -16,8 +16,8 @@ import tf
 
 class Object:
 
-    _n_votes = 2
-    _add_threshold = 0.02
+    _n_votes = 3
+    _add_threshold = 0.01
 
     def __init__(self, class_id, pcd, is_symmetric):
         self.class_id = class_id
