@@ -35,14 +35,14 @@ df.loc[df['method'] == 'morefusion-occ', 'method'] = 'morefusion-other_depth'
 df.loc[df['method'] == 'morefusion', 'method'] = 'No Refinement'
 df.loc[df['method'] == 'morefusion+icp', 'method'] = '+ICP'
 df.loc[df['method'] == 'morefusion+icc', 'method'] = '+ICC'
-df.loc[df['method'] == 'morefusion+icc+icp', 'method'] = '+ICP+ICC'
+df.loc[df['method'] == 'morefusion+icc+icp', 'method'] = '+ICC+ICP'
 
 case = args.case
 if case == 'pred':
     methods = ['densefusion', 'morefusion-other_depth', 'morefusion']
 else:
     assert case == 'refine'
-    methods = ['No Refinement', '+ICP', '+ICC', '+ICP+ICC']  # NOQA
+    methods = ['No Refinement', '+ICP', '+ICC', '+ICC+ICP']  # NOQA
 
 # step = 0.2
 # for max_visibility in np.arange(1, 5 + 1) * step:
@@ -60,11 +60,12 @@ for cls_id in np.unique(df.class_id):
         mask = (df.class_id == cls_id) & (df.method == method)
         step = 0.2
         for visibility in np.arange(1, 5 + 1) * step:
-            # min_visibility = visibility - step / 2
-            # max_visibility = visibility + step
+            min_visibility = visibility - step / 2
+            max_visibility = visibility + step / 2
             df_cls = df[
                 mask
-                & (df.visibility <= visibility)
+                & (df.visibility >= min_visibility)
+                & (df.visibility <= max_visibility)
             ]
             if df_cls.size == 0:
                 continue
@@ -98,10 +99,11 @@ ax.set_xlabel('Visibility Threshold of Object')
 ax.set_ylabel('AUC of ADD(-S)')
 # ax.set_xlim(0, 1)
 # ax.set_xticks(np.arange(0.1, 1.05, step=0.1))
-ax.set_yticks(np.arange(0.5, 0.95, step=0.1))
-ax.set_ylim(0.55, 0.9)
+ax.set_yticks(np.arange(0.5, 1.05, step=0.1))
+ax.set_ylim(0.75, 1.0)
 plt.gca().legend().set_title('')
 # handles, labels = ax.get_legend_handles_labels()
 # ax.legend(handles=handles[1:], labels=labels[1:])
 # ax.legend(loc='lower right')
+plt.tight_layout()
 plt.show()
