@@ -8,8 +8,6 @@ from moveit_msgs.msg import CollisionObject as _CollisionObject
 from moveit_msgs.msg import AttachedCollisionObject as _AttachedCollisionObject
 
 # ToDo get this working with touch links
-
-
 def add_static_meshes(mesh_ids, meshes, poses):
 
     collision_objects = list()
