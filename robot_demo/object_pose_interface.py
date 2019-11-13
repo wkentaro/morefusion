@@ -14,6 +14,30 @@ class ObjectPoseInterface:
         self._class_names = self._object_models.class_names
         self._class_ids = range(1,len(self._object_models.class_names))
 
+        # define z rotation angles
+        self._z_rotations = dict()
+        self._z_rotations[1] = -13*math.pi/180  # master_chef_can
+        self._z_rotations[2] = 0                # cracker box
+        self._z_rotations[3] = 0                # sugar box
+        self._z_rotations[4] = -20*math.pi/180  # soup can
+        self._z_rotations[5] = 21*math.pi/180   # mustard bottle
+        self._z_rotations[6] = 0                # tuna can
+        self._z_rotations[7] = -29*math.pi/180  # pudding box
+        self._z_rotations[8] = -13*math.pi/180  # gelatin box
+        self._z_rotations[9] = -2*math.pi/180   # potted meat can
+        self._z_rotations[10] = 0               # banana
+        self._z_rotations[11] = -43*math.pi/180 # pitcher base
+        self._z_rotations[12] = 0               # bleach cleanser
+        self._z_rotations[13] = 0               # bowl
+        self._z_rotations[14] = 4*math.pi/180   # mug
+        self._z_rotations[15] = 0               # power drill
+        self._z_rotations[16] = 13*math.pi/180  # wood block
+        self._z_rotations[17] = 17*math.pi/180  # scissors
+        self._z_rotations[18] = 0               # large marker
+        self._z_rotations[19] = -8*math.pi/180  # large clamp
+        self._z_rotations[20] = -7*math.pi/180  # extra large clamp
+        self._z_rotations[21] = 0               # foam brick
+
         # define class specific up axes
         self._class_up_axis_keys = dict()
         self._class_up_axis_keys[1] = ['z+', 'z-'] # master_chef_can
@@ -39,7 +63,7 @@ class ObjectPoseInterface:
         self._class_up_axis_keys[21] = ['x+', 'x-', 'y+', 'y-', 'z+', 'z-'] # foam brick
 
         # Define canonical models
-        canonical_quaternions, canonical_extents = self._get_cannonical_object_rotations_and_extents()
+        canonical_quaternions, canonical_extents = self._get_cannonical_object_rotation_mats_and_extents()
         self._get_class_specific_orientations_and_extents(canonical_quaternions, canonical_extents)
 
     # Init #
@@ -54,10 +78,10 @@ class ObjectPoseInterface:
         elif (axis_1[0] == 'x' and axis_2[0] == 'y') or (axis_2[0] == 'x' and axis_1[0] == 'y'):
             return 'z+'
 
-    def _get_cannonical_object_rotations_and_extents(self):
+    def _get_cannonical_object_rotation_mats_and_extents(self):
 
         # final data container
-        all_q_s = dict()
+        all_R_s = dict()
         all_extents = dict()
 
         # visualization
@@ -104,6 +128,7 @@ class ObjectPoseInterface:
             R_270 = np.matmul(R_180, ttf.rotation_matrix(math.pi / 2, axes[up_axis_key]))
 
             # store extents
+            # ToDo: change so that unaligned objects do not have over conservative extents, now the object is corrected
             extents = list()
             for i in range(2):
                 extents.append(
@@ -112,17 +137,16 @@ class ObjectPoseInterface:
                     [axis_indices[remaining_axis_key], axis_indices[rotation_axis_key], axis_indices[up_axis_key]])
 
             # store quaternions
-            q_s = list()
+            R_s = list()
             for R in [R_0, R_90, R_180, R_270]:
-                q = ttf.quaternion_from_matrix(R)
-                q_s.append(np.concatenate((q[1:], q[0:1])))
+                R_s.append(R)
 
-            all_q_s[up_axis_key] = q_s
+            all_R_s[up_axis_key] = R_s
             all_extents[up_axis_key] = extents
 
-        return all_q_s, all_extents
+        return all_R_s, all_extents
 
-    def _get_class_specific_orientations_and_extents(self, cannonincal_qs, cannonical_extents):
+    def _get_class_specific_orientations_and_extents(self, cannonincal_Rs, cannonical_extents):
 
         self._canonical_quaternions = dict()
         self._canonical_extents = dict()
@@ -131,8 +155,19 @@ class ObjectPoseInterface:
 
             self._canonical_quaternions[class_id] = dict()
             self._canonical_extents[class_id] = dict()
+
+            R_z_fix = ttf.rotation_matrix(self._z_rotations[class_id], [0., 0., 1.])
+
             for up_axis_key in self._class_up_axis_keys[class_id]:
-                self._canonical_quaternions[class_id][up_axis_key] = cannonincal_qs[up_axis_key]
+
+                q_s = list()
+
+                for R in cannonincal_Rs[up_axis_key]:
+                    R_tot = np.matmul(R, R_z_fix)
+                    q = ttf.quaternion_from_matrix(R_tot)
+                    q_s.append(np.concatenate((q[1:], q[0:1])))
+
+                self._canonical_quaternions[class_id][up_axis_key] = q_s
                 self._canonical_extents[class_id][up_axis_key] = cannonical_extents[up_axis_key]
 
     def _get_object_poses(self, class_id, position_on_table):
