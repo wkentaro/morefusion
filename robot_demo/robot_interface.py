@@ -13,7 +13,7 @@ from ros_objslampp_srvs.srv import MoveToJointPosition as _MoveToJointPosition
 # move to home #
 
 
-def move_to_home(velocity_scaling=0.75, acceleration_scaling=0.75, must_succeed=True):
+def move_to_home(velocity_scaling=0.5, acceleration_scaling=0.5, must_succeed=True):
 
     rospy.wait_for_service('/move_to_joint_position')
     move_to_joint_position = rospy.ServiceProxy('/move_to_joint_position', _MoveToJointPosition)
@@ -35,7 +35,7 @@ def move_to_home(velocity_scaling=0.75, acceleration_scaling=0.75, must_succeed=
 # end effector pose #
 
 
-def set_end_effector_position_linearly(position, velocity_scaling=0.75, acceleration_scaling=0.75, must_succeed=True):
+def set_end_effector_position_linearly(position, velocity_scaling=0.5, acceleration_scaling=0.5, must_succeed=True):
 
     rospy.wait_for_service('/move_to_pose_linearly')
     move_to_position = rospy.ServiceProxy('/move_to_pose_linearly', _MoveToPose)
@@ -56,7 +56,7 @@ def set_end_effector_position_linearly(position, velocity_scaling=0.75, accelera
     return response.success, response.pose_reached
 
 
-def set_end_effector_quaternion_pose_linearly(pose, velocity_scaling=0.75, acceleration_scaling=0.75, must_succeed=True):
+def set_end_effector_quaternion_pose_linearly(pose, velocity_scaling=0.5, acceleration_scaling=0.5, must_succeed=True):
 
     rospy.wait_for_service('/move_to_pose_linearly')
     move_to_position = rospy.ServiceProxy('/move_to_pose_linearly', _MoveToPose)
@@ -72,7 +72,7 @@ def set_end_effector_quaternion_pose_linearly(pose, velocity_scaling=0.75, accel
     return response.success, response.pose_reached
 
 
-def set_end_effector_quaternion_pose(poses, velocity_scaling=0.75, acceleration_scaling=0.75, must_succeed=True):
+def set_end_effector_quaternion_pose(poses, velocity_scaling=0.5, acceleration_scaling=0.5, must_succeed=True):
 
     rospy.wait_for_service('/pose_service/move_to_pose')
     move_to_pose = rospy.ServiceProxy('/pose_service/move_to_pose', _MoveToPose)
@@ -99,7 +99,7 @@ def set_end_effector_quaternion_pose(poses, velocity_scaling=0.75, acceleration_
     return response.success, response.pose_reached
 
 
-def set_end_effector_quaternion_pointing_pose(pose, velocity_scaling=0.75, acceleration_scaling=0.75, must_succeed=True):
+def set_end_effector_quaternion_pointing_pose(pose, velocity_scaling=0.5, acceleration_scaling=0.5, must_succeed=True):
 
     rospy.wait_for_service('/pose_service/move_to_pose')
     move_to_pose = rospy.ServiceProxy('/pose_service/move_to_pose', _MoveToPose)

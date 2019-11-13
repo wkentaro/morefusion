@@ -9,7 +9,7 @@ from geometry_msgs.msg import Pose
 class ObjectPoseInterface:
 
     def __init__(self, object_models):
-        self._floor_z = 0.11
+        self._floor_z = 0.075
         self._object_models = object_models
         self._class_names = self._object_models.class_names
         self._class_ids = range(1,len(self._object_models.class_names))
@@ -63,7 +63,7 @@ class ObjectPoseInterface:
         self._class_up_axis_keys[21] = ['x+', 'x-', 'y+', 'y-', 'z+', 'z-'] # foam brick
 
         # Define canonical models
-        canonical_quaternions, canonical_extents = self._get_cannonical_object_rotation_mats_and_extents()
+        canonical_quaternions, canonical_extents = self._get_cannonical_object_rotation_mats_and_extent_idxs()
         self._get_class_specific_orientations_and_extents(canonical_quaternions, canonical_extents)
 
     # Init #
@@ -78,7 +78,7 @@ class ObjectPoseInterface:
         elif (axis_1[0] == 'x' and axis_2[0] == 'y') or (axis_2[0] == 'x' and axis_1[0] == 'y'):
             return 'z+'
 
-    def _get_cannonical_object_rotation_mats_and_extents(self):
+    def _get_cannonical_object_rotation_mats_and_extent_idxs(self):
 
         # final data container
         all_R_s = dict()
@@ -146,7 +146,7 @@ class ObjectPoseInterface:
 
         return all_R_s, all_extents
 
-    def _get_class_specific_orientations_and_extents(self, cannonincal_Rs, cannonical_extents):
+    def _get_class_specific_orientations_and_extents(self, cannonincal_Rs, cannonical_extent_idxs):
 
         self._canonical_quaternions = dict()
         self._canonical_extents = dict()
@@ -158,6 +158,8 @@ class ObjectPoseInterface:
 
             R_z_fix = ttf.rotation_matrix(self._z_rotations[class_id], [0., 0., 1.])
 
+            extent_orig = self._object_models.get_cad(class_name=self._class_names[class_id]).extents
+
             for up_axis_key in self._class_up_axis_keys[class_id]:
 
                 q_s = list()
@@ -168,7 +170,13 @@ class ObjectPoseInterface:
                     q_s.append(np.concatenate((q[1:], q[0:1])))
 
                 self._canonical_quaternions[class_id][up_axis_key] = q_s
-                self._canonical_extents[class_id][up_axis_key] = cannonical_extents[up_axis_key]
+
+                extents = list()
+                extent_idxs = cannonical_extent_idxs[up_axis_key]
+                for extent_idx in extent_idxs:
+                    extent = [extent_orig[extent_idx[0]], extent_orig[extent_idx[1]], extent_orig[extent_idx[2]]]
+                    extents.append(extent)
+                self._canonical_extents[class_id][up_axis_key] = extents
 
     def _get_object_poses(self, class_id, position_on_table):
         object_quaternions = list()
