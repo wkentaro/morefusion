@@ -46,7 +46,7 @@ class RobotDemo:
                 mesh = mesh_multi
             self._collision_meshes.append(mesh)
 
-        self._object_pose_interface = ObjectPoseInterface(self._object_models, ['x-','x+','z-','z+','y-','y+'])
+        self._object_pose_interface = ObjectPoseInterface(self._object_models)
 
         self._robot_interface = robot_interface
         self._world_interface = world_interface
@@ -64,7 +64,7 @@ class RobotDemo:
         self._post_place_dist = 0.05
 
         self._over_target_box_pose = Pose()
-        self._over_target_box_pose.position = Point(0.6, -0.45, 0.575)
+        self._over_target_box_pose.position = Point(0.6, -0.45, 0.45)
         self._over_target_box_pose.orientation = Quaternion(0.8, -0.6, 0.008, -0.01)
 
         self._in_target_box_position = [0.6, -0.45]
@@ -254,7 +254,7 @@ class RobotDemo:
     def _move_robot_to_place_pose(self, pre_pose_reached, object_to_robot_mat):
         place_position = pre_pose_reached.position
         place_position.z -= self._pre_placement_z_dist
-        _, robot_pose = self._robot_interface.set_end_effector_position_linearly(place_position, 0.5, 0.5)
+        _, robot_pose = self._robot_interface.set_end_effector_position_linearly(place_position, 0.25, 0.25)
         pos = robot_pose.position
         ori = robot_pose.orientation
         robot_np_pose = np.array([pos.x, pos.y, pos.z, ori.x, ori.y, ori.z, ori.w])
@@ -291,7 +291,7 @@ class RobotDemo:
 
         position = Point(translation[0], translation[1], translation[2])
 
-        self._robot_interface.set_end_effector_position_linearly(position)
+        self._robot_interface.set_end_effector_position_linearly(position, 0.25, 0.25)
 
     def _move_robot_to_drop_pose(self):
         self._robot_interface.set_end_effector_position_linearly(self._in_distractor_box_pose.position, 0.5, 0.5)
@@ -501,6 +501,12 @@ class RobotDemo:
                 # get possible robot poses
                 robot_poses = self._object_pose_interface.get_robot_poses(self._object_id_to_grasp, object_to_robot_mat,
                                                                           self._in_target_box_position)
+
+                pos = robot_poses[0].position
+                ori = robot_poses[0].orientation
+                translation = np.array([pos.x, pos.y, pos.z])
+                rotation = np.array([ori.x, ori.y, ori.z, ori.w])
+                self._tf_broadcaster.sendTransform(translation, rotation, self._object_ros_time, 'potential_robot_pose', 'panda_link0')
 
                 # make motion
                 robot_pose = self._move_robot_to_pre_place_pose(robot_poses)
