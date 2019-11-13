@@ -61,6 +61,7 @@ class RobotDemo:
 
         self._grasp_overlap = 0.01
         self._pre_placement_z_dist = 0.15
+        self._post_place_dist = 0.05
 
         self._over_target_box_pose = Pose()
         self._over_target_box_pose.position = Point(0.6, -0.45, 0.575)
@@ -267,7 +268,30 @@ class RobotDemo:
         object_pose.orientation.y = object_np_pose[4]
         object_pose.orientation.z = object_np_pose[5]
         object_pose.orientation.w = object_np_pose[6]
-        return object_pose
+        return robot_pose, object_pose
+
+    def _move_robot_to_post_place_pose(self, robot_pose):
+
+        post_place_mat_in_suction_frame = np.array([[1, 0, 0, 0],
+                                                    [0, 1, 0, 0],
+                                                    [0, 0, 1, -self._post_place_dist],
+                                                    [0, 0, 0, 1]])
+
+        pos = robot_pose.position
+        ori = robot_pose.orientation
+        robot_np_pose = np.array([pos.x, pos.y, pos.z, ori.x, ori.y, ori.z, ori.w])
+        robot_mat = gk.quaternion_pose_to_mat(np, robot_np_pose)
+
+        post_place_mat_in_world_frame = np.matmul(robot_mat, post_place_mat_in_suction_frame)
+        post_place_pose_in_world_frame = gk.mat_to_quaternion_pose(np, post_place_mat_in_world_frame)
+        translation = post_place_pose_in_world_frame[0:3]
+        rotation = post_place_pose_in_world_frame[3:]
+
+        self._tf_broadcaster.sendTransform(translation, rotation, self._object_ros_time, 'post_place', 'panda_link0')
+
+        position = Point(translation[0], translation[1], translation[2])
+
+        self._robot_interface.set_end_effector_position_linearly(position)
 
     def _move_robot_to_drop_pose(self):
         self._robot_interface.set_end_effector_position_linearly(self._in_distractor_box_pose.position, 0.5, 0.5)
@@ -405,7 +429,7 @@ class RobotDemo:
         # ----------------#
 
         print('performing initialization motion...')
-        self._initialization_motion()
+        #self._initialization_motion()
 
         print('waiting for object tree')
         try:
@@ -480,13 +504,15 @@ class RobotDemo:
 
                 # make motion
                 robot_pose = self._move_robot_to_pre_place_pose(robot_poses)
-                obj_pose = self._move_robot_to_place_pose(robot_pose, object_to_robot_mat)
+                robot_pose, obj_pose = self._move_robot_to_place_pose(robot_pose, object_to_robot_mat)
                 self._update_scene_with_placement(obj_pose)
+                self._release_suction_grip()
+                self._move_robot_to_post_place_pose(robot_pose)
             else:
                 self._move_robot_over_distractor_box()
                 self._move_robot_to_drop_pose()
                 self._update_scene_with_drop()
-            self._release_suction_grip()
+                self._release_suction_grip()
 
             # object logging #
             # ---------------#
