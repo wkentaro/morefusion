@@ -70,11 +70,11 @@ class RobotDemo:
         self._in_target_box_position = [0.6, -0.45]
 
         self._over_distractor_box_pose = Pose()
-        self._over_distractor_box_pose.position = Point(0.665, 0.445, 0.585)
+        self._over_distractor_box_pose.position = Point(0.64, 0.43, 0.585)
         self._over_distractor_box_pose.orientation = Quaternion(0.891, 0.45, 0.034, -0.0192)
 
         self._in_distractor_box_pose = Pose()
-        self._in_distractor_box_pose.position = Point(0.665, 0.445, 0.372)
+        self._in_distractor_box_pose.position = Point(0.64, 0.43, 0.3)
         self._in_distractor_box_pose.orientation = Quaternion(0.891, 0.45, 0.034, -0.0192)
 
         self._pick_point_np_poses_in_world_frame = dict()
