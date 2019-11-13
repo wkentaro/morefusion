@@ -61,7 +61,7 @@ class RobotDemo:
         self._picked_objects = list()
 
         self._initialization_speed_ratio = 0.05
-        self._grasp_overlap = 0.008
+        self._grasp_overlap = 0.01
         self._pre_placement_z_dist = 0.025
         self._post_place_dist = 0.05
         self._angle_from_vertical_limit = math.pi/4
