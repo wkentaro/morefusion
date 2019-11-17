@@ -144,7 +144,7 @@ class OctomapServer {
   ros::ServiceClient m_renderClient;
   tf::TransformListener m_tfListener;
 
-  std::map<int, OcTreeT*> m_octrees;
+  std::map<int, OcTreeT*> octrees_;
   std::map<int, unsigned> m_classIds;
   std::map<int, octomap::point3d> m_centers;
   unsigned m_instanceCounter;

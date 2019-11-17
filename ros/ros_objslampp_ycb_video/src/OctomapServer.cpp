@@ -7,8 +7,7 @@ using octomap_msgs::Octomap;
 namespace ros_objslampp_ycb_video {
 
 OctomapServer::OctomapServer()
-: m_octrees(),
-  m_instanceCounter(0),
+: m_instanceCounter(0),
   m_classIds(),
   m_centers(),
   m_pointCloudSub(NULL),
@@ -216,13 +215,13 @@ void OctomapServer::insertScan(
       }
       pitch = ros_objslampp_ycb_video::utils::class_id_to_voxel_pitch(class_id);
     }
-    if (m_octrees.find(instance_id) == m_octrees.end()) {
+    if (octrees_.find(instance_id) == octrees_.end()) {
       OcTreeT* octree = new OcTreeT(pitch);
       octree->setProbHit(m_probHit);
       octree->setProbMiss(m_probMiss);
       octree->setClampingThresMin(m_thresMin);
       octree->setClampingThresMax(m_thresMax);
-      m_octrees.insert(std::make_pair(instance_id, octree));
+      octrees_.insert(std::make_pair(instance_id, octree));
       m_classIds.insert(std::make_pair(instance_id, class_id));
     }
     occupied_cells.insert(std::make_pair(instance_id, octomap::KeySet()));
@@ -263,21 +262,21 @@ void OctomapServer::insertScan(
     if ((m_maxRange < 0.0) || ((point - sensorOrigin).norm() <= m_maxRange)) {
       // free cells
       octomap::KeyRay key_ray;
-      OcTreeT* octree_bg = m_octrees.find(-1)->second;
+      OcTreeT* octree_bg = octrees_.find(-1)->second;
       if (octree_bg->computeRayKeys(sensorOrigin, point, key_ray)) {
         #pragma omp critical
         free_cells_bg.insert(key_ray.begin(), key_ray.end());
       }
       // occupied endpoint
       octomap::OcTreeKey key;
-      if (m_octrees.find(instance_id)->second->coordToKeyChecked(point, key)) {
+      if (octrees_.find(instance_id)->second->coordToKeyChecked(point, key)) {
         #pragma omp critical
         occupied_cells.find(instance_id)->second.insert(key);
       }
     } else {  // ray longer than maxrange:;
       octomap::point3d new_end = sensorOrigin + (point - sensorOrigin).normalized() * m_maxRange;
       octomap::KeyRay key_ray;
-      OcTreeT* octree_bg = m_octrees.find(-1)->second;
+      OcTreeT* octree_bg = octrees_.find(-1)->second;
       if (octree_bg->computeRayKeys(sensorOrigin, new_end, key_ray)) {
         #pragma omp critical
         free_cells_bg.insert(key_ray.begin(), key_ray.end());
@@ -285,7 +284,7 @@ void OctomapServer::insertScan(
     }
   }
 
-  OcTreeT* octree_bg = m_octrees.find(-1)->second;
+  OcTreeT* octree_bg = octrees_.find(-1)->second;
   octomap::KeySet occupied_cells_bg = occupied_cells.find(-1)->second;
   for (octomap::KeySet::iterator it = free_cells_bg.begin(); it != free_cells_bg.end(); it++) {
     if (occupied_cells_bg.find(*it) == occupied_cells_bg.end()) {
@@ -297,7 +296,7 @@ void OctomapServer::insertScan(
        i != occupied_cells.end(); i++) {
     int instance_id = i->first;
     octomap::KeySet key_set_occupied = i->second;
-    OcTreeT* octree = m_octrees.find(instance_id)->second;
+    OcTreeT* octree = octrees_.find(instance_id)->second;
     for (octomap::KeySet::iterator j = key_set_occupied.begin(); j != key_set_occupied.end(); j++) {
       octree->updateNode(*j, true);
     }
@@ -314,7 +313,7 @@ void OctomapServer::insertScan(
   }
 
   if (m_compressMap) {
-    for (std::map<int, OcTreeT*>::iterator it = m_octrees.begin(); it != m_octrees.end(); it++) {
+    for (std::map<int, OcTreeT*>::iterator it = octrees_.begin(); it != octrees_.end(); it++) {
       it->second->prune();
     }
   }
@@ -325,8 +324,8 @@ void OctomapServer::getGridsInWorldFrame(
     ros_objslampp_msgs::VoxelGridArray& grids) {
   grids.header.frame_id = m_worldFrameId;
   grids.header.stamp = rostime;
-  for (std::map<int, OcTreeT*>::iterator it_octree = m_octrees.begin();
-       it_octree != m_octrees.end(); it_octree++) {
+  for (std::map<int, OcTreeT*>::iterator it_octree = octrees_.begin();
+       it_octree != octrees_.end(); it_octree++) {
     int instance_id = it_octree->first;
     OcTreeT* octree = it_octree->second;
 
@@ -377,7 +376,7 @@ void OctomapServer::publishGrids(
     const ros::Time& rostime,
     const Eigen::Matrix4f& sensorToWorld,
     const std::set<int>& instance_ids_active) {
-  if (m_octrees.size() == 0) {
+  if (octrees_.size() == 0) {
     return;
   }
 
@@ -386,8 +385,8 @@ void OctomapServer::publishGrids(
   grids.header.stamp = rostime;
   ros_objslampp_msgs::VoxelGridArray grids_noentry;
   grids_noentry.header = grids.header;
-  for (std::map<int, OcTreeT*>::iterator it_octree = m_octrees.begin();
-       it_octree != m_octrees.end(); it_octree++) {
+  for (std::map<int, OcTreeT*>::iterator it_octree = octrees_.begin();
+       it_octree != octrees_.end(); it_octree++) {
     int instance_id = it_octree->first;
     if (instance_id == -1) {
       continue;
@@ -453,8 +452,8 @@ void OctomapServer::publishGrids(
             grid.indices.push_back(index);
             grid.values.push_back(node->getOccupancy());
           } else {
-            for (std::map<int, OcTreeT*>::iterator it_octree_other = m_octrees.begin();
-                 it_octree_other != m_octrees.end(); it_octree_other++) {
+            for (std::map<int, OcTreeT*>::iterator it_octree_other = octrees_.begin();
+                 it_octree_other != octrees_.end(); it_octree_other++) {
               if (it_octree_other->first == instance_id) {
                 continue;
               }
@@ -484,7 +483,7 @@ void OctomapServer::publishGrids(
 }
 
 void OctomapServer::publishAll(const ros::Time& rostime) {
-  if (m_octrees.size() == 0) {
+  if (octrees_.size() == 0) {
     return;
   }
 
@@ -504,8 +503,8 @@ void OctomapServer::publishAll(const ros::Time& rostime) {
 
   // now, traverse all leafs in the tree:
   std::map<int, visualization_msgs::MarkerArray> occupiedNodesVisAll;
-  for (std::map<int, OcTreeT*>::iterator it_octree = m_octrees.begin();
-       it_octree != m_octrees.end(); it_octree++) {
+  for (std::map<int, OcTreeT*>::iterator it_octree = octrees_.begin();
+       it_octree != octrees_.end(); it_octree++) {
     // init markers:
     visualization_msgs::MarkerArray occupiedNodesVis;
     // each array stores all cubes of a different size, one for each depth level:
@@ -533,7 +532,7 @@ void OctomapServer::publishAll(const ros::Time& rostime) {
 
           if (instance_id == -1) {
             bool is_occupied_by_fg = false;
-            for (const auto& kv : m_octrees) {
+            for (const auto& kv : octrees_) {
               if (kv.first == -1) {
                 continue;
               }
@@ -633,7 +632,7 @@ void OctomapServer::publishAll(const ros::Time& rostime) {
 
   // finish FreeMarkerArray:
   if (publishFreeMarkerArray) {
-    OcTreeT* octree_bg = m_octrees.find(-1)->second;
+    OcTreeT* octree_bg = octrees_.find(-1)->second;
     for (unsigned i= 0; i < freeNodesVis.markers.size(); ++i) {
       double size = octree_bg->getNodeSize(i);
 
@@ -676,7 +675,7 @@ void OctomapServer::publishBinaryOctoMap(const ros::Time& rostime) const {
   map.header.frame_id = m_worldFrameId;
   map.header.stamp = rostime;
 
-  OcTreeT* octree_bg = m_octrees.find(-1)->second;
+  OcTreeT* octree_bg = octrees_.find(-1)->second;
   if (octomap_msgs::binaryMapToMsg(*octree_bg, map)) {
     m_binaryMapPub.publish(map);
   } else {
@@ -689,7 +688,7 @@ void OctomapServer::publishFullOctoMap(const ros::Time& rostime) const {
   map.header.frame_id = m_worldFrameId;
   map.header.stamp = rostime;
 
-  OcTreeT* octree_bg = m_octrees.find(-1)->second;
+  OcTreeT* octree_bg = octrees_.find(-1)->second;
   if (octomap_msgs::fullMapToMsg(*octree_bg, map)) {
     m_fullMapPub.publish(map);
   } else {
@@ -700,7 +699,7 @@ void OctomapServer::publishFullOctoMap(const ros::Time& rostime) const {
 bool OctomapServer::isSpeckleNode(const octomap::OcTreeKey& nKey) const {
   octomap::OcTreeKey key;
   bool neighborFound = false;
-  OcTreeT* octree_bg = m_octrees.find(-1)->second;
+  OcTreeT* octree_bg = octrees_.find(-1)->second;
   for (key[2] = nKey[2] - 1; !neighborFound && key[2] <= nKey[2] + 1; ++key[2]) {
     for (key[1] = nKey[1] - 1; !neighborFound && key[1] <= nKey[1] + 1; ++key[1]) {
       for (key[0] = nKey[0] - 1; !neighborFound && key[0] <= nKey[0] + 1; ++key[0]) {
