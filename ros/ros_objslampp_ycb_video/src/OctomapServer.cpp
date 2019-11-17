@@ -6,26 +6,21 @@ using octomap_msgs::Octomap;
 
 namespace ros_objslampp_ycb_video {
 
-OctomapServer::OctomapServer()
-: m_probHit(0.7),
-  m_probMiss(0.4),
-  m_thresMin(0.12),
-  m_thresMax(0.97),
-  m_treeDepth(16),
-  m_maxTreeDepth(16) {
-
+OctomapServer::OctomapServer() {
   nh_ = ros::NodeHandle();
   pnh_ = ros::NodeHandle("~");
 
   instance_counter_ = 0;
+  tree_depth_ = 16;
+  tree_depth_max_ = 16;
 
   // parameters for mapping
   pnh_.param("resolution", resolution_, 0.05);
   pnh_.param("sensor_model/max_range", max_range_, -1.0);
-  pnh_.param("sensor_model/hit", m_probHit, m_probHit);
-  pnh_.param("sensor_model/miss", m_probMiss, m_probMiss);
-  pnh_.param("sensor_model/min", m_thresMin, m_thresMin);
-  pnh_.param("sensor_model/max", m_thresMax, m_thresMax);
+  pnh_.param("sensor_model/hit", probability_hit_, 0.7);
+  pnh_.param("sensor_model/miss", probability_miss_, 0.4);
+  pnh_.param("sensor_model/min", probability_min_, 0.12);
+  pnh_.param("sensor_model/max", probability_max_, 0.97);
   pnh_.param("compress_map", do_compress_map_, true);
 
   // paramters for publishing
@@ -201,10 +196,10 @@ void OctomapServer::insertScan(
     }
     if (octrees_.find(instance_id) == octrees_.end()) {
       OcTreeT* octree = new OcTreeT(pitch);
-      octree->setProbHit(m_probHit);
-      octree->setProbMiss(m_probMiss);
-      octree->setClampingThresMin(m_thresMin);
-      octree->setClampingThresMax(m_thresMax);
+      octree->setProbHit(probability_hit_);
+      octree->setProbMiss(probability_miss_);
+      octree->setClampingThresMin(probability_min_);
+      octree->setClampingThresMax(probability_max_);
       octrees_.insert(std::make_pair(instance_id, octree));
       class_ids_.insert(std::make_pair(instance_id, class_id));
     }
@@ -427,7 +422,7 @@ void OctomapServer::publishGrids(
           size_t index = i * grid.dims.y * grid.dims.z + j * grid.dims.z + k;
           if (m_groundAsNoEntry && (z < 0)) {
             grid_noentry.indices.push_back(index);
-            grid_noentry.values.push_back(m_thresMin);
+            grid_noentry.values.push_back(probability_max_);
             continue;
           }
 
@@ -449,7 +444,7 @@ void OctomapServer::publishGrids(
                     m_freeAsNoEntry && (occupancy < 0.5)) {
                   grid_noentry.indices.push_back(index);
                   grid_noentry.values.push_back(1 - occupancy);
-                } else if (occupancy >= m_thresMax) {
+                } else if (occupancy >= probability_max_) {
                   grid_noentry.indices.push_back(index);
                   grid_noentry.values.push_back(occupancy);
                 }
@@ -480,7 +475,7 @@ void OctomapServer::publishAll(const ros::Time& rostime) {
   // init markers for free space:
   visualization_msgs::MarkerArray freeNodesVis;
   // each array stores all cubes of a different size, one for each depth level:
-  freeNodesVis.markers.resize(m_treeDepth+1);
+  freeNodesVis.markers.resize(tree_depth_ + 1);
 
   geometry_msgs::Pose pose;
   pose.orientation = tf::createQuaternionMsgFromYaw(0.0);
@@ -492,11 +487,11 @@ void OctomapServer::publishAll(const ros::Time& rostime) {
     // init markers:
     visualization_msgs::MarkerArray occupiedNodesVis;
     // each array stores all cubes of a different size, one for each depth level:
-    occupiedNodesVis.markers.resize(m_treeDepth+1);
+    occupiedNodesVis.markers.resize(tree_depth_ + 1);
 
     const int instance_id = it_octree->first;
     OcTreeT* octree = it_octree->second;
-    for (OcTreeT::iterator it = octree->begin(m_maxTreeDepth);
+    for (OcTreeT::iterator it = octree->begin(tree_depth_max_);
          it != octree->end(); it++) {
       if (octree->isNodeOccupied(*it)) {
         if (!publishMarkerArray) {
@@ -505,7 +500,7 @@ void OctomapServer::publishAll(const ros::Time& rostime) {
 
         // Ignore speckles in the map:
         if (do_filter_speckles_ &&
-            (it.getDepth() == m_treeDepth + 1) &&
+            (it.getDepth() == tree_depth_ + 1) &&
             isSpeckleNode(it.getKey())) {
           continue;
         }  // else: current octree node is no speckle, send it out

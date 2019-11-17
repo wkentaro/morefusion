@@ -152,12 +152,12 @@ class OctomapServer {
   // mapping parameters
   double resolution_;
   double max_range_;
-  double m_probHit;
-  double m_probMiss;
-  double m_thresMin;
-  double m_thresMax;
-  unsigned m_treeDepth;
-  unsigned m_maxTreeDepth;
+  double probability_hit_;
+  double probability_miss_;
+  double probability_min_;
+  double probability_max_;
+  unsigned tree_depth_;
+  unsigned tree_depth_max_;
   bool do_compress_map_;
 
   // for publishing
