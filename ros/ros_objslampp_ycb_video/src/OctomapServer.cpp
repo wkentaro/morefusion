@@ -14,11 +14,8 @@ OctomapServer::OctomapServer()
   m_thresMax(0.97),
   m_treeDepth(16),
   m_maxTreeDepth(16),
-  m_occupancyMinZ(-std::numeric_limits<double>::max()),
-  m_occupancyMaxZ(std::numeric_limits<double>::max()),
-  m_minSizeX(0.0), m_minSizeY(0.0),
-  m_filterSpeckles(false),
-  m_compressMap(true) {
+  do_filter_speckles_(false),
+  do_compress_map_(true) {
 
   nh_ = ros::NodeHandle();
   pnh_ = ros::NodeHandle("~");
@@ -32,11 +29,7 @@ OctomapServer::OctomapServer()
   pnh_.param("frame_id", frame_id_world_, frame_id_world_);
   pnh_.param("sensor_frame_id", frame_id_sensor_, frame_id_sensor_);
 
-  pnh_.param("occupancy_min_z", m_occupancyMinZ, m_occupancyMinZ);
-  pnh_.param("occupancy_max_z", m_occupancyMaxZ, m_occupancyMaxZ);
-  pnh_.param("min_x_size", m_minSizeX, m_minSizeX);
-  pnh_.param("min_y_size", m_minSizeY, m_minSizeY);
-  pnh_.param("filter_speckles", m_filterSpeckles, m_filterSpeckles);
+  pnh_.param("filter_speckles", do_filter_speckles_, do_filter_speckles_);
 
   pnh_.param("sensor_model/max_range", max_range_, max_range_);
 
@@ -45,7 +38,7 @@ OctomapServer::OctomapServer()
   pnh_.param("sensor_model/miss", m_probMiss, m_probMiss);
   pnh_.param("sensor_model/min", m_thresMin, m_thresMin);
   pnh_.param("sensor_model/max", m_thresMax, m_thresMax);
-  pnh_.param("compress_map", m_compressMap, m_compressMap);
+  pnh_.param("compress_map", do_compress_map_, do_compress_map_);
 
   m_binaryMapPub = nh_.advertise<Octomap>("octomap_binary", 1);
   m_fullMapPub = nh_.advertise<Octomap>("octomap_full", 1);
@@ -310,7 +303,7 @@ void OctomapServer::insertScan(
     centers_.insert(std::make_pair(instance_id, center));
   }
 
-  if (m_compressMap) {
+  if (do_compress_map_) {
     for (std::map<int, OcTreeT*>::iterator it = octrees_.begin(); it != octrees_.end(); it++) {
       it->second->prune();
     }
@@ -513,74 +506,53 @@ void OctomapServer::publishAll(const ros::Time& rostime) {
     for (OcTreeT::iterator it = octree->begin(m_maxTreeDepth);
          it != octree->end(); it++) {
       if (octree->isNodeOccupied(*it)) {
+        if (!publishMarkerArray) {
+          continue;
+        }
+
+        // Ignore speckles in the map:
+        if (do_filter_speckles_ &&
+            (it.getDepth() == m_treeDepth + 1) &&
+            isSpeckleNode(it.getKey())) {
+          continue;
+        }  // else: current octree node is no speckle, send it out
+
+        double x = it.getX();
+        double y = it.getY();
         double z = it.getZ();
-        double half_size = it.getSize() / 2.0;
-        if (z + half_size > m_occupancyMinZ && z - half_size < m_occupancyMaxZ) {
-          double size = it.getSize();
-          double x = it.getX();
-          double y = it.getY();
 
-          // Ignore speckles in the map:
-          if (m_filterSpeckles &&
-              (it.getDepth() == m_treeDepth + 1) &&
-              isSpeckleNode(it.getKey())) {
-            ROS_DEBUG("Ignoring single speckle at (%f,%f,%f)", x, y, z);
-            continue;
-          }  // else: current octree node is no speckle, send it out
-
-          if (instance_id == -1) {
-            bool is_occupied_by_fg = false;
-            for (const auto& kv : octrees_) {
-              if (kv.first == -1) {
-                continue;
-              }
-              octomap::OcTreeNode* node = kv.second->search(x, y, z, /*depth=*/0);
-              if ((node != NULL) && (node->getOccupancy() > 0.5)) {
-                is_occupied_by_fg = true;
-                break;
-              }
-            }
-            if (is_occupied_by_fg) {
+        if (instance_id == -1) {
+          bool is_occupied_by_fg = false;
+          for (const auto& kv : octrees_) {
+            if (kv.first == -1) {
               continue;
             }
+            octomap::OcTreeNode* node = kv.second->search(x, y, z, /*depth=*/0);
+            if ((node != NULL) && (node->getOccupancy() > 0.5)) {
+              is_occupied_by_fg = true;
+              break;
+            }
           }
-
-          // create marker:
-          if (publishMarkerArray) {
-            unsigned idx = it.getDepth();
-            assert(idx < occupiedNodesVis.markers.size());
-
-            geometry_msgs::Point cubeCenter;
-            cubeCenter.x = x;
-            cubeCenter.y = y;
-            cubeCenter.z = z;
-
-            occupiedNodesVis.markers[idx].points.push_back(cubeCenter);
+          if (is_occupied_by_fg) {
+            continue;
           }
         }
-      } else if (instance_id != -1) {
-        continue;
-      } else {
-        // node not occupied => mark as free in 2D map if unknown so far
-        double z = it.getZ();
-        double half_size = it.getSize() / 2.0;
-        if (z + half_size > m_occupancyMinZ && z - half_size < m_occupancyMaxZ) {
-          if (publishFreeMarkerArray) {
-            double x = it.getX();
-            double y = it.getY();
 
-            // create marker for free space:
-            unsigned idx = it.getDepth();
-            assert(idx < freeNodesVis.markers.size());
-
-            geometry_msgs::Point cubeCenter;
-            cubeCenter.x = x;
-            cubeCenter.y = y;
-            cubeCenter.z = z;
-
-            freeNodesVis.markers[idx].points.push_back(cubeCenter);
-          }
+        geometry_msgs::Point cubeCenter;
+        cubeCenter.x = x;
+        cubeCenter.y = y;
+        cubeCenter.z = z;
+        occupiedNodesVis.markers[it.getDepth()].points.push_back(cubeCenter);
+      } else if ((instance_id == -1)) {
+        if (!publishFreeMarkerArray) {
+          continue;
         }
+
+        geometry_msgs::Point cubeCenter;
+        cubeCenter.x = it.getX();
+        cubeCenter.y = it.getY();
+        cubeCenter.z = it.getZ();
+        freeNodesVis.markers[it.getDepth()].points.push_back(cubeCenter);
       }
     }
 

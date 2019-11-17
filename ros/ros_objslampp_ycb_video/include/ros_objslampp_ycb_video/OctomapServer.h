@@ -162,14 +162,10 @@ class OctomapServer {
   unsigned m_treeDepth;
   unsigned m_maxTreeDepth;
 
-  double m_occupancyMinZ;
-  double m_occupancyMaxZ;
-  double m_minSizeX;
-  double m_minSizeY;
-  bool m_filterSpeckles;
+  bool do_filter_speckles_;
+  bool do_compress_map_;
 
-  bool m_compressMap;
-
+  // for publishing
   bool m_groundAsNoEntry;
   bool m_freeAsNoEntry;
 
