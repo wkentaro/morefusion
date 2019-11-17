@@ -27,7 +27,7 @@ def get_bag_file(bag_id):
         )
     elif bag_id == 'static.desk.topdown':
         bag_file = gdown.cached_download(
-            url='https://drive.google.com/uc?id=1UxUg4IozQvQNrCALXkzk23v3fBjpFCqZ',
+            url='https://drive.google.com/uc?id=1UxUg4IozQvQNrCALXkzk23v3fBjpFCqZ',  # NOQA
             md5='3625c11cd130a06557f38b8ff390882e',
         )
     else:
@@ -64,7 +64,7 @@ def main():
     time.sleep(args.sleep)
 
     cmd = f"rosbag play {bag_file} {' '.join(args.rosbag_args)} "\
-           "/tf_static_republished:=/tf_static"
+          "/tf_static_republished:=/tf_static"
     print(f'+ {cmd}')
     subprocess.call(cmd, shell=True)
 
