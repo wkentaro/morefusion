@@ -161,9 +161,6 @@ class OctomapServer {
   bool m_groundAsNoEntry;
   bool m_freeAsNoEntry;
   bool do_filter_speckles_;
-
-  std_msgs::Header m_lastSensorHeader;
-  Eigen::Matrix4f m_lastSensorToWorld;
 };
 
 }  // namespace ros_objslampp_ycb_video
