@@ -7,38 +7,31 @@ using octomap_msgs::Octomap;
 namespace ros_objslampp_ycb_video {
 
 OctomapServer::OctomapServer()
-: m_res(0.05),
-  m_probHit(0.7),
+: m_probHit(0.7),
   m_probMiss(0.4),
   m_thresMin(0.12),
   m_thresMax(0.97),
   m_treeDepth(16),
-  m_maxTreeDepth(16),
-  do_filter_speckles_(false),
-  do_compress_map_(true) {
+  m_maxTreeDepth(16) {
 
   nh_ = ros::NodeHandle();
   pnh_ = ros::NodeHandle("~");
 
   instance_counter_ = 0;
-  max_range_ = -1;
 
-  frame_id_world_ = "map";
-  frame_id_sensor_ = "camera_color_optical_frame";
-
-  pnh_.param("frame_id", frame_id_world_, frame_id_world_);
-  pnh_.param("sensor_frame_id", frame_id_sensor_, frame_id_sensor_);
-
-  pnh_.param("filter_speckles", do_filter_speckles_, do_filter_speckles_);
-
-  pnh_.param("sensor_model/max_range", max_range_, max_range_);
-
-  pnh_.param("resolution", m_res, m_res);
+  // parameters for mapping
+  pnh_.param("resolution", resolution_, 0.05);
+  pnh_.param("sensor_model/max_range", max_range_, -1.0);
   pnh_.param("sensor_model/hit", m_probHit, m_probHit);
   pnh_.param("sensor_model/miss", m_probMiss, m_probMiss);
   pnh_.param("sensor_model/min", m_thresMin, m_thresMin);
   pnh_.param("sensor_model/max", m_thresMax, m_thresMax);
-  pnh_.param("compress_map", do_compress_map_, do_compress_map_);
+  pnh_.param("compress_map", do_compress_map_, true);
+
+  // paramters for publishing
+  pnh_.param("frame_id", frame_id_world_, std::string("map"));
+  pnh_.param("sensor_frame_id", frame_id_sensor_, std::string("camera_color_optical_frame"));
+  pnh_.param("filter_speckles", do_filter_speckles_, false);
 
   m_binaryMapPub = nh_.advertise<Octomap>("octomap_binary", 1);
   m_fullMapPub = nh_.advertise<Octomap>("octomap_full", 1);
@@ -196,7 +189,7 @@ void OctomapServer::insertScan(
       continue;
     }
     unsigned class_id = 0;
-    double pitch = m_res;
+    double pitch = resolution_;
     if (instance_id >= 0) {
       if (instance_id_to_class_id.find(instance_id) == instance_id_to_class_id.end()) {
         ROS_FATAL("Can't find instance_id [%d] in instance_id_to_class_id", instance_id);

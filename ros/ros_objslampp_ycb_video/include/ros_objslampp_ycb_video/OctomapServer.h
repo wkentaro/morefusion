@@ -149,25 +149,23 @@ class OctomapServer {
   std::map<int, octomap::point3d> centers_;
   unsigned instance_counter_;
 
+  // mapping parameters
+  double resolution_;
   double max_range_;
-  std::string frame_id_world_;
-  std::string frame_id_sensor_;
-
-  double m_res;
   double m_probHit;
   double m_probMiss;
   double m_thresMin;
   double m_thresMax;
-
   unsigned m_treeDepth;
   unsigned m_maxTreeDepth;
-
-  bool do_filter_speckles_;
   bool do_compress_map_;
 
   // for publishing
+  std::string frame_id_world_;
+  std::string frame_id_sensor_;
   bool m_groundAsNoEntry;
   bool m_freeAsNoEntry;
+  bool do_filter_speckles_;
 
   std_msgs::Header m_lastSensorHeader;
   Eigen::Matrix4f m_lastSensorToWorld;
