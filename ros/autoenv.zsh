@@ -1,11 +1,5 @@
 #!/usr/bin/env zsh
 
-setopt interactivecomments
-
-#rossetpanda() {
-  #rossetdefault 172.16.0.1
-#}
-
 setup() {
   source /opt/ros/kinetic/setup.zsh
   if [ -e $HERE/devel/setup.zsh ]; then
@@ -15,8 +9,7 @@ setup() {
   CONDA_PREFIX=$HERE/src/objslampp/.anaconda3
   source $CONDA_PREFIX/bin/activate
 
-  #rosdefault
-  #rossetip
+  export WSTOOL_DEFAULT_WORKSPACE=$HERE/src
 
   show-ros
   echo "PYTHONPATH: $PYTHONPATH"
