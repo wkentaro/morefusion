@@ -1,6 +1,6 @@
 import math
 import numpy as np
-from robot_demo import general_kinematics as gk
+import general_kinematics as gk
 import trimesh
 import trimesh.transformations as ttf
 from geometry_msgs.msg import Pose
