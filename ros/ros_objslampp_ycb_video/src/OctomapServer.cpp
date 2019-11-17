@@ -40,18 +40,18 @@ OctomapServer::OctomapServer() {
   pub_label_tracked_ = pnh_.advertise<sensor_msgs::Image>("output/label_tracked", 1);
   pub_class_ = pnh_.advertise<ros_objslampp_msgs::ObjectClassArray>("output/class", 1);
 
-  m_camSub = new message_filters::Subscriber<sensor_msgs::CameraInfo>(
+  sub_camera_ = new message_filters::Subscriber<sensor_msgs::CameraInfo>(
     pnh_, "input/camera_info", 5);
-  m_depthSub = new message_filters::Subscriber<sensor_msgs::Image>(
+  sub_depth_ = new message_filters::Subscriber<sensor_msgs::Image>(
     pnh_, "input/depth", 5);
-  m_pointCloudSub = new message_filters::Subscriber<sensor_msgs::PointCloud2>(
+  sub_pcd_ = new message_filters::Subscriber<sensor_msgs::PointCloud2>(
     pnh_, "input/points", 5);
-  m_labelInsSub = new message_filters::Subscriber<sensor_msgs::Image>(
+  sub_label_ins_ = new message_filters::Subscriber<sensor_msgs::Image>(
     pnh_, "input/label_ins", 5);
-  m_classSub = new message_filters::Subscriber<ros_objslampp_msgs::ObjectClassArray>(
+  sub_class_ = new message_filters::Subscriber<ros_objslampp_msgs::ObjectClassArray>(
     pnh_, "input/class", 5);
   m_sync = new message_filters::Synchronizer<ExactSyncPolicy>(100);
-  m_sync->connectInput(*m_camSub, *m_depthSub, *m_pointCloudSub, *m_labelInsSub, *m_classSub);
+  m_sync->connectInput(*sub_camera_, *sub_depth_, *sub_pcd_, *sub_label_ins_, *sub_class_);
   m_sync->registerCallback(
     boost::bind(&OctomapServer::insertCloudCallback, this, _1, _2, _3, _4, _5));
 

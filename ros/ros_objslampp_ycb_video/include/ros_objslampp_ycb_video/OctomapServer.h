@@ -130,11 +130,11 @@ class OctomapServer {
   ros::Publisher pub_class_;
 
   dynamic_reconfigure::Server<ros_objslampp_ycb_video::OctomapServerConfig> m_reconfigSrv;
-  message_filters::Subscriber<sensor_msgs::CameraInfo>* m_camSub;
-  message_filters::Subscriber<sensor_msgs::Image>* m_depthSub;
-  message_filters::Subscriber<sensor_msgs::PointCloud2>* m_pointCloudSub;
-  message_filters::Subscriber<sensor_msgs::Image>* m_labelInsSub;
-  message_filters::Subscriber<ros_objslampp_msgs::ObjectClassArray>* m_classSub;
+  message_filters::Subscriber<sensor_msgs::CameraInfo>* sub_camera_;
+  message_filters::Subscriber<sensor_msgs::Image>* sub_depth_;
+  message_filters::Subscriber<sensor_msgs::PointCloud2>* sub_pcd_;
+  message_filters::Subscriber<sensor_msgs::Image>* sub_label_ins_;
+  message_filters::Subscriber<ros_objslampp_msgs::ObjectClassArray>* sub_class_;
   message_filters::Synchronizer<ExactSyncPolicy>* m_sync;
   ros::ServiceClient m_renderClient;
   tf::TransformListener m_tfListener;
