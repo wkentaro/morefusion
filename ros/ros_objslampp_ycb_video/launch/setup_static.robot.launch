@@ -1,6 +1,6 @@
 <launch>
 
-  <arg name="target" default="2" />
+  <arg name="TARGET" default="2" />
 
   <node name="static_transform_publisher0"
         pkg="tf" type="static_transform_publisher"
@@ -17,8 +17,8 @@
           output="screen">
       <remap from="~input/camera_info" to="color/camera_info" />
       <remap from="~input/poses" to="with_occupancy/collision_based_pose_refinement/object_mapping/output/poses" />
-      <rosparam param="target" subst_value="true">
-        $(arg target)
+      <rosparam subst_value="true">
+        target: $(arg TARGET)
       </rosparam>
     </node>
   </group>
