@@ -15,10 +15,6 @@
     uri: https://github.com/frankaemika/franka_ros.git
     version: kinetic-devel
 - git:
-    local-name: ikalnytskyi/termcolor
-    uri: https://github.com/ikalnytskyi/termcolor.git
-    version: master
-- git:
     local-name: jsk-ros-pkg/jsk_common
     uri: https://github.com/wkentaro/jsk_common.git
     version: objslampp
