@@ -1,3 +1,4 @@
+# flake8: noqa
 import rospy
 import robot_interface as robot_interface
 import world_interface as world_interface
