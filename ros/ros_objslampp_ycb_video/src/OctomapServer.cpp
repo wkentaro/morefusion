@@ -7,10 +7,7 @@ using octomap_msgs::Octomap;
 namespace ros_objslampp_ycb_video {
 
 OctomapServer::OctomapServer()
-: m_instanceCounter(0),
-  m_classIds(),
-  m_centers(),
-  m_pointCloudSub(NULL),
+: m_pointCloudSub(NULL),
   m_labelInsSub(NULL),
   m_maxRange(-1.0),
   m_worldFrameId("/map"),
@@ -30,6 +27,7 @@ OctomapServer::OctomapServer()
 
   nh_ = ros::NodeHandle();
   pnh_ = ros::NodeHandle("~");
+  instance_counter_ = 0;
 
   pnh_.param("frame_id", m_worldFrameId, m_worldFrameId);
   pnh_.param("sensor_frame_id", m_sensorFrameId, m_sensorFrameId);
@@ -149,9 +147,9 @@ void OctomapServer::insertCloudCallback(
     /*reference=*/label_ins_rend,
     /*target=*/&label_ins,
     /*instance_id_to_class_id=*/&instance_id_to_class_id,
-    /*instance_counter=*/&m_instanceCounter);
-  for (std::map<int, unsigned>::iterator it = m_classIds.begin();
-       it != m_classIds.end(); it++) {
+    /*instance_counter=*/&instance_counter_);
+  for (std::map<int, unsigned>::iterator it = class_ids_.begin();
+       it != class_ids_.end(); it++) {
     if (instance_id_to_class_id.find(it->first) == instance_id_to_class_id.end()) {
       instance_id_to_class_id.insert(std::make_pair(it->first, it->second));
     }
@@ -165,8 +163,8 @@ void OctomapServer::insertCloudCallback(
 
   ros_objslampp_msgs::ObjectClassArray cls_rend_msg;
   cls_rend_msg.header = cloud->header;
-  for (std::map<int, unsigned>::iterator it = m_classIds.begin();
-       it != m_classIds.end(); it++) {
+  for (std::map<int, unsigned>::iterator it = class_ids_.begin();
+       it != class_ids_.end(); it++) {
     if (it->first == -1) {
       continue;
     }
@@ -222,7 +220,7 @@ void OctomapServer::insertScan(
       octree->setClampingThresMin(m_thresMin);
       octree->setClampingThresMax(m_thresMax);
       octrees_.insert(std::make_pair(instance_id, octree));
-      m_classIds.insert(std::make_pair(instance_id, class_id));
+      class_ids_.insert(std::make_pair(instance_id, class_id));
     }
     occupied_cells.insert(std::make_pair(instance_id, octomap::KeySet()));
   }
@@ -309,7 +307,7 @@ void OctomapServer::insertScan(
     pcl::compute3DCentroid<PCLPoint, float>(
       /*cloud=*/it->second, /*centroid=*/centroid);
     octomap::point3d center(centroid(0, 0), centroid(1, 0), centroid(2, 0));
-    m_centers.insert(std::make_pair(instance_id, center));
+    centers_.insert(std::make_pair(instance_id, center));
   }
 
   if (m_compressMap) {
@@ -332,11 +330,11 @@ void OctomapServer::getGridsInWorldFrame(
     if (instance_id == -1) {
       continue;
     }
-    unsigned class_id = m_classIds.find(instance_id)->second;
+    unsigned class_id = class_ids_.find(instance_id)->second;
     double pitch = ros_objslampp_ycb_video::utils::class_id_to_voxel_pitch(class_id);
 
     // world frame
-    octomap::point3d center = m_centers.find(instance_id)->second;
+    octomap::point3d center = centers_.find(instance_id)->second;
 
     ros_objslampp_msgs::VoxelGrid grid;
     grid.pitch = pitch;
@@ -397,10 +395,10 @@ void OctomapServer::publishGrids(
     //}
 
     OcTreeT* octree = it_octree->second;
-    unsigned class_id = m_classIds.find(instance_id)->second;
+    unsigned class_id = class_ids_.find(instance_id)->second;
     double pitch = ros_objslampp_ycb_video::utils::class_id_to_voxel_pitch(class_id);
 
-    octomap::point3d center = m_centers.find(instance_id)->second;
+    octomap::point3d center = centers_.find(instance_id)->second;
 
     PCLPointCloud center_sensor;
     center_sensor.push_back(PCLPoint(center.x(), center.y(), center.z()));

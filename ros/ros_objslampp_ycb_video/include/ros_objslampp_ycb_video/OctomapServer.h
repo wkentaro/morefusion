@@ -145,9 +145,9 @@ class OctomapServer {
   tf::TransformListener m_tfListener;
 
   std::map<int, OcTreeT*> octrees_;
-  std::map<int, unsigned> m_classIds;
-  std::map<int, octomap::point3d> m_centers;
-  unsigned m_instanceCounter;
+  std::map<int, unsigned> class_ids_;
+  std::map<int, octomap::point3d> centers_;
+  unsigned instance_counter_;
 
   double m_maxRange;
   std::string m_worldFrameId;  // the map frame
