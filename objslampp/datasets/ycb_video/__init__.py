@@ -3,7 +3,6 @@
 from .class_names import class_names
 from .class_names import class_ids_asymmetric
 from .class_names import class_ids_symmetric
-from .grasping_axes import grasping_axes
 
 from .dataset import YCBVideoDataset
 
