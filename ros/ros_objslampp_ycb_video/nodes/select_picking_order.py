@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import copy
-import queue
 import io
 
 import imgviz
@@ -16,7 +15,6 @@ import trimesh.transformations as ttf
 import objslampp
 
 import cv_bridge
-import message_filters
 import tf
 import topic_tools
 import rospy

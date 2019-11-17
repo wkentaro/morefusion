@@ -1,8 +1,8 @@
 #!/usr/bin/env python
+# flake8: noqa
 
 import argparse
 
-from matplotlib import ticker
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas
@@ -25,7 +25,7 @@ index = 2999
 
 df_occ = pandas.read_csv(f'./logs.csv_files/data.{index:08d}.csv', index_col=0)
 df_occ['visibility'] = np.clip(df_occ['visibility'], 0, 1)
-df_pcd = pandas.read_csv(f'../singleview_pcd/logs.csv_files/data.{index:08d}.csv', index_col=0)  # NOQA
+df_pcd = pandas.read_csv(f'../singleview_pcd/logs.csv_files/data.{index:08d}.csv', index_col=0)
 df_pcd['visibility'] = np.clip(df_pcd['visibility'], 0, 1)
 df_noocc = pandas.read_csv(f'./logs.csv_files/data.wo_occ.{index:08d}.csv', index_col=0)
 df_noocc['visibility'] = np.clip(df_noocc['visibility'], 0, 1)
@@ -42,15 +42,15 @@ if case == 'pred':
     methods = ['densefusion', 'morefusion-other_depth', 'morefusion']
 else:
     assert case == 'refine'
-    methods = ['No Refinement', '+ICP', '+ICC', '+ICC+ICP']  # NOQA
+    methods = ['No Refinement', '+ICP', '+ICC', '+ICC+ICP']
 
 # step = 0.2
 # for max_visibility in np.arange(1, 5 + 1) * step:
 #     min_visibility = max_visibility - step
 #     visibility = max_visibility - step / 2
-#     df.loc[(df.visibility < max_visibility) & (df.visibility >= min_visibility), 'visibility'] = visibility  # NOQA
+#     df.loc[(df.visibility < max_visibility) & (df.visibility >= min_visibility), 'visibility'] = visibility
 # df['visibility'] = [f'{x:.1f}' for x in df['visibility']]
-# seaborn.violinplot(x='visibility', y='add_or_add_s', hue='method', data=df, hue_order=methods)  # NOQA
+# seaborn.violinplot(x='visibility', y='add_or_add_s', hue='method', data=df, hue_order=methods)
 # plt.show()
 # quit()
 
