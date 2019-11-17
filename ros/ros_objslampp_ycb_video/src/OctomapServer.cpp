@@ -7,12 +7,7 @@ using octomap_msgs::Octomap;
 namespace ros_objslampp_ycb_video {
 
 OctomapServer::OctomapServer()
-: m_pointCloudSub(NULL),
-  m_labelInsSub(NULL),
-  m_maxRange(-1.0),
-  m_worldFrameId("/map"),
-  m_sensorFrameId("camera_color_optical_frame"),
-  m_res(0.05),
+: m_res(0.05),
   m_probHit(0.7),
   m_probMiss(0.4),
   m_thresMin(0.12),
@@ -27,10 +22,15 @@ OctomapServer::OctomapServer()
 
   nh_ = ros::NodeHandle();
   pnh_ = ros::NodeHandle("~");
-  instance_counter_ = 0;
 
-  pnh_.param("frame_id", m_worldFrameId, m_worldFrameId);
-  pnh_.param("sensor_frame_id", m_sensorFrameId, m_sensorFrameId);
+  instance_counter_ = 0;
+  max_range_ = -1;
+
+  frame_id_world_ = "map";
+  frame_id_sensor_ = "camera_color_optical_frame";
+
+  pnh_.param("frame_id", frame_id_world_, frame_id_world_);
+  pnh_.param("sensor_frame_id", frame_id_sensor_, frame_id_sensor_);
 
   pnh_.param("occupancy_min_z", m_occupancyMinZ, m_occupancyMinZ);
   pnh_.param("occupancy_max_z", m_occupancyMaxZ, m_occupancyMaxZ);
@@ -38,7 +38,7 @@ OctomapServer::OctomapServer()
   pnh_.param("min_y_size", m_minSizeY, m_minSizeY);
   pnh_.param("filter_speckles", m_filterSpeckles, m_filterSpeckles);
 
-  pnh_.param("sensor_model/max_range", m_maxRange, m_maxRange);
+  pnh_.param("sensor_model/max_range", max_range_, max_range_);
 
   pnh_.param("resolution", m_res, m_res);
   pnh_.param("sensor_model/hit", m_probHit, m_probHit);
@@ -103,7 +103,7 @@ void OctomapServer::insertCloudCallback(
   tf::StampedTransform sensorToWorldTf;
   try {
     m_tfListener.lookupTransform(
-      m_worldFrameId, cloud->header.frame_id, cloud->header.stamp, sensorToWorldTf);
+      frame_id_world_, cloud->header.frame_id, cloud->header.stamp, sensorToWorldTf);
   } catch (tf::TransformException& ex) {
     ROS_ERROR_STREAM("Transform error of sensor data: " << ex.what() << ", quitting callback");
     return;
@@ -257,7 +257,7 @@ void OctomapServer::insertScan(
     }
 
     // maxrange check
-    if ((m_maxRange < 0.0) || ((point - sensorOrigin).norm() <= m_maxRange)) {
+    if ((max_range_ < 0.0) || ((point - sensorOrigin).norm() <= max_range_)) {
       // free cells
       octomap::KeyRay key_ray;
       OcTreeT* octree_bg = octrees_.find(-1)->second;
@@ -272,7 +272,7 @@ void OctomapServer::insertScan(
         occupied_cells.find(instance_id)->second.insert(key);
       }
     } else {  // ray longer than maxrange:;
-      octomap::point3d new_end = sensorOrigin + (point - sensorOrigin).normalized() * m_maxRange;
+      octomap::point3d new_end = sensorOrigin + (point - sensorOrigin).normalized() * max_range_;
       octomap::KeyRay key_ray;
       OcTreeT* octree_bg = octrees_.find(-1)->second;
       if (octree_bg->computeRayKeys(sensorOrigin, new_end, key_ray)) {
@@ -320,7 +320,7 @@ void OctomapServer::insertScan(
 void OctomapServer::getGridsInWorldFrame(
     const ros::Time& rostime,
     ros_objslampp_msgs::VoxelGridArray& grids) {
-  grids.header.frame_id = m_worldFrameId;
+  grids.header.frame_id = frame_id_world_;
   grids.header.stamp = rostime;
   for (std::map<int, OcTreeT*>::iterator it_octree = octrees_.begin();
        it_octree != octrees_.end(); it_octree++) {
@@ -379,7 +379,7 @@ void OctomapServer::publishGrids(
   }
 
   ros_objslampp_msgs::VoxelGridArray grids;
-  grids.header.frame_id = m_sensorFrameId;
+  grids.header.frame_id = frame_id_sensor_;
   grids.header.stamp = rostime;
   ros_objslampp_msgs::VoxelGridArray grids_noentry;
   grids_noentry.header = grids.header;
@@ -589,7 +589,7 @@ void OctomapServer::publishAll(const ros::Time& rostime) {
       for (unsigned i= 0; i < occupiedNodesVis.markers.size(); ++i) {
         double size = octree->getNodeSize(i);
 
-        occupiedNodesVis.markers[i].header.frame_id = m_worldFrameId;
+        occupiedNodesVis.markers[i].header.frame_id = frame_id_world_;
         occupiedNodesVis.markers[i].header.stamp = rostime;
         occupiedNodesVis.markers[i].ns = boost::lexical_cast<std::string>(instance_id);
         occupiedNodesVis.markers[i].id = i;
@@ -634,7 +634,7 @@ void OctomapServer::publishAll(const ros::Time& rostime) {
     for (unsigned i= 0; i < freeNodesVis.markers.size(); ++i) {
       double size = octree_bg->getNodeSize(i);
 
-      freeNodesVis.markers[i].header.frame_id = m_worldFrameId;
+      freeNodesVis.markers[i].header.frame_id = frame_id_world_;
       freeNodesVis.markers[i].header.stamp = rostime;
       freeNodesVis.markers[i].ns = "map";
       freeNodesVis.markers[i].id = i;
@@ -670,7 +670,7 @@ void OctomapServer::publishAll(const ros::Time& rostime) {
 
 void OctomapServer::publishBinaryOctoMap(const ros::Time& rostime) const {
   Octomap map;
-  map.header.frame_id = m_worldFrameId;
+  map.header.frame_id = frame_id_world_;
   map.header.stamp = rostime;
 
   OcTreeT* octree_bg = octrees_.find(-1)->second;
@@ -683,7 +683,7 @@ void OctomapServer::publishBinaryOctoMap(const ros::Time& rostime) const {
 
 void OctomapServer::publishFullOctoMap(const ros::Time& rostime) const {
   Octomap map;
-  map.header.frame_id = m_worldFrameId;
+  map.header.frame_id = frame_id_world_;
   map.header.stamp = rostime;
 
   OcTreeT* octree_bg = octrees_.find(-1)->second;

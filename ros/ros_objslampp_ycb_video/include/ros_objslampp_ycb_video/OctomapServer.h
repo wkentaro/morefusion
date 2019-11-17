@@ -149,9 +149,9 @@ class OctomapServer {
   std::map<int, octomap::point3d> centers_;
   unsigned instance_counter_;
 
-  double m_maxRange;
-  std::string m_worldFrameId;  // the map frame
-  std::string m_sensorFrameId;  // base of the robot for ground plane filtering
+  double max_range_;
+  std::string frame_id_world_;
+  std::string frame_id_sensor_;
 
   double m_res;
   double m_probHit;
