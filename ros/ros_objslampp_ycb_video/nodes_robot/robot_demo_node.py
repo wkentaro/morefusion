@@ -17,10 +17,10 @@ import objslampp
 import objslampp.datasets.ycb_video as ycb_video_dataset
 
 # robot demo
-import robot_demo.general_kinematics as gk
-import robot_demo.world_interface as world_interface
-import robot_demo.robot_interface as robot_interface
-from robot_demo.object_pose_interface import ObjectPoseInterface
+import general_kinematics as gk
+import world_interface as world_interface
+import robot_interface as robot_interface
+from object_pose_interface import ObjectPoseInterface
 
 
 class RobotDemo:

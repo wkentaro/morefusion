@@ -1,6 +1,6 @@
 import rospy
-import robot_demo.robot_interface as robot_interface
-import robot_demo.world_interface as world_interface
+import robot_interface as robot_interface
+import world_interface as world_interface
 import objslampp
 import objslampp.datasets.ycb_video as ycb_video_dataset
 from geometry_msgs.msg import Pose
