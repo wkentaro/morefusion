@@ -118,22 +118,17 @@ class OctomapServer {
   ros::NodeHandle nh_;
   ros::NodeHandle pnh_;
 
-  ros::Publisher m_binaryMapPub;
-  ros::Publisher m_fullMapPub;
-  ros::Publisher m_collisionObjectPub;
-  ros::Publisher m_mapPub;
-  ros::Publisher m_cmapPub;
-  ros::Publisher m_fmapPub;
-  ros::Publisher m_fmarkerPub;
-  ros::Publisher m_gridsForRenderPub;
-  ros::Publisher m_gridsPub;
-  ros::Publisher m_gridsNoEntryPub;
-  ros::Publisher m_bgMarkerPub;
-  ros::Publisher m_fgMarkerPub;
-  ros::Publisher m_maskUpdateAsOccupiedPub;
-  ros::Publisher m_labelTrackedPub;
-  ros::Publisher m_labelRenderedPub;
-  ros::Publisher m_classPub;
+  ros::Publisher pub_binary_map_;
+  ros::Publisher pub_full_map_;
+  ros::Publisher pub_grids_;
+  ros::Publisher pub_grids_noentry_;
+  ros::Publisher pub_markers_bg_;
+  ros::Publisher pub_markers_fg_;
+  ros::Publisher pub_markers_free_;
+  ros::Publisher pub_label_rendered_;
+  ros::Publisher pub_label_tracked_;
+  ros::Publisher pub_class_;
+
   dynamic_reconfigure::Server<ros_objslampp_ycb_video::OctomapServerConfig> m_reconfigSrv;
   message_filters::Subscriber<sensor_msgs::CameraInfo>* m_camSub;
   message_filters::Subscriber<sensor_msgs::Image>* m_depthSub;

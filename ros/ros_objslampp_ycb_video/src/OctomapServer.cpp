@@ -28,20 +28,17 @@ OctomapServer::OctomapServer() {
   pnh_.param("sensor_frame_id", frame_id_sensor_, std::string("camera_color_optical_frame"));
   pnh_.param("filter_speckles", do_filter_speckles_, false);
 
-  m_binaryMapPub = nh_.advertise<Octomap>("octomap_binary", 1);
-  m_fullMapPub = nh_.advertise<Octomap>("octomap_full", 1);
-  m_mapPub = nh_.advertise<nav_msgs::OccupancyGrid>("projected_map", 5);
-  m_fmarkerPub = nh_.advertise<visualization_msgs::MarkerArray>("free_cells_vis_array", 1);
-  m_gridsForRenderPub = pnh_.advertise<ros_objslampp_msgs::VoxelGridArray>(
-    "output/grids_for_render", 1);
-  m_gridsPub = pnh_.advertise<ros_objslampp_msgs::VoxelGridArray>("output/grids", 1);
-  m_gridsNoEntryPub = pnh_.advertise<ros_objslampp_msgs::VoxelGridArray>(
+  pub_binary_map_ = pnh_.advertise<Octomap>("output/octomap_binary", 1);
+  pub_full_map_ = pnh_.advertise<Octomap>("output/octomap_full", 1);
+  pub_grids_ = pnh_.advertise<ros_objslampp_msgs::VoxelGridArray>("output/grids", 1);
+  pub_grids_noentry_ = pnh_.advertise<ros_objslampp_msgs::VoxelGridArray>(
     "output/grids_noentry", 1);
-  m_bgMarkerPub = pnh_.advertise<visualization_msgs::MarkerArray>("output/markers_bg", 1);
-  m_fgMarkerPub = pnh_.advertise<visualization_msgs::MarkerArray>("output/markers_fg", 1);
-  m_labelRenderedPub = pnh_.advertise<sensor_msgs::Image>("output/label_rendered", 1);
-  m_labelTrackedPub = pnh_.advertise<sensor_msgs::Image>("output/label_tracked", 1);
-  m_classPub = pnh_.advertise<ros_objslampp_msgs::ObjectClassArray>("output/class", 1);
+  pub_markers_free_ = pnh_.advertise<visualization_msgs::MarkerArray>("output/markers_free", 1);
+  pub_markers_bg_ = pnh_.advertise<visualization_msgs::MarkerArray>("output/markers_bg", 1);
+  pub_markers_fg_ = pnh_.advertise<visualization_msgs::MarkerArray>("output/markers_fg", 1);
+  pub_label_rendered_ = pnh_.advertise<sensor_msgs::Image>("output/label_rendered", 1);
+  pub_label_tracked_ = pnh_.advertise<sensor_msgs::Image>("output/label_tracked", 1);
+  pub_class_ = pnh_.advertise<ros_objslampp_msgs::ObjectClassArray>("output/class", 1);
 
   m_camSub = new message_filters::Subscriber<sensor_msgs::CameraInfo>(
     pnh_, "input/camera_info", 5);
@@ -136,10 +133,10 @@ void OctomapServer::insertCloudCallback(
     }
   }
   // Publish Rendered Instance Label
-  m_labelRenderedPub.publish(
+  pub_label_rendered_.publish(
     cv_bridge::CvImage(ins_msg->header, "32SC1", label_ins_rend).toImageMsg());
   // Publish Tracked Instance Label
-  m_labelTrackedPub.publish(
+  pub_label_tracked_.publish(
     cv_bridge::CvImage(ins_msg->header, "32SC1", label_ins).toImageMsg());
 
   ros_objslampp_msgs::ObjectClassArray cls_rend_msg;
@@ -155,7 +152,7 @@ void OctomapServer::insertCloudCallback(
     cls.confidence = 1;
     cls_rend_msg.classes.push_back(cls);
   }
-  m_classPub.publish(cls_rend_msg);
+  pub_class_.publish(cls_rend_msg);
 
   // Update Map
   insertScan(sensorToWorldTf.getOrigin(), pc, label_ins, instance_id_to_class_id);
@@ -457,8 +454,8 @@ void OctomapServer::publishGrids(
     grids.grids.push_back(grid);
     grids_noentry.grids.push_back(grid_noentry);
   }
-  m_gridsPub.publish(grids);
-  m_gridsNoEntryPub.publish(grids_noentry);
+  pub_grids_.publish(grids);
+  pub_grids_noentry_.publish(grids_noentry);
 }
 
 void OctomapServer::publishAll(const ros::Time& rostime) {
@@ -466,11 +463,11 @@ void OctomapServer::publishAll(const ros::Time& rostime) {
     return;
   }
 
-  bool publishFreeMarkerArray = m_fmarkerPub.getNumSubscribers() > 0;
-  bool publishMarkerArray = m_bgMarkerPub.getNumSubscribers() > 0 ||
-                            m_fgMarkerPub.getNumSubscribers() > 0;
-  bool publishBinaryMap = m_binaryMapPub.getNumSubscribers() > 0;
-  bool publishFullMap = m_fullMapPub.getNumSubscribers() > 0;
+  bool publishFreeMarkerArray = pub_markers_free_.getNumSubscribers() > 0;
+  bool publishMarkerArray = pub_markers_bg_.getNumSubscribers() > 0 ||
+                            pub_markers_fg_.getNumSubscribers() > 0;
+  bool publishBinaryMap = pub_binary_map_.getNumSubscribers() > 0;
+  bool publishFullMap = pub_full_map_.getNumSubscribers() > 0;
 
   // init markers for free space:
   visualization_msgs::MarkerArray freeNodesVis;
@@ -584,8 +581,8 @@ void OctomapServer::publishAll(const ros::Time& rostime) {
         }
       }
     }
-    m_bgMarkerPub.publish(occupiedNodesVisBG);
-    m_fgMarkerPub.publish(occupiedNodesVisFG);
+    pub_markers_bg_.publish(occupiedNodesVisBG);
+    pub_markers_fg_.publish(occupiedNodesVisFG);
   }
 
   // finish FreeMarkerArray:
@@ -615,7 +612,7 @@ void OctomapServer::publishAll(const ros::Time& rostime) {
       }
     }
 
-    m_fmarkerPub.publish(freeNodesVis);
+    pub_markers_free_.publish(freeNodesVis);
   }
 
   if (publishBinaryMap) {
@@ -635,7 +632,7 @@ void OctomapServer::publishBinaryOctoMap(const ros::Time& rostime) const {
 
   OcTreeT* octree_bg = octrees_.find(-1)->second;
   if (octomap_msgs::binaryMapToMsg(*octree_bg, map)) {
-    m_binaryMapPub.publish(map);
+    pub_binary_map_.publish(map);
   } else {
     ROS_ERROR("Error serializing OctoMap");
   }
@@ -648,7 +645,7 @@ void OctomapServer::publishFullOctoMap(const ros::Time& rostime) const {
 
   OcTreeT* octree_bg = octrees_.find(-1)->second;
   if (octomap_msgs::fullMapToMsg(*octree_bg, map)) {
-    m_fullMapPub.publish(map);
+    pub_full_map_.publish(map);
   } else {
     ROS_ERROR("Error serializing OctoMap");
   }
