@@ -45,10 +45,10 @@ Visualization Manager:
       Name: Grid
       Normal Cell Count: 0
       Offset:
-        X: 0.600000024
+        X: 0
         Y: 0
         Z: 0
-      Plane: YZ
+      Plane: XY
       Plane Cell Count: 10
       Reference Frame: <Fixed Frame>
       Value: true
@@ -195,13 +195,15 @@ Visualization Manager:
       Enabled: true
       Name: Partial
     - Class: rviz/MarkerArray
-      Enabled: false
+      Enabled: true
       Marker Topic: /camera/grids_to_markers/output
       Name: Grids
       Namespaces:
-        {}
+        0: true
+        1: true
+        2: true
       Queue Size: 1
-      Value: false
+      Value: true
     - Class: rviz/MarkerArray
       Enabled: false
       Marker Topic: /camera/grids_noentry_to_markers/output
@@ -344,18 +346,18 @@ Visualization Manager:
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.224967569
-        Y: 0.159436241
-        Z: 0.387758702
+        X: 0.200534612
+        Y: -0.404161841
+        Z: 0.612739563
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.0500000007
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: -0.105202779
+      Pitch: 0.454797238
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 3.12040424
+      Yaw: 3.13540506
     Saved: ~
 Window Geometry:
   Displays:
