@@ -50,16 +50,16 @@ OctomapServer::OctomapServer() {
     pnh_, "input/label_ins", 5);
   sub_class_ = new message_filters::Subscriber<ros_objslampp_msgs::ObjectClassArray>(
     pnh_, "input/class", 5);
-  m_sync = new message_filters::Synchronizer<ExactSyncPolicy>(100);
-  m_sync->connectInput(*sub_camera_, *sub_depth_, *sub_pcd_, *sub_label_ins_, *sub_class_);
-  m_sync->registerCallback(
+  sync_ = new message_filters::Synchronizer<ExactSyncPolicy>(100);
+  sync_->connectInput(*sub_camera_, *sub_depth_, *sub_pcd_, *sub_label_ins_, *sub_class_);
+  sync_->registerCallback(
     boost::bind(&OctomapServer::insertCloudCallback, this, _1, _2, _3, _4, _5));
 
-  m_renderClient = pnh_.serviceClient<ros_objslampp_srvs::RenderVoxelGridArray>("render");
+  client_render_ = pnh_.serviceClient<ros_objslampp_srvs::RenderVoxelGridArray>("render");
 
   dynamic_reconfigure::Server<ros_objslampp_ycb_video::OctomapServerConfig>::CallbackType f =
     boost::bind(&OctomapServer::configCallback, this, _1, _2);
-  m_reconfigSrv.setCallback(f);
+  server_reconfig_.setCallback(f);
 
   ROS_INFO_BLUE("Initialized");
 }
@@ -80,7 +80,7 @@ void OctomapServer::insertCloudCallback(
   // Get TF
   tf::StampedTransform sensorToWorldTf;
   try {
-    m_tfListener.lookupTransform(
+    tf_listener_.lookupTransform(
       frame_id_world_, cloud->header.frame_id, cloud->header.stamp, sensorToWorldTf);
   } catch (tf::TransformException& ex) {
     ROS_ERROR_STREAM("Transform error of sensor data: " << ex.what() << ", quitting callback");
@@ -94,7 +94,7 @@ void OctomapServer::insertCloudCallback(
   srv.request.camera_info = *camera_info_msg;
   srv.request.depth = *depth_msg;
   getGridsInWorldFrame(camera_info_msg->header.stamp, srv.request.grids);
-  m_renderClient.call(srv);
+  client_render_.call(srv);
 
   sensor_msgs::Image ins_rendered_msg = srv.response.label_ins;
 
