@@ -69,7 +69,7 @@ class OctomapServer {
     sensor_msgs::Image,
     ros_objslampp_msgs::ObjectClassArray> ExactSyncPolicy;
 
-  explicit OctomapServer(ros::NodeHandle private_nh_ = ros::NodeHandle("~"));
+  explicit OctomapServer();
   virtual ~OctomapServer() {}
 
   virtual void insertCloudCallback(
@@ -115,7 +115,9 @@ class OctomapServer {
     const ros_objslampp_ycb_video::OctomapServerConfig& config,
     const uint32_t level);
 
-  ros::NodeHandle m_nh;
+  ros::NodeHandle nh_;
+  ros::NodeHandle pnh_;
+
   ros::Publisher m_binaryMapPub;
   ros::Publisher m_fullMapPub;
   ros::Publisher m_collisionObjectPub;

@@ -6,9 +6,8 @@ using octomap_msgs::Octomap;
 
 namespace ros_objslampp_ycb_video {
 
-OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
-: m_nh(),
-  m_octrees(),
+OctomapServer::OctomapServer()
+: m_octrees(),
   m_instanceCounter(0),
   m_classIds(),
   m_centers(),
@@ -29,58 +28,59 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_minSizeX(0.0), m_minSizeY(0.0),
   m_filterSpeckles(false),
   m_compressMap(true) {
-  double probHit, probMiss, thresMin, thresMax;
 
-  ros::NodeHandle private_nh(private_nh_);
-  private_nh.param("frame_id", m_worldFrameId, m_worldFrameId);
-  private_nh.param("sensor_frame_id", m_sensorFrameId, m_sensorFrameId);
+  nh_ = ros::NodeHandle();
+  pnh_ = ros::NodeHandle("~");
 
-  private_nh.param("occupancy_min_z", m_occupancyMinZ, m_occupancyMinZ);
-  private_nh.param("occupancy_max_z", m_occupancyMaxZ, m_occupancyMaxZ);
-  private_nh.param("min_x_size", m_minSizeX, m_minSizeX);
-  private_nh.param("min_y_size", m_minSizeY, m_minSizeY);
-  private_nh.param("filter_speckles", m_filterSpeckles, m_filterSpeckles);
+  pnh_.param("frame_id", m_worldFrameId, m_worldFrameId);
+  pnh_.param("sensor_frame_id", m_sensorFrameId, m_sensorFrameId);
 
-  private_nh.param("sensor_model/max_range", m_maxRange, m_maxRange);
+  pnh_.param("occupancy_min_z", m_occupancyMinZ, m_occupancyMinZ);
+  pnh_.param("occupancy_max_z", m_occupancyMaxZ, m_occupancyMaxZ);
+  pnh_.param("min_x_size", m_minSizeX, m_minSizeX);
+  pnh_.param("min_y_size", m_minSizeY, m_minSizeY);
+  pnh_.param("filter_speckles", m_filterSpeckles, m_filterSpeckles);
 
-  private_nh.param("resolution", m_res, m_res);
-  private_nh.param("sensor_model/hit", m_probHit, m_probHit);
-  private_nh.param("sensor_model/miss", m_probMiss, m_probMiss);
-  private_nh.param("sensor_model/min", m_thresMin, m_thresMin);
-  private_nh.param("sensor_model/max", m_thresMax, m_thresMax);
-  private_nh.param("compress_map", m_compressMap, m_compressMap);
+  pnh_.param("sensor_model/max_range", m_maxRange, m_maxRange);
 
-  m_binaryMapPub = m_nh.advertise<Octomap>("octomap_binary", 1);
-  m_fullMapPub = m_nh.advertise<Octomap>("octomap_full", 1);
-  m_mapPub = m_nh.advertise<nav_msgs::OccupancyGrid>("projected_map", 5);
-  m_fmarkerPub = m_nh.advertise<visualization_msgs::MarkerArray>("free_cells_vis_array", 1);
-  m_gridsForRenderPub = private_nh.advertise<ros_objslampp_msgs::VoxelGridArray>(
+  pnh_.param("resolution", m_res, m_res);
+  pnh_.param("sensor_model/hit", m_probHit, m_probHit);
+  pnh_.param("sensor_model/miss", m_probMiss, m_probMiss);
+  pnh_.param("sensor_model/min", m_thresMin, m_thresMin);
+  pnh_.param("sensor_model/max", m_thresMax, m_thresMax);
+  pnh_.param("compress_map", m_compressMap, m_compressMap);
+
+  m_binaryMapPub = nh_.advertise<Octomap>("octomap_binary", 1);
+  m_fullMapPub = nh_.advertise<Octomap>("octomap_full", 1);
+  m_mapPub = nh_.advertise<nav_msgs::OccupancyGrid>("projected_map", 5);
+  m_fmarkerPub = nh_.advertise<visualization_msgs::MarkerArray>("free_cells_vis_array", 1);
+  m_gridsForRenderPub = pnh_.advertise<ros_objslampp_msgs::VoxelGridArray>(
     "output/grids_for_render", 1);
-  m_gridsPub = private_nh.advertise<ros_objslampp_msgs::VoxelGridArray>("output/grids", 1);
-  m_gridsNoEntryPub = private_nh.advertise<ros_objslampp_msgs::VoxelGridArray>(
+  m_gridsPub = pnh_.advertise<ros_objslampp_msgs::VoxelGridArray>("output/grids", 1);
+  m_gridsNoEntryPub = pnh_.advertise<ros_objslampp_msgs::VoxelGridArray>(
     "output/grids_noentry", 1);
-  m_bgMarkerPub = private_nh.advertise<visualization_msgs::MarkerArray>("output/markers_bg", 1);
-  m_fgMarkerPub = private_nh.advertise<visualization_msgs::MarkerArray>("output/markers_fg", 1);
-  m_labelRenderedPub = private_nh.advertise<sensor_msgs::Image>("output/label_rendered", 1);
-  m_labelTrackedPub = private_nh.advertise<sensor_msgs::Image>("output/label_tracked", 1);
-  m_classPub = private_nh.advertise<ros_objslampp_msgs::ObjectClassArray>("output/class", 1);
+  m_bgMarkerPub = pnh_.advertise<visualization_msgs::MarkerArray>("output/markers_bg", 1);
+  m_fgMarkerPub = pnh_.advertise<visualization_msgs::MarkerArray>("output/markers_fg", 1);
+  m_labelRenderedPub = pnh_.advertise<sensor_msgs::Image>("output/label_rendered", 1);
+  m_labelTrackedPub = pnh_.advertise<sensor_msgs::Image>("output/label_tracked", 1);
+  m_classPub = pnh_.advertise<ros_objslampp_msgs::ObjectClassArray>("output/class", 1);
 
   m_camSub = new message_filters::Subscriber<sensor_msgs::CameraInfo>(
-    private_nh, "input/camera_info", 5);
+    pnh_, "input/camera_info", 5);
   m_depthSub = new message_filters::Subscriber<sensor_msgs::Image>(
-    private_nh, "input/depth", 5);
+    pnh_, "input/depth", 5);
   m_pointCloudSub = new message_filters::Subscriber<sensor_msgs::PointCloud2>(
-    private_nh, "input/points", 5);
+    pnh_, "input/points", 5);
   m_labelInsSub = new message_filters::Subscriber<sensor_msgs::Image>(
-    private_nh, "input/label_ins", 5);
+    pnh_, "input/label_ins", 5);
   m_classSub = new message_filters::Subscriber<ros_objslampp_msgs::ObjectClassArray>(
-    private_nh, "input/class", 5);
+    pnh_, "input/class", 5);
   m_sync = new message_filters::Synchronizer<ExactSyncPolicy>(100);
   m_sync->connectInput(*m_camSub, *m_depthSub, *m_pointCloudSub, *m_labelInsSub, *m_classSub);
   m_sync->registerCallback(
     boost::bind(&OctomapServer::insertCloudCallback, this, _1, _2, _3, _4, _5));
 
-  m_renderClient = private_nh.serviceClient<ros_objslampp_srvs::RenderVoxelGridArray>("render");
+  m_renderClient = pnh_.serviceClient<ros_objslampp_srvs::RenderVoxelGridArray>("render");
 
   dynamic_reconfigure::Server<ros_objslampp_ycb_video::OctomapServerConfig>::CallbackType f =
     boost::bind(&OctomapServer::configCallback, this, _1, _2);
@@ -722,16 +722,7 @@ bool OctomapServer::isSpeckleNode(const octomap::OcTreeKey& nKey) const {
 
 int main(int argc, char** argv) {
   ros::init(argc, argv, "octomap_server");
-  const ros::NodeHandle& private_nh = ros::NodeHandle("~");
-
   ros_objslampp_ycb_video::OctomapServer server;
-
-  try {
-    ros::spin();
-  } catch (std::runtime_error& e) {
-    ROS_ERROR("octomap_server exception: %s", e.what());
-    return -1;
-  }
-
+  ros::spin();
   return 0;
 }
