@@ -20,20 +20,21 @@ import objslampp.datasets.ycb_video as ycb_video_dataset
 # robot demo
 import general_kinematics as gk
 import world_interface as world_interface
-import robot_interface as robot_interface
 from object_pose_interface import ObjectPoseInterface
+import robot_interface2
 
 
 class RobotDemo:
 
     def __init__(self):
+        self._ri = robot_interface2.RobotInterface()
+        self._ri.move_to_reset_pose()
 
-        rospy.init_node('robot_demo')
         self._tf_listener = tf.TransformListener(
             cache_time=rospy.Duration(1000))
         self._tf_broadcaster = tf.TransformBroadcaster()
 
-        print('tf setup')
+        objslampp.ros.loginfo_blue('TF setup')
 
         self._object_models = ycb_video_dataset.YCBVideoModels()
         self._object_filepaths = [self._object_models.get_cad_file(
@@ -54,7 +55,6 @@ class RobotDemo:
 
         self._object_pose_interface = ObjectPoseInterface(self._object_models)
 
-        self._robot_interface = robot_interface
         self._world_interface = world_interface
 
         self._all_objects_removed = False
@@ -65,7 +65,6 @@ class RobotDemo:
         self._object_id_to_grasp = None
         self._picked_objects = list()
 
-        self._initialization_speed_ratio = 0.05
         self._grasp_overlap = 0.01
         self._pre_placement_z_dist = 0.025
         self._post_place_dist = 0.05
@@ -255,49 +254,47 @@ class RobotDemo:
             (pos, quat), -1) for pos, quat in zip(robot_positions, robot_quaternions)]
 
     def _initialization_motion(self):
-        self._robot_interface.move_to_home(
-            self._initialization_speed_ratio, self._initialization_speed_ratio)
+        self._ri.move_to_overlook_pose()
         time.sleep(0.5)
-        for robot_pose in self._robot_poses:
 
+        for robot_pose in self._robot_poses:
             pose = Pose()
             pose.position = Point(robot_pose[0], robot_pose[1], robot_pose[2])
             pose.orientation = Quaternion(
                 robot_pose[3], robot_pose[4], robot_pose[5], robot_pose[6])
 
-            self._robot_interface.set_end_effector_quaternion_pose_linearly(
-                pose, self._initialization_speed_ratio, self._initialization_speed_ratio)
+            self._ri.set_end_effector_quaternion_pose_linearly(pose, 0.05, 0.05)
             time.sleep(0.5)
-        self._robot_interface.move_to_home(
-            self._initialization_speed_ratio, self._initialization_speed_ratio)
+            break
+
+        self._ri.move_to_overlook_pose()
         time.sleep(0.5)
 
     def _move_robot_over_table(self):
-        self._robot_interface.move_to_home()
+        self._ri.move_to_overlook_pose()
 
     def _move_robot_to_pre_grasp_pose(self, pre_grasp_pose):
-        self._robot_interface.set_end_effector_quaternion_pointing_pose(
-            pre_grasp_pose)
+        self._ri.set_end_effector_quaternion_pointing_pose(pre_grasp_pose)
 
     def _move_robot_to_grasp_pose(self, grasp_pose):
-        _, pose_reached = self._robot_interface.set_end_effector_position_linearly(
+        _, pose_reached = self._ri.set_end_effector_position_linearly(
             grasp_pose.position, 0.1, 0.1)
         return pose_reached
 
     def _move_robot_to_post_grasp_pose(self, post_grasp_pose):
-        self._robot_interface.set_end_effector_position_linearly(
+        self._ri.set_end_effector_position_linearly(
             post_grasp_pose.position, 0.25, 0.25)
 
     def _suction_grip_object(self):
-        self._robot_interface.set_suction_state(True)
+        self._ri.grasp()
         time.sleep(1)
 
     def _move_robot_over_target_box(self):
-        self._robot_interface.set_end_effector_quaternion_pose_linearly(
+        self._ri.set_end_effector_quaternion_pose_linearly(
             self._over_target_box_pose)
 
     def _move_robot_over_distractor_box(self):
-        self._robot_interface.set_end_effector_quaternion_pose_linearly(
+        self._ri.set_end_effector_quaternion_pose_linearly(
             self._over_distractor_box_pose)
 
     def _move_robot_to_pre_place_pose(self, robot_poses):
@@ -306,14 +303,14 @@ class RobotDemo:
             robot_pre_pose = robot_pose
             robot_pre_pose.position.z += self._pre_placement_z_dist
             robot_pre_poses.append(robot_pre_pose)
-        _, pre_pose_reached = self._robot_interface.set_end_effector_quaternion_pose(
+        _, pre_pose_reached = self._ri.set_end_effector_quaternion_pose(
             robot_pre_poses)
         return pre_pose_reached
 
     def _move_robot_to_place_pose(self, pre_pose_reached, object_to_robot_mat):
         place_position = pre_pose_reached.position
         place_position.z -= self._pre_placement_z_dist
-        _, robot_pose = self._robot_interface.set_end_effector_position_linearly(
+        _, robot_pose = self._ri.set_end_effector_position_linearly(
             place_position, 0.1, 0.1)
         pos = robot_pose.position
         ori = robot_pose.orientation
@@ -357,16 +354,15 @@ class RobotDemo:
 
         position = Point(translation[0], translation[1], translation[2])
 
-        self._robot_interface.set_end_effector_position_linearly(
-            position, 0.25, 0.25)
+        self._ri.set_end_effector_position_linearly(position, 0.25, 0.25)
 
     def _move_robot_to_drop_pose(self):
-        self._robot_interface.set_end_effector_position_linearly(
+        self._ri.set_end_effector_position_linearly(
             self._in_distractor_box_pose.position, 0.5, 0.5)
         return self._in_distractor_box_pose
 
     def _release_suction_grip(self):
-        self._robot_interface.set_suction_state(False)
+        self._ri.ungrasp()
         time.sleep(6)
 
     # Object Checking #
@@ -422,9 +418,13 @@ class RobotDemo:
         self._ordered_object_ids_to_grasp = [
             object_pose.class_id for object_pose in pick_point_poses.poses]
 
-        print('object tree:')
-        for class_id in self._ordered_object_ids_to_grasp:
-            print(ycb_video_dataset.class_names[class_id])
+        ordered_class_names = (
+            ycb_video_dataset.class_names[i]
+            for i in self._ordered_object_ids_to_grasp
+        )
+        objslampp.ros.loginfo_blue(
+            f"Object tree: {' -> '.join(ordered_class_names)}"
+        )
 
     # object Poses #
     # -------------#
@@ -507,27 +507,26 @@ class RobotDemo:
 
         # scene inference #
         # ----------------#
-
-        print('performing initialization motion...')
+        objslampp.ros.loginfo_blue('Performing scanning motion')
         self._initialization_motion()
 
-        print('waiting for object tree')
+        objslampp.ros.loginfo_blue('Waiting for object tree')
         try:
             object_picking_poses = rospy.wait_for_message(
                 '/camera/select_picking_order/output/poses', ObjectPoseArray, timeout=30)
         except:
-            raise Exception('Object Tree Not Found.')
+            raise Exception('Object tree not found')
         self._pick_poses_callback(object_picking_poses)
 
         try:
             object_poses = rospy.wait_for_message(
                 '/camera/with_occupancy/collision_based_pose_refinement/object_mapping/output/poses', ObjectPoseArray, timeout=30)
         except:
-            raise Exception('Object Poses Not Found.')
+            raise Exception('Object poses not found.')
         self._object_poses_callback(object_poses)
         self._update_static_scene()
 
-        print('initialization complete')
+        objslampp.ros.loginfo_blue('Scene understanding complete')
 
         while not self._all_objects_removed:
 
@@ -535,8 +534,8 @@ class RobotDemo:
             # -----------------#
 
             self._object_id_to_grasp = self._choose_next_object_to_grasp()
-            print('picking up ' +
-                  str(ycb_video_dataset.class_names[self._object_id_to_grasp]))
+            class_name = ycb_video_dataset.class_names[self._object_id_to_grasp]
+            objslampp.ros.loginfo_blue(f'Picking up {class_name}')
 
             self._broadcast_object_pose()
 
@@ -619,14 +618,18 @@ class RobotDemo:
             # ------------#
 
             self._move_robot_over_table()
-            print('pick completed')
+            objslampp.ros.loginfo_blue('Targeted picking completed')
 
-        print('Demo completed!')
+            self._ri.move_to_reset_pose()
+
+        objslampp.ros.loginfo_blue('Demo completed')
 
 
 def main():
+    rospy.init_node('robot_demo')
     robot_demo = RobotDemo()
-    input('press enter to continue demo')
+    objslampp.ros.loginfo_green('Press ENTER to start the demo')
+    input('')
     robot_demo.run()
 
 
