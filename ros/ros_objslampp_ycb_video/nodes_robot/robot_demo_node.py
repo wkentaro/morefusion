@@ -508,7 +508,7 @@ class RobotDemo:
         # scene inference #
         # ----------------#
         objslampp.ros.loginfo_blue('Performing scanning motion')
-        self._initialization_motion()
+        self._ri.run_scanning_motion()
 
         objslampp.ros.loginfo_blue('Waiting for object tree')
         try:
