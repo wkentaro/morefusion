@@ -20,8 +20,6 @@ def get_scanning_poses():
 
     # define robot poses
     robot_position_offsets = [
-        np.array([x_offset, y_offset, 0]),
-
         # centre
         np.array([x_offset, y_offset, z1]),
 
@@ -45,6 +43,8 @@ def get_scanning_poses():
 
         # centre
         np.array([x_offset, y_offset, z1]),
+
+        np.array([x_offset, y_offset, 0]),
     ]
 
     robot_rotation_vectors = [np.array([0, 0, 0])] * len(robot_position_offsets)
