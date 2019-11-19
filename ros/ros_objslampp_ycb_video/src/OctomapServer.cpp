@@ -28,6 +28,8 @@ OctomapServer::OctomapServer() {
   pnh_.param("sensor_frame_id", frame_id_sensor_, std::string("camera_color_optical_frame"));
   pnh_.param("filter_speckles", do_filter_speckles_, false);
 
+  tf_listener_ = new tf::TransformListener(ros::Duration(30));
+
   pub_binary_map_ = pnh_.advertise<Octomap>("output/octomap_binary", 1);
   pub_full_map_ = pnh_.advertise<Octomap>("output/octomap_full", 1);
   pub_grids_ = pnh_.advertise<ros_objslampp_msgs::VoxelGridArray>("output/grids", 1);
@@ -80,7 +82,7 @@ void OctomapServer::insertCloudCallback(
   // Get TF
   tf::StampedTransform sensorToWorldTf;
   try {
-    tf_listener_.lookupTransform(
+    tf_listener_->lookupTransform(
       frame_id_world_, cloud->header.frame_id, cloud->header.stamp, sensorToWorldTf);
   } catch (tf::TransformException& ex) {
     ROS_ERROR_STREAM("Transform error of sensor data: " << ex.what() << ", quitting callback");

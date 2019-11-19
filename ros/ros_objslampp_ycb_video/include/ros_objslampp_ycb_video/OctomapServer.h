@@ -140,7 +140,7 @@ class OctomapServer {
 
   ros::ServiceClient client_render_;
 
-  tf::TransformListener tf_listener_;
+  tf::TransformListener* tf_listener_;
 
   std::map<int, OcTreeT*> octrees_;
   std::map<int, unsigned> class_ids_;
