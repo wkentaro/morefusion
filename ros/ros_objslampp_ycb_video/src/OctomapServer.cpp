@@ -81,13 +81,14 @@ void OctomapServer::insertCloudCallback(
     const ros_objslampp_msgs::ObjectClassArrayConstPtr& class_msg) {
   // Get TF
   tf::StampedTransform sensorToWorldTf;
-  try {
-    tf_listener_->lookupTransform(
-      frame_id_world_, cloud->header.frame_id, cloud->header.stamp, sensorToWorldTf);
-  } catch (tf::TransformException& ex) {
-    ROS_ERROR_STREAM("Transform error of sensor data: " << ex.what() << ", quitting callback");
+  if (!tf_listener_->waitForTransform(frame_id_world_,
+                                      cloud->header.frame_id,
+                                      cloud->header.stamp,
+                                      ros::Duration(0.1))) {
     return;
   }
+  tf_listener_->lookupTransform(
+    frame_id_world_, cloud->header.frame_id, cloud->header.stamp, sensorToWorldTf);
   Eigen::Matrix4f sensorToWorld;
   pcl_ros::transformAsMatrix(sensorToWorldTf, sensorToWorld);
 
