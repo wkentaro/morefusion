@@ -18,6 +18,7 @@ class VoxelGridsToMarkers(topic_tools.LazyTransport):
 
     def __init__(self):
         super().__init__()
+        self._show_bbox = rospy.get_param('~show_bbox', True)
         self._pub = self.advertise('~output', MarkerArray, queue_size=1)
         self._post_init()
 
@@ -35,6 +36,14 @@ class VoxelGridsToMarkers(topic_tools.LazyTransport):
 
     def _callback(self, grids_msg):
         markers = MarkerArray()
+
+        marker = Marker(
+            header=grids_msg.header,
+            id=-1,
+            action=Marker.DELETEALL
+        )
+        markers.markers.append(marker)
+
         for grid in grids_msg.grids:
             instance_id = grid.instance_id
             color = self._colormap[instance_id + 1]
@@ -63,6 +72,9 @@ class VoxelGridsToMarkers(topic_tools.LazyTransport):
             marker.color.b = color[2] / 255.
             marker.color.a = 1
             markers.markers.append(marker)
+
+            if not self._show_bbox:
+                continue
 
             center = origin + (dims / 2 - 0.5) * grid.pitch
             extents = dims * grid.pitch

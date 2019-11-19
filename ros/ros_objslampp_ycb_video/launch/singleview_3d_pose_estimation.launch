@@ -59,11 +59,25 @@
             pkg="ros_objslampp_ycb_video" type="object_mapping.py"
             clear_params="true" if="$(arg PROCESS)">
         <remap from="~input/poses" to="singleview_3d_pose_estimation/output" />
+        <remap from="~input/grids" to="/camera/octomap_server/output/grids" />
         <rosparam subst_value="true">
           frame_id: $(arg FRAME_ID)
         </rosparam>
       </node>
       <group ns="object_mapping">
+        <node name="grids_to_mesh_markers"
+              pkg="ros_objslampp_ycb_video" type="voxel_grids_to_mesh_markers.py"
+              clear_params="true">
+          <remap from="~input" to="output/grids" />
+        </node>
+        <node name="grids_to_markers"
+              pkg="ros_objslampp_ycb_video" type="voxel_grids_to_markers.py"
+              clear_params="true">
+          <remap from="~input" to="output/grids" />
+          <rosparam subst_value="true">
+            show_bbox: false
+          </rosparam>
+        </node>
         <node name="object_poses_to_markers"
               pkg="ros_objslampp_ycb_video" type="object_poses_to_markers.py"
               clear_params="true">
@@ -130,11 +144,25 @@
                 pkg="ros_objslampp_ycb_video" type="object_mapping.py"
                 clear_params="true" if="$(arg PROCESS)">
             <remap from="~input/poses" to="output" />
+            <remap from="~input/grids" to="/camera/octomap_server/output/grids" />
             <rosparam subst_value="true">
               frame_id: $(arg FRAME_ID)
             </rosparam>
           </node>
           <group ns="object_mapping">
+            <node name="grids_to_mesh_markers"
+                  pkg="ros_objslampp_ycb_video" type="voxel_grids_to_mesh_markers.py"
+                  clear_params="true">
+              <remap from="~input" to="output/grids" />
+            </node>
+            <node name="grids_to_markers"
+                  pkg="ros_objslampp_ycb_video" type="voxel_grids_to_markers.py"
+                  clear_params="true">
+              <remap from="~input" to="output/grids" />
+              <rosparam subst_value="true">
+                show_bbox: false
+              </rosparam>
+            </node>
             <node name="object_poses_to_markers"
                   pkg="ros_objslampp_ycb_video" type="object_poses_to_markers.py"
                   clear_params="true">

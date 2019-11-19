@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
+import copy
 import itertools
 import queue
-import threading
 
 import trimesh.transformations as ttf
 
@@ -12,6 +12,7 @@ import objslampp
 from ros_objslampp_msgs.msg import ObjectClassArray
 from ros_objslampp_msgs.msg import ObjectPose
 from ros_objslampp_msgs.msg import ObjectPoseArray
+from ros_objslampp_msgs.msg import VoxelGridArray
 import rospy
 import tf
 
@@ -27,11 +28,11 @@ class Object:
         self._is_symmetric = is_symmetric
 
         self._poses = queue.deque([], 6)
-        self._spawn = False
+        self.is_spawned = False
 
     @property
     def pose(self):
-        if not self._spawn:
+        if not self.is_spawned:
             return
         return self._poses[-1]
 
@@ -40,15 +41,15 @@ class Object:
             f'{self.__class__.__name__}('
             f'class_id={self.class_id}, '
             f'n_poses={len(self._poses)}, '
-            f'spawn={self._spawn})'
+            f'is_spawned={self.is_spawned})'
         )
 
     def append_pose(self, pose):
-        if not self._spawn:
+        if not self.is_spawned:
             self._poses.append(pose)
 
     def validate(self):
-        if self._spawn:
+        if self.is_spawned:
             return True  # already validated before
 
         if len(self._poses) < (self._n_votes):
@@ -62,7 +63,7 @@ class Object:
             self._pcd, latest_pose, poses
         ).array
         if (adds < self._add_threshold).sum() >= (self._n_votes - 1):
-            self._spawn = True
+            self.is_spawned = True
             self._poses = tuple(self._poses)  # freeze it
             return True
         return False
@@ -74,13 +75,21 @@ class ObjectMapping:
 
     def __init__(self):
         self._objects = {}  # instance_id: Object()
+        self._instance_ids_removed = set()
         self._base_frame = rospy.get_param('~frame_id', 'map')
         self._pub = rospy.Publisher(
             '~output/poses', ObjectPoseArray, queue_size=1, latch=True
         )
+        self._pub_grids = rospy.Publisher(
+            '~output/grids', VoxelGridArray, queue_size=1, latch=True
+        )
+
         self._tf_listener = tf.TransformListener(cache_time=rospy.Duration(30))
         self._sub = rospy.Subscriber(
             '~input/poses', ObjectPoseArray, self._callback, queue_size=1
+        )
+        self._sub_grids = rospy.Subscriber(
+            '~input/grids', VoxelGridArray, self._callback_grids, queue_size=1
         )
         self._sub_remove = rospy.Subscriber(
             '~input/remove',
@@ -88,21 +97,29 @@ class ObjectMapping:
             self._callback_remove,
             queue_size=1,
         )
-        self._lock = threading.Lock()
+
+    def _callback_grids(self, grids_msg):
+        out_msg = copy.deepcopy(grids_msg)
+        out_msg.grids = []
+        for grid in grids_msg.grids:
+            if (grid.instance_id in self._objects and
+                    self._objects[grid.instance_id].is_spawned):
+                continue
+            out_msg.grids.append(grid)
+        self._pub_grids.publish(out_msg)
 
     def _callback_remove(self, cls_msg):
         for cls in cls_msg.classes:
-            if cls.instance_id in self._objects:
-                with self._lock:
-                    self._objects.pop(cls.instance_id)
+            self._instance_ids_removed.add(cls.instance_id)
         self._publish_poses(cls_msg.header.stamp)
 
     def _publish_poses(self, stamp):
         out_msg = ObjectPoseArray()
         out_msg.header.stamp = stamp
         out_msg.header.frame_id = self._base_frame
-        self._lock.acquire()
         for ins_id, obj in self._objects.items():
+            if ins_id in self._instance_ids_removed:
+                continue
             if not obj.validate():
                 continue
 
@@ -121,7 +138,6 @@ class ObjectMapping:
             pose.pose.orientation.y = quaternion[2]
             pose.pose.orientation.z = quaternion[3]
             out_msg.poses.append(pose)
-        self._lock.release()
         self._pub.publish(out_msg)
 
     def _callback(self, poses_msg):
@@ -147,10 +163,8 @@ class ObjectMapping:
             quaternion, translation
         ).array
 
-
         # ---------------------------------------------------------------------
 
-        self._lock.acquire()
         for pose in poses_msg.poses:
             instance_id = pose.instance_id
             class_id = pose.class_id
@@ -170,7 +184,6 @@ class ObjectMapping:
                     objslampp.datasets.ycb_video.class_ids_symmetric
                 )
                 self._objects[instance_id].append_pose(T_cad2base)
-        self._lock.release()
 
         self._publish_poses(stamp=poses_msg.header.stamp)
 
