@@ -25,4 +25,12 @@
     </node>
   </group>
 
+  <group ns="robot_demo">
+    <node name="object_poses_to_markers"
+          pkg="ros_objslampp_ycb_video" type="object_poses_to_markers.py"
+          clear_params="true">
+      <remap from="~input" to="output/placed" />
+    </node>
+  </group>
+
 </launch>

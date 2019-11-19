@@ -12,7 +12,7 @@ from threading import Lock
 # ros
 import tf
 import rospy
-from ros_objslampp_msgs.msg import ObjectPoseArray, ObjectClass, ObjectClassArray
+from ros_objslampp_msgs.msg import ObjectPose, ObjectPoseArray, ObjectClass, ObjectClassArray
 from geometry_msgs.msg import Pose, PoseStamped, Point, Quaternion
 
 # objslampp
@@ -31,6 +31,9 @@ class RobotDemoInterface(RobotInterface):
     def __init__(self):
         super().__init__()
 
+        self._pub_placed = rospy.Publisher(
+            '~output/placed', ObjectPoseArray, queue_size=1, latch=True
+        )
         self._pub_moved = rospy.Publisher(
             '/camera/with_occupancy/collision_based_pose_refinement/object_mapping/input/remove',  # NOQA
             ObjectClassArray,
@@ -495,6 +498,16 @@ class RobotDemoInterface(RobotInterface):
             [str(self._object_id_to_grasp)], ['panda_suction_cup'])
 
     def _update_scene_with_placement(self, pose):
+        out_msg = ObjectPoseArray()
+        out_msg.header.frame_id = 'panda_link0'
+        out_msg.header.stamp = rospy.Time.now()
+        cls_id = self._object_id_to_grasp
+        ins_id = self._class_id_to_instance_id[cls_id]
+        out_msg.poses.append(
+            ObjectPose(class_id=cls_id, instance_id=ins_id, pose=pose)
+        )
+        self._pub_placed.publish(out_msg)
+
         self._world_interface.remove_attached_meshes(
             [str(self._object_id_to_grasp)], ['panda_suction_cup'])
         self._world_interface.add_attached_meshes([str(self._object_id_to_grasp)],

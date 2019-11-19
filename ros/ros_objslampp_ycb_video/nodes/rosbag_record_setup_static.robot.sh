@@ -37,4 +37,5 @@ rosbag record -b 0 \
   /camera/with_occupancy/singleview_3d_pose_estimation/output \
   /camera/with_occupancy/singleview_3d_pose_estimation/output/debug/rgbd \
   /move_group/monitored_planning_scene \
+  /robot_demo/output/placed \
   -O $LOG_DIR/setup_static.robot.bag $*

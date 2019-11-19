@@ -477,7 +477,7 @@ Visualization Manager:
           Marker Topic: /camera/with_occupancy/collision_based_pose_refinement/object_mapping/object_poses_to_markers/output
           Name: RefinedSpawned
           Namespaces:
-            {}
+            "": true
           Queue Size: 1
           Value: true
         - Class: rviz/MarkerArray
@@ -494,11 +494,14 @@ Visualization Manager:
           Name: GridsSpawned
           Namespaces:
             0: true
-            1: true
-            2: true
-            3: true
-            4: true
-            5: true
+          Queue Size: 1
+          Value: true
+        - Class: rviz/MarkerArray
+          Enabled: true
+          Marker Topic: /robot_demo/object_poses_to_markers/output
+          Name: Moved
+          Namespaces:
+            {}
           Queue Size: 1
           Value: true
       Enabled: true
