@@ -34,12 +34,12 @@ class ObjectPosesToMarkers(topic_tools.LazyTransport):
     def _callback(self, poses_msg):
         markers_msg = MarkerArray()
 
-        # marker = Marker(
-        #     header=poses_msg.header,
-        #     id=-1,
-        #     action=Marker.DELETEALL
-        # )
-        # markers_msg.markers.append(marker)
+        marker = Marker(
+            header=poses_msg.header,
+            id=-1,
+            action=Marker.DELETEALL
+        )
+        markers_msg.markers.append(marker)
 
         for pose in poses_msg.poses:
             marker = Marker()
