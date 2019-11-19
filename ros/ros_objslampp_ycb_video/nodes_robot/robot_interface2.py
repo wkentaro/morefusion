@@ -143,8 +143,8 @@ class RobotInterface:
             pose.position = Point(robot_pose[0], robot_pose[1], robot_pose[2])
             pose.orientation = Quaternion(
                 robot_pose[3], robot_pose[4], robot_pose[5], robot_pose[6])
-            self.set_end_effector_quaternion_pose(
-                [pose], acceleration_scaling=0.3
+            self.set_end_effector_quaternion_pose_linearly(
+                pose, acceleration_scaling=0.3
             )
             self.passthrough()
 

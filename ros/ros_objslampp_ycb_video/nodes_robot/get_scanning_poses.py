@@ -36,6 +36,11 @@ def get_scanning_poses():
         np.array([x_offset - x1, y_offset, z1]),
         # centre
         np.array([x_offset, y_offset, z1]),
+        # top
+        np.array([x_offset + x1, y_offset, z1]),
+        # top left
+        np.array([x_offset + x1, y_offset + y1, z1]),
+
         # left
         np.array([x_offset, y_offset + y1, z1]),
         # bottom left
