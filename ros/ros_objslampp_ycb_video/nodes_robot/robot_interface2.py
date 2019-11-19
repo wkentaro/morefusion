@@ -33,8 +33,8 @@ class RobotInterface:
     }
 
     def __init__(self):
-        self.scale_vel = 1
-        self.scale_accel = 1
+        self.scale_vel = 0.9
+        self.scale_accel = 0.9
 
         self._wait_for_service('/move_to_joint_position')
         self._wait_for_service('/set_suction')
