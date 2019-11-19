@@ -113,22 +113,14 @@ class RobotInterface:
             scale_accel,
         )
 
-    def start_passthrough(self):
-        client = rospy.ServiceProxy(
+    def passthrough(self, duration=2):
+        rospy.ServiceProxy(
             '/camera/color/image_rect_color_passthrough/request', Empty
-        )
-        client.call()
-
-    def stop_passthrough(self):
-        client = rospy.ServiceProxy(
+        ).call()
+        time.sleep(duration)
+        rospy.ServiceProxy(
             '/camera/color/image_rect_color_passthrough/stop', Empty
-        )
-        client.call()
-
-    def passthrough(self, duration=1):
-        self.start_passthrough()
-        time.sleep(2)
-        self.stop_passthrough()
+        ).call()
 
     def run_scanning_motion(self):
         self.move_to_overlook_pose()
