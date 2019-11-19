@@ -12,7 +12,7 @@ from threading import Lock
 # ros
 import tf
 import rospy
-from ros_objslampp_msgs.msg import ObjectPoseArray
+from ros_objslampp_msgs.msg import ObjectPoseArray, ObjectClass, ObjectClassArray
 from geometry_msgs.msg import Pose, PoseStamped, Point, Quaternion
 
 # objslampp
@@ -30,6 +30,12 @@ class RobotDemoInterface(RobotInterface):
 
     def __init__(self):
         super().__init__()
+
+        self._pub_moved = rospy.Publisher(
+            '/camera/with_occupancy/collision_based_pose_refinement/object_mapping/input/remove',  # NOQA
+            ObjectClassArray,
+            queue_size=1,
+        )
 
         self._tf_listener = tf.TransformListener(
             cache_time=rospy.Duration(30))
@@ -399,6 +405,8 @@ class RobotDemoInterface(RobotInterface):
         self._object_ros_time = pick_point_poses.header.stamp
         frame_id = pick_point_poses.header.frame_id
 
+        # FIXME: current code assumes there are no multiple instances of the same class
+        self._class_id_to_instance_id = {}
         for object_pose in pick_point_poses.poses:
 
             pose_stamped = PoseStamped()
@@ -418,6 +426,8 @@ class RobotDemoInterface(RobotInterface):
             pick_point_mat_in_world_frame = gk.quaternion_pose_to_mat(
                 np, pick_point_np_pose_in_world_frame)
             self._pick_point_mats_in_world_frame[object_pose.class_id] = pick_point_mat_in_world_frame
+
+            self._class_id_to_instance_id[object_pose.class_id] = object_pose.instance_id
 
         self._ordered_object_ids_to_grasp = [
             object_pose.class_id for object_pose in pick_point_poses.poses]
@@ -489,6 +499,17 @@ class RobotDemoInterface(RobotInterface):
             [str(self._object_id_to_grasp)], ['panda_suction_cup'])
         self._world_interface.add_attached_meshes([str(self._object_id_to_grasp)],
                                                   [self._collision_meshes[self._object_id_to_grasp - 1]], [pose], ['panda_link0'])
+
+    def _publish_moved(self):
+        now = rospy.Time.now()
+        class_id = self._object_id_to_grasp
+        instance_id = self._class_id_to_instance_id[class_id]
+        cls_msg = ObjectClassArray()
+        cls_msg.header.stamp = now
+        cls_msg.classes.append(
+            ObjectClass(instance_id=instance_id, class_id=class_id)
+        )
+        self._pub_moved.publish(cls_msg)
 
     # Run #
     # ----#
@@ -572,6 +593,7 @@ class RobotDemoInterface(RobotInterface):
             self._suction_grip_object()
 
             self._update_scene_with_grasp()
+            self._publish_moved()
 
             self._move_robot_to_post_grasp_pose(post_grasp_pose)
 

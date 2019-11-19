@@ -2,12 +2,14 @@
 
 import itertools
 import queue
+import threading
 
 import trimesh.transformations as ttf
 
 import numpy as np
 import objslampp
 
+from ros_objslampp_msgs.msg import ObjectClassArray
 from ros_objslampp_msgs.msg import ObjectPose
 from ros_objslampp_msgs.msg import ObjectPoseArray
 import rospy
@@ -80,6 +82,47 @@ class ObjectMapping:
         self._sub = rospy.Subscriber(
             '~input/poses', ObjectPoseArray, self._callback, queue_size=1
         )
+        self._sub_remove = rospy.Subscriber(
+            '~input/remove',
+            ObjectClassArray,
+            self._callback_remove,
+            queue_size=1,
+        )
+        self._lock = threading.Lock()
+
+    def _callback_remove(self, cls_msg):
+        for cls in cls_msg.classes:
+            if cls.instance_id in self._objects:
+                with self._lock:
+                    self._objects.pop(cls.instance_id)
+        self._publish_poses(cls_msg.header.stamp)
+
+    def _publish_poses(self, stamp):
+        out_msg = ObjectPoseArray()
+        out_msg.header.stamp = stamp
+        out_msg.header.frame_id = self._base_frame
+        self._lock.acquire()
+        for ins_id, obj in self._objects.items():
+            if not obj.validate():
+                continue
+
+            pose = ObjectPose(
+                instance_id=ins_id,
+                class_id=obj.class_id,
+            )
+            T_cad2base = obj.pose
+            translation = ttf.translation_from_matrix(T_cad2base)
+            quaternion = ttf.quaternion_from_matrix(T_cad2base)
+            pose.pose.position.x = translation[0]
+            pose.pose.position.y = translation[1]
+            pose.pose.position.z = translation[2]
+            pose.pose.orientation.w = quaternion[0]
+            pose.pose.orientation.x = quaternion[1]
+            pose.pose.orientation.y = quaternion[2]
+            pose.pose.orientation.z = quaternion[3]
+            out_msg.poses.append(pose)
+        self._lock.release()
+        self._pub.publish(out_msg)
 
     def _callback(self, poses_msg):
         try:
@@ -104,8 +147,10 @@ class ObjectMapping:
             quaternion, translation
         ).array
 
+
         # ---------------------------------------------------------------------
 
+        self._lock.acquire()
         for pose in poses_msg.poses:
             instance_id = pose.instance_id
             class_id = pose.class_id
@@ -125,30 +170,9 @@ class ObjectMapping:
                     objslampp.datasets.ycb_video.class_ids_symmetric
                 )
                 self._objects[instance_id].append_pose(T_cad2base)
+        self._lock.release()
 
-        out_msg = ObjectPoseArray()
-        out_msg.header.stamp = poses_msg.header.stamp
-        out_msg.header.frame_id = self._base_frame
-        for ins_id, obj in self._objects.items():
-            if not obj.validate():
-                continue
-
-            pose = ObjectPose(
-                instance_id=ins_id,
-                class_id=obj.class_id,
-            )
-            T_cad2base = obj.pose
-            translation = ttf.translation_from_matrix(T_cad2base)
-            quaternion = ttf.quaternion_from_matrix(T_cad2base)
-            pose.pose.position.x = translation[0]
-            pose.pose.position.y = translation[1]
-            pose.pose.position.z = translation[2]
-            pose.pose.orientation.w = quaternion[0]
-            pose.pose.orientation.x = quaternion[1]
-            pose.pose.orientation.y = quaternion[2]
-            pose.pose.orientation.z = quaternion[3]
-            out_msg.poses.append(pose)
-        self._pub.publish(out_msg)
+        self._publish_poses(stamp=poses_msg.header.stamp)
 
 
 if __name__ == '__main__':
