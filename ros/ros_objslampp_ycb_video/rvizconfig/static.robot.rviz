@@ -111,10 +111,10 @@ Visualization Manager:
       top: 0
       width: 250
     - Class: jsk_rviz_plugin/OverlayImage
-      Enabled: true
+      Enabled: false
       Name: Depth
       Topic: /camera/aligned_depth_to_color/image_view/output
-      Value: true
+      Value: false
       alpha: 1
       height: 128
       keep aspect ratio: true
@@ -195,7 +195,7 @@ Visualization Manager:
             {}
           Queue Size: 1
           Value: false
-      Enabled: true
+      Enabled: false
       Name: Partial
     - Class: rviz/MarkerArray
       Enabled: false
@@ -289,10 +289,10 @@ Visualization Manager:
       top: 226
       width: 600
     - Class: jsk_rviz_plugin/OverlayImage
-      Enabled: true
+      Enabled: false
       Name: RefinedSpawned
       Topic: /camera/with_occupancy/collision_based_pose_refinement/object_mapping/render_mesh_markers/tile_image/output
-      Value: true
+      Value: false
       alpha: 1
       height: 128
       keep aspect ratio: true
@@ -494,6 +494,14 @@ Visualization Manager:
           Name: GridsSpawned
           Namespaces:
             0: true
+            1: true
+            2: true
+            3: true
+            4: true
+            5: true
+            6: true
+            7: true
+            8: true
           Queue Size: 1
           Value: true
         - Class: rviz/MarkerArray
