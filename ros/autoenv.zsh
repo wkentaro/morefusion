@@ -6,6 +6,9 @@ setup() {
     source $HERE/devel/setup.zsh
   fi
 
+  rosdefault
+  rossetip
+
   CONDA_PREFIX=$HERE/src/objslampp/.anaconda3
   source $CONDA_PREFIX/bin/activate
 
