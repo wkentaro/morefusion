@@ -127,33 +127,26 @@ class RobotInterface:
 
     def passthrough(self, duration=1):
         self.start_passthrough()
-        time.sleep(1)
+        time.sleep(2)
         self.stop_passthrough()
 
     def run_scanning_motion(self):
         self.move_to_overlook_pose()
         self.passthrough()
 
-        joint_positions = [
-            (0.08224239694750395, -0.4015997108409278, -0.49498474810834514, -2.3139969589166474, 0.33205986473317717, 2.125227750738227, 0.7763856610548164),   # rb
-            (-0.10939621453640754, 0.49313024987672505, -0.5767242879783897, -1.2114025848957364, 0.6707009797625332, 1.3963332301586997, 0.15708699394183026),  # rm
-            (0.1698192655535584, -0.0186732256553675, -0.2541714021814522, -1.84699400115707, 0.021888164495122868, 1.9280040739047786, -0.6447974156447582),    # mm
-            (0.17259695036474026, -0.847359646914298, -0.3413624777681859, -2.697739678432234, -0.2500084476338492, 2.327152996407615, -0.7101045701824773),     # mb
-            (-0.29382532062133154, -1.0404848192616514, 0.8261794241101945, -2.8750050642781626, 0.38394064837031894, 2.402663691299933, -0.014790218274927016), # lb
-            (-1.4071775785757785, -1.2716065055633106, 1.4190795248519477, -1.840956871265552, 0.8611193928895169, 1.8164692993428972, 0.5201547520260015),  # lm
-            (-1.9088786778209579, -0.5086115553877906, 1.6564622810977294, -1.5827366967465282, 0.5234668570094723, 1.61768960422073, 0.5276833137762216),  # mm2
-        ]
-        for i in range(len(joint_positions)):
-            if i == 0:
-                jp = joint_positions[i]
-                self._set_joint_position(jp, 1, 1)
-                self.passthrough()
-            else:
-                jp_prev = joint_positions[i - 1]
-                jp_next = joint_positions[i]
-                for jp in np.linspace(jp_prev, jp_next, 4):  # 2 middle points
-                    self._set_joint_position(jp, 1, 1)
-                    self.passthrough()
+        from get_scanning_poses import get_scanning_poses
+        from geometry_msgs.msg import Pose, Point, Quaternion
+
+        poses = get_scanning_poses()
+        for i, robot_pose in enumerate(poses):
+            pose = Pose()
+            pose.position = Point(robot_pose[0], robot_pose[1], robot_pose[2])
+            pose.orientation = Quaternion(
+                robot_pose[3], robot_pose[4], robot_pose[5], robot_pose[6])
+            self.set_end_effector_quaternion_pose(
+                [pose], acceleration_scaling=0.3
+            )
+            self.passthrough()
 
         self.move_to_overlook_pose()
         self.passthrough()
