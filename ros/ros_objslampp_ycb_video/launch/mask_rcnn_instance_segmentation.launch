@@ -4,6 +4,12 @@
 
   <group ns="/camera">
     <group ns="color">
+      <node name="image_rect_color_passthrough"
+            pkg="nodelet" type="nodelet"
+            args="standalone jsk_topic_tools/Passthrough">
+        <remap from="~input" to="image_rect_color" />
+      </node>
+      <!--
       <node name="image_rect_color_throttle"
             pkg="nodelet" type="nodelet"
             args="standalone jsk_topic_tools/LightweightThrottle">
@@ -12,11 +18,12 @@
           update_rate: 1
         </rosparam>
       </node>
+      -->
     </group>
     <node name="mask_rcnn_instance_segmentation"
           pkg="ros_objslampp_ycb_video" type="mask_rcnn_instance_segmentation.py"
           clear_params="true" output="screen">
-      <remap from="~input" to="color/image_rect_color_throttle/output" />
+      <remap from="~input" to="color/image_rect_color_passthrough/output" />
     </node>
     <node name="draw_instance_segmentation"
           pkg="ros_objslampp_ycb_video" type="draw_instance_segmentation.py"
