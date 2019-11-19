@@ -113,7 +113,7 @@ class RobotInterface:
             scale_accel,
         )
 
-    def passthrough(self, duration=2):
+    def passthrough(self, duration=3):
         rospy.ServiceProxy(
             '/camera/color/image_rect_color_passthrough/request', Empty
         ).call()
@@ -124,7 +124,6 @@ class RobotInterface:
 
     def run_scanning_motion(self):
         self.move_to_overlook_pose()
-        self.passthrough()
 
         from get_scanning_poses import get_scanning_poses
         from geometry_msgs.msg import Pose, Point, Quaternion

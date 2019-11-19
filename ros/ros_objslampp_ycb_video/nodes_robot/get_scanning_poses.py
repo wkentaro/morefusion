@@ -14,8 +14,8 @@ def get_scanning_poses():
     x_offset = 0.15
     y_offset = 0.02
 
-    x1 = 0.12
-    y1 = 0.12
+    x1 = 0.05
+    y1 = 0.08
     z1 = -0.12
 
     # define robot poses
