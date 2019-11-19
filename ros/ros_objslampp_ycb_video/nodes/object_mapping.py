@@ -20,7 +20,8 @@ import tf
 class Object:
 
     _n_votes = 3
-    _add_threshold = 0.01
+    _add_threshold = 0.02
+    _adds_threshold = 0.01
 
     def __init__(self, class_id, pcd, is_symmetric):
         self.class_id = class_id
@@ -59,10 +60,23 @@ class Object:
         poses = np.array(
             list(itertools.islice(self._poses, len(self._poses) - 1))
         )
-        adds = objslampp.functions.average_distance(
-            self._pcd, latest_pose, poses
-        ).array
-        if (adds < self._add_threshold).sum() >= (self._n_votes - 1):
+        add, add_s = objslampp.metrics.average_distance(
+            [self._pcd] * len(poses),
+            [latest_pose] * len(poses),
+            poses,
+        )
+        if self._is_symmetric:
+            add = add_s
+        del add_s
+        add = np.array(add)
+        # rospy.logerr('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>')
+        # rospy.logerr(f'{self.class_id}: {add}')
+        # rospy.logerr('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>')
+        if self._is_symmetric:
+            threshold = self._adds_threshold
+        else:
+            threshold = self._add_threshold
+        if (add < threshold).sum() >= (self._n_votes - 1):
             self.is_spawned = True
             self._poses = tuple(self._poses)  # freeze it
             return True
