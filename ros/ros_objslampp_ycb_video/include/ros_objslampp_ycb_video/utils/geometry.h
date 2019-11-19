@@ -82,8 +82,8 @@ void track_instance_id(
   cv::Mat mask_nonedge = cv::Mat::zeros(reference.rows, reference.cols, CV_8UC1);
   cv::rectangle(
     mask_nonedge,
-    cv::Point(reference.cols * 0.15, reference.rows * 0.15),
-    cv::Point(reference.cols * 0.85, reference.rows * 0.85),
+    cv::Point(reference.cols * 0.1, reference.rows * 0.1),
+    cv::Point(reference.cols * 0.9, reference.rows * 0.9),
     /*color=*/255,
     /*thickness=*/CV_FILLED);
   cv::Mat mask_edge;
