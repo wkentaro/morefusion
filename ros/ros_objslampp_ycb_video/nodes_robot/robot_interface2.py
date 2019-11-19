@@ -33,8 +33,8 @@ class RobotInterface:
     }
 
     def __init__(self):
-        self.scale_vel = 0.5
-        self.scale_accel = 0.5
+        self.scale_vel = 1
+        self.scale_accel = 1
 
         self._wait_for_service('/move_to_joint_position')
         self._wait_for_service('/set_suction')
@@ -136,12 +136,11 @@ class RobotInterface:
             pose.orientation = Quaternion(
                 robot_pose[3], robot_pose[4], robot_pose[5], robot_pose[6])
             self.set_end_effector_quaternion_pose_linearly(
-                pose, acceleration_scaling=0.3
+                pose, velocity_scaling=0.5, acceleration_scaling=0.5
             )
             self.passthrough()
 
         self.move_to_overlook_pose()
-        self.passthrough()
 
 
 if __name__ == '__main__':
