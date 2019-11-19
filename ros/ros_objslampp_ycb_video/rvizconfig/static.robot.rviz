@@ -249,10 +249,10 @@ Visualization Manager:
       Enabled: true
       Name: Full
     - Class: jsk_rviz_plugin/OverlayImage
-      Enabled: true
+      Enabled: false
       Name: LabelRendered2
       Topic: /camera/octomap_server/draw_instance_segmentation/output
-      Value: true
+      Value: false
       alpha: 1
       height: 128
       keep aspect ratio: true
@@ -260,10 +260,10 @@ Visualization Manager:
       top: 190
       width: 250
     - Class: jsk_rviz_plugin/OverlayImage
-      Enabled: true
+      Enabled: false
       Name: PoseNetInput
       Topic: /camera/with_occupancy/singleview_3d_pose_estimation/output/debug/rgbd
-      Value: true
+      Value: false
       alpha: 1
       height: 128
       keep aspect ratio: true
@@ -304,10 +304,10 @@ Visualization Manager:
       top: 226
       width: 600
     - Class: jsk_rviz_plugin/OverlayImage
-      Enabled: true
+      Enabled: false
       Name: RefinedSpawned
       Topic: /camera/with_occupancy/collision_based_pose_refinement/object_mapping/render_mesh_markers/tile_image/output
-      Value: true
+      Value: false
       alpha: 1
       height: 128
       keep aspect ratio: true
