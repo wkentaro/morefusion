@@ -641,6 +641,11 @@ class RobotDemoInterface(RobotInterface):
         objslampp.ros.loginfo_blue('Demo completed')
         self.move_to_reset_pose()
 
+    def run(self):
+        self.move_to_reset_pose()
+        self.scan_scene()
+        self.pick_and_place()
+
 
 if __name__ == '__main__':
     rospy.init_node('robot_demo')
