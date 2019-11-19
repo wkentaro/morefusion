@@ -65,8 +65,7 @@ bool is_detected_mask_too_small(const cv::Mat& mask2) {
   if (mask_size < (80 * 80) ||
       bbox_size < (120 * 120) ||
       bbox_height < 100 ||
-      bbox_width < 100 ||
-      mask_ratio_in_bbox < 0.3) {
+      bbox_width < 100) {
     return true;
   }
   return false;
@@ -83,8 +82,8 @@ void track_instance_id(
   cv::Mat mask_nonedge = cv::Mat::zeros(reference.rows, reference.cols, CV_8UC1);
   cv::rectangle(
     mask_nonedge,
-    cv::Point(reference.cols * 0.15, reference.rows * 0.15),
-    cv::Point(reference.cols * 0.85, reference.rows * 0.85),
+    cv::Point(reference.cols * 0.05, reference.rows * 0.05),
+    cv::Point(reference.cols * 0.95, reference.rows * 0.95),
     /*color=*/255,
     /*thickness=*/CV_FILLED);
   cv::Mat mask_edge;
