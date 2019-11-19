@@ -88,7 +88,11 @@ class RenderMeshMarkers(LazyTransport):
                 T_cad2marker = objslampp.functions.transformation_matrix(
                     quaternion, translation
                 ).array
-                T_cad2cam = T_marker2cam @ T_cad2marker
+                try:
+                    T_cad2cam = T_marker2cam @ T_cad2marker
+                except ValueError as e:
+                    rospy.logerr(e)
+                    return
                 quaternion = ttf.quaternion_from_matrix(T_cad2cam)
                 translation = ttf.translation_from_matrix(T_cad2cam)
             quaternion = quaternion[[1, 2, 3, 0]]
