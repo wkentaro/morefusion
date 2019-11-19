@@ -7,9 +7,10 @@ Panels:
         - /Global Options1
         - /Partial1
         - /Partial1/OctreeBG1/Namespaces1
-        - /Full1
+        - /Estimation1
         - /PlanningScene1/Scene Geometry1
         - /PlanningScene1/Scene Robot1
+        - /Mapped1
       Splitter Ratio: 0.522222221
     Tree Height: 921
   - Class: rviz/Selection
@@ -230,24 +231,8 @@ Visualization Manager:
             {}
           Queue Size: 1
           Value: false
-        - Class: rviz/MarkerArray
-          Enabled: false
-          Marker Topic: /camera/with_occupancy/object_mapping/object_poses_to_markers/output
-          Name: Spawned
-          Namespaces:
-            {}
-          Queue Size: 1
-          Value: false
-        - Class: rviz/MarkerArray
-          Enabled: true
-          Marker Topic: /camera/with_occupancy/collision_based_pose_refinement/object_mapping/object_poses_to_markers/output
-          Name: RefinedSpawned
-          Namespaces:
-            "": true
-          Queue Size: 1
-          Value: true
-      Enabled: true
-      Name: Full
+      Enabled: false
+      Name: Estimation
     - Class: jsk_rviz_plugin/OverlayImage
       Enabled: false
       Name: LabelRendered2
@@ -304,14 +289,14 @@ Visualization Manager:
       top: 226
       width: 600
     - Class: jsk_rviz_plugin/OverlayImage
-      Enabled: false
+      Enabled: true
       Name: RefinedSpawned
       Topic: /camera/with_occupancy/collision_based_pose_refinement/object_mapping/render_mesh_markers/tile_image/output
-      Value: false
+      Value: true
       alpha: 1
       height: 128
       keep aspect ratio: true
-      left: 500
+      left: 0
       top: 190
       width: 500
     - Alpha: 1
@@ -461,7 +446,7 @@ Visualization Manager:
       Unreliable: false
       Value: true
     - Class: moveit_rviz_plugin/PlanningScene
-      Enabled: true
+      Enabled: false
       Move Group Namespace: ""
       Name: PlanningScene
       Planning Scene Topic: move_group/monitored_planning_scene
@@ -481,129 +466,43 @@ Visualization Manager:
           Expand Link Details: false
           Expand Tree: false
           Link Tree Style: Links in Alphabetic Order
-          panda_distractor_box:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          panda_distractor_box_back:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          panda_distractor_box_front:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          panda_distractor_box_left:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          panda_distractor_box_right:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          panda_front_wall:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          panda_left_wall:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          panda_link0:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          panda_link1:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          panda_link2:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          panda_link3:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          panda_link4:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          panda_link5:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          panda_link6:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          panda_link7:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          panda_link8:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          panda_suction_cup:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          panda_suction_gripper:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          panda_table:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          panda_target_box:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          panda_target_box_back:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          panda_target_box_front:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          panda_target_box_left:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          panda_target_box_right:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
         Robot Alpha: 1
         Show Robot Collision: false
         Show Robot Visual: true
-      Value: true
+      Value: false
+    - Class: rviz/Group
+      Displays:
+        - Class: rviz/MarkerArray
+          Enabled: true
+          Marker Topic: /camera/with_occupancy/collision_based_pose_refinement/object_mapping/object_poses_to_markers/output
+          Name: RefinedSpawned
+          Namespaces:
+            {}
+          Queue Size: 1
+          Value: true
+        - Class: rviz/MarkerArray
+          Enabled: false
+          Marker Topic: /camera/with_occupancy/object_mapping/object_poses_to_markers/output
+          Name: Spawned
+          Namespaces:
+            {}
+          Queue Size: 1
+          Value: false
+        - Class: rviz/MarkerArray
+          Enabled: true
+          Marker Topic: /camera/with_occupancy/collision_based_pose_refinement/object_mapping/grids_to_markers/output
+          Name: GridsSpawned
+          Namespaces:
+            0: true
+            1: true
+            2: true
+            3: true
+            4: true
+            5: true
+          Queue Size: 1
+          Value: true
+      Enabled: true
+      Name: Mapped
   Enabled: true
   Global Options:
     Background Color: 230; 230; 230
@@ -644,10 +543,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.689797044
+      Pitch: 0.629797101
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 4.12040329
+      Yaw: 4.18040419
     Saved: ~
 Window Geometry:
   Displays:
