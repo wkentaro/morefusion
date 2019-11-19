@@ -1,5 +1,10 @@
 #!/bin/bash -x
 
+LOG_DIR=$(date +"%Y%m%d_%H%M%S.%N")
+mkdir -p $LOG_DIR
+
+rosparam dump > $LOG_DIR/rosparam.yaml
+
 rosbag record -b 0 \
   /tf \
   /joint_states \
@@ -7,6 +12,7 @@ rosbag record -b 0 \
   /tf_static_republished \
   /camera/color/camera_info \
   /camera/color/image_rect_color \
+  /camera/color/image_rect_color_passthrough/output \
   /camera/aligned_depth_to_color/camera_info \
   /camera/aligned_depth_to_color/image_raw \
   /camera/free_cells_vis_array \
@@ -28,4 +34,5 @@ rosbag record -b 0 \
   /camera/with_occupancy/object_mapping/output/poses \
   /camera/with_occupancy/singleview_3d_pose_estimation/output \
   /camera/with_occupancy/singleview_3d_pose_estimation/output/debug/rgbd \
-  --output-prefix setup_static.robot $*
+  /move_group/monitored_planning_scene \
+  -O $LOG_DIR/setup_static.robot.bag $*

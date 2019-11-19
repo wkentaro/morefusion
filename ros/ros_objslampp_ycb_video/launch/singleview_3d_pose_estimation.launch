@@ -2,6 +2,7 @@
 
   <arg name="FRAME_ID" />
 
+  <arg name="PROCESS" default="true" />
   <arg name="STATIC_SCENE" default="false" />
   <arg name="OCCUPANCY" default="false" />
 
@@ -13,7 +14,7 @@
     <node name="singleview_3d_pose_estimation"
           pkg="ros_objslampp_ycb_video" type="singleview_3d_pose_estimation.py"
           clear_params="true"
-          output="screen">
+          output="screen" if="$(arg PROCESS)">
       <remap from="~input/camera_info" to="/camera/color/camera_info" />
       <remap from="~input/rgb" to="/camera/color/image_rect_color" />
       <remap from="~input/depth" to="/camera/aligned_depth_to_color/image_raw" />
@@ -56,7 +57,7 @@
     <group if="$(arg STATIC_SCENE)">
       <node name="object_mapping"
             pkg="ros_objslampp_ycb_video" type="object_mapping.py"
-            clear_params="true">
+            clear_params="true" if="$(arg PROCESS)">
         <remap from="~input/poses" to="singleview_3d_pose_estimation/output" />
         <rosparam subst_value="true">
           frame_id: $(arg FRAME_ID)
@@ -94,7 +95,7 @@
       <node name="collision_based_pose_refinement"
             pkg="ros_objslampp_ycb_video" type="collision_based_pose_refinement.py"
             clear_params="true"
-            output="screen">
+            output="screen" if="$(arg PROCESS)">
         <remap from="~input/poses" to="singleview_3d_pose_estimation/output" />
         <remap from="~input/grids" to="/camera/octomap_server/output/grids" />
         <remap from="~input/grids_noentry" to="/camera/octomap_server/output/grids_noentry" />
@@ -127,7 +128,7 @@
         <group if="$(arg STATIC_SCENE)">
           <node name="object_mapping"
                 pkg="ros_objslampp_ycb_video" type="object_mapping.py"
-                clear_params="true">
+                clear_params="true" if="$(arg PROCESS)">
             <remap from="~input/poses" to="output" />
             <rosparam subst_value="true">
               frame_id: $(arg FRAME_ID)
