@@ -1,4 +1,6 @@
+#!/usr/bin/env python
 # flake8: noqa
+
 # general
 import math
 import time
@@ -21,20 +23,17 @@ import objslampp.datasets.ycb_video as ycb_video_dataset
 import general_kinematics as gk
 import world_interface as world_interface
 from object_pose_interface import ObjectPoseInterface
-import robot_interface2
+from robot_interface2 import RobotInterface
 
 
-class RobotDemo:
+class RobotDemoInterface(RobotInterface):
 
     def __init__(self):
-        self._ri = robot_interface2.RobotInterface()
-        self._ri.move_to_reset_pose()
+        super().__init__()
 
         self._tf_listener = tf.TransformListener(
-            cache_time=rospy.Duration(1000))
+            cache_time=rospy.Duration(30))
         self._tf_broadcaster = tf.TransformBroadcaster()
-
-        objslampp.ros.loginfo_blue('TF setup')
 
         self._object_models = ycb_video_dataset.YCBVideoModels()
         self._object_filepaths = [self._object_models.get_cad_file(
@@ -254,7 +253,7 @@ class RobotDemo:
             (pos, quat), -1) for pos, quat in zip(robot_positions, robot_quaternions)]
 
     def _initialization_motion(self):
-        self._ri.move_to_overlook_pose()
+        self.move_to_overlook_pose()
         time.sleep(0.5)
 
         for robot_pose in self._robot_poses:
@@ -263,38 +262,38 @@ class RobotDemo:
             pose.orientation = Quaternion(
                 robot_pose[3], robot_pose[4], robot_pose[5], robot_pose[6])
 
-            self._ri.set_end_effector_quaternion_pose_linearly(pose, 0.05, 0.05)
+            self.set_end_effector_quaternion_pose_linearly(pose, 0.05, 0.05)
             time.sleep(0.5)
             break
 
-        self._ri.move_to_overlook_pose()
+        self.move_to_overlook_pose()
         time.sleep(0.5)
 
     def _move_robot_over_table(self):
-        self._ri.move_to_overlook_pose()
+        self.move_to_overlook_pose()
 
     def _move_robot_to_pre_grasp_pose(self, pre_grasp_pose):
-        self._ri.set_end_effector_quaternion_pointing_pose(pre_grasp_pose)
+        self.set_end_effector_quaternion_pointing_pose(pre_grasp_pose)
 
     def _move_robot_to_grasp_pose(self, grasp_pose):
-        _, pose_reached = self._ri.set_end_effector_position_linearly(
+        _, pose_reached = self.set_end_effector_position_linearly(
             grasp_pose.position, 0.1, 0.1)
         return pose_reached
 
     def _move_robot_to_post_grasp_pose(self, post_grasp_pose):
-        self._ri.set_end_effector_position_linearly(
+        self.set_end_effector_position_linearly(
             post_grasp_pose.position, 0.25, 0.25)
 
     def _suction_grip_object(self):
-        self._ri.grasp()
+        self.grasp()
         time.sleep(1)
 
     def _move_robot_over_target_box(self):
-        self._ri.set_end_effector_quaternion_pose_linearly(
+        self.set_end_effector_quaternion_pose_linearly(
             self._over_target_box_pose)
 
     def _move_robot_over_distractor_box(self):
-        self._ri.set_end_effector_quaternion_pose_linearly(
+        self.set_end_effector_quaternion_pose_linearly(
             self._over_distractor_box_pose)
 
     def _move_robot_to_pre_place_pose(self, robot_poses):
@@ -303,14 +302,14 @@ class RobotDemo:
             robot_pre_pose = robot_pose
             robot_pre_pose.position.z += self._pre_placement_z_dist
             robot_pre_poses.append(robot_pre_pose)
-        _, pre_pose_reached = self._ri.set_end_effector_quaternion_pose(
+        _, pre_pose_reached = self.set_end_effector_quaternion_pose(
             robot_pre_poses)
         return pre_pose_reached
 
     def _move_robot_to_place_pose(self, pre_pose_reached, object_to_robot_mat):
         place_position = pre_pose_reached.position
         place_position.z -= self._pre_placement_z_dist
-        _, robot_pose = self._ri.set_end_effector_position_linearly(
+        _, robot_pose = self.set_end_effector_position_linearly(
             place_position, 0.1, 0.1)
         pos = robot_pose.position
         ori = robot_pose.orientation
@@ -354,15 +353,15 @@ class RobotDemo:
 
         position = Point(translation[0], translation[1], translation[2])
 
-        self._ri.set_end_effector_position_linearly(position, 0.25, 0.25)
+        self.set_end_effector_position_linearly(position, 0.25, 0.25)
 
     def _move_robot_to_drop_pose(self):
-        self._ri.set_end_effector_position_linearly(
+        self.set_end_effector_position_linearly(
             self._in_distractor_box_pose.position, 0.5, 0.5)
         return self._in_distractor_box_pose
 
     def _release_suction_grip(self):
-        self._ri.ungrasp()
+        self.ungrasp()
         time.sleep(6)
 
     # Object Checking #
@@ -430,22 +429,8 @@ class RobotDemo:
     # -------------#
 
     def _object_poses_callback(self, object_poses):
-
-        if len(object_poses.poses) == 0:
-            return
-
-        self._object_ros_time = object_poses.header.stamp
-        frame_id = object_poses.header.frame_id
-
         for object_pose in object_poses.poses:
-
-            pose_stamped = PoseStamped()
-            pose_stamped.header.frame_id = frame_id
-            pose_stamped.header.stamp = self._object_ros_time
-            pose_stamped.pose = object_pose.pose
-
-            object_pose_in_world_frame = self._tf_listener.transformPose(
-                'panda_link0', pose_stamped).pose
+            object_pose_in_world_frame = object_pose.pose
 
             pos = object_pose_in_world_frame.position
             ori = object_pose_in_world_frame.orientation
@@ -503,31 +488,37 @@ class RobotDemo:
     # Run #
     # ----#
 
-    def run(self):
-
-        # scene inference #
-        # ----------------#
-        objslampp.ros.loginfo_blue('Performing scanning motion')
-        self._ri.run_scanning_motion()
-
+    def get_scene(self):
         objslampp.ros.loginfo_blue('Waiting for object tree')
         try:
             object_picking_poses = rospy.wait_for_message(
-                '/camera/select_picking_order/output/poses', ObjectPoseArray, timeout=30)
+                '/camera/select_picking_order/output/poses',
+                ObjectPoseArray,
+                timeout=30,
+            )
         except:
-            raise Exception('Object tree not found')
+            raise RuntimeError('Object tree not found')
         self._pick_poses_callback(object_picking_poses)
 
         try:
             object_poses = rospy.wait_for_message(
-                '/camera/with_occupancy/collision_based_pose_refinement/object_mapping/output/poses', ObjectPoseArray, timeout=30)
+                '/camera/with_occupancy/collision_based_pose_refinement/object_mapping/output/poses',
+                ObjectPoseArray,
+                timeout=30,
+            )
         except:
-            raise Exception('Object poses not found.')
+            raise RuntimeError('Object poses not found')
         self._object_poses_callback(object_poses)
         self._update_static_scene()
 
         objslampp.ros.loginfo_blue('Scene understanding complete')
 
+    def scan_scene(self):
+        objslampp.ros.loginfo_blue('Performing scanning motion')
+        self.run_scanning_motion()
+        self.get_scene()
+
+    def pick_and_place(self):
         while not self._all_objects_removed:
 
             # object selection #
@@ -617,21 +608,14 @@ class RobotDemo:
             # reset robot #
             # ------------#
 
-            self._move_robot_over_table()
-            objslampp.ros.loginfo_blue('Targeted picking completed')
-
-            self._ri.move_to_reset_pose()
+            self.move_to_overlook_pose()
+            objslampp.ros.loginfo_blue(f'Completed moving {class_name}')
 
         objslampp.ros.loginfo_blue('Demo completed')
-
-
-def main():
-    rospy.init_node('robot_demo')
-    robot_demo = RobotDemo()
-    objslampp.ros.loginfo_green('Press ENTER to start the demo')
-    input('')
-    robot_demo.run()
+        self.move_to_reset_pose()
 
 
 if __name__ == '__main__':
-    main()
+    rospy.init_node('robot_demo')
+    ri = RobotDemoInterface()
+    import IPython; IPython.embed()  # NOQA
