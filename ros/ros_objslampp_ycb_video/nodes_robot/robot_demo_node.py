@@ -131,10 +131,15 @@ class RobotDemoInterface(RobotInterface):
         return pose
 
     def _get_pre_grasp_pose(self):
+        return self._get_translated_grasp_pose(z=-0.05)
 
+    def _get_post_grasp_pose(self):
+        return self._get_translated_grasp_pose(z=-0.1)
+
+    def _get_translated_grasp_pose(self, z):
         pre_grasp_mat_in_obj_frame = np.array([[1, 0, 0, 0],
                                                [0, 1, 0, 0],
-                                               [0, 0, 1, -0.05],
+                                               [0, 0, 1, z],
                                                [0, 0, 0, 1]])
 
         pre_grasp_mat_in_world_frame = np.matmul(
@@ -144,8 +149,8 @@ class RobotDemoInterface(RobotInterface):
         translation = pre_grasp_pose_in_world_frame[0:3]
         rotation = pre_grasp_pose_in_world_frame[3:]
 
-        self._tf_broadcaster.sendTransform(
-            translation, rotation, self._object_ros_time, 'pre_grasp', 'panda_link0')
+        # self._tf_broadcaster.sendTransform(
+        #     translation, rotation, self._object_ros_time, 'pre_grasp', 'panda_link0')
 
         pose = Pose()
         pose.position = Point(translation[0], translation[1], translation[2])
@@ -535,9 +540,9 @@ class RobotDemoInterface(RobotInterface):
 
             pre_grasp_pose = self._get_pre_grasp_pose()
             grasp_pose = self._get_grasp_pose()
+            post_grasp_pose = self._get_post_grasp_pose()
             inv_object_mat = np.linalg.inv(
                 self._object_mats_in_world_frame[self._object_id_to_grasp])
-            post_grasp_pose = pre_grasp_pose
 
             # Distractors #
             # ------------#
