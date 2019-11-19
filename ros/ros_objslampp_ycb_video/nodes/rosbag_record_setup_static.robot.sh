@@ -30,8 +30,10 @@ rosbag record -b 0 \
   /camera/select_picking_order/output/poses \
   /camera/select_picking_order/output/poses_viz \
   /camera/with_occupancy/collision_based_pose_refinement/object_mapping/output/poses \
+  /camera/with_occupancy/collision_based_pose_refinement/object_mapping/output/grids \
   /camera/with_occupancy/collision_based_pose_refinement/output \
   /camera/with_occupancy/object_mapping/output/poses \
+  /camera/with_occupancy/object_mapping/output/grids \
   /camera/with_occupancy/singleview_3d_pose_estimation/output \
   /camera/with_occupancy/singleview_3d_pose_estimation/output/debug/rgbd \
   /move_group/monitored_planning_scene \
