@@ -62,12 +62,12 @@ bool is_detected_mask_too_small(const cv::Mat& mask2) {
   int mask_size = cv::countNonZero(mask2_denoised);
   int bbox_size = bbox_height * bbox_width;
   float mask_ratio_in_bbox = static_cast<float>(mask_size) / static_cast<float>(bbox_size);
-  if (mask_size < (80 * 80) ||
-      bbox_size < (120 * 120) ||
-      bbox_height < 100 ||
-      bbox_width < 100) {
-    return true;
-  }
+  // if (mask_size < (80 * 80) ||
+  //     bbox_size < (120 * 120) ||
+  //     bbox_height < 100 ||
+  //     bbox_width < 100) {
+  //   return true;
+  // }
   return false;
 }
 
