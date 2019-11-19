@@ -15,7 +15,9 @@ class ObjectPosesToMarkers(topic_tools.LazyTransport):
 
     def __init__(self):
         super().__init__()
-        self._pub = self.advertise('~output', MarkerArray, queue_size=1)
+        self._pub = self.advertise(
+            '~output', MarkerArray, queue_size=1, latch=True
+        )
         self._post_init()
 
     def subscribe(self):
