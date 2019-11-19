@@ -14,6 +14,7 @@
       tf_frame: camera_link  # child
       object_type: cube
       publish_tf: true
+      tf_duration: 0.01  # 100Hz
       object_x: 0.1
       object_y: 0.1
       object_z: 0.1
