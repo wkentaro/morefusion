@@ -8,7 +8,6 @@ import trimesh.transformations as ttf
 import objslampp
 
 import cv_bridge
-import message_filters
 import rospy
 from sensor_msgs.msg import Image, CameraInfo
 import tf
@@ -20,26 +19,34 @@ class RenderMeshMarkers(LazyTransport):
 
     def __init__(self):
         super().__init__()
+        self._markers_msg = None
         self._pub = self.advertise('~output', Image, queue_size=1)
         self._tf_listener = tf.TransformListener(cache_time=rospy.Duration(30))
         self._post_init()
 
+        pybullet.connect(pybullet.DIRECT)
+        # key: (marker.id, marker.mesh_resource)
+        # value: unique_id
+        self._marker_to_unique_id = {}
+
+    def __del__(self):
+        pybullet.disconnect()
+
     def subscribe(self):
-        sub_cam = message_filters.Subscriber(
-            '~input/camera_info', CameraInfo, queue_size=1
+        sub_markers = rospy.Subscriber(
+            '~input/markers', MarkerArray, self._callback_markers, queue_size=1
         )
-        sub_markers = message_filters.Subscriber(
-            '~input/markers', MarkerArray, queue_size=1
+        sub_cam = rospy.Subscriber(
+            '~input/camera_info', CameraInfo, self._callback, queue_size=1
         )
-        self._subscribers = [sub_cam, sub_markers]
-        sync = message_filters.ApproximateTimeSynchronizer(
-            self._subscribers, queue_size=100, slop=0.1, allow_headerless=True
-        )
-        sync.registerCallback(self._callback)
+        self._subscribers = [sub_markers, sub_cam]
 
     def unsubscribe(self):
         for sub in self._subscribers:
             sub.unregister()
+
+    def _callback_markers(self, markers_msg):
+        self._markers_msg = markers_msg
 
     def _get_transform(self, source_frame, target_frame, time):
         try:
@@ -47,7 +54,7 @@ class RenderMeshMarkers(LazyTransport):
                 target_frame=target_frame,
                 source_frame=source_frame,
                 time=time,
-                timeout=rospy.Duration(0.1),
+                timeout=rospy.Duration(1),
             )
         except Exception as e:
             rospy.logerr(e)
@@ -65,8 +72,9 @@ class RenderMeshMarkers(LazyTransport):
         ).array
         return transform
 
-    def _callback(self, cam_msg, markers_msg):
-        pybullet.connect(pybullet.DIRECT)
+    def _render_markers_msg(self, cam_msg, markers_msg):
+        if markers_msg is None:
+            return
 
         transforms = {}  # (marker's frame_id, stamp): T_marker2cam
         for marker in markers_msg.markers:
@@ -76,14 +84,17 @@ class RenderMeshMarkers(LazyTransport):
             quaternion, translation = objslampp.ros.from_ros_pose(marker.pose)
             if marker.header.frame_id != cam_msg.header.frame_id:
                 key = (marker.header.frame_id, marker.header.stamp)
-                if marker.header.frame_id in transforms:
+                if key in transforms:
                     T_marker2cam = transforms[key]
                 else:
                     T_marker2cam = self._get_transform(
                         marker.header.frame_id,
                         cam_msg.header.frame_id,
-                        marker.header.stamp,
+                        cam_msg.header.stamp,  # assume world is static
+                        # marker.header.frame_id
                     )
+                    if T_marker2cam is None:
+                        return
                     transforms[key] = T_marker2cam
                 T_cad2marker = objslampp.functions.transformation_matrix(
                     quaternion, translation
@@ -97,13 +108,23 @@ class RenderMeshMarkers(LazyTransport):
                 translation = ttf.translation_from_matrix(T_cad2cam)
             quaternion = quaternion[[1, 2, 3, 0]]
 
-            mesh_file = marker.mesh_resource[len('file://'):]
-            objslampp.extra.pybullet.add_model(
-                visual_file=mesh_file,
-                position=translation,
-                orientation=quaternion,
-                register=False,
-            )
+            key = (marker.id, marker.mesh_resource)
+            if key in self._marker_to_unique_id:
+                unique_id = self._marker_to_unique_id[key]
+                pybullet.resetBasePositionAndOrientation(
+                    unique_id,
+                    translation,
+                    quaternion,
+                )
+            else:
+                mesh_file = marker.mesh_resource[len('file://'):]
+                unique_id = objslampp.extra.pybullet.add_model(
+                    visual_file=mesh_file,
+                    position=translation,
+                    orientation=quaternion,
+                    register=False,
+                )
+                self._marker_to_unique_id[key] = unique_id
 
         K = np.array(cam_msg.K).reshape(3, 3)
         camera = trimesh.scene.Camera(
@@ -117,7 +138,14 @@ class RenderMeshMarkers(LazyTransport):
             width=camera.resolution[0],
         )
 
-        pybullet.disconnect()
+        return rgb_rend
+
+    def _callback(self, cam_msg):
+        rgb_rend = self._render_markers_msg(cam_msg, self._markers_msg)
+        if rgb_rend is None:
+            rgb_rend = np.full(
+                (cam_msg.height, cam_msg.width, 3), 255, dtype=np.uint8
+            )
 
         bridge = cv_bridge.CvBridge()
         rgb_rend_msg = bridge.cv2_to_imgmsg(rgb_rend, encoding='rgb8')
