@@ -232,9 +232,9 @@ class SelectPickingOrder(topic_tools.LazyTransport):
             if ins_id_i == -1:
                 continue
 
-            mask_i = ins_rend == ins_id_i
-            if (mask_i & mask_center).sum() < (mask_i & ~mask_center).sum():
-                continue
+            # mask_i = ins_rend == ins_id_i
+            # if (mask_i & mask_center).sum() < (mask_i & ~mask_center).sum():
+            #     continue
 
             rgb, depth, ins = self._render_object_pose_array(
                 cam_msg, poses_msg, instance_id=ins_id_i
