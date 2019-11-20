@@ -2,14 +2,24 @@
 
   <arg name="GUI" default="true" />
   <arg name="PROCESS" default="true" />
+  <arg name="USE_PASSTHROUGH" default="false" />
 
   <group ns="/camera">
     <group ns="color">
-      <node name="image_rect_color_passthrough"
-            pkg="nodelet" type="nodelet"
-            args="standalone jsk_topic_tools/Passthrough" if="$(arg PROCESS)">
-        <remap from="~input" to="image_rect_color" />
-      </node>
+      <group if="$(arg USE_PASSTHROUGH)">
+        <node name="image_rect_color_passthrough"
+              pkg="nodelet" type="nodelet"
+              args="standalone jsk_topic_tools/Passthrough" if="$(arg PROCESS)">
+          <remap from="~input" to="image_rect_color" />
+        </node>
+      </group>
+      <group unless="$(arg USE_PASSTHROUGH)">
+        <node name="image_rect_color_passthrough"
+              pkg="nodelet" type="nodelet"
+              args="standalone jsk_topic_tools/Relay" if="$(arg PROCESS)">
+          <remap from="~input" to="image_rect_color" />
+        </node>
+      </group>
     </group>
     <node name="mask_rcnn_instance_segmentation"
           pkg="ros_objslampp_ycb_video" type="mask_rcnn_instance_segmentation.py"
