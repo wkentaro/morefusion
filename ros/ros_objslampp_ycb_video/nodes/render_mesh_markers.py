@@ -76,6 +76,13 @@ class RenderMeshMarkers(LazyTransport):
         if markers_msg is None:
             return
 
+        marker_ids = [marker.id for marker in markers_msg.markers]
+        for key in list(self._marker_to_unique_id.keys()):
+            marker_id, _ = key
+            if marker_id not in marker_ids:
+                unique_id = self._marker_to_unique_id.pop(key)
+                pybullet.removeBody(unique_id)
+
         transforms = {}  # (marker's frame_id, stamp): T_marker2cam
         for marker in markers_msg.markers:
             if marker.type != Marker.MESH_RESOURCE:
