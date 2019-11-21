@@ -116,6 +116,16 @@ class LabelImageDecomposer(ConnectionBasedTransport):
         if self._publish_tile:
             self.pub_tile = self.advertise('~output/tile', Image, queue_size=5)
 
+        rospy.Timer(rospy.Duration(1), self._timer_callback, oneshot=True)
+
+    def _timer_callback(self, event):
+        bridge = cv_bridge.CvBridge()
+        img = np.zeros((480, 640, 3), dtype=np.uint8)
+        imgmsg = bridge.cv2_to_imgmsg(img, 'rgb8')
+        imgmsg.header.frame_id = 'camera_color_optical_frame'
+        imgmsg.header.stamp = event.current_real
+        self.pub_label_viz.publish(imgmsg)
+
     def _config_callback(self, config, level):
         self._alpha = config.alpha
         return config
