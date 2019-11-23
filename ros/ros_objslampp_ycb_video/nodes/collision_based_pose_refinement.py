@@ -55,6 +55,9 @@ class CollisionBasedPoseRefinement(topic_tools.LazyTransport):
 
         super().__init__()
         self._pub = self.advertise('~output', ObjectPoseArray, queue_size=1)
+        self._pub_debug = self.advertise(
+            '~debug', ObjectPoseArray, queue_size=1
+        )
         self._post_init()
 
     def subscribe(self):
@@ -194,15 +197,18 @@ class CollisionBasedPoseRefinement(topic_tools.LazyTransport):
             optimizer.update()
             link.zerograds()
 
+            self._publish(
+                poses_msg, link.quaternion, link.translation, debug=True
+            )
             max_delta = loss_observer.add(loss)  # NOQA
             # objslampp.ros.loginfo_green(f"{i:04d}: max_delta={max_delta}")
             if loss_observer.validate():
                 break
         # objslampp.ros.loginfo_green('<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<')
 
-        self._publish(poses_msg, link.quaternion, link.translation)
+        self._publish(poses_msg, link.quaternion, link.translation, debug=False)
 
-    def _publish(self, poses_msg, quaternion, translation):
+    def _publish(self, poses_msg, quaternion, translation, debug):
         quaternion = cuda.to_cpu(quaternion.array)
         translation = cuda.to_cpu(translation.array)
         for i, pose in enumerate(poses_msg.poses):
@@ -213,7 +219,10 @@ class CollisionBasedPoseRefinement(topic_tools.LazyTransport):
             pose.pose.orientation.x = quaternion[i][1]
             pose.pose.orientation.y = quaternion[i][2]
             pose.pose.orientation.z = quaternion[i][3]
-        self._pub.publish(poses_msg)
+        if debug:
+            self._pub_debug.publish(poses_msg)
+        else:
+            self._pub.publish(poses_msg)
 
 
 if __name__ == '__main__':

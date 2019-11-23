@@ -32,6 +32,7 @@ rosbag record -b 0 \
   /camera/with_occupancy/collision_based_pose_refinement/object_mapping/output/poses \
   /camera/with_occupancy/collision_based_pose_refinement/object_mapping/output/grids \
   /camera/with_occupancy/collision_based_pose_refinement/output \
+  /camera/with_occupancy/collision_based_pose_refinement/debug \
   /camera/with_occupancy/object_mapping/output/poses \
   /camera/with_occupancy/object_mapping/output/grids \
   /camera/with_occupancy/singleview_3d_pose_estimation/output \
