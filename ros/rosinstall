@@ -16,12 +16,12 @@
     version: kinetic-devel
 - git:
     local-name: jsk-ros-pkg/jsk_common
-    uri: https://github.com/wkentaro/jsk_common.git
-    version: objslampp
+    uri: https://github.com/jsk-ros-pkg/jsk_common.git
+    version: edd96515
 - git:
     local-name: jsk-ros-pkg/jsk_recognition
-    uri: https://github.com/wkentaro/jsk_recognition.git
-    version: objslampp
+    uri: https://github.com/jsk-ros-pkg/jsk_recognition.git
+    version: 38ff34a1
 - git:
     local-name: objslampp
     uri: https://github.com/wkentaro/objslampp.git
