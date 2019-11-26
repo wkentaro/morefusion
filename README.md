@@ -33,9 +33,11 @@ cd objslampp
 make install
 
 cd ~/ros_objslampp
-ln -s src/objslampp/ros/catkin_init.sh
+ln -s *.sh
 
 ./catkin_init.sh
+./install_realsense.sh
+./rosdep_install.sh
 
 ln -s src/objslampp/ros/autoenv.zsh .autoenv.zsh
 ln -s src/objslampp/ros/autoenv_leave.zsh .autoenv_leave.zsh
