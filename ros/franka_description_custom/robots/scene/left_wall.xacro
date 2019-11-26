@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="left_wall">
+
+  <material name="left_white">
+    <color rgba="1.0 1.0 1.0 1"/>
+  </material>
+
+  <xacro:macro name="left_wall" params="connected_to:='' ns:='' rpy:='0 0 0' xyz:='0 0 0' ">
+
+    <xacro:unless value="${connected_to == ''}">
+      <joint name="${ns}_left_wall_joint" type="fixed">
+        <parent link="${connected_to}"/>
+        <child link="${ns}_left_wall"/>
+        <origin xyz="${xyz}" rpy="${rpy}"/>
+      </joint>
+    </xacro:unless>
+
+    <link name="${ns}_left_wall">
+      <visual>
+        <geometry>
+          <box size="1.2 1.2 0.1"/>
+        </geometry>
+        <material name="left_white"/>
+      </visual>
+      <collision>
+        <geometry>
+          <box size="1.2 1.2 0.1"/>
+        </geometry>
+      </collision>
+    </link>
+
+  </xacro:macro>
+</robot>

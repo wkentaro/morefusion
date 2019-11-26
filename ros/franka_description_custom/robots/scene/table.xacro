@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="table">
+
+  <material name="light_blue">
+    <color rgba="0.8 0.8 1.0 1"/>
+  </material>
+
+  <xacro:macro name="table" params="connected_to:='' ns:='' rpy:='0 0 0' xyz:='0 0 0' ">
+
+    <xacro:unless value="${connected_to == ''}">
+      <joint name="${ns}_table_joint" type="fixed">
+        <parent link="${connected_to}"/>
+        <child link="${ns}_table"/>
+        <origin xyz="${xyz}" rpy="${rpy}"/>
+      </joint>
+    </xacro:unless>
+
+    <link name="${ns}_table">
+      <visual>
+        <geometry>
+          <box size="1.2 1.2 0.075"/>
+        </geometry>
+        <material name="light_blue"/>
+      </visual>
+      <collision>
+        <geometry>
+          <box size="1.2 1.2 0.075"/>
+        </geometry>
+      </collision>
+    </link>
+
+  </xacro:macro>
+</robot>

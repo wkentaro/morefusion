@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="target_box">
+
+  <material name="brown">
+    <color rgba="0.804 0.522 0.247 1"/>
+  </material>
+
+  <xacro:macro name="target_box" params="connected_to:='' ns:='' rpy:='0 0 0' xyz:='0 0 0' ">
+
+    <xacro:unless value="${connected_to == ''}">
+      <joint name="${ns}_target_box_joint" type="fixed">
+        <parent link="${connected_to}"/>
+        <child link="${ns}_target_box"/>
+        <origin xyz="${xyz}" rpy="${rpy}"/>
+      </joint>
+    </xacro:unless>
+
+    <link name="${ns}_target_box">
+      <visual>
+        <geometry>
+          <box size="0.31 0.3 0.01"/>
+        </geometry>
+        <material name="brown"/>
+      </visual>
+      <collision>
+        <geometry>
+          <box size="0.31 0.3 0.01"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <link name="${ns}_target_box_left">
+      <visual>
+        <geometry>
+          <box size="0.31 0.105 0.005"/>
+        </geometry>
+        <material name="brown"/>
+      </visual>
+      <collision>
+        <geometry>
+          <box size="0.31 0.105 0.005"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <link name="${ns}_target_box_right">
+      <visual>
+        <geometry>
+          <box size="0.31 0.105 0.005"/>
+        </geometry>
+        <material name="brown"/>
+      </visual>
+      <collision>
+        <geometry>
+          <box size="0.31 0.105 0.005"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <link name="${ns}_target_box_front">
+      <visual>
+        <geometry>
+          <box size="0.105 0.3 0.005"/>
+        </geometry>
+        <material name="brown"/>
+      </visual>
+      <collision>
+        <geometry>
+          <box size="0.105 0.3 0.005"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <link name="${ns}_target_box_back">
+      <visual>
+        <geometry>
+          <box size="0.105 0.3 0.005"/>
+        </geometry>
+        <material name="brown"/>
+      </visual>
+      <collision>
+        <geometry>
+          <box size="0.105 0.3 0.005"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <joint name="${ns}_target_box_left_joint" type="fixed">
+      <parent link="${ns}_target_box"/>
+      <child link="${ns}_target_box_left"/>
+      <origin xyz="0 0.1475 0.0475" rpy="${pi/2} 0 0"/>
+    </joint>
+    <joint name="${ns}_target_box_right_joint" type="fixed">
+      <parent link="${ns}_target_box"/>
+      <child link="${ns}_target_box_right"/>
+      <origin xyz="0 -0.1475 0.0475" rpy="${pi/2} 0 0"/>
+    </joint>
+    <joint name="${ns}_target_box_front_joint" type="fixed">
+      <parent link="${ns}_target_box"/>
+      <child link="${ns}_target_box_front"/>
+      <origin xyz="-0.1525 0 0.0475" rpy="0 ${pi/2} 0"/>
+    </joint>
+    <joint name="${ns}_target_box_back_joint" type="fixed">
+      <parent link="${ns}_target_box"/>
+      <child link="${ns}_target_box_back"/>
+      <origin xyz="0.1525 0 0.0475" rpy="0 ${pi/2} 0"/>
+    </joint>
+
+  </xacro:macro>
+</robot>
