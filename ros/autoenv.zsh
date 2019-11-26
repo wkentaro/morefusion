@@ -1,6 +1,8 @@
 #!/usr/bin/env zsh
 
 setup() {
+  export ROS_PYTHON_VERSION=3
+
   source /opt/ros/kinetic/setup.zsh
   if [ -e $HERE/devel/setup.zsh ]; then
     source $HERE/devel/setup.zsh
