@@ -16,8 +16,11 @@
       <group unless="$(arg USE_PASSTHROUGH)">
         <node name="image_rect_color_passthrough"
               pkg="nodelet" type="nodelet"
-              args="standalone jsk_topic_tools/Relay" if="$(arg PROCESS)">
+              args="standalone jsk_topic_tools/LightweightThrottle" if="$(arg PROCESS)">
           <remap from="~input" to="image_rect_color" />
+          <rosparam subst_value="true">
+            update_rate: 1
+          </rosparam>
         </node>
       </group>
     </group>
