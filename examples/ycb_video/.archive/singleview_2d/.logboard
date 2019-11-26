@@ -1,3 +1,0 @@
-[logboard]
--summary=out,gpu,seed,loglevel,timestamp,lr .*,.*main/loss.*(max),.*main/loss.*/.*,debug,.*/auc/.*(min),.*/add/.*,.*/add_rotation/.*,nocall_evaluation_before_training,.*main/add.*(max)
-figure=loss.png
