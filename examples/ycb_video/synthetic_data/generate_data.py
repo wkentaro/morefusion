@@ -8,7 +8,6 @@ import chainer
 import numpy as np
 import path
 import pybullet
-import trimesh
 
 import objslampp
 
@@ -49,7 +48,9 @@ def generate_a_video(out, random_state, connection_method=None):
     Ts_cam2world = generator.random_camera_trajectory(
         n_keypoints=5, n_points=15,
     )
-    camera = trimesh.scene.Camera(resolution=(640, 480), fov=(60, 45))
+    camera = objslampp.extra.trimesh.OpenGLCamera(
+        resolution=(640, 480), fovy=45
+    )
 
     for index, T_cam2world in enumerate(Ts_cam2world):
         rgb, depth, instance_label, class_label = generator.render(

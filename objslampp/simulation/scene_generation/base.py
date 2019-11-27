@@ -197,6 +197,9 @@ class SceneGenerationBase:
         return self._scene
 
     def _render_pyrender(self, T_camera2world, fovy, height, width):
+        # FIXME: pyrender and pybullet images are not perfectly aligned
+        raise NotImplementedError
+
         import pyrender
 
         scene = self.scene
@@ -238,12 +241,9 @@ class SceneGenerationBase:
         return rgb, depth, ins, cls
 
     def render(self, *args, **kwargs):
-        rgb_pyrender, depth_pyrender = self._render_pyrender(*args, **kwargs)
-        depth_pyrender[depth_pyrender == 0] = np.nan
-        rgb_pybullet, depth_pybullet, ins, cls = \
-            self._render_pybullet(*args, **kwargs)
+        rgb, depth, ins, cls = self._render_pybullet(*args, **kwargs)
 
-        return rgb_pyrender, depth_pyrender, ins, cls
+        return rgb, depth, ins, cls
 
     def debug_render(self, T_camera2world):
         class_names = self._models.class_names
