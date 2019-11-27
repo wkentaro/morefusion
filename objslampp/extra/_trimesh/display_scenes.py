@@ -24,13 +24,11 @@ def display_scenes(data, height=480, width=640, tile=None, caption=None):
 
     scenes = None
     scenes_group = None
-    scenes_ggroup = None
     if isinstance(data, types.GeneratorType):
         next_data = next(data)
         if isinstance(next_data, types.GeneratorType):
             scenes = next(next_data)
             scenes_group = next_data
-            scenes_ggroup = data
         else:
             scenes = next_data
             scenes_group = data
@@ -48,11 +46,13 @@ def display_scenes(data, height=480, width=640, tile=None, caption=None):
         ),
         pyglet.gl.Config(double_buffer=True),
     ]
+    HEIGHT_LABEL_WIDGET = 19
+    PADDING_GRID = 1
     for config in configs:
         try:
             window = pyglet.window.Window(
-                height=height * nrow,
-                width=width * ncol,
+                height=(height + HEIGHT_LABEL_WIDGET) * nrow,
+                width=(width + PADDING_GRID * 2) * ncol,
                 caption=caption,
                 config=config,
             )
@@ -65,34 +65,37 @@ def display_scenes(data, height=480, width=640, tile=None, caption=None):
         window.play = False
         window.next = False
     window.scenes_group = scenes_group
-    window.scenes_ggroup = scenes_ggroup
+
+    def usage():
+        return '''\
+Usage:
+  q: quit
+  s: play / pause
+  z: reset view
+  n: next
+  r: rotate view (clockwise)
+  R: rotate view (anti-clockwise)\
+'''
 
     @window.event
     def on_key_press(symbol, modifiers):
-        if modifiers == 0:
-            if symbol == pyglet.window.key.Q:
-                window.on_close()
-            elif window.scenes_group and symbol == pyglet.window.key.S:
-                window.play = not window.play
-            elif symbol == pyglet.window.key.Z:
-                for name in scenes:
-                    if isinstance(widgets[name], trimesh.viewer.SceneWidget):
-                        widgets[name].reset_view()
-        if symbol == pyglet.window.key.N:
-            if modifiers == 0:
-                window.next = True
-            elif window.scenes_ggroup and \
-                    modifiers == pyglet.window.key.MOD_SHIFT:
-                try:
-                    window.scenes_group = next(window.scenes_ggroup)
-                    window.next = True
-                except StopIteration:
-                    return
-        if symbol == pyglet.window.key.R:
+        if symbol == pyglet.window.key.Q:
+            window.on_close()
+        elif window.scenes_group and symbol == pyglet.window.key.S:
+            window.play = not window.play
+        elif symbol == pyglet.window.key.Z:
+            for name in scenes:
+                if isinstance(widgets[name], trimesh.viewer.SceneWidget):
+                    widgets[name].reset_view()
+        elif symbol == pyglet.window.key.N:
+            window.next = True
+        elif symbol == pyglet.window.key.R:
             # rotate camera
             window.rotate = not window.rotate  # 0/1
             if modifiers == pyglet.window.key.MOD_SHIFT:
                 window.rotate *= -1
+        elif symbol == pyglet.window.key.H:
+            print(usage())
 
     def callback(dt):
         if window.rotate:
@@ -115,21 +118,23 @@ def display_scenes(data, height=480, width=640, tile=None, caption=None):
             try:
                 scenes = next(window.scenes_group)
                 for key, widget in widgets.items():
+                    scene = scenes[key]
                     if isinstance(widget, trimesh.viewer.SceneWidget):
-                        widget.scene.geometry.update(scenes[key].geometry)
-                        widget.scene.graph.load(
-                            scenes[key].graph.to_edgelist()
-                        )
+                        assert isinstance(scene, trimesh.Scene)
+                        widget.scene.geometry = scene.geometry
+                        widget.scene.graph = scene.graph
+                        widget.view['ball']._n_pose = scene.camera.transform
                         widget._draw()
                     elif isinstance(widget, glooey.Image):
-                        widget.set_image(numpy_to_image(scenes[key]))
+                        widget.set_image(numpy_to_image(scene))
             except StopIteration:
+                print('Reached the end of the scenes')
                 window.play = False
             window.next = False
 
     gui = glooey.Gui(window)
     grid = glooey.Grid()
-    grid.set_padding(5)
+    grid.set_padding(PADDING_GRID)
 
     widgets = {}
     trackball = None
