@@ -226,7 +226,7 @@ class SelectPickingOrder(topic_tools.LazyTransport):
         target_node_id = None
         graph = networkx.DiGraph()
         class_names = objslampp.datasets.ycb_video.class_names
-        mask_center = get_mask_center((cam_msg.height, cam_msg.width))
+        # mask_center = get_mask_center((cam_msg.height, cam_msg.width))
         K = np.array(cam_msg.K).reshape(3, 3)
         for ins_id_i in np.unique(ins_rend):
             if ins_id_i == -1:

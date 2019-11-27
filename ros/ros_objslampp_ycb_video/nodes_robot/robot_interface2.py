@@ -1,7 +1,5 @@
 import time
 
-import numpy as np
-
 import rospy
 
 from std_srvs.srv import Empty

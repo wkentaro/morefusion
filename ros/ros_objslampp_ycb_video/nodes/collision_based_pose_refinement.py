@@ -206,7 +206,9 @@ class CollisionBasedPoseRefinement(topic_tools.LazyTransport):
                 break
         # objslampp.ros.loginfo_green('<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<')
 
-        self._publish(poses_msg, link.quaternion, link.translation, debug=False)
+        self._publish(
+            poses_msg, link.quaternion, link.translation, debug=False
+        )
 
     def _publish(self, poses_msg, quaternion, translation, debug):
         quaternion = cuda.to_cpu(quaternion.array)

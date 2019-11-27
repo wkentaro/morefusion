@@ -52,15 +52,20 @@ def get_scanning_poses():
         np.array([x_offset, y_offset, 0]),
     ]
 
-    robot_rotation_vectors = [np.array([0, 0, 0])] * len(robot_position_offsets)
+    robot_rotation_vectors = [
+        np.array([0, 0, 0])
+    ] * len(robot_position_offsets)
 
     robot_quaternion_offsets = [gk.rotation_vector_to_quaternion(
         np, aa) for aa in robot_rotation_vectors]
-    robot_positions = [home_pose[0:3] +
-                        offset for offset in robot_position_offsets]
+    robot_positions = [
+        home_pose[0:3] + offset for offset in robot_position_offsets
+    ]
     robot_quaternions = [gk.hamilton_product(
         np, home_pose[3:], qt) for qt in robot_quaternion_offsets]
-    robot_poses = [np.concatenate(
-        (pos, quat), -1) for pos, quat in zip(robot_positions, robot_quaternions)]
+    robot_poses = [
+        np.concatenate((pos, quat), -1)
+        for pos, quat in zip(robot_positions, robot_quaternions)
+    ]
 
     return robot_poses
