@@ -1,87 +1,163 @@
 #!/usr/bin/env python
 
+import argparse
+
+import imgviz
 import numpy as np
+import pybullet  # NOQA
+import trimesh
 
 import objslampp
 
 
 class Dataset(objslampp.datasets.DatasetBase):
 
+    _models = objslampp.datasets.YCBVideoModels()
+
     def __init__(self, root_dir):
         self._root_dir = root_dir
 
         self._ids = []
         for video_dir in sorted(self.root_dir.dirs()):
+            frame_ids = []
             for npz_file in sorted(video_dir.files()):
                 frame_id = f'{npz_file.parent.name}/{npz_file.stem}'
-                self._ids.append(frame_id)
+                frame_ids.append(frame_id)
+            self._ids.append(frame_ids)
 
-    def get_example(self, index):
-        frame_id = self.ids[index]
+        self._scene = trimesh.Scene()
+        self._depth2rgb = imgviz.Depth2RGB()
+
+    def get_examples(self, index):
+        for frame_id in self._ids[index]:
+            print(f'[{index:08d}] {frame_id}')
+            yield self.get_example(frame_id)
+
+    def get_example(self, frame_id):
         npz_file = self.root_dir / f'{frame_id}.npz'
-        data = np.load(npz_file)
-        return dict(data)
+        example = dict(np.load(npz_file))
+        example['cad_files'] = {}
+        for cad_file in (npz_file.parent / 'models').glob('*'):
+            ins_id = int(cad_file.basename().stem)
+            example['cad_files'][ins_id] = cad_file
+        return example
+
+    def get_scenes(self, index):
+        for node in self._scene.graph.nodes:
+            if node == 'world':
+                continue
+            if node.startswith('light_'):
+                continue
+            self._scene.graph.transforms.remove_node(node)
+        self._scene.geometry = {}
+        self._depth2rgb = imgviz.Depth2RGB()
+        for example in self.get_examples(index):
+            yield self.get_scene(example)
+
+    def get_scene(self, example):
+        rgb = example['rgb']
+        gray = imgviz.color.gray2rgb(imgviz.color.rgb2gray(rgb))
+
+        try:
+            instance_index = np.where(example['class_ids'] != 0)[0][0]
+        except IndexError:
+            instance_index = None
+
+        if instance_index is not None:
+            T_cad2cam = example['Ts_cad2cam'][instance_index]
+            class_id = example['class_ids'][instance_index]
+
+            cad_file = self._models.get_cad_file(class_id)
+            _, _, mask_rend = objslampp.extra.pybullet.render_cad(
+                cad_file, T_cad2cam, fovy=45, height=480, width=640
+            )
+            mask_rend = imgviz.label2rgb(
+                mask_rend.astype(np.uint8), gray, alpha=0.7
+            )
+        else:
+            mask_rend = np.zeros_like(rgb)
+
+        # scene
+        scene = self._scene
+        K = example['intrinsic_matrix']
+        T_cam2world = example['T_cam2world']
+        pcd = objslampp.geometry.pointcloud_from_depth(
+            example['depth'],
+            fx=K[0, 0],
+            fy=K[1, 1],
+            cx=K[0, 2],
+            cy=K[1, 2],
+        )
+        nonnan = ~np.isnan(example['depth'])
+        geom = trimesh.PointCloud(
+            vertices=pcd[nonnan], colors=rgb[nonnan]
+        )
+        scene.add_geometry(
+            geom, geom_name='pcd', transform=T_cam2world
+        )
+        for ins_id, cls_id, T_cad2cam in zip(
+            example['instance_ids'],
+            example['class_ids'],
+            example['Ts_cad2cam'],
+        ):
+            if ins_id == 0:
+                # ground plane
+                continue
+            if cls_id == 0:
+                cad_file = example['cad_files'][ins_id]
+                cad = trimesh.load_mesh(cad_file, process=False)
+            else:
+                cad = self._models.get_cad(class_id=cls_id)
+                if hasattr(cad.visual, 'to_color'):
+                    cad.visual = cad.visual.to_color()
+            if str(cls_id) in scene.geometry:
+                scene.graph.update(
+                    frame_to=str(ins_id),
+                    geometry=str(cls_id),
+                    matrix=T_cam2world @ T_cad2cam)
+            else:
+                scene.add_geometry(
+                    cad,
+                    node_name=str(ins_id),
+                    geom_name=str(cls_id),
+                    transform=T_cam2world @ T_cad2cam
+                )
+
+        scene.camera.resolution = rgb.shape[1], rgb.shape[0]
+        scene.camera.focal = K[0, 0], K[1, 1]
+        scene.camera.transform = \
+            objslampp.extra.trimesh.to_opengl_transform(T_cam2world)
+
+        ins_viz = imgviz.label2rgb(
+            example['instance_label'] + 1, rgb, alpha=0.7
+        )
+        cls_viz = imgviz.label2rgb(example['class_label'], rgb, alpha=0.7)
+
+        return {
+            'rgb': rgb,
+            'depth': self._depth2rgb(example['depth']),
+            'ins': ins_viz,
+            'cls': cls_viz,
+            'mask_rend': mask_rend,
+            'scene': scene,
+        }
 
 
-if __name__ == '__main__':
-    import argparse
-    import imgviz
-
+def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument('root_dir', help='root dir')
-    parser.add_argument('--sampling', type=int, default=1, help='sampling')
     args = parser.parse_args()
 
     dataset = Dataset(root_dir=args.root_dir)
 
-    class Images:
+    for index in range(len(dataset)):
+        objslampp.extra.trimesh.display_scenes(
+            dataset.get_scenes(index),
+            tile=(2, 3),
+        )
 
-        def __init__(self, dataset, sampling=1):
-            self._dataset = dataset
-            self._depth2rgb = imgviz.Depth2RGB()
-            self._indices = np.arange(0, len(self._dataset), sampling)
 
-        def __len__(self):
-            return len(self._indices)
-
-        def __getitem__(self, i):
-            index = self._indices[i]
-
-            print(f'[{index:08d}] [{dataset.ids[index]}]')
-            example = dataset[index]
-            rgb = example['rgb']
-
-            try:
-                instance_index = np.where(example['class_ids'] != 0)[0][0]
-            except IndexError:
-                instance_index = None
-
-            if instance_index is not None:
-                T_cad2cam = example['Ts_cad2cam'][instance_index]
-                class_id = example['class_ids'][instance_index]
-
-                cad_file = objslampp.datasets.YCBVideoModels().get_cad_file(
-                    class_id
-                )
-                rgb_rend, _, mask_rend = objslampp.extra.pybullet.render_cad(
-                    cad_file, T_cad2cam, fovy=45, height=480, width=640
-                )
-                mask_rend = imgviz.label2rgb(mask_rend.astype(int), rgb)
-            else:
-                rgb_rend = mask_rend = np.zeros_like(rgb)
-
-            img = imgviz.tile([
-                rgb,
-                self._depth2rgb(example['depth']),
-                imgviz.label2rgb(example['instance_label'] + 1, rgb),
-                imgviz.label2rgb(example['class_label'], rgb),
-                rgb_rend,
-                mask_rend,
-            ], (2, 3), border=(255, 255, 255))
-            img = imgviz.resize(img, width=1500)
-            return img
-
-    imgviz.io.pyglet_imshow(Images(dataset, sampling=args.sampling))
-    imgviz.io.pyglet_run()
+if __name__ == '__main__':
+    main()
