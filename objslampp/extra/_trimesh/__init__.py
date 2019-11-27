@@ -7,6 +7,7 @@ import trimesh.viewer
 
 from .box_outline_from_voxel import box_outline_from_voxel  # NOQA
 from .display_scenes import display_scenes  # NOQA
+from .opengl_camera import OpenGLCamera  # NOQA
 from .tile_meshes import tile_meshes  # NOQA
 
 
