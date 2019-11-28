@@ -5,8 +5,8 @@ import concurrent.futures
 import objslampp
 
 
-def get_uniform_scale_cad(models, class_name):
-    cad = models.get_cad(class_name=class_name)
+def get_uniform_scale_cad(models, class_id):
+    cad = models.get_cad(class_id=class_id)
     cad.visual = cad.visual.to_color()  # texture visualization is slow
 
     scale = cad.bounding_box.extents.max()
@@ -20,8 +20,10 @@ def main():
 
     cads = []
     with concurrent.futures.ProcessPoolExecutor() as executor:
-        for class_name in class_names[1:]:
-            result = executor.submit(get_uniform_scale_cad, models, class_name)
+        for class_id, class_name in enumerate(class_names):
+            if class_id == 0:
+                continue
+            result = executor.submit(get_uniform_scale_cad, models, class_id)
             cads.append(result)
     cads = [future.result() for future in cads]
 
