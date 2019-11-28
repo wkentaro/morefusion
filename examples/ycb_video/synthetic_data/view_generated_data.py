@@ -110,18 +110,12 @@ class Dataset(objslampp.datasets.DatasetBase):
                 cad = self._models.get_cad(class_id=cls_id)
                 if hasattr(cad.visual, 'to_color'):
                     cad.visual = cad.visual.to_color()
-            if str(cls_id) in scene.geometry:
-                scene.graph.update(
-                    frame_to=str(ins_id),
-                    geometry=str(cls_id),
-                    matrix=T_cam2world @ T_cad2cam)
-            else:
-                scene.add_geometry(
-                    cad,
-                    node_name=str(ins_id),
-                    geom_name=str(cls_id),
-                    transform=T_cam2world @ T_cad2cam
-                )
+            scene.add_geometry(
+                cad,
+                node_name=str(ins_id),
+                geom_name=str(cls_id),
+                transform=T_cam2world @ T_cad2cam
+            )
 
         scene.camera.resolution = rgb.shape[1], rgb.shape[0]
         scene.camera.focal = K[0, 0], K[1, 1]
