@@ -16,7 +16,7 @@ class MySyntheticYCB20190916RGBDPoseEstimationDatasetReIndexed(
         class_ids=None,
         augmentation: bool = False,
     ):
-        self._root_dir = MySyntheticYCB20190916RGBDPoseEstimationDataset(split).root_dir + '.reindexed.v2'  # NOQA
+        self._root_dir = MySyntheticYCB20190916RGBDPoseEstimationDataset(split).root_dir + '.reindexed'  # NOQA
         super().__init__(
             split=split,
             class_ids=class_ids,

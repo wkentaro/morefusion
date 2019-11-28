@@ -12,7 +12,7 @@ def get_binvox_file(cad_file, solid=True):
 
     out_file = cad_file.with_suffix('.solid.binvox')
     if not out_file.exists():
-        cmd = f'binvox -d 128 -aw -dc -down -pb {cad_file}'
+        cmd = f'binvox -d 64 -aw -dc -pb {cad_file}'
         subprocess.check_output(shlex.split(cmd))
         vox_file.rename(out_file)
     return out_file
