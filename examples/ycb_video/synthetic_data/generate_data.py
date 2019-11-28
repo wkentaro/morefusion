@@ -39,11 +39,13 @@ def generate_a_video(out, random_state, connection_method=None):
     )
     generator.generate()
 
+    cad_files = {}
     for ins_id, data in generator._objects.items():
         if 'cad_file' in data:
             dst_file = out / f'models/{ins_id:08d}.obj'
             print(f'Saved: {dst_file}')
             shutil.copy(data['cad_file'], dst_file)
+            cad_files[ins_id] = f'models/{ins_id:08d}.obj'
 
     Ts_cam2world = generator.random_camera_trajectory(
         n_keypoints=5, n_points=15,
@@ -59,8 +61,8 @@ def generate_a_video(out, random_state, connection_method=None):
             height=camera.resolution[1],
             width=camera.resolution[0],
         )
-        instance_ids = np.unique(instance_label)
-        instance_ids = instance_ids[instance_ids >= 0]
+        instance_ids = generator.unique_ids
+        cad_ids = generator.unique_ids_to_cad_ids(instance_ids)
         class_ids = generator.unique_ids_to_class_ids(instance_ids)
         Ts_cad2world = generator.unique_ids_to_poses(instance_ids)
         T_world2cam = np.linalg.inv(T_cam2world)
@@ -96,6 +98,8 @@ def generate_a_video(out, random_state, connection_method=None):
             Ts_cad2cam=Ts_cad2cam,
             instance_ids=instance_ids,
             class_ids=class_ids,
+            cad_ids=cad_ids,
+            cad_files=[cad_files.get(i, '') for i in instance_ids],
         )
 
         npz_file = out / f'{index:08d}.npz'

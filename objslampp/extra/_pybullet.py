@@ -9,7 +9,7 @@ from .. import geometry
 unique_ids: list = []
 
 
-def init_world(up: str = 'z', connection_method=None) -> None:
+def init_world(connection_method=None) -> None:
     import pybullet
     import pybullet_data
 
@@ -18,17 +18,8 @@ def init_world(up: str = 'z', connection_method=None) -> None:
     pybullet.connect(connection_method)
     pybullet.setAdditionalSearchPath(pybullet_data.getDataPath())
 
-    if up == 'z':
-        pybullet.loadURDF('plane.urdf')
-        pybullet.setGravity(0, 0, -9.8)
-    elif up == 'y':
-        orientation = pybullet.getQuaternionFromEuler(
-            [- np.deg2rad(90), 0, 0]
-        )
-        pybullet.loadURDF('plane.urdf', baseOrientation=orientation)
-        pybullet.setGravity(0, -9.8, 0)
-    else:
-        raise ValueError(f'Unsupported up direction: {up}')
+    pybullet.loadURDF('plane.urdf')
+    pybullet.setGravity(0, 0, -9.8)
 
 
 def del_world() -> None:

@@ -93,7 +93,9 @@ class SceneGenerationBase:
             attrs={'bold': True},
         )
 
-        cad_file = self._models.get_cad_file(class_id=class_id)
+        cad_ids = self._models.get_cad_ids(class_id=class_id)
+        cad_id = self._random_state.choice(cad_ids, 1).item()
+        cad_file = self._models.get_cad_file_from_id(cad_id=cad_id)
         unique_id = objslampp.extra.pybullet.add_model(
             visual_file=cad_file,
             collision_file=objslampp.utils.get_collision_file(cad_file),
@@ -113,7 +115,10 @@ class SceneGenerationBase:
             if not self._is_contained(unique_id=unique_id):
                 continue
 
-            self._objects[unique_id] = dict(class_id=class_id)
+            self._objects[unique_id] = dict(
+                class_id=class_id,
+                cad_id=cad_id,
+            )
             break
         else:
             pybullet.removeBody(unique_id)
@@ -139,6 +144,18 @@ class SceneGenerationBase:
             self._spawn_object(class_id=class_id)
         self._simulate(nstep=10000)
         termcolor.cprint('==> Finished scene generation', attrs={'bold': True})
+
+    @property
+    def unique_ids(self):
+        return tuple(sorted(self._objects.keys()))
+
+    def unique_id_to_cad_id(self, unique_id):
+        if unique_id in self._objects:
+            return self._objects[unique_id].get('cad_id', '')
+        return ''
+
+    def unique_ids_to_cad_ids(self, unique_ids):
+        return np.array([self.unique_id_to_cad_id(u) for u in unique_ids])
 
     def unique_id_to_class_id(self, unique_id):
         if unique_id in self._objects:
