@@ -661,6 +661,17 @@ class RobotDemoInterface(RobotInterface):
 
 
 if __name__ == '__main__':
+    import IPython
+
     rospy.init_node('robot_demo')
     ri = RobotDemoInterface()
-    import IPython; IPython.embed()  # NOQA
+    header = '''\
+Usage:
+
+  >>> ri.move_to_reset_pose()
+  >>> ri.scan_scane()
+  >>> ri.pick_and_place()
+
+  >>> ri.run()
+'''
+    IPython.embed(header=header)
