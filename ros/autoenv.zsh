@@ -9,7 +9,9 @@ setup() {
   fi
 
   rosdefault
-  rossetip
+  # XXX: robot-agent needs to be hidden by robot-node to
+  # reduce topic connections to avoid reflex error in Panda
+  # rossetip
 
   CONDA_PREFIX=$HERE/src/objslampp/.anaconda3
   source $CONDA_PREFIX/bin/activate
