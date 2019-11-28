@@ -159,7 +159,7 @@ class ObjectPoseInterface:
 
             R_z_fix = ttf.rotation_matrix(self._z_rotations[class_id], [0., 0., 1.])
 
-            extent_orig = self._object_models.get_cad(class_name=self._class_names[class_id]).extents
+            extent_orig = self._object_models.get_cad(class_id=class_id).extents
 
             for up_axis_key in self._class_up_axis_keys[class_id]:
 
