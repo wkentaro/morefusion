@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 OBJSLAMPP_PREFIX=$HOME/ros_objslampp/src/objslampp
 ROSOBJSLAMPP_PREFIX=$HOME/ros_objslampp
 
@@ -24,6 +26,7 @@ set -x
 pip install catkin_pkg
 pip install rospkg
 pip install empy
+pip install netifaces
 
 mkdir -p $ROSOBJSLAMPP_PREFIX/src
 cd $ROSOBJSLAMPP_PREFIX
