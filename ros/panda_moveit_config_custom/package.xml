@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>panda_moveit_config_custom</name>
+  <version>0.0.0</version>
+  <description>
+     A custom package with all the configuration and launch files for using the panda with the MoveIt! Motion Planning Framework
+  </description>
+  <author email="djl11@ic.ac.uk">Daniel Lenton</author>
+  <maintainer email="djl11@ic.ac.uk">Daniel Lenton</maintainer>
+
+  <license>Apache 2.0</license>
+
+  <url type="website">https://github.com/djl11/PandaMoveitConfigCustom</url>
+  <url type="bugtracker">https://github.com/djl11/PandaMoveitConfigCustom/issues</url>
+  <url type="repository">https://github.com/djl11/PandaMoveitConfigCustom</url>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>franka_description</build_depend>
+  <build_depend>franka_description_custom</build_depend>
+
+  <exec_depend>franka_description</exec_depend>
+  <exec_depend>franka_description_custom</exec_depend>
+  <exec_depend>moveit_ros_move_group</exec_depend>
+  <exec_depend>moveit_fake_controller_manager</exec_depend>
+  <exec_depend>moveit_kinematics</exec_depend>
+  <exec_depend>moveit_planners_ompl</exec_depend>
+  <exec_depend>moveit_ros_visualization</exec_depend>
+  <exec_depend>joint_state_publisher</exec_depend>
+  <exec_depend>robot_state_publisher</exec_depend>
+  <exec_depend>xacro</exec_depend>
+  <exec_depend>topic_tools</exec_depend>
+</package>

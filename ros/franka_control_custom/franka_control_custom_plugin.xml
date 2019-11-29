@@ -1,0 +1,17 @@
+<library path="lib/libfranka_control_custom">
+  <class name="franka_control_custom/CartesianVelocityController" type="franka_control_custom::CartesianVelocityController" base_class_type="controller_interface::ControllerBase">
+    <description>
+      A controller that executes a short motion based on cartesian velocities to demonstrate correct usage
+    </description>
+  </class>
+  <class name="franka_control_custom/CartesianImpedanceController" type="franka_control_custom::CartesianImpedanceController" base_class_type="controller_interface::ControllerBase">
+    <description>
+      A controller that renders a spring damper system in cartesian space.
+    </description>
+  </class>
+  <class name="franka_control_custom/FrankaStateController" type="franka_control_custom::FrankaStateController" base_class_type="controller_interface::ControllerBase">
+    <description>
+      A controller that publishes the complete robot state.
+    </description>
+  </class>
+</library>
