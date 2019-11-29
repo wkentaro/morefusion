@@ -17,12 +17,18 @@ def handle_move_to_pose(req):
 
         pose_goal.pose = req.goal_poses[i]
         if req.pure_translation:
-            pose_goal.pose.orientation = commander.get_current_pose().pose.orientation
+            pose_goal.pose.orientation = \
+                commander.get_current_pose().pose.orientation
         if req.pure_rotation:
-            pose_goal.pose.position = commander.get_current_pose().pose.position
+            pose_goal.pose.position = \
+                commander.get_current_pose().pose.position
 
-        cartesian_plan, fraction = commander.compute_cartesian_path([pose_goal.pose], 0.01, 0.0, req.avoid_collisions)
-        scaled_cartesian_plan = commander.retime_trajectory(robot.get_current_state(), cartesian_plan, req.velocity_scaling)
+        cartesian_plan, fraction = commander.compute_cartesian_path(
+            [pose_goal.pose], 0.01, 0.0, req.avoid_collisions
+        )
+        scaled_cartesian_plan = commander.retime_trajectory(
+            robot.get_current_state(), cartesian_plan, req.velocity_scaling
+        )
 
     success = commander.execute(scaled_cartesian_plan, wait=True)
 

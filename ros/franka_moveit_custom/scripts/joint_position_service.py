@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
 import rospy
-from franka_moveit_custom.srv import MoveToJointPosition, MoveToJointPositionResponse
+from franka_moveit_custom.srv import MoveToJointPosition
+from franka_moveit_custom.srv import MoveToJointPositionResponse
 from moveit_commander import MoveGroupCommander, RobotCommander
 from actionlib_msgs.msg import GoalStatusArray
 
@@ -14,14 +15,20 @@ def handle_move_to_joint_position(req):
     commander.set_max_velocity_scaling_factor(req.velocity_scaling)
     commander.set_max_acceleration_scaling_factor(req.acceleration_scaling)
     success = commander.go(joint_goal, wait=True)
-    return MoveToJointPositionResponse(success, commander.get_current_joint_values())
+    return MoveToJointPositionResponse(
+        success, commander.get_current_joint_values()
+    )
 
 
 def main():
 
     rospy.init_node('move_to_joint_position_server', anonymous=True)
     rospy.wait_for_message('move_group/status', GoalStatusArray)
-    rospy.Service('move_to_joint_position', MoveToJointPosition, handle_move_to_joint_position)
+    rospy.Service(
+        'move_to_joint_position',
+        MoveToJointPosition,
+        handle_move_to_joint_position,
+    )
     rospy.spin()
 
 
