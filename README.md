@@ -21,30 +21,7 @@
 make install
 ```
 
-
 ### ROS Project
-
-- `robot-node`: Computer with Real-time OS for Panda robot.
-- `robot-agent`: Computer for visual processing and motion planning.
-
-#### @robot-node
-
-```bash
-mkdir -p ~/ros_objslampp/src
-cd ~/ros_objslampp/src
-
-git clone https://github.com/wkentaro/objslampp.git
-
-cd ~/ros_objslampp
-ln -s src/ros/*.sh .
-
-./catkin_build.robot_node.sh
-source devel/setup.bash
-
-rosrun franka_control_custom create_udev_rules.sh
-```
-
-#### @robot-agent
 
 ```bash
 mkdir -p ~/ros_objslampp/src
@@ -65,10 +42,35 @@ ln -s src/objslampp/ros/autoenv_leave.zsh .autoenv_leave.zsh
 source .autoenv.zsh
 ```
 
+### ROS Project for Robotic Demonstrations
 
-### Demonstrations
+- `robot-agent`: A computer for visual processing and motion planning.
+- `robot-node`: A computer with real-time OS for Panda robot.
 
-#### Dynamic Scene
+#### @robot-agent
+
+See <a href="#ros-project">above instruction</a>.
+
+#### @robot-node
+
+```bash
+mkdir -p ~/ros_objslampp/src
+cd ~/ros_objslampp/src
+
+git clone https://github.com/wkentaro/objslampp.git
+
+cd ~/ros_objslampp
+ln -s src/ros/*.sh .
+
+./catkin_build.robot_node.sh
+source devel/setup.bash
+
+rosrun franka_control_custom create_udev_rules.sh
+```
+
+## Usage
+
+### Dynamic Scene
 
 ```bash
 roslaunch ros_objslampp_ycb_video rs_rgbd.robot.launch
@@ -76,21 +78,41 @@ roslaunch ros_objslampp_ycb_video rviz_dynamic.robot.launch
 roslaunch ros_objslampp_ycb_video setup_dynamic.robot.launch
 ```
 
-#### Static Scene
+<div>
+  <img src="https://drive.google.com/uc?id=1E3aqKf9TdSWDjL8rsbAe_oq_jEOQ5RbE" width="40%" />
+  <br/>
+  <i>Figure 1. Dynamic Scene Reconstruction with the Human Hand-mounted Camera.</i>
+</div>
+
+### Static Scene
 
 ```bash
+# using orb-slam2 for camera tracking
+roslaunch ros_objslampp_ycb_video rs_rgbd.launch
+roslaunch ros_objslampp_ycb_video rviz_static.desk.launch
+roslaunch ros_objslampp_ycb_video setup_static.desk.launch
+```
+
+<div>
+  <img src="https://drive.google.com/uc?id=1s9gQguthVAQTacO6PaGQw4kOQrdlucri" width="40%" />
+  <br/>
+  <i>Figure 2. Static Scene Reconstruction with the Human Hand-mounted Camera.</i>
+</div>
+
+```bash
+# using robotic kinematics for camera tracking
 roslaunch ros_objslampp_ycb_video rs_rgbd.robot.launch
 roslaunch ros_objslampp_ycb_video rviz_static.robot.launch
 roslaunch ros_objslampp_ycb_video setup_static.robot.launch
 ```
 
 <div>
-  <img src="https://drive.google.com/uc?id=1BbjWZPTZhoqbsH4OlzIghOO0VZhG69mK" width="60%" />
+  <img src="https://drive.google.com/uc?id=1BbjWZPTZhoqbsH4OlzIghOO0VZhG69mK" width="40%" />
   <br/>
-  <b><i>Figure 1. Static Scene Reconstruction with the Hand-mounted Camera.</i></b>
+  <i>Figure 3. Static Scene Reconstruction with the Robotic Hand-mounted Camera.</i>
 </div>
 
-#### Robotic Pick-and-Place
+### Robotic Pick-and-Place
 
 ```bash
 robot-agent $ sudo ntpdata 0.uk.pool.ntp.org  # for time synchronization
@@ -112,5 +134,5 @@ robot-node  $ rosrun ros_objslampp_ycb_video robot_demo_node.py
   <img src="https://drive.google.com/uc?id=1vO0k7NS0iRkzGhcmGHBpqe8sp7_i-n0a" width="30%" />
   <img src="https://drive.google.com/uc?id=1aj657Z8_T4JR4ceEh0laiP88ggBllYPK" width="30%" />
   <br/>
-  <b><i>Figure 2. (a) Scanning the Scene; (b) Removing Distractor Objects; (c) Picking Target Object.</i></b>
+  <i>Figure 4. Targetted Object Pick-and-Place. (a) Scanning the Scene; (b) Removing Distractor Objects; (c) Picking Target Object.</i>
 </div>
