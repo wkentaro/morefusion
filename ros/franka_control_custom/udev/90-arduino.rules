@@ -1,0 +1,2 @@
+# Create symlink /dev/arduino0
+SUBSYSTEM=="tty", ATTRS{idVendor}=="2341", ATTRS{idProduct}=="0043", MODE="0666", SYMLINK+="arduino0"

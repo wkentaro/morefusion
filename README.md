@@ -40,6 +40,8 @@ ln -s src/ros/*.sh .
 
 ./catkin_build.robot_node.sh
 source devel/setup.bash
+
+rosrun franka_control_custom create_udev_rules.sh
 ```
 
 #### @robot-agent
@@ -96,7 +98,6 @@ robot-node  $ sudo ntpdata 0.uk.pool.ntp.org  # for time synchronization
 
 robot-node  $ roscore
 
-robot-agent $ sudo chmod 777 /dev/ttyACM0  # for serial control of suction gripper
 robot-agent $ roslaunch franka_moveit_custom objslampp_demo1.launch
 
 robot-node  $ roslaunch ros_objslampp_ycb_video rs_rgbd.robot.launch

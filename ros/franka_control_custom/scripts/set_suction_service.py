@@ -4,7 +4,7 @@ import rospy
 import serial
 from franka_control_custom.srv import SetSuction
 
-ser = serial.Serial('/dev/ttyACM0', baudrate=9600, timeout=1)
+ser = serial.Serial('/dev/arduino0', baudrate=9600, timeout=1)
 
 def handle_set_suction(req):
 
