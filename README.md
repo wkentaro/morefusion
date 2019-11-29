@@ -65,7 +65,11 @@ roslaunch ros_objslampp_ycb_video rviz_static.robot.launch
 roslaunch ros_objslampp_ycb_video setup_static.robot.launch
 ```
 
-<img src="https://drive.google.com/uc?id=1BbjWZPTZhoqbsH4OlzIghOO0VZhG69mK" />
+<div>
+  <img src="https://drive.google.com/uc?id=1BbjWZPTZhoqbsH4OlzIghOO0VZhG69mK" width="60%" />
+  <br/>
+  <b><i>Figure 1. Static Scene Reconstruction with the Hand-mounted Camera.</i></b>
+</div>
 
 #### Robotic Pick-and-Place
 
@@ -85,4 +89,10 @@ robot-node  $ rosrun ros_objslampp_ycb_video robot_demo_node.py
 >>> ri.run()
 ```
 
-<img src="https://user-images.githubusercontent.com/4310419/69835651-1604b880-123b-11ea-93aa-2b65f7c284d0.jpg" width="30%" />
+<div>
+  <img src="https://drive.google.com/uc?id=1JeIlT2yyhruR5DreFbI9htP8N4X4fP10" width="30%" />
+  <img src="https://drive.google.com/uc?id=1vO0k7NS0iRkzGhcmGHBpqe8sp7_i-n0a" width="30%" />
+  <img src="https://drive.google.com/uc?id=1aj657Z8_T4JR4ceEh0laiP88ggBllYPK" width="30%" />
+  <br/>
+  <b><i>Figure 2. (a) Scanning the Scene; (b) Removing Distractor Objects; (c) Picking Target Object.</i></b>
+</div>
