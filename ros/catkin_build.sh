@@ -34,6 +34,7 @@ catkin init
 
 if [ ! -e $ROSOBJSLAMPP_PREFIX/src/.rosinstall ]; then
   ln -s $ROSOBJSLAMPP_PREFIX/src/objslampp/ros/rosinstall $ROSOBJSLAMPP_PREFIX/src/.rosinstall
+  (cd $ROSOBJSLAMPP_PREFIX/src && wstool up)
 fi
 
 if [ ! -e $ROSOBJSLAMPP_PREFIX/.autoenv.zsh ]; then
@@ -75,3 +76,5 @@ set -x
 
 python -c 'import cv2'
 python -c 'from cv_bridge.boost.cv_bridge_boost import getCvType'
+
+catkin build ros_objslampp_ycb_video

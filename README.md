@@ -24,6 +24,26 @@ make install
 
 ### ROS Project
 
+- `robot-node`: Computer with Real-time OS for Panda robot.
+- `robot-agent`: Computer for visual processing and motion planning.
+
+#### @robot-node
+
+```bash
+mkdir -p ~/ros_objslampp/src
+cd ~/ros_objslampp/src
+
+git clone https://github.com/wkentaro/objslampp.git
+
+cd ~/ros_objslampp
+ln -s src/ros/*.sh .
+
+./catkin_build.robot_node.sh
+source devel/setup.bash
+```
+
+#### @robot-agent
+
 ```bash
 mkdir -p ~/ros_objslampp/src
 cd ~/ros_objslampp/src
@@ -33,17 +53,14 @@ cd objslampp
 make install
 
 cd ~/ros_objslampp
-ln -s *.sh
+ln -s src/ros/*.sh .
 
-./catkin_init.sh
-./install_realsense.sh
 ./rosdep_install.sh
+./catkin_build.sh
 
 ln -s src/objslampp/ros/autoenv.zsh .autoenv.zsh
 ln -s src/objslampp/ros/autoenv_leave.zsh .autoenv_leave.zsh
 source .autoenv.zsh
-
-catkin build ros_objslampp_ycb_video
 ```
 
 
