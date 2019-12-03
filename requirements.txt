@@ -5,7 +5,7 @@ frozendict
 gdown>=3.7.0
 glooey
 imgaug
-imgviz[all]
+imgviz[all]>=0.10.0
 logboard>=0.3.0
 networkx
 octomap-python>=1.8.0.post12
