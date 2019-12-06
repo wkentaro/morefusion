@@ -1,8 +1,0 @@
-<?xml version="1.0" ?>
-<launch>
-  <arg name="load_gripper" default="true" />
-  <include file="$(find franka_control_custom)/launch/franka_control.launch">
-    <arg name="load_gripper" value="$(arg load_gripper)" />
-  </include>
-  <node name="move_to_start" pkg="franka_moveit_custom" type="move_to_start.py" output="screen" required="true" />
-</launch>

@@ -1,8 +1,0 @@
-<?xml version="1.0" ?>
-<launch>
-  <include file="$(find franka_control_custom)/launch/franka_control.launch" >
-    <arg name="load_moveit" value="false" />
-  </include>
-  <rosparam command="load" file="$(find franka_control_custom)/config/franka_control_custom.yaml" />
-  <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false" output="screen" args="cartesian_impedance_controller"/>
-</launch>
