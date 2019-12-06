@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(franka_moveit_custom)
+project(ros_objslampp_panda)
 
 add_compile_options(-std=c++11)
 
@@ -37,10 +37,10 @@ find_package(Boost REQUIRED system filesystem date_time thread)
 
 add_service_files(
         FILES
-        MoveToPose.srv
-        MoveToHome.srv
-        UpdateScene.srv
         MoveToJointPosition.srv
+        MoveToPose.srv
+        SetSuction.srv
+        UpdateScene.srv
 )
 
 generate_messages(
@@ -51,7 +51,7 @@ generate_messages(
 )
 
 catkin_package(
-        LIBRARIES franka_moveit_custom
+        LIBRARIES ros_objslampp_panda
         interactivity_utils
         INCLUDE_DIRS
         ${THIS_PACKAGE_INCLUDE_DIRS}
@@ -76,10 +76,6 @@ install(DIRECTORY launch
 install(DIRECTORY config
         DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
         )
-catkin_install_python(
-        PROGRAMS scripts/move_to_start.py
-        DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
 
 include_directories(SYSTEM ${THIS_PACKAGE_INCLUDE_DIRS} ${Boost_INCLUDE_DIR} ${EIGEN3_INCLUDE_DIRS})
 include_directories(${catkin_INCLUDE_DIRS})
@@ -87,10 +83,10 @@ link_directories(${catkin_LIBRARY_DIRS})
 
 add_executable(pose_service src/pose_service.cpp)
 target_link_libraries(pose_service ${catkin_LIBRARIES} ${Boost_LIBRARIES})
-add_dependencies(pose_service franka_moveit_custom_gencpp)
+add_dependencies(pose_service ros_objslampp_panda_gencpp)
 install(TARGETS pose_service DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
 add_executable(update_scene_service src/update_scene_service.cpp)
 target_link_libraries(update_scene_service ${catkin_LIBRARIES} ${Boost_LIBRARIES})
-add_dependencies(update_scene_service franka_moveit_custom_gencpp)
+add_dependencies(update_scene_service ros_objslampp_panda_gencpp)
 install(TARGETS update_scene_service DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})

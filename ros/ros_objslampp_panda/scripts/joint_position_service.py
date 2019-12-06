@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 import rospy
-from franka_moveit_custom.srv import MoveToJointPosition
-from franka_moveit_custom.srv import MoveToJointPositionResponse
+from ros_objslampp_panda.srv import MoveToJointPosition
+from ros_objslampp_panda.srv import MoveToJointPositionResponse
 from moveit_commander import MoveGroupCommander, RobotCommander
 from actionlib_msgs.msg import GoalStatusArray
 

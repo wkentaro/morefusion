@@ -2,7 +2,7 @@
 
 import rospy
 import serial
-from franka_control_custom.srv import SetSuction
+from ros_objslampp_panda.srv import SetSuction
 
 
 ser = serial.Serial('/dev/arduino0', baudrate=9600, timeout=1)

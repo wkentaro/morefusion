@@ -17,7 +17,7 @@
 #include <chrono>
 
 #include "ros/ros.h"
-#include "franka_moveit_custom/MoveToPose.h"
+#include "ros_objslampp_panda/MoveToPose.h"
 
 class PoseService {
 
@@ -41,8 +41,8 @@ public:
 
     int run();
 
-    bool move_to_pose(franka_moveit_custom::MoveToPose::Request &service_req,
-                               franka_moveit_custom::MoveToPose::Response &service_res);
+    bool move_to_pose(ros_objslampp_panda::MoveToPose::Request &service_req,
+                               ros_objslampp_panda::MoveToPose::Response &service_res);
 };
 
 PoseService::PoseService() :
@@ -69,8 +69,8 @@ int PoseService::run() {
     return 0;
 }
 
-bool PoseService::move_to_pose(franka_moveit_custom::MoveToPose::Request &service_req,
-                                        franka_moveit_custom::MoveToPose::Response &service_res) {
+bool PoseService::move_to_pose(ros_objslampp_panda::MoveToPose::Request &service_req,
+                                        ros_objslampp_panda::MoveToPose::Response &service_res) {
 
 
     // load planning scene from parameter server

@@ -3,7 +3,7 @@
 #include <moveit_msgs/ApplyPlanningScene.h>
 #include <moveit/move_group_interface/move_group_interface.h>
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
-#include <franka_moveit_custom/UpdateScene.h>
+#include <ros_objslampp_panda/UpdateScene.h>
 
 class SceneService{
     ros::NodeHandle node_handle;
@@ -14,16 +14,16 @@ class SceneService{
 public:
     SceneService();
     int run();
-    bool update_scene(franka_moveit_custom::UpdateScene::Request &service_req,
-                      franka_moveit_custom::UpdateScene::Response &service_res);
+    bool update_scene(ros_objslampp_panda::UpdateScene::Request &service_req,
+                      ros_objslampp_panda::UpdateScene::Response &service_res);
 };
 
 SceneService::SceneService() :
 move_group(PLANNING_GROUP)
 {}
 
-bool SceneService::update_scene(franka_moveit_custom::UpdateScene::Request &service_req,
-                  franka_moveit_custom::UpdateScene::Response &service_res)
+bool SceneService::update_scene(ros_objslampp_panda::UpdateScene::Request &service_req,
+                  ros_objslampp_panda::UpdateScene::Response &service_res)
 {
     // planning scene message
     moveit_msgs::PlanningScene planning_scene;
