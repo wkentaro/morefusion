@@ -18,6 +18,7 @@ class SceneGenerationBase:
         class_weight=None,
         multi_instance=True,
         connection_method=None,
+        mesh_scale=None,
     ):
         self._models = models
         self._n_object = n_object
@@ -26,6 +27,12 @@ class SceneGenerationBase:
         self._random_state = random_state
         self._class_weight = class_weight
         self._multi_instance = multi_instance
+        if mesh_scale is not None:
+            assert isinstance(mesh_scale, tuple)
+            assert len(mesh_scale) == 2
+            assert len(mesh_scale[0]) == 3
+            assert len(mesh_scale[1]) == 3
+        self._mesh_scale = mesh_scale
 
         self._objects = {}
         self._aabb = (None, None)
@@ -96,9 +103,14 @@ class SceneGenerationBase:
         cad_ids = self._models.get_cad_ids(class_id=class_id)
         cad_id = self._random_state.choice(cad_ids, 1).item()
         cad_file = self._models.get_cad_file_from_id(cad_id=cad_id)
+        if self._mesh_scale is not None:
+            mesh_scale = np.random.uniform(
+                self._mesh_scale[0], self._mesh_scale[1]
+            )
         unique_id = objslampp.extra.pybullet.add_model(
             visual_file=cad_file,
             collision_file=objslampp.utils.get_collision_file(cad_file),
+            mesh_scale=mesh_scale
         )
         for _ in range(1000):  # n_trial
             position = self._random_state.uniform(*self._aabb)
@@ -118,6 +130,7 @@ class SceneGenerationBase:
             self._objects[unique_id] = dict(
                 class_id=class_id,
                 cad_id=cad_id,
+                mesh_scale=mesh_scale,
             )
             break
         else:
@@ -184,6 +197,17 @@ class SceneGenerationBase:
     def unique_ids_to_poses(self, unique_ids):
         return np.array(
             [self.unique_id_to_pose(i) for i in unique_ids],
+            dtype=float,
+        )
+
+    def unique_id_to_scale(self, unique_id):
+        if unique_id in self._objects:
+            return self._objects[unique_id].get('mesh_scale', (1, 1, 1))
+        return (1, 1, 1)
+
+    def unique_ids_to_scales(self, unique_ids):
+        return np.array(
+            [self.unique_id_to_scale(i) for i in unique_ids],
             dtype=float,
         )
 
