@@ -1,6 +1,6 @@
 <launch>
 
-  <include file="$(find panda_moveit_config_custom)/launch/planning_context_demo1.launch"/>
+  <include file="$(find ros_objslampp_panda)/launch/planning_context_demo1.launch"/>
 
   <arg name="planner" default="ompl" />
 
