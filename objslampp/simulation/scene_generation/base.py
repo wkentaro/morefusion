@@ -97,14 +97,15 @@ class SceneGenerationBase:
     def _spawn_object(self, class_id):
         import pybullet
 
-        termcolor.cprint(
-            f'==> Spawning a new object: {class_id:04d}',
-            attrs={'bold': True},
-        )
-
         cad_ids = self._models.get_cad_ids(class_id=class_id)
         cad_id = self._random_state.choice(cad_ids, 1).item()
         cad_file = self._models.get_cad_file_from_id(cad_id=cad_id)
+
+        termcolor.cprint(
+            f'==> Spawning a new object: class_id={class_id:04d}, cad_id={cad_id}',  # NOQA
+            attrs={'bold': True},
+        )
+
         if self._mesh_scale is not None:
             mesh_scale = np.random.uniform(
                 self._mesh_scale[0], self._mesh_scale[1]
