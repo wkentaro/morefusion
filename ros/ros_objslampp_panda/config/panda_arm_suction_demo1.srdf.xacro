@@ -4,6 +4,6 @@
     A URDF file must exist for this robot as well, where the joints and the links that are referenced are defined
 -->
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="panda">
-  <xacro:include filename="$(find panda_moveit_config_custom)/config/panda_arm_suction.xacro" />
+  <xacro:include filename="$(find ros_objslampp_panda)/config/panda_arm_suction_demo1.xacro" />
   <xacro:panda_arm />
 </robot>

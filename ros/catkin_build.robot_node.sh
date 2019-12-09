@@ -31,8 +31,6 @@ catkin config --whitelist \
   franka_msgs \
   franka_ros \
   franka_visualization \
-  ros_objslampp_panda \
-  panda_moveit_config_custom \
   ros_objslampp_panda
 
 catkin build
