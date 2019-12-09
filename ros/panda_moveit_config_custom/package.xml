@@ -17,10 +17,10 @@
   <buildtool_depend>catkin</buildtool_depend>
 
   <build_depend>franka_description</build_depend>
-  <build_depend>franka_description_custom</build_depend>
+  <build_depend>ros_objslampp_panda</build_depend>
 
   <exec_depend>franka_description</exec_depend>
-  <exec_depend>franka_description_custom</exec_depend>
+  <exec_depend>ros_objslampp_panda</exec_depend>
   <exec_depend>moveit_ros_move_group</exec_depend>
   <exec_depend>moveit_fake_controller_manager</exec_depend>
   <exec_depend>moveit_kinematics</exec_depend>

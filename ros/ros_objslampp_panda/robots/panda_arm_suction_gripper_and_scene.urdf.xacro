@@ -170,10 +170,10 @@
     </joint>
   </xacro:macro>
 
-  <xacro:include filename="$(find franka_description_custom)/robots/suction/suction_gripper.xacro"/>
-  <xacro:include filename="$(find franka_description_custom)/robots/scene/table.xacro"/>
-  <xacro:include filename="$(find franka_description_custom)/robots/scene/left_wall.xacro"/>
-  <xacro:include filename="$(find franka_description_custom)/robots/scene/front_wall.xacro"/>
+  <xacro:include filename="$(find ros_objslampp_panda)/robots/suction/suction_gripper.xacro"/>
+  <xacro:include filename="$(find ros_objslampp_panda)/robots/scene/table.xacro"/>
+  <xacro:include filename="$(find ros_objslampp_panda)/robots/scene/left_wall.xacro"/>
+  <xacro:include filename="$(find ros_objslampp_panda)/robots/scene/front_wall.xacro"/>
   <xacro:panda_arm />
   <xacro:suction_gripper ns="panda" rpy="${pi} 0 ${-pi/4}" xyz="0 0 0.0065" connected_to="panda_link8"/>
   <xacro:table ns="panda" rpy="0 0 0" xyz="0.68 0 0.0375" connected_to="panda_link0"/>
