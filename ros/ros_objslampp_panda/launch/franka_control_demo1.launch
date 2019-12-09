@@ -1,6 +1,6 @@
 <launch>
 
-  <param name="robot_description" command="$(find xacro)/xacro --inorder '$(find franka_description_custom)/robots/panda_arm_suction_gripper_objslampp.urdf.xacro'" />
+  <param name="robot_description" command="$(find xacro)/xacro --inorder '$(find ros_objslampp_panda)/robots/panda_arm_suction_gripper_objslampp.urdf.xacro'" />
 
   <node name="franka_control" pkg="franka_control" type="franka_control_node" output="screen" required="true">
     <rosparam command="load" file="$(find franka_control)/config/franka_control_node.yaml" />

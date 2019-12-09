@@ -22,7 +22,7 @@
     <link name="${ns}_suction_gripper">
       <visual>
         <geometry>
-          <mesh filename="package://franka_description_custom/meshes/visual/suction_mount.stl"/>
+          <mesh filename="package://ros_objslampp_panda/meshes/visual/suction_mount.stl"/>
         </geometry>
         <material name="black"/>
       </visual>
@@ -37,7 +37,7 @@
     <link name="${ns}_suction_cup">
       <visual>
         <geometry>
-          <mesh filename="package://franka_description_custom/meshes/visual/suction_cup.stl"/>
+          <mesh filename="package://ros_objslampp_panda/meshes/visual/suction_cup.stl"/>
         </geometry>
         <material name="green"/>
       </visual>

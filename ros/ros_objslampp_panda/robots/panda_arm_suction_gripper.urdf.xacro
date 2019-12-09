@@ -170,17 +170,7 @@
     </joint>
   </xacro:macro>
 
-  <xacro:include filename="$(find franka_description_custom)/robots/suction/suction_gripper.xacro"/>
-  <xacro:include filename="$(find franka_description_custom)/robots/scene/table.xacro"/>
-  <xacro:include filename="$(find franka_description_custom)/robots/scene/left_wall.xacro"/>
-  <xacro:include filename="$(find franka_description_custom)/robots/scene/front_wall.xacro"/>
-  <xacro:include filename="$(find franka_description_custom)/robots/scene/target_box.xacro"/>
-  <xacro:include filename="$(find franka_description_custom)/robots/scene/distractor_box.xacro"/>
+  <xacro:include filename="$(find ros_objslampp_panda)/robots/suction/suction_gripper.xacro"/>
   <xacro:panda_arm />
   <xacro:suction_gripper ns="panda" rpy="${pi} 0 ${-pi/4}" xyz="0 0 0.0065" connected_to="panda_link8"/>
-  <xacro:table ns="panda" rpy="0 0 0" xyz="0.68 0 0.0375" connected_to="panda_link0"/>
-  <xacro:left_wall ns="panda" rpy="${pi/2} 0 0" xyz="0.68 0.65 0.6" connected_to="panda_link0"/>
-  <xacro:front_wall ns="panda" rpy="0 ${pi/2} 0" xyz="1.33 0 0.6" connected_to="panda_link0"/>
-  <xacro:target_box ns="panda" rpy="0 0 0" xyz="0.6 -0.45 0.075" connected_to="panda_link0"/>
-  <xacro:distractor_box ns="panda" rpy="0 0 0" xyz="0.665 0.445 0.0775" connected_to="panda_link0"/>
 </robot>
