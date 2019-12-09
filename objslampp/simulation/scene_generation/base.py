@@ -19,6 +19,7 @@ class SceneGenerationBase:
         multi_instance=True,
         connection_method=None,
         mesh_scale=None,
+        n_trial=100,
     ):
         self._models = models
         self._n_object = n_object
@@ -33,6 +34,7 @@ class SceneGenerationBase:
             assert len(mesh_scale[0]) == 3
             assert len(mesh_scale[1]) == 3
         self._mesh_scale = mesh_scale
+        self._n_trial = n_trial
 
         self._objects = {}
         self._aabb = (None, None)
@@ -112,7 +114,7 @@ class SceneGenerationBase:
             collision_file=objslampp.utils.get_collision_file(cad_file),
             mesh_scale=mesh_scale
         )
-        for _ in range(1000):  # n_trial
+        for _ in range(self._n_trial):
             position = self._random_state.uniform(*self._aabb)
             orientation = self._random_state.uniform(-1, 1, (4,))
             pybullet.resetBasePositionAndOrientation(
