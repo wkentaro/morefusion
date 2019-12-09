@@ -252,7 +252,7 @@ def render_camera(T_cam2world, fovy, height, width):
     return rgb, depth, segm
 
 
-def render_cad(visual_file, Ts_cad2cam, fovy, height, width):
+def render_cad(visual_file, Ts_cad2cam, fovy, height, width, scale=None):
     assert isinstance(visual_file, str)
 
     Ts_cad2cam = np.asarray(Ts_cad2cam)
@@ -265,7 +265,7 @@ def render_cad(visual_file, Ts_cad2cam, fovy, height, width):
 
     pybullet.connect(pybullet.DIRECT)
 
-    add_model(visual_file, register=False)
+    add_model(visual_file, mesh_scale=scale, register=False)
 
     rgbs = []
     depths = []
