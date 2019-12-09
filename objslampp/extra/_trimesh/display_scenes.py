@@ -19,7 +19,14 @@ def _get_tile_shape(num, hw_ratio=1):
     return r_num, c_num
 
 
-def display_scenes(data, height=480, width=640, tile=None, caption=None):
+def display_scenes(
+    data,
+    height=480,
+    width=640,
+    tile=None,
+    caption=None,
+    rotation_scaling=1,
+):
     import glooey
 
     scenes = None
@@ -107,7 +114,7 @@ Usage:
                         [[0, 1, 0]], camera.transform, translate=False
                     )[0]
                     camera.transform = tf.rotation_matrix(
-                        np.deg2rad(window.rotate),
+                        np.deg2rad(window.rotate * rotation_scaling),
                         axis,
                         point=scene.centroid,
                     ) @ camera.transform
