@@ -334,18 +334,43 @@ class SceneGenerationBase:
 
         imgviz.io.pyglet_run()
 
-    def random_camera_trajectory(self, n_keypoints=8, n_points=64):
+    def get_aabb(self):
+        import pybullet
+
+        aabb_min = None
+        aabb_max = None
+        for unique_id in self._objects:
+            aabb = pybullet.getAABB(unique_id)
+            if aabb_min is None:
+                aabb_min = aabb[0]
+            else:
+                aabb_min = np.minimum(aabb_min, aabb[0])
+            if aabb_max is None:
+                aabb_max = aabb[1]
+            else:
+                aabb_max = np.maximum(aabb_max, aabb[1])
+        return tuple(aabb_min), tuple(aabb_max)
+
+    def random_camera_trajectory(
+        self, n_keypoints=8, n_points=64, distance=(1, 1), elevation=(45, 90)
+    ):
+        aabb = self.get_aabb()
+
         # targets
-        targets = self._random_state.uniform(*self._aabb, (n_keypoints, 3))
+        targets = self._random_state.uniform(*aabb, (n_keypoints, 3))
         targets = objslampp.geometry.trajectory.sort(targets)
         targets = objslampp.geometry.trajectory.interpolate(
             targets, n_points=n_points
         )
 
         # eyes
-        distance = np.full((n_keypoints,), 1, dtype=float)
-        elevation = self._random_state.uniform(45, 90, (n_keypoints,))
-        azimuth = self._random_state.uniform(0, 360, (n_keypoints,))
+        distance = self._random_state.uniform(
+            distance[0], distance[1], n_keypoints
+        )
+        elevation = self._random_state.uniform(
+            elevation[0], elevation[1], n_keypoints
+        )
+        azimuth = self._random_state.uniform(0, 360, n_keypoints)
         eyes = objslampp.geometry.points_from_angles(
             distance, elevation, azimuth
         )
