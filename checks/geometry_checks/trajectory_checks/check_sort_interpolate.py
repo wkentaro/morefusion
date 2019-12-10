@@ -13,7 +13,9 @@ aabb_max = (1, 1, 1)
 keypoints = np.random.uniform(aabb_min, aabb_max, (16, 3))
 keypoints = morefusion.geometry.trajectory.sort(keypoints)
 
-trajectory = morefusion.geometry.trajectory.interpolate(keypoints, n_points=128)
+trajectory = morefusion.geometry.trajectory.interpolate(
+    keypoints, n_points=128
+)
 
 # -----------------------------------------------------------------------------
 

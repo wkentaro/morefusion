@@ -146,14 +146,15 @@ class Model(chainer.Chain):
             if origin[i] is None:
                 center_i = morefusion.extra.cupy.median(points[i], axis=0)
                 origin[i] = center_i - pitch[i] * (self._voxel_dim / 2. - 0.5)
-            voxelized_i, count_i = morefusion.functions.average_voxelization_3d(
-                values=values[i],
-                points=points[i],
-                origin=origin[i],
-                pitch=pitch[i],
-                dimensions=dimensions,
-                return_counts=True,
-            )
+            voxelized_i, count_i = \
+                morefusion.functions.average_voxelization_3d(
+                    values=values[i],
+                    points=points[i],
+                    origin=origin[i],
+                    pitch=pitch[i],
+                    dimensions=dimensions,
+                    return_counts=True,
+                )
             voxelized.append(voxelized_i)
             count.append(count_i)
         pitch = xp.asarray(pitch, dtype=np.float32)

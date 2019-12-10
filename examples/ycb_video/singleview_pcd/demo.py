@@ -55,7 +55,9 @@ def main():
     print('==> Done model loading')
 
     split = 'val'
-    dataset = morefusion.datasets.YCBVideoRGBDPoseEstimationDataset(split=split)
+    dataset = morefusion.datasets.YCBVideoRGBDPoseEstimationDataset(
+        split=split
+    )
     dataset_reindexed = morefusion.datasets.YCBVideoRGBDPoseEstimationDatasetReIndexed(  # NOQA
         split=split,
         class_ids=args_data['class_ids'],
