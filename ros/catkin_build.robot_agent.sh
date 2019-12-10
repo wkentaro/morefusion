@@ -62,6 +62,8 @@ catkin config --blacklist \
   rosbag \
   rosbag_storage \
   franka_control \
+  franka_gripper \
+  franka_hw \
   franka_visualization
 mkdir -p $ROS_ROOT_PREFIX/devel/lib/python3/dist-packages
 ln -fs $PY_ROOT_PREFIX/.anaconda3/lib/python3.7/site-packages/cv2 $ROS_ROOT_PREFIX/devel/lib/python3/dist-packages
