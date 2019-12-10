@@ -1,0 +1,12 @@
+<launch>
+
+  <include file="$(find morefusion_panda_ycb_video)/launch/rs_rgbd.robot.launch">
+  </include>
+
+  <node name="rviz"
+        pkg="rviz" type="rviz"
+        clear_params="true"
+        args="-d $(find morefusion_panda_ycb_video)/rvizconfig/calibrate_handeye_coordination.rviz">
+  </node>
+
+</launch>

@@ -1,0 +1,38 @@
+<launch>
+
+  <arg name="LOG_DIR" />
+
+  <rosparam command="load" file="$(arg LOG_DIR)/rosparam.yaml" />
+
+  <param name="/use_sim_time" value="true" />
+
+  <node name="rosbag_play"
+        pkg="rosbag" type="play"
+        clear_params="true"
+        args="$(arg LOG_DIR)/setup_static.robot.bag --pause --clock /tf_static_republished:=/tf_static"
+        launch-prefix="xterm -geometry 100x30 -e"
+        required="true">
+  </node>
+
+  <group ns="camera">
+    <node pkg="nodelet" type="nodelet" name="points_xyzrgb_aligned_depth_to_color"
+          args="standalone depth_image_proc/point_cloud_xyzrgb">
+      <remap from="rgb/image_rect_color"        to="color/image_rect_color" />
+      <remap from="rgb/camera_info"             to="color/camera_info" />
+      <remap from="depth_registered/image_rect" to="aligned_depth_to_color/image_raw" />
+      <remap from="depth_registered/points"     to="depth_registered/points" />
+    </node>
+  </group>
+
+  <include file="$(find morefusion_panda_ycb_video)/launch/visualize_rs_rgbd.launch">
+    <arg name="GUI" value="false" />
+  </include>
+
+  <include file="$(find morefusion_panda_ycb_video)/launch/rviz_static.robot.launch">
+  </include>
+
+  <include file="$(find morefusion_panda_ycb_video)/launch/setup_static.robot.launch">
+    <arg name="PROCESS" value="false" />
+  </include>
+
+</launch>
