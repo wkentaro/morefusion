@@ -120,7 +120,7 @@ robot-node  $ sudo ntpdata 0.uk.pool.ntp.org  # for time synchronization
 
 robot-node  $ roscore
 
-robot-agent $ roslaunch franka_moveit_custom objslampp_demo1.launch
+robot-agent $ roslaunch ros_objslampp_panda panda.launch
 
 robot-node  $ roslaunch ros_objslampp_ycb_video rs_rgbd.robot.launch
 robot-node  $ roslaunch ros_objslampp_ycb_video rviz_static.launch
