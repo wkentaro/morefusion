@@ -67,6 +67,11 @@ pip install -r requirements-dev.txt
 
 pip install -e .
 
+echo_bold "==> Checking the availability of Cupy"
+if ! python -c 'import cupy' &>/dev/null; then
+  echo_warning "Cupy is not yet installed. Please install it manually e.g., pip install cupy==7.0.0rc1."
+fi
+
 # ---------------------------------------------------------------------------------------
 
 echo_bold "\nAll is well! You can start using this!
