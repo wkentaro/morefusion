@@ -9,7 +9,7 @@ import pybullet
 import scipy.io
 import trimesh
 
-import objslampp
+import morefusion
 
 
 def main():
@@ -18,7 +18,7 @@ def main():
     )
     parser.add_argument(
         '--result',
-        default='/home/wkentaro/data/datasets/wkentaro/objslampp/ycb_video/dense_fusion/eval_result/ycb/Densefusion_wo_refine_result',  # NOQA
+        default='/home/wkentaro/data/datasets/wkentaro/morefusion/ycb_video/dense_fusion/eval_result/ycb/Densefusion_wo_refine_result',  # NOQA
         help='result dir',
     )
     parser.add_argument(
@@ -50,7 +50,7 @@ def main():
             )
             frame_id = '/'.join(result['frame_id'].split('/')[1:])
 
-            frame = objslampp.datasets.YCBVideoDataset.get_frame(frame_id)
+            frame = morefusion.datasets.YCBVideoDataset.get_frame(frame_id)
 
             rgb = frame['color']
             depth = frame['depth']
@@ -64,7 +64,7 @@ def main():
             labels = labels[keep]
             masks = masks[keep]
 
-            captions = [objslampp.datasets.ycb_video.class_names[l]
+            captions = [morefusion.datasets.ycb_video.class_names[l]
                         for l in labels]
             detections_viz = imgviz.instances2rgb(
                 rgb,
@@ -80,16 +80,16 @@ def main():
 
             pybullet.connect(pybullet.DIRECT)
             for class_id, pose in zip(labels, result['poses']):
-                cad_file = objslampp.datasets.YCBVideoModels().get_cad_file(
+                cad_file = morefusion.datasets.YCBVideoModels().get_cad_file(
                     class_id=class_id
                 )
-                objslampp.extra.pybullet.add_model(
+                morefusion.extra.pybullet.add_model(
                     cad_file,
                     position=pose[4:],
                     orientation=pose[:4][[1, 2, 3, 0]],
                 )
             rgb_rend, depth_rend, segm_rend = \
-                objslampp.extra.pybullet.render_camera(
+                morefusion.extra.pybullet.render_camera(
                     np.eye(4), fovy=camera.fov[1], height=480, width=640
                 )
             pybullet.disconnect()

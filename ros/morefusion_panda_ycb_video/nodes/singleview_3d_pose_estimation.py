@@ -7,8 +7,8 @@ import gdown
 import numpy as np
 import imgviz
 
-import objslampp
-import objslampp.contrib.singleview_3d as contrib
+import morefusion
+import morefusion.contrib.singleview_3d as contrib
 
 import cv_bridge
 import rospy
@@ -23,7 +23,7 @@ import topic_tools
 
 class SingleViewPoseEstimation3D(topic_tools.LazyTransport):
 
-    _models = objslampp.datasets.YCBVideoModels()
+    _models = morefusion.datasets.YCBVideoModels()
 
     def __init__(self):
         self._with_occupancy = rospy.get_param('~with_occupancy')
@@ -114,7 +114,7 @@ class SingleViewPoseEstimation3D(topic_tools.LazyTransport):
             depth[depth == 0] = np.nan
         assert depth.dtype == np.float32
         K = np.array(cam_msg.K).reshape(3, 3)
-        pcd = objslampp.geometry.pointcloud_from_depth(
+        pcd = morefusion.geometry.pointcloud_from_depth(
             depth, K[0, 0], K[1, 1], K[0, 2], K[1, 2]
         )
         ins = bridge.imgmsg_to_cv2(ins_msg)
@@ -159,7 +159,7 @@ class SingleViewPoseEstimation3D(topic_tools.LazyTransport):
             mask = ins == ins_id
             if (~nanmask & mask).sum() < 50:
                 continue
-            bbox = objslampp.geometry.masks_to_bboxes([mask])[0]
+            bbox = morefusion.geometry.masks_to_bboxes([mask])[0]
             y1, x1, y2, x2 = bbox.round().astype(int)
             rgb_ins = rgb[y1:y2, x1:x2].copy()
             rgb_ins[~mask[y1:y2, x1:x2]] = 0
@@ -213,14 +213,14 @@ class SingleViewPoseEstimation3D(topic_tools.LazyTransport):
         translation = chainer.cuda.to_cpu(translation.array)
 
         '''
-        transforms = objslampp.functions.transformation_matrix(
+        transforms = morefusion.functions.transformation_matrix(
             quaternion, translation
         ).array
         for i in range(B):
             pcd_cad = self._models.get_pcd(examples[i]['class_id'])
             pcd_depth = examples[i]['pcd']
             pcd_depth = pcd_depth[~np.isnan(pcd_depth).any(axis=2)]
-            icp = objslampp.contrib.ICPRegistration(
+            icp = morefusion.contrib.ICPRegistration(
                 pcd_depth=pcd_depth,
                 pcd_cad=pcd_cad,
                 transform_init=transforms[i],
@@ -236,8 +236,8 @@ class SingleViewPoseEstimation3D(topic_tools.LazyTransport):
         for i, (ins_id, example) in enumerate(zip(instance_ids, examples)):
             '''
             cls_id = example['class_id']
-            class_name = objslampp.datasets.ycb_video.class_names[cls_id]
-            objslampp.ros.loginfo_green(
+            class_name = morefusion.datasets.ycb_video.class_names[cls_id]
+            morefusion.ros.loginfo_green(
                 f'instance_id={ins_id}, class_id={cls_id}, '
                 f'class_name={class_name}, confidence={confidence[i].item()}'
             )

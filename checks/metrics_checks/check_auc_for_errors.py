@@ -4,11 +4,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import trimesh.transformations as tf
 
-import objslampp
+import morefusion
 
 
 def main():
-    models = objslampp.datasets.YCBVideoModels()
+    models = morefusion.datasets.YCBVideoModels()
     points = models.get_pcd(class_id=2)
 
     n_test = 1000
@@ -29,11 +29,11 @@ def main():
         transforms_true.append(transform_true)
         transforms_pred.append(transform_pred)
 
-    adds = objslampp.metrics.average_distance(
+    adds = morefusion.metrics.average_distance(
         [points] * n_test, transforms_true, transforms_pred
     )[0]
     max_distance = 0.1
-    auc, x, y = objslampp.metrics.auc_for_errors(
+    auc, x, y = morefusion.metrics.auc_for_errors(
         adds, max_threshold=max_distance, return_xy=True
     )
     print('auc:', auc)

@@ -7,7 +7,7 @@ import numpy as np
 import trimesh
 import trimesh.transformations as tf
 
-import objslampp
+import morefusion
 
 
 class NearestNeighborICP(chainer.Link):
@@ -26,7 +26,7 @@ class NearestNeighborICP(chainer.Link):
 
     @property
     def T(self):
-        return objslampp.functions.transformation_matrix(
+        return morefusion.functions.transformation_matrix(
             self.quaternion, self.translation
         )
 
@@ -34,7 +34,7 @@ class NearestNeighborICP(chainer.Link):
         # source: from cad
         # target: from depth
 
-        source = objslampp.functions.transform_points(source, self.T[None])[0]
+        source = morefusion.functions.transform_points(source, self.T[None])[0]
 
         dists = F.sum(
             (source[None, :, :] - target[:, None, :]) ** 2, axis=2
@@ -114,16 +114,16 @@ def algorithm():
 
     instance_id = 3  # == class_id
 
-    models = objslampp.datasets.YCBVideoModels()
+    models = morefusion.datasets.YCBVideoModels()
     pcd_cad = models.get_pcd(class_id=instance_id)
 
-    dataset = objslampp.datasets.YCBVideoDataset('train')
+    dataset = morefusion.datasets.YCBVideoDataset('train')
     example = dataset.get_example(1000)
 
     depth = example['depth']
     instance_label = example['label']
     K = example['meta']['intrinsic_matrix']
-    pcd_depth = objslampp.geometry.pointcloud_from_depth(
+    pcd_depth = morefusion.geometry.pointcloud_from_depth(
         depth, fx=K[0, 0], fy=K[1, 1], cx=K[0, 2], cy=K[1, 2]
     )
     nonnan = ~np.isnan(pcd_depth).any(axis=2)
@@ -134,14 +134,14 @@ def algorithm():
 
     quaternion_init = np.array([1, 0, 0, 0], dtype=np.float32)
     translation_init = np.median(pcd_depth_target, axis=0)
-    transform_init = objslampp.functions.transformation_matrix(
+    transform_init = morefusion.functions.transformation_matrix(
         quaternion_init, translation_init
     ).array
 
-    pcd_cad = objslampp.extra.open3d.voxel_down_sample(
+    pcd_cad = morefusion.extra.open3d.voxel_down_sample(
         pcd_cad, voxel_size=0.01
     )
-    pcd_depth_target = objslampp.extra.open3d.voxel_down_sample(
+    pcd_depth_target = morefusion.extra.open3d.voxel_down_sample(
         pcd_depth_target, voxel_size=0.01
     )
     registration = ICPRegistration(pcd_depth_target, pcd_cad, transform_init)
@@ -154,13 +154,13 @@ def algorithm():
         scene.add_geometry(
             geom, geom_name='b', node_name='b', transform=T_cad2cam
         )
-        scene.camera.transform = objslampp.extra.trimesh.to_opengl_transform()
+        scene.camera.transform = morefusion.extra.trimesh.to_opengl_transform()
         yield scene
 
 
 def main():
     scenes = ({'icp': scene} for scene in algorithm())
-    objslampp.extra.trimesh.display_scenes(scenes)
+    morefusion.extra.trimesh.display_scenes(scenes)
 
 
 if __name__ == '__main__':

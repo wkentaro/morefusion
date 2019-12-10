@@ -14,7 +14,7 @@ import pybullet  # NOQA
 import trimesh
 import trimesh.transformations as tf
 
-import objslampp
+import morefusion
 
 import contrib
 
@@ -55,8 +55,8 @@ def main():
     print('==> Done model loading')
 
     split = 'val'
-    dataset = objslampp.datasets.YCBVideoRGBDPoseEstimationDataset(split=split)
-    dataset_reindexed = objslampp.datasets.YCBVideoRGBDPoseEstimationDatasetReIndexed(  # NOQA
+    dataset = morefusion.datasets.YCBVideoRGBDPoseEstimationDataset(split=split)
+    dataset_reindexed = morefusion.datasets.YCBVideoRGBDPoseEstimationDatasetReIndexed(  # NOQA
         split=split,
         class_ids=args_data['class_ids'],
     )
@@ -156,15 +156,15 @@ def main():
         for which in ['true', 'pred']:
             pybullet.connect(pybullet.DIRECT)
             for i, T in enumerate(Ts[which]):
-                cad_file = objslampp.datasets.YCBVideoModels()\
+                cad_file = morefusion.datasets.YCBVideoModels()\
                     .get_cad_file(class_id=class_ids[i])
-                objslampp.extra.pybullet.add_model(
+                morefusion.extra.pybullet.add_model(
                     cad_file,
                     position=tf.translation_from_matrix(T),
                     orientation=tf.quaternion_from_matrix(T)[[1, 2, 3, 0]],
                 )
             rgb_rend, depth_rend, segm_rend = \
-                objslampp.extra.pybullet.render_camera(
+                morefusion.extra.pybullet.render_camera(
                     np.eye(4), fovy, height, width
                 )
             pybullet.disconnect()

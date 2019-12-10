@@ -3,14 +3,14 @@
 import numpy as np
 import pybullet
 
-import objslampp
+import morefusion
 
 
 def main():
-    models = objslampp.datasets.YCBVideoModels()
+    models = morefusion.datasets.YCBVideoModels()
 
     random_state = np.random.RandomState(0)
-    generator = objslampp.simulation.BinTypeSceneGeneration(
+    generator = morefusion.simulation.BinTypeSceneGeneration(
         models=models, n_object=5, random_state=random_state
     )
     pybullet.resetDebugVisualizerCamera(
@@ -21,10 +21,10 @@ def main():
     )
     generator.generate()
 
-    eye = objslampp.geometry.points_from_angles(
+    eye = morefusion.geometry.points_from_angles(
         distance=[1], elevation=[45], azimuth=[45],
     )[0]
-    T_camera2world = objslampp.geometry.look_at(
+    T_camera2world = morefusion.geometry.look_at(
         eye=eye,
         target=(0, 0, 0),
         up=(0, 0, -1),

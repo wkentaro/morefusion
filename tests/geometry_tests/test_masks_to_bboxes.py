@@ -1,6 +1,6 @@
 import numpy as np
 
-from objslampp.geometry import masks_to_bboxes
+from morefusion.geometry import masks_to_bboxes
 
 
 def test_masks_to_bboxes():

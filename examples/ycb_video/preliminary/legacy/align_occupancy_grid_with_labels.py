@@ -13,7 +13,7 @@ import pyglet
 import trimesh
 import trimesh.transformations as tf
 
-import objslampp
+import morefusion
 
 sys.path.insert(0, '..')  # NOQA
 from build_occupancy_grid import get_instance_grid
@@ -47,17 +47,17 @@ class OccupancyGridAlignmentModel(chainer.Link):
     ):
         xp = self.xp
 
-        transform = objslampp.functions.quaternion_matrix(
+        transform = morefusion.functions.quaternion_matrix(
             self.quaternion[None]
         )
-        transform = objslampp.functions.compose_transform(
+        transform = morefusion.functions.compose_transform(
             transform[:, :3, :3], self.translation[None]
         )
 
-        points_source = objslampp.functions.transform_points(
+        points_source = morefusion.functions.transform_points(
             points_source, transform
         )[0]
-        grid_source = objslampp.functions.occupancy_grid_3d(
+        grid_source = morefusion.functions.occupancy_grid_3d(
             points_source,
             pitch=pitch,
             origin=origin,
@@ -162,7 +162,7 @@ class InstanceOccupancyGridRegistration:
         quaternion = cuda.to_cpu(model.quaternion.array)
         translation = cuda.to_cpu(model.translation.array)
         transform = tf.quaternion_matrix(quaternion)
-        transform = objslampp.geometry.compose_transform(
+        transform = morefusion.geometry.compose_transform(
             transform[:3, :3], translation
         )
         return transform
@@ -240,7 +240,7 @@ class InstanceOccupancyGridRegistration:
 
 class OccupancyGridRegistration:
 
-    _models = objslampp.datasets.YCBVideoModels()
+    _models = morefusion.datasets.YCBVideoModels()
 
     def __init__(
         self,
@@ -353,7 +353,7 @@ class OccupancyGridRegistration:
         )
         #
         points_source = models.get_pcd(class_id=class_id).astype(np.float32)
-        points_source = objslampp.extra.open3d.voxel_down_sample(
+        points_source = morefusion.extra.open3d.voxel_down_sample(
             points_source, voxel_size=pitch
         )
         points_source = points_source.astype(np.float32)
@@ -436,7 +436,7 @@ class OccupancyGridRegistration:
         camera = trimesh.scene.Camera(
             resolution=(640, 480),
             fov=(60 * 0.7, 45 * 0.7),
-            transform=objslampp.extra.trimesh.to_opengl_transform(),
+            transform=morefusion.extra.trimesh.to_opengl_transform(),
         )
         for scene in all_scenes.values():
             scene.camera = camera
@@ -517,7 +517,7 @@ N: next instance''')
                 for widget in widgets.values():
                     camera = widget.scene.camera
                     camera.transform = \
-                        objslampp.extra.trimesh.to_opengl_transform()
+                        morefusion.extra.trimesh.to_opengl_transform()
         if symbol == pyglet.window.key.R:
             # rotate camera
             window.rotate = not window.rotate  # 0/1
@@ -592,7 +592,7 @@ N: next instance''')
 
 
 def main():
-    dataset = objslampp.datasets.YCBVideoDataset('train')
+    dataset = morefusion.datasets.YCBVideoDataset('train')
     frame = dataset.get_example(1000)
 
     # scene-level data
@@ -601,7 +601,7 @@ def main():
     Ts_cad2cam_true[:, :3, :4] = frame['meta']['poses'].transpose(2, 0, 1)
     K = frame['meta']['intrinsic_matrix']
     rgb = frame['color']
-    pcd = objslampp.geometry.pointcloud_from_depth(
+    pcd = morefusion.geometry.pointcloud_from_depth(
         frame['depth'], fx=K[0, 0], fy=K[1, 1], cx=K[0, 2], cy=K[1, 2]
     )
     instance_label = frame['label']

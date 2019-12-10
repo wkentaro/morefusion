@@ -7,12 +7,12 @@ import numpy as np
 import pybullet  # NOQA
 import trimesh
 
-import objslampp
+import morefusion
 
 
-class Dataset(objslampp.datasets.DatasetBase):
+class Dataset(morefusion.datasets.DatasetBase):
 
-    _models = objslampp.datasets.YCBVideoModels()
+    _models = morefusion.datasets.YCBVideoModels()
 
     def __init__(self, root_dir):
         self._root_dir = root_dir
@@ -68,7 +68,7 @@ class Dataset(objslampp.datasets.DatasetBase):
             class_id = example['class_ids'][instance_index]
 
             cad_file = self._models.get_cad_file(class_id)
-            _, _, mask_rend = objslampp.extra.pybullet.render_cad(
+            _, _, mask_rend = morefusion.extra.pybullet.render_cad(
                 cad_file, T_cad2cam, fovy=45, height=480, width=640
             )
             mask_rend = imgviz.label2rgb(
@@ -81,7 +81,7 @@ class Dataset(objslampp.datasets.DatasetBase):
         scene = self._scene
         K = example['intrinsic_matrix']
         T_cam2world = example['T_cam2world']
-        pcd = objslampp.geometry.pointcloud_from_depth(
+        pcd = morefusion.geometry.pointcloud_from_depth(
             example['depth'],
             fx=K[0, 0],
             fy=K[1, 1],
@@ -120,7 +120,7 @@ class Dataset(objslampp.datasets.DatasetBase):
         scene.camera.resolution = rgb.shape[1], rgb.shape[0]
         scene.camera.focal = K[0, 0], K[1, 1]
         scene.camera.transform = \
-            objslampp.extra.trimesh.to_opengl_transform(T_cam2world)
+            morefusion.extra.trimesh.to_opengl_transform(T_cam2world)
 
         ins_viz = imgviz.label2rgb(
             example['instance_label'] + 1, rgb, alpha=0.7
@@ -147,7 +147,7 @@ def main():
     dataset = Dataset(root_dir=args.root_dir)
 
     for index in range(len(dataset)):
-        objslampp.extra.trimesh.display_scenes(
+        morefusion.extra.trimesh.display_scenes(
             dataset.get_scenes(index),
             tile=(2, 3),
         )

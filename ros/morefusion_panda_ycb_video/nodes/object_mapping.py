@@ -7,7 +7,7 @@ import queue
 import trimesh.transformations as ttf
 
 import numpy as np
-import objslampp
+import morefusion
 
 from morefusion_panda_ycb_video.msg import ObjectClassArray
 from morefusion_panda_ycb_video.msg import ObjectPose
@@ -60,7 +60,7 @@ class Object:
         poses = np.array(
             list(itertools.islice(self._poses, len(self._poses) - 1))
         )
-        add, add_s = objslampp.metrics.average_distance(
+        add, add_s = morefusion.metrics.average_distance(
             [self._pcd] * len(poses),
             [latest_pose] * len(poses),
             poses,
@@ -85,7 +85,7 @@ class Object:
 
 class ObjectMapping:
 
-    _models = objslampp.datasets.YCBVideoModels()
+    _models = morefusion.datasets.YCBVideoModels()
 
     def __init__(self):
         self._objects = {}  # instance_id: Object()
@@ -173,7 +173,7 @@ class ObjectMapping:
         )
         translation = np.asarray(translation)
         quaternion = np.asarray(quaternion)[[3, 0, 1, 2]]
-        T_cam2base = objslampp.functions.transformation_matrix(
+        T_cam2base = morefusion.functions.transformation_matrix(
             quaternion, translation
         ).array
 
@@ -182,8 +182,8 @@ class ObjectMapping:
         for pose in poses_msg.poses:
             instance_id = pose.instance_id
             class_id = pose.class_id
-            quaternion, translation = objslampp.ros.from_ros_pose(pose.pose)
-            T_cad2cam = objslampp.functions.transformation_matrix(
+            quaternion, translation = morefusion.ros.from_ros_pose(pose.pose)
+            T_cad2cam = morefusion.functions.transformation_matrix(
                 quaternion, translation
             ).array
             T_cad2base = T_cam2base @ T_cad2cam
@@ -195,7 +195,7 @@ class ObjectMapping:
                     class_id=class_id,
                     pcd=self._models.get_pcd(class_id),
                     is_symmetric=class_id in
-                    objslampp.datasets.ycb_video.class_ids_symmetric
+                    morefusion.datasets.ycb_video.class_ids_symmetric
                 )
                 self._objects[instance_id].append_pose(T_cad2base)
 

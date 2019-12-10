@@ -2,12 +2,12 @@
 
 import imgviz
 
-import objslampp
+import morefusion
 
 
 class Images:
 
-    dataset = objslampp.datasets.MySyntheticYCB20190916InstanceSegmentationDataset(  # NOQA
+    dataset = morefusion.datasets.MySyntheticYCB20190916InstanceSegmentationDataset(  # NOQA
         'train', bg_composite=True
     )
 
@@ -22,7 +22,7 @@ class Images:
         masks = example['masks']
         labels = example['labels']
 
-        captions = objslampp.datasets.ycb_video.class_names[labels]
+        captions = morefusion.datasets.ycb_video.class_names[labels]
         viz = imgviz.instances2rgb(
             rgb, labels, masks=masks, captions=captions, font_size=15,
         )

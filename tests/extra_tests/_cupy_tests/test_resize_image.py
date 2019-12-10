@@ -6,7 +6,7 @@ import imgviz
 import numpy as np
 import scipy.misc
 
-from objslampp.extra._cupy import resize_image
+from morefusion.extra._cupy import resize_image
 
 
 class TestResizeImage(unittest.TestCase):

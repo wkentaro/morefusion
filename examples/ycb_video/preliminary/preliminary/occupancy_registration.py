@@ -4,7 +4,7 @@ import chainer.functions as F
 import numpy as np
 import trimesh.transformations as tf
 
-import objslampp
+import morefusion
 
 
 class OccupancyRegistrationLink(chainer.Link):
@@ -32,17 +32,17 @@ class OccupancyRegistrationLink(chainer.Link):
         origin,
         threshold,
     ):
-        transform = objslampp.functions.quaternion_matrix(
+        transform = morefusion.functions.quaternion_matrix(
             self.quaternion[None]
         )
-        transform = objslampp.functions.compose_transform(
+        transform = morefusion.functions.compose_transform(
             transform[:, :3, :3], self.translation[None]
         )
 
-        points_source = objslampp.functions.transform_points(
+        points_source = morefusion.functions.transform_points(
             points_source, transform
         )[0]
-        grid_source = objslampp.functions.occupancy_grid_3d(
+        grid_source = morefusion.functions.occupancy_grid_3d(
             points_source,
             pitch=pitch,
             origin=origin,
@@ -111,7 +111,7 @@ class OccupancyRegistration:
         quaternion = cuda.to_cpu(link.quaternion.array)
         translation = cuda.to_cpu(link.translation.array)
         transform = tf.quaternion_matrix(quaternion)
-        transform = objslampp.geometry.compose_transform(
+        transform = morefusion.geometry.compose_transform(
             transform[:3, :3], translation
         )
         return transform

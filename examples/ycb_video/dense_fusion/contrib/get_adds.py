@@ -4,12 +4,12 @@ import numpy as np
 import scipy
 import trimesh.transformations as tf
 
-import objslampp
+import morefusion
 
 
 def get_adds(result_file):
-    dataset = objslampp.datasets.YCBVideoDataset
-    models = objslampp.datasets.YCBVideoModels()
+    dataset = morefusion.datasets.YCBVideoDataset
+    models = morefusion.datasets.YCBVideoModels()
 
     result = scipy.io.loadmat(
         result_file, chars_as_strings=True, squeeze_me=True
@@ -23,7 +23,7 @@ def get_adds(result_file):
         try:
             pred_index = np.where(result['labels'] == cls_id)[0][0]
             pose = result['poses'][pred_index]
-            T_pred = objslampp.geometry.compose_transform(
+            T_pred = morefusion.geometry.compose_transform(
                 R=tf.quaternion_matrix(pose[:4])[:3, :3],
                 t=pose[4:],
             )
@@ -32,7 +32,7 @@ def get_adds(result_file):
                 [[0, 0, 0, 1]],
             ]
             pcd = models.get_pcd(class_id=cls_id)
-            add, add_s = objslampp.metrics.average_distance(
+            add, add_s = morefusion.metrics.average_distance(
                 [pcd],
                 transform1=[T_true],
                 transform2=[T_pred],

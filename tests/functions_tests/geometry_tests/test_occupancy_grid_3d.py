@@ -6,7 +6,7 @@ from chainer import testing
 from chainer.testing import condition
 import numpy as np
 
-from objslampp.functions.geometry.occupancy_grid_3d import occupancy_grid_3d
+from morefusion.functions.geometry.occupancy_grid_3d import occupancy_grid_3d
 
 
 class TestOccupancyGrid3D(unittest.TestCase):

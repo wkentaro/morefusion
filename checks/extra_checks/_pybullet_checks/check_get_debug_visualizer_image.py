@@ -3,13 +3,13 @@
 import imgviz
 import pybullet
 
-import objslampp
+import morefusion
 
 
-models = objslampp.datasets.YCBVideoModels()
+models = morefusion.datasets.YCBVideoModels()
 cad_file = models.get_cad_file(class_id=2)
 
-objslampp.extra.pybullet.init_world()
+morefusion.extra.pybullet.init_world()
 
 pybullet.resetDebugVisualizerCamera(
     cameraDistance=0.5,
@@ -18,16 +18,16 @@ pybullet.resetDebugVisualizerCamera(
     cameraTargetPosition=(0, 0, 0),
 )
 
-objslampp.extra.pybullet.add_model(
+morefusion.extra.pybullet.add_model(
     visual_file=cad_file,
     position=(0, 0, 0.3),
 )
 for _ in range(1000):
     pybullet.stepSimulation()
 
-rgb, depth, segm = objslampp.extra.pybullet.get_debug_visualizer_image()
+rgb, depth, segm = morefusion.extra.pybullet.get_debug_visualizer_image()
 
-objslampp.extra.pybullet.del_world()
+morefusion.extra.pybullet.del_world()
 
 viz = imgviz.tile(
     [rgb, imgviz.depth2rgb(depth), imgviz.label2rgb(segm)],

@@ -213,7 +213,7 @@ class ObjectPoseInterface:
 
 
 if __name__ == '__main__':
-    import objslampp.datasets.ycb_video as ycb_video_dataset
+    import morefusion.datasets.ycb_video as ycb_video_dataset
     object_models = ycb_video_dataset.YCBVideoModels()
 
     opi = ObjectPoseInterface(object_models)

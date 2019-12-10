@@ -13,7 +13,7 @@ import pandas
 import path
 import pybullet  # NOQA
 
-import objslampp
+import morefusion
 
 import contrib
 
@@ -129,11 +129,11 @@ def main():
             add = df[f'main/add/{class_id:04d}'].dropna().values
         except KeyError:
             continue
-        auc, x, y = objslampp.metrics.ycb_video_add_auc(add, return_xy=True)
+        auc, x, y = morefusion.metrics.ycb_video_add_auc(add, return_xy=True)
         print('AUC(ADD):', auc)
 
         add_s = df[f'main/add_s/{class_id:04d}'].dropna().values
-        auc_s, x_s, y_s = objslampp.metrics.ycb_video_add_auc(
+        auc_s, x_s, y_s = morefusion.metrics.ycb_video_add_auc(
             add_s, return_xy=True)
         print('AUC (ADD-S):', auc_s)
 

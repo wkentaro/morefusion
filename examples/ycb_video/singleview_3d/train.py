@@ -16,7 +16,7 @@ import path
 import termcolor
 import tensorboardX
 
-import objslampp
+import morefusion
 
 import contrib
 
@@ -172,13 +172,13 @@ def main():
 
     def argparse_type_class_ids(string):
         if string == 'all':
-            n_class = len(objslampp.datasets.ycb_video.class_names)
+            n_class = len(morefusion.datasets.ycb_video.class_names)
             class_ids = np.arange(n_class)[1:].tolist()
         elif string == 'asymmetric':
-            class_ids = objslampp.datasets.ycb_video.class_ids_asymmetric\
+            class_ids = morefusion.datasets.ycb_video.class_ids_asymmetric\
                 .tolist()
         elif string == 'symmetric':
-            class_ids = objslampp.datasets.ycb_video.class_ids_symmetric\
+            class_ids = morefusion.datasets.ycb_video.class_ids_symmetric\
                 .tolist()
         else:
             class_ids = [int(x) for x in string.split(',')]
@@ -252,7 +252,7 @@ def main():
         now = datetime.datetime.now(datetime.timezone.utc)
         args.timestamp = now.isoformat()
         args.hostname = socket.gethostname()
-        args.githash = objslampp.utils.githash(__file__)
+        args.githash = morefusion.utils.githash(__file__)
 
         termcolor.cprint('==> Started training', attrs={'bold': True})
 
@@ -279,16 +279,16 @@ def main():
     if not args.multi_node or comm.rank == 0:
         termcolor.cprint('==> Dataset size', attrs={'bold': True})
 
-        data_ycb_trainreal = objslampp.datasets.YCBVideoRGBDPoseEstimationDatasetReIndexed(  # NOQA
+        data_ycb_trainreal = morefusion.datasets.YCBVideoRGBDPoseEstimationDatasetReIndexed(  # NOQA
             'trainreal', class_ids=args.class_ids, augmentation=True
         )
-        data_ycb_syn = objslampp.datasets.YCBVideoRGBDPoseEstimationDatasetReIndexed(  # NOQA
+        data_ycb_syn = morefusion.datasets.YCBVideoRGBDPoseEstimationDatasetReIndexed(  # NOQA
             'syn', class_ids=args.class_ids, augmentation=True
         )
-        data_ycb_syn = objslampp.datasets.RandomSamplingDataset(
+        data_ycb_syn = morefusion.datasets.RandomSamplingDataset(
             data_ycb_syn, len(data_ycb_trainreal)
         )
-        data_my_train = objslampp.datasets.MySyntheticYCB20190916RGBDPoseEstimationDatasetReIndexed(  # NOQA
+        data_my_train = morefusion.datasets.MySyntheticYCB20190916RGBDPoseEstimationDatasetReIndexed(  # NOQA
             'train', class_ids=args.class_ids, augmentation=True
         )
         data_train = chainer.datasets.ConcatenatedDataset(
@@ -298,10 +298,10 @@ def main():
               f'ycb_syn={len(data_ycb_syn)}, my_train={len(data_my_train)}')
         del data_ycb_trainreal, data_ycb_syn, data_my_train
 
-        data_ycb_val = objslampp.datasets.YCBVideoRGBDPoseEstimationDatasetReIndexed(  # NOQA
+        data_ycb_val = morefusion.datasets.YCBVideoRGBDPoseEstimationDatasetReIndexed(  # NOQA
             'val', class_ids=args.class_ids
         )
-        data_my_val = objslampp.datasets.MySyntheticYCB20190916RGBDPoseEstimationDatasetReIndexed(  # NOQA
+        data_my_val = morefusion.datasets.MySyntheticYCB20190916RGBDPoseEstimationDatasetReIndexed(  # NOQA
             'val', class_ids=args.class_ids
         )
         data_valid = chainer.datasets.ConcatenatedDataset(
@@ -328,7 +328,7 @@ def main():
             data_valid, comm, shuffle=False, seed=args.seed
         )
 
-    args.class_names = objslampp.datasets.ycb_video.class_names.tolist()
+    args.class_names = morefusion.datasets.ycb_video.class_names.tolist()
 
     loss = args.loss
     if loss == 'add->add/add_s|1':
@@ -388,7 +388,7 @@ def main():
     )
     if not args.multi_node or comm.rank == 0:
         writer = tensorboardX.SummaryWriter(log_dir=args.out)
-        writer_with_updater = objslampp.training.SummaryWriterWithUpdater(
+        writer_with_updater = morefusion.training.SummaryWriterWithUpdater(
             writer
         )
         writer_with_updater.setup(updater)
@@ -427,7 +427,7 @@ def main():
     eval_interval = 0.25, 'epoch'
 
     # evaluate
-    evaluator = objslampp.training.extensions.PoseEstimationEvaluator(
+    evaluator = morefusion.training.extensions.PoseEstimationEvaluator(
         iterator=iter_valid,
         target=model,
         device=device,
@@ -449,7 +449,7 @@ def main():
         print(f'\n{msg}\n')
 
         trainer.extend(
-            objslampp.training.extensions.ArgsReport(args),
+            morefusion.training.extensions.ArgsReport(args),
             call_before_training=True,
         )
 
@@ -487,7 +487,7 @@ def main():
 
         # log
         trainer.extend(
-            objslampp.training.extensions.LogTensorboardReport(
+            morefusion.training.extensions.LogTensorboardReport(
                 writer=writer,
                 trigger=log_interval,
             ),

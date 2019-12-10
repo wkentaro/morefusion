@@ -8,7 +8,7 @@ import numpy as np
 import pandas
 import seaborn
 
-import objslampp
+import morefusion
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -71,8 +71,8 @@ for cls_id in np.unique(df.class_id):
                 continue
             add_or_add_s = df_cls['add_or_add_s']
             add_s = df_cls['add_s']
-            auc = objslampp.metrics.ycb_video_add_auc(add_or_add_s)
-            auc_s = objslampp.metrics.ycb_video_add_auc(add_s)
+            auc = morefusion.metrics.ycb_video_add_auc(add_or_add_s)
+            auc_s = morefusion.metrics.ycb_video_add_auc(add_s)
             assert add_or_add_s.ndim == 1
             acc = (add_or_add_s < 0.02).sum() / add_or_add_s.size
             assert add_s.ndim == 1

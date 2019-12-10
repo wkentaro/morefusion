@@ -4,10 +4,10 @@ import numpy as np
 import trimesh
 import trimesh.transformations as tf
 
-import objslampp
+import morefusion
 
 
-dataset = objslampp.datasets.YCBVideoDataset(split='train')
+dataset = morefusion.datasets.YCBVideoDataset(split='train')
 
 pitch = 0.001
 voxel_dim = 128
@@ -37,7 +37,7 @@ for index in range(0, len(dataset), 100):
     K = example['meta']['intrinsic_matrix']
     mask = example['label'] == class_id
 
-    pcd = objslampp.geometry.pointcloud_from_depth(
+    pcd = morefusion.geometry.pointcloud_from_depth(
         depth,
         fx=K[0, 0],
         fy=K[1, 1],
@@ -61,7 +61,7 @@ for index in range(0, len(dataset), 100):
     if mapping is None:
         centroid = points.mean(axis=0)
         origin = centroid - pitch * voxel_dim / 2
-        mapping = objslampp.geometry.VoxelMapping(
+        mapping = morefusion.geometry.VoxelMapping(
             origin=origin, pitch=pitch, voxel_dim=voxel_dim, nchannel=3
         )
 
@@ -76,4 +76,4 @@ boxes = mapping.as_boxes()
 scene.add_geometry(boxes)
 box = mapping.as_bbox()
 scene.add_geometry(box)
-objslampp.extra.trimesh.show_with_rotation(scene)
+morefusion.extra.trimesh.show_with_rotation(scene)

@@ -16,7 +16,7 @@ cd $ROS_ROOT_PREFIX
 catkin init
 
 if [ ! -e $ROS_ROOT_PREFIX/src/.rosinstall ]; then
-  ln -s $ROS_ROOT_PREFIX/src/objslampp/ros/rosinstall $ROS_ROOT_PREFIX/src/.rosinstall
+  ln -s $ROS_ROOT_PREFIX/src/morefusion/ros/rosinstall $ROS_ROOT_PREFIX/src/.rosinstall
   (cd $ROS_ROOT_PREFIX/src && wstool up)
 fi
 

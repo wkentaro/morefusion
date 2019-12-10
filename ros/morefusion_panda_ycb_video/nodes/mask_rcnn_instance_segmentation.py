@@ -4,7 +4,7 @@ from chainercv.links.model.fpn import MaskRCNNFPNResNet50
 import gdown
 import numpy as np
 
-import objslampp
+import morefusion
 
 import cv_bridge
 import rospy
@@ -19,7 +19,7 @@ class MaskRCNNInstanceSegmentationNode(LazyTransport):
     def __init__(self):
         super().__init__()
 
-        self._class_names = objslampp.datasets.ycb_video.class_names
+        self._class_names = morefusion.datasets.ycb_video.class_names
         self._blacklist = [5, 10, 12]  # missing in DRL
         self._one_instance_per_class = True
 

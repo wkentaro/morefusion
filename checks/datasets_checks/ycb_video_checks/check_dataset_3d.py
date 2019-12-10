@@ -6,14 +6,14 @@ import trimesh
 import trimesh.viewer
 import trimesh.transformations as tf
 
-import objslampp
+import morefusion
 
 
 def callback(scene):
     if not scene.play:
         return
 
-    dataset = objslampp.datasets.YCBVideoDataset('train')
+    dataset = morefusion.datasets.YCBVideoDataset('train')
     example = dataset[scene.index]
 
     video_id, frame_id = dataset.ids[scene.index].split('/')
@@ -32,7 +32,7 @@ def callback(scene):
         example['meta']['rotation_translation_matrix'], [[0, 0, 0, 1]]
     ]
     T_cam2world = np.linalg.inv(T_world2cam)
-    pcd = objslampp.geometry.pointcloud_from_depth(
+    pcd = morefusion.geometry.pointcloud_from_depth(
         depth, fx=K[0, 0], fy=K[1, 1], cx=K[0, 2], cy=K[1, 2]
     )
     nonnan = ~np.isnan(depth)
@@ -42,7 +42,7 @@ def callback(scene):
     # A kind of current camera view, but a bit far away to see whole scene.
     scene.camera.resolution = (rgb.shape[1], rgb.shape[0])
     scene.camera.focal = (K[0, 0], K[1, 1])
-    scene.camera.transform = objslampp.extra.trimesh.to_opengl_transform(
+    scene.camera.transform = morefusion.extra.trimesh.to_opengl_transform(
         T_cam2world @ tf.translation_matrix([0, 0, -0.5])
     )
     # scene.set_camera()

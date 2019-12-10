@@ -4,14 +4,14 @@ import numpy as np
 import trimesh
 import trimesh.transformations as tf
 
-import objslampp
+import morefusion
 
 import preliminary
 
 
 def algorithm():
-    models = objslampp.datasets.YCBVideoModels()
-    dataset = objslampp.datasets.YCBVideoDataset('train')
+    models = morefusion.datasets.YCBVideoModels()
+    dataset = morefusion.datasets.YCBVideoDataset('train')
     frame = dataset[0]
 
     class_ids = frame['meta']['cls_indexes']
@@ -20,12 +20,12 @@ def algorithm():
     rgb = frame['color']
     depth = frame['depth']
     height, width = rgb.shape[:2]
-    pcd = objslampp.geometry.pointcloud_from_depth(
+    pcd = morefusion.geometry.pointcloud_from_depth(
         depth, fx=K[0, 0], fy=K[1, 1], cx=K[0, 2], cy=K[1, 2]
     )
     instance_label = frame['label']
 
-    models = objslampp.datasets.YCBVideoModels()
+    models = morefusion.datasets.YCBVideoModels()
     class_id = class_ids[0]
     pcd_cad = models.get_pcd(class_id=class_id)
 
@@ -33,7 +33,7 @@ def algorithm():
 
     # build octrees
     pitch = 0.005
-    mapping = objslampp.contrib.MultiInstanceOctreeMapping()
+    mapping = morefusion.contrib.MultiInstanceOctreeMapping()
     for ins_id in instance_ids_all:
         mask = instance_label == ins_id
         mapping.initialize(ins_id, pitch=pitch)
@@ -43,7 +43,7 @@ def algorithm():
     mask = instance_label == target_id
 
     centroid = np.nanmean(pcd[mask], axis=0)
-    models = objslampp.datasets.YCBVideoModels()
+    models = morefusion.datasets.YCBVideoModels()
     diagonal = models.get_bbox_diagonal(class_id=target_id)
     aabb_min = centroid - diagonal / 2
     aabb_max = aabb_min + diagonal
@@ -71,13 +71,13 @@ def algorithm():
 
     # -------------------------------------------------------------------------
 
-    pcd_cad = objslampp.extra.open3d.voxel_down_sample(
+    pcd_cad = morefusion.extra.open3d.voxel_down_sample(
         pcd_cad, voxel_size=0.01
     )
-    pcd_depth_target = objslampp.extra.open3d.voxel_down_sample(
+    pcd_depth_target = morefusion.extra.open3d.voxel_down_sample(
         occupied_t, voxel_size=0.01
     )
-    pcd_depth_nontarget = objslampp.extra.open3d.voxel_down_sample(
+    pcd_depth_nontarget = morefusion.extra.open3d.voxel_down_sample(
         np.vstack((occupied_u, empty)), voxel_size=0.01
     )
 
@@ -95,7 +95,7 @@ def algorithm():
         camera = trimesh.scene.Camera(
             resolution=(640, 480),
             fov=(60, 45),
-            transform=objslampp.extra.trimesh.to_opengl_transform(),
+            transform=morefusion.extra.trimesh.to_opengl_transform(),
         )
 
         scenes = {}
@@ -120,4 +120,4 @@ def algorithm():
 
 
 if __name__ == '__main__':
-    objslampp.extra.trimesh.display_scenes(algorithm())
+    morefusion.extra.trimesh.display_scenes(algorithm())

@@ -5,14 +5,14 @@ import numpy as np
 import trimesh
 import trimesh.transformations as tf
 
-import objslampp
+import morefusion
 
 import preliminary
 
 
 class MultiInstanceOccupancyRegistration:
 
-    _models = objslampp.datasets.YCBVideoModels()
+    _models = morefusion.datasets.YCBVideoModels()
 
     def __init__(
         self,
@@ -38,7 +38,7 @@ class MultiInstanceOccupancyRegistration:
         self._rgb = rgb
         self._pcd = pcd
         self._instance_label = instance_label
-        self._mapping = objslampp.contrib.MultiInstanceOctreeMapping()
+        self._mapping = morefusion.contrib.MultiInstanceOctreeMapping()
 
         pitch = 0.01
         nonnan = ~np.isnan(pcd).any(axis=2)
@@ -109,7 +109,7 @@ class MultiInstanceOccupancyRegistration:
         # points_source = models.get_pcd(class_id=class_id).astype(np.float32)
         points_source = models.get_solid_voxel(
             class_id=class_id).points.astype(np.float32)
-        points_source = objslampp.extra.open3d.voxel_down_sample(
+        points_source = morefusion.extra.open3d.voxel_down_sample(
             points_source, voxel_size=pitch
         )
         points_source = points_source.astype(np.float32)
@@ -252,7 +252,7 @@ class MultiInstanceOccupancyRegistration:
         camera = trimesh.scene.Camera(
             resolution=(640, 480),
             fov=(60 * 0.7, 45 * 0.7),
-            transform=objslampp.extra.trimesh.to_opengl_transform(),
+            transform=morefusion.extra.trimesh.to_opengl_transform(),
         )
         for scene in scenes.values():
             scene.camera = camera
@@ -299,7 +299,7 @@ def refinement(
             )
             registration.update_octree(ins_id)
 
-    objslampp.extra.trimesh.display_scenes(
+    morefusion.extra.trimesh.display_scenes(
         scenes_ggroup(),
         height=int(480 * 0.6),
         width=int(640 * 0.6),
@@ -310,7 +310,7 @@ def refinement(
 
 
 def main():
-    dataset = objslampp.datasets.YCBVideoDataset('train')
+    dataset = morefusion.datasets.YCBVideoDataset('train')
     frame = dataset.get_example(1000)
 
     # scene-level data
@@ -319,7 +319,7 @@ def main():
     Ts_cad2cam_true[:, :3, :4] = frame['meta']['poses'].transpose(2, 0, 1)
     K = frame['meta']['intrinsic_matrix']
     rgb = frame['color']
-    pcd = objslampp.geometry.pointcloud_from_depth(
+    pcd = morefusion.geometry.pointcloud_from_depth(
         frame['depth'], fx=K[0, 0], fy=K[1, 1], cx=K[0, 2], cy=K[1, 2]
     )
     instance_label = frame['label']

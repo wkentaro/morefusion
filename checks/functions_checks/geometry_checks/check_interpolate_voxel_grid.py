@@ -5,17 +5,17 @@ import numpy as np
 import trimesh
 import trimesh.viewer
 
-import objslampp
+import morefusion
 
 
-dataset = objslampp.datasets.YCBVideoRGBDPoseEstimationDataset('train')
+dataset = morefusion.datasets.YCBVideoRGBDPoseEstimationDataset('train')
 example = dataset[0][0]
 
 pitch = example['pitch']
 origin = example['origin']
 dim = 32
 
-mapping = objslampp.geometry.VoxelMapping(
+mapping = morefusion.geometry.VoxelMapping(
     origin=origin,
     pitch=pitch,
     voxel_dim=dim,
@@ -50,13 +50,13 @@ scenes['integer_indexing'] = trimesh.Scene(
 
 voxelized = mapping.values.astype(np.float32).transpose(3, 0, 1, 2)
 if 0:
-    values_extracted = objslampp.functions.interpolate_voxel_grid(
+    values_extracted = morefusion.functions.interpolate_voxel_grid(
         voxelized[None] / 255.,
         indices_extracted.astype(np.float32),
         np.zeros((indices_extracted.shape[0],), dtype=np.int32),
     )
 else:
-    values_extracted = objslampp.functions.interpolate_voxel_grid(
+    values_extracted = morefusion.functions.interpolate_voxel_grid(
         cuda.to_gpu(voxelized[None] / 255.),
         cuda.to_gpu(indices_extracted.astype(np.float32)),
         cuda.cupy.zeros((indices_extracted.shape[0],), dtype=np.int32),
@@ -67,7 +67,7 @@ scenes['float_indexing'] = trimesh.Scene(
     geom, camera=scenes['original'].camera
 )
 
-objslampp.extra.trimesh.display_scenes(
+morefusion.extra.trimesh.display_scenes(
     scenes,
     tile=(1, 3),
     height=int(480 * 0.8),

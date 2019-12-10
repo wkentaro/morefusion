@@ -21,7 +21,7 @@ class YCBVideoPoseCNNResultsRGBDPoseEstimationDatasetReIndexed(DatasetBase):
             raise IOError(
                 f'{self.root_dir} does not exist. '
                 'Please run following: python -m '
-                'objslampp.datasets.rgbd_pose_estimation.'
+                'morefusion.datasets.rgbd_pose_estimation.'
                 'ycb_video_posecnn_results.reindex'
             )
 

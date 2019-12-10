@@ -2,13 +2,13 @@
 
 import imgviz
 
-import objslampp
+import morefusion
 
 
 class Images:
 
     def __init__(self):
-        self._dataset = objslampp.datasets.YCBVideoPoseCNNResultsDataset()
+        self._dataset = morefusion.datasets.YCBVideoPoseCNNResultsDataset()
 
     def __len__(self):
         return len(self._dataset)
@@ -20,7 +20,7 @@ class Images:
         depth_viz = imgviz.depth2rgb(example['depth'])
         label_viz = imgviz.label2rgb(
             example['result']['labels'],
-            label_names=objslampp.datasets.ycb_video.class_names,
+            label_names=morefusion.datasets.ycb_video.class_names,
         )
 
         viz = imgviz.tile(

@@ -13,7 +13,7 @@ setup() {
   # reduce topic connections to avoid reflex error in Panda
   # rossetip
 
-  CONDA_PREFIX=$HERE/src/objslampp/.anaconda3
+  CONDA_PREFIX=$HERE/src/morefusion/.anaconda3
   source $CONDA_PREFIX/bin/activate
 
   export WSTOOL_DEFAULT_WORKSPACE=$HERE/src

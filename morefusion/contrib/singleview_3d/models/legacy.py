@@ -4,12 +4,12 @@ import chainer.functions as F
 import chainer.links as L
 import numpy as np
 
-import objslampp
+import morefusion
 
 
 class Model(chainer.Chain):
 
-    _models = objslampp.datasets.YCBVideoModels()
+    _models = morefusion.datasets.YCBVideoModels()
     _voxel_dim = 32
     _lambda_confidence = 0.015
     _n_point = 1000
@@ -28,12 +28,12 @@ class Model(chainer.Chain):
         with self.init_scope():
             # extractor
             if pretrained_resnet18:
-                self.resnet_extractor = objslampp.models.ResNet18Extractor()
+                self.resnet_extractor = morefusion.models.ResNet18Extractor()
             else:
                 self.resnet_extractor = \
-                    objslampp.models.dense_fusion.ResNet18()
+                    morefusion.models.dense_fusion.ResNet18()
             self.pspnet_extractor = \
-                objslampp.models.dense_fusion.PSPNetExtractor()
+                morefusion.models.dense_fusion.PSPNetExtractor()
             self.voxel_extractor = VoxelFeatureExtractor(
                 self._n_point, with_count
             )
@@ -144,9 +144,9 @@ class Model(chainer.Chain):
                     dimension=self._voxel_dim, class_id=int(class_id[i]),
                 )
             if origin[i] is None:
-                center_i = objslampp.extra.cupy.median(points[i], axis=0)
+                center_i = morefusion.extra.cupy.median(points[i], axis=0)
                 origin[i] = center_i - pitch[i] * (self._voxel_dim / 2. - 0.5)
-            voxelized_i, count_i = objslampp.functions.average_voxelization_3d(
+            voxelized_i, count_i = morefusion.functions.average_voxelization_3d(
                 values=values[i],
                 points=points[i],
                 origin=origin[i],
@@ -275,10 +275,10 @@ class Model(chainer.Chain):
 
         B = class_id.shape[0]
 
-        T_cad2cam_true = objslampp.functions.transformation_matrix(
+        T_cad2cam_true = morefusion.functions.transformation_matrix(
             quaternion_true, translation_true
         )
-        T_cad2cam_pred = objslampp.functions.transformation_matrix(
+        T_cad2cam_pred = morefusion.functions.transformation_matrix(
             quaternion_pred, translation_pred
         )
         T_cad2cam_true = cuda.to_cpu(T_cad2cam_true.array)
@@ -289,7 +289,7 @@ class Model(chainer.Chain):
             class_id_i = int(class_id[i])
             cad_pcd = self._models.get_pcd(class_id=class_id_i)
             for translate in [True, False]:
-                add, add_s = objslampp.metrics.average_distance(
+                add, add_s = morefusion.metrics.average_distance(
                     points=[cad_pcd],
                     transform1=[T_cad2cam_true[i]],
                     transform2=[T_cad2cam_pred[i]],
@@ -326,21 +326,21 @@ class Model(chainer.Chain):
         for i in range(B):
             n_point = quaternion_pred[i].shape[0]
 
-            T_cad2cam_pred = objslampp.functions.transformation_matrix(
+            T_cad2cam_pred = morefusion.functions.transformation_matrix(
                 quaternion_pred[i], translation_pred[i]
             )  # (M, 4, 4)
 
-            T_cad2cam_true = objslampp.functions.transformation_matrix(
+            T_cad2cam_true = morefusion.functions.transformation_matrix(
                 quaternion_true[i], translation_true[i]
             )  # (4, 4)
             T_cad2cam_true = F.repeat(T_cad2cam_true[None], n_point, axis=0)
 
             class_id_i = int(class_id[i])
             is_symmetric = class_id_i in \
-                objslampp.datasets.ycb_video.class_ids_symmetric
+                morefusion.datasets.ycb_video.class_ids_symmetric
             cad_pcd = self._models.get_pcd(class_id=class_id_i)
             cad_pcd = xp.asarray(cad_pcd, dtype=np.float32)
-            add = objslampp.functions.average_distance_l1(
+            add = morefusion.functions.average_distance_l1(
                 cad_pcd,
                 T_cad2cam_true,
                 T_cad2cam_pred,
@@ -442,13 +442,13 @@ class VoxelFeatureExtractor(chainer.Chain):
                 h_conv2[i, :, I // 2, J // 2, K // 2],
                 h_conv3[i, :, I // 4, J // 4, K // 4],
                 h_conv4[i, :, I // 8, J // 8, K // 8],
-                # objslampp.functions.interpolate_voxel_grid(
+                # morefusion.functions.interpolate_voxel_grid(
                 #     h_conv2[i], indices / 2.
                 # ),
-                # objslampp.functions.interpolate_voxel_grid(
+                # morefusion.functions.interpolate_voxel_grid(
                 #     h_conv3[i], indices / 4.
                 # ),
-                # objslampp.functions.interpolate_voxel_grid(
+                # morefusion.functions.interpolate_voxel_grid(
                 #     h_conv4[i], indices / 8.
                 # ),
                 F.repeat(h_conv5[i, :, 0, 0, 0][None], self._n_point, axis=0),

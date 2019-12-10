@@ -3,7 +3,7 @@
 import imgviz
 import numpy as np
 
-import objslampp
+import morefusion
 
 import cv_bridge
 import message_filters
@@ -52,10 +52,10 @@ class DepthToNormalNode(topic_tools.LazyTransport):
 
         if self._pub_normal.get_num_connections() > 0:
             K = np.array(cam_msg.K).reshape(3, 3)
-            points = objslampp.geometry.pointcloud_from_depth(
+            points = morefusion.geometry.pointcloud_from_depth(
                 depth, fx=K[0, 0], fy=K[1, 1], cx=K[0, 2], cy=K[1, 2]
             )
-            normal = objslampp.geometry.estimate_pointcloud_normals(points)
+            normal = morefusion.geometry.estimate_pointcloud_normals(points)
             normal = np.uint8((normal + 1) / 2 * 255)
             out_msg = bridge.cv2_to_imgmsg(normal, 'rgb8')
             out_msg.header = cam_msg.header

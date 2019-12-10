@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import objslampp
+import morefusion
 
 import imgviz
 
@@ -8,8 +8,8 @@ import imgviz
 class Images:
 
     def __init__(self):
-        self._dataset = objslampp.datasets.MyRealRGBDPoseEstimationDataset(  # NOQA
-            root_dir='/home/wkentaro/data/datasets/wkentaro/objslampp/ycb_video/real_data/20190614_18'  # NOQA
+        self._dataset = morefusion.datasets.MyRealRGBDPoseEstimationDataset(  # NOQA
+            root_dir='/home/wkentaro/data/datasets/wkentaro/morefusion/ycb_video/real_data/20190614_18'  # NOQA
         )
 
     def __len__(self):

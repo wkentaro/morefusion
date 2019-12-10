@@ -4,7 +4,7 @@ import sys
 
 import numpy as np
 
-import objslampp
+import morefusion
 
 from common import Inference
 
@@ -12,7 +12,7 @@ sys.path.insert(0, '../preliminary')  # NOQA
 from align_pointclouds import refinement
 
 
-models = objslampp.datasets.YCBVideoModels()
+models = morefusion.datasets.YCBVideoModels()
 inference = Inference(dataset='my_real', gpu=0)
 frame, Ts_cad2cam_true, Ts_cad2cam_pred = inference(index=0)
 

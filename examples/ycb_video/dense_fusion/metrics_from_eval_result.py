@@ -10,7 +10,7 @@ import numpy as np
 import pandas
 import path
 
-import objslampp
+import morefusion
 
 import contrib
 
@@ -24,7 +24,7 @@ def main():
     )
     parser.add_argument(
         '--result',
-        default='/home/wkentaro/data/datasets/wkentaro/objslampp/ycb_video/dense_fusion/eval_result/ycb/Densefusion_wo_refine_result',  # NOQA
+        default='/home/wkentaro/data/datasets/wkentaro/morefusion/ycb_video/dense_fusion/eval_result/ycb/Densefusion_wo_refine_result',  # NOQA
         help='result dir',
     )
     parser.add_argument(
@@ -55,13 +55,13 @@ def main():
 
     data = []
     for cls_id, adds in sorted(adds_all.items()):
-        class_name = objslampp.datasets.ycb_video.class_names[cls_id]
+        class_name = morefusion.datasets.ycb_video.class_names[cls_id]
 
         adds = np.array(adds)
         add = adds[:, 0]
         add_s = adds[:, 1]
 
-        if cls_id in objslampp.datasets.ycb_video.class_ids_symmetric:
+        if cls_id in morefusion.datasets.ycb_video.class_ids_symmetric:
             add_or_add_s = add_s
         else:
             add_or_add_s = add
@@ -69,9 +69,9 @@ def main():
         assert add_or_add_s.ndim == 1
         accuracy = (add_or_add_s < 0.02).sum() / add_or_add_s.size
 
-        auc, x, y = objslampp.metrics.ycb_video_add_auc(
+        auc, x, y = morefusion.metrics.ycb_video_add_auc(
             add_or_add_s, max_value=0.1, return_xy=True)
-        auc_s, x_s, y_s = objslampp.metrics.ycb_video_add_auc(
+        auc_s, x_s, y_s = morefusion.metrics.ycb_video_add_auc(
             add_s, max_value=0.1, return_xy=True)
 
         fig = plt.figure(figsize=(20, 5))

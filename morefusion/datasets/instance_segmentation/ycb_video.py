@@ -35,7 +35,7 @@ class YCBVideoSyntheticInstanceSegmentationDataset(YCBVideoSyntheticDataset):
     Instance segmentation dataset of YCBVideoSyntheticDataset.
 
     .. seealso::
-        See :class:`objslampp.datasets.YCBVideoSyntheticDataset`.
+        See :class:`morefusion.datasets.YCBVideoSyntheticDataset`.
 
     """
 
@@ -76,7 +76,7 @@ class YCBVideoInstanceSegmentationDataset(YCBVideoDataset):
         Root directory of this dataset.
 
     .. seealso::
-        See :class:`objslampp.datasets.YCBVideoDataset`.
+        See :class:`morefusion.datasets.YCBVideoDataset`.
 
     """
 

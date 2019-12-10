@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
-import objslampp
+import morefusion
 
 
 def main():
-    class_names = objslampp.datasets.ycb_video.class_names
+    class_names = morefusion.datasets.ycb_video.class_names
     for class_id, class_name in enumerate(class_names):
         print('{:>2d}: {:s}'.format(class_id, class_name))
 

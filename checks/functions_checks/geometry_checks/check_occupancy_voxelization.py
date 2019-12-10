@@ -6,13 +6,13 @@ import trimesh
 
 import imgviz
 
-import objslampp
+import morefusion
 
 
 scene = trimesh.Scene()
 scene.add_geometry(trimesh.creation.axis(0.005))
 
-models = objslampp.datasets.YCBVideoModels()
+models = morefusion.datasets.YCBVideoModels()
 
 scenes = {}
 
@@ -25,7 +25,7 @@ for is_solid in ['nonsolid', 'solid']:
         assert is_solid == 'solid'
         points = models.get_solid_voxel(class_id=2).points
 
-    points = objslampp.extra.open3d.voxel_down_sample(
+    points = morefusion.extra.open3d.voxel_down_sample(
         points, voxel_size=0.01
     )
     points = points.astype(np.float32)
@@ -39,7 +39,7 @@ for is_solid in ['nonsolid', 'solid']:
     sdf = models.get_cad(class_id=2).nearest.signed_distance(points)
     print(f'[{name}] pitch: {pitch}')
     print(f'[{name}] dim: {dim}')
-    grid = objslampp.functions.pseudo_occupancy_voxelization(
+    grid = morefusion.functions.pseudo_occupancy_voxelization(
         points=cuda.to_gpu(points),
         sdf=cuda.to_gpu(sdf),
         pitch=pitch,
@@ -68,4 +68,4 @@ for is_solid in ['nonsolid', 'solid']:
 
     scenes[name] = scene
 
-objslampp.extra.trimesh.display_scenes(scenes)
+morefusion.extra.trimesh.display_scenes(scenes)

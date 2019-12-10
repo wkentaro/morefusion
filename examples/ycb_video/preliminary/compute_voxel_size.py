@@ -7,12 +7,12 @@ import matplotlib.pyplot as plt
 import pandas
 import pybullet  # NOQA
 
-import objslampp
+import morefusion
 
 
 def get_data():
-    class_names = objslampp.datasets.ycb_video.class_names
-    models = objslampp.datasets.YCBVideoModels()
+    class_names = morefusion.datasets.ycb_video.class_names
+    models = morefusion.datasets.YCBVideoModels()
 
     cad_files = [models.get_cad(class_name=name) for name in class_names[1:]]
 
@@ -20,7 +20,7 @@ def get_data():
         top_images = []
         for cad_file in cad_files:
             top_images.append(
-                p.submit(objslampp.extra.pybullet.get_top_image, cad_file)
+                p.submit(morefusion.extra.pybullet.get_top_image, cad_file)
             )
 
         bbox_diagonals = []

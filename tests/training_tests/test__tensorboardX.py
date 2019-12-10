@@ -4,7 +4,7 @@ import unittest
 
 import tensorboardX
 
-from objslampp.training._tensorboardX import SummaryWriterWithUpdater
+from morefusion.training._tensorboardX import SummaryWriterWithUpdater
 
 
 class TestSummaryWriterWithUpdater(unittest.TestCase):

@@ -4,14 +4,14 @@ import imgviz
 import numpy as np
 import pybullet
 
-import objslampp
+import morefusion
 
 
 def main():
-    models = objslampp.datasets.YCBVideoModels()
+    models = morefusion.datasets.YCBVideoModels()
 
     random_state = np.random.RandomState(0)
-    generator = objslampp.simulation.BinTypeSceneGeneration(
+    generator = morefusion.simulation.BinTypeSceneGeneration(
         extents=(0.3, 0.5, 0.3),
         models=models,
         n_object=5,

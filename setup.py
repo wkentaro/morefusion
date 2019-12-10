@@ -12,13 +12,13 @@ def git_version():
 version = git_version()
 
 setup(
-    name='objslampp',
+    name='morefusion',
     version=version,
     packages=find_packages(),
     install_requires=[],  # see requirements.txt
     author='Kentaro Wada',
     author_email='www.kentaro.wada@gmail.com',
     license='MIT',
-    url='https://github.com/wkentaro/objslampp',
-    description='Volumetric fusion and CAD alignment for object-level SLAM',
+    url='https://github.com/wkentaro/morefusion',
+    description='Multi-object reasoning for 6d pose estimation from volumetric fusion',  # NOQA
 )

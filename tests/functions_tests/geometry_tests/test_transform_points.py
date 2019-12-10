@@ -5,7 +5,7 @@ from chainer import testing
 import numpy as np
 import trimesh
 
-from objslampp.functions.geometry.transform_points import transform_points
+from morefusion.functions.geometry.transform_points import transform_points
 
 
 class TestTransformPoints(unittest.TestCase):

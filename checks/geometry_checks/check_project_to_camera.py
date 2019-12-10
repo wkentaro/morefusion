@@ -4,10 +4,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import trimesh
 
-import objslampp
+import morefusion
 
 
-dataset = objslampp.datasets.YCBVideoDataset('train', sampling=60)
+dataset = morefusion.datasets.YCBVideoDataset('train', sampling=60)
 view1 = dataset[0]
 view2 = dataset[1]
 
@@ -24,7 +24,7 @@ depth2 = view2['depth']
 # plt.show()
 
 # project pcd2 (view2/cam2 frame -> world frame)
-pcd2_cam2 = objslampp.geometry.pointcloud_from_depth(
+pcd2_cam2 = morefusion.geometry.pointcloud_from_depth(
     depth2,
     fx=K2[0, 0],
     fy=K2[1, 1],
@@ -44,7 +44,7 @@ T1_world_to_cam = np.r_[T1_world_to_cam, [[0, 0, 0, 1]]]
 pcd2_cam1 = trimesh.transform_points(pcd2_world, T1_world_to_cam)
 
 # project to camera (view1/cam1 frame)
-r, c = objslampp.geometry.project_to_camera(
+r, c = morefusion.geometry.project_to_camera(
     pcd2_cam1,
     fx=K1[0, 0],
     fy=K1[1, 1],

@@ -4,13 +4,13 @@ import imgviz
 import numpy as np
 import termcolor
 
-import objslampp
+import morefusion
 
 
 class MainApp(object):
 
     def __init__(self):
-        self._dataset = objslampp.datasets.YCBVideoDataset(split='train')
+        self._dataset = morefusion.datasets.YCBVideoDataset(split='train')
         self._mainloop()
 
     def _mainloop(self):
@@ -47,7 +47,7 @@ class MainApp(object):
         labels = meta['cls_indexes'].astype(np.int32)
         # NOTE: cls_mask is the same as ins_mask in YCB_Video_Dataset
         masks = np.asarray([label == cls_id for cls_id in labels])
-        bboxes = objslampp.geometry.masks_to_bboxes(masks)
+        bboxes = morefusion.geometry.masks_to_bboxes(masks)
 
         keep = ~(bboxes == 0).all(axis=1)
         labels = labels[keep]

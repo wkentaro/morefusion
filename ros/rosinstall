@@ -23,8 +23,8 @@
     uri: https://github.com/jsk-ros-pkg/jsk_recognition.git
     version: 38ff34a1
 - git:
-    local-name: objslampp
-    uri: https://github.com/wkentaro/objslampp.git
+    local-name: morefusion
+    uri: https://github.com/wkentaro/morefusion.git
     version: master
 - git:
     local-name: realsense-ros
@@ -45,4 +45,4 @@
 - git:
     local-name: ros/ros_comm
     uri: https://github.com/wkentaro/ros_comm.git
-    version: objslampp
+    version: morefusion

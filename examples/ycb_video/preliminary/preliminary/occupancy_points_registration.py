@@ -4,7 +4,7 @@ import chainer.functions as F
 import numpy as np
 import trimesh.transformations as tf
 
-import objslampp
+import morefusion
 
 
 class OccupancyPointsRegistrationLink(chainer.Link):
@@ -31,8 +31,8 @@ class OccupancyPointsRegistrationLink(chainer.Link):
     @property
     def T(self):
         # source -> target
-        R = objslampp.functions.quaternion_matrix(self.quaternion[None])[0]
-        T = objslampp.functions.translation_matrix(self.translation[None])[0]
+        R = morefusion.functions.quaternion_matrix(self.quaternion[None])[0]
+        T = morefusion.functions.translation_matrix(self.translation[None])[0]
         return R @ T
 
     def forward(
@@ -54,7 +54,7 @@ class OccupancyPointsRegistrationLink(chainer.Link):
                 source = pcd_depth_nontarget
                 target = pcd_cad
 
-            source = objslampp.functions.transform_points(
+            source = morefusion.functions.transform_points(
                 source, self.T[None])[0]
 
             dists = F.sum(
@@ -98,7 +98,7 @@ class OccupancyPointsRegistration:
     ):
         translation_init = - tf.translation_from_matrix(transform_init)
         translation_init = translation_init.astype(np.float32)
-        rotation_matrix = objslampp.geometry.compose_transform(
+        rotation_matrix = morefusion.geometry.compose_transform(
             R=transform_init[:3, :3].T)
         quaternion_init = tf.quaternion_from_matrix(rotation_matrix)
         quaternion_init = quaternion_init.astype(np.float32)

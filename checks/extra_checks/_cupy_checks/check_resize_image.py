@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy.misc
 
-from objslampp.extra._cupy import resize_image
+from morefusion.extra._cupy import resize_image
 
 
 def main(gpu=-1):

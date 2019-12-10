@@ -270,9 +270,9 @@ def interpolate_voxel_grid(voxelized, points, batch_indices):
 def main():
     import scipy.interpolate
 
-    import objslampp
+    import morefusion
 
-    dataset = objslampp.datasets.YCBVideoRGBDPoseEstimationDataset('train')
+    dataset = morefusion.datasets.YCBVideoRGBDPoseEstimationDataset('train')
     example = dataset[0][0]
 
     center = np.nanmean(example['pcd'], axis=(0, 1))
@@ -280,7 +280,7 @@ def main():
     dim = 32
     origin = center - (dim / 2.0 - 0.5) * pitch
 
-    mapping = objslampp.geometry.VoxelMapping(origin, pitch, 32, 3)
+    mapping = morefusion.geometry.VoxelMapping(origin, pitch, 32, 3)
     mask = ~np.isnan(example['pcd']).any(axis=2)
     mapping.add(example['pcd'][mask], example['rgb'][mask])
 

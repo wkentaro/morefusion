@@ -8,7 +8,7 @@ from chainer.backends import cuda
 import numpy as np
 import trimesh
 
-import objslampp
+import morefusion
 
 
 def get_scenes():
@@ -22,7 +22,7 @@ def get_scenes():
     for instance_id in range(3):
         instances.append(np.load(f'{args.data_dir}/{instance_id:08d}.npz'))
 
-    models = objslampp.datasets.YCBVideoModels()
+    models = morefusion.datasets.YCBVideoModels()
 
     transform = []
     points = []
@@ -47,7 +47,7 @@ def get_scenes():
     grid_target = cuda.cupy.asarray(grid_target)
     grid_nontarget_empty = cuda.cupy.asarray(grid_nontarget_empty)
 
-    link = objslampp.contrib.CollisionBasedPoseRefinementLink(transform)
+    link = morefusion.contrib.CollisionBasedPoseRefinementLink(transform)
     link.to_gpu()
     optimizer = chainer.optimizers.Adam(alpha=0.01)
     optimizer.setup(link)
@@ -55,7 +55,7 @@ def get_scenes():
 
     t_start = time.time()
     for i in range(200):
-        transform = objslampp.functions.transformation_matrix(
+        transform = morefusion.functions.transformation_matrix(
             link.quaternion, link.translation
         )
         transform = cuda.to_cpu(transform.array)
@@ -71,7 +71,7 @@ def get_scenes():
                 transform=transform[j],
             )
         scenes['scene'].camera.transform = \
-            objslampp.extra.trimesh.to_opengl_transform()
+            morefusion.extra.trimesh.to_opengl_transform()
         yield scenes
 
         loss = link(
@@ -89,7 +89,7 @@ def get_scenes():
 
 def main():
     scenes = get_scenes()
-    objslampp.extra.trimesh.display_scenes(scenes)
+    morefusion.extra.trimesh.display_scenes(scenes)
 
 
 if __name__ == '__main__':

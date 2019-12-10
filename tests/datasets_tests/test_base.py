@@ -2,7 +2,7 @@ import unittest
 
 import path
 
-from objslampp.datasets.base import DatasetBase
+from morefusion.datasets.base import DatasetBase
 
 
 class TestDatasetBase(unittest.TestCase):

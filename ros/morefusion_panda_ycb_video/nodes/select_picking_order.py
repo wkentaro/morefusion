@@ -12,7 +12,7 @@ import skimage.segmentation
 import trimesh
 import trimesh.transformations as ttf
 
-import objslampp
+import morefusion
 
 import cv_bridge
 import tf
@@ -70,7 +70,7 @@ def get_mask_center(shape, edge_ratio=0.15):
 
 class SelectPickingOrder(topic_tools.LazyTransport):
 
-    _models = objslampp.datasets.YCBVideoModels()
+    _models = morefusion.datasets.YCBVideoModels()
 
     def __init__(self):
         self._poses_msg = None
@@ -124,7 +124,7 @@ class SelectPickingOrder(topic_tools.LazyTransport):
         )
         translation = np.asarray(translation)
         quaternion = np.asarray(quaternion)[[3, 0, 1, 2]]
-        transform = objslampp.functions.transformation_matrix(
+        transform = morefusion.functions.transformation_matrix(
             quaternion, translation
         ).array
         return transform
@@ -153,11 +153,11 @@ class SelectPickingOrder(topic_tools.LazyTransport):
                 if pose.instance_id != instance_id:
                     continue
 
-            quaternion, translation = objslampp.ros.from_ros_pose(
+            quaternion, translation = morefusion.ros.from_ros_pose(
                 pose.pose
             )
             if T_pose2cam is not None:
-                T_cad2pose = objslampp.functions.transformation_matrix(
+                T_cad2pose = morefusion.functions.transformation_matrix(
                     quaternion, translation
                 ).array
                 T_cad2cam = T_pose2cam @ T_cad2pose
@@ -167,7 +167,7 @@ class SelectPickingOrder(topic_tools.LazyTransport):
 
             class_id = pose.class_id
             cad_file = self._models.get_cad_file(class_id=class_id)
-            uniq_id = objslampp.extra.pybullet.add_model(
+            uniq_id = morefusion.extra.pybullet.add_model(
                 visual_file=cad_file,
                 position=translation,
                 orientation=quaternion,
@@ -180,7 +180,7 @@ class SelectPickingOrder(topic_tools.LazyTransport):
             resolution=(cam_msg.width, cam_msg.height),
             focal=(K[0, 0], K[1, 1]),
         )
-        rgb, depth, uniq = objslampp.extra.pybullet.render_camera(
+        rgb, depth, uniq = morefusion.extra.pybullet.render_camera(
             np.eye(4),
             fovy=camera.fov[1],
             height=camera.resolution[1],
@@ -225,7 +225,7 @@ class SelectPickingOrder(topic_tools.LazyTransport):
 
         target_node_id = None
         graph = networkx.DiGraph()
-        class_names = objslampp.datasets.ycb_video.class_names
+        class_names = morefusion.datasets.ycb_video.class_names
         # mask_center = get_mask_center((cam_msg.height, cam_msg.width))
         K = np.array(cam_msg.K).reshape(3, 3)
         for ins_id_i in np.unique(ins_rend):
@@ -243,7 +243,7 @@ class SelectPickingOrder(topic_tools.LazyTransport):
             mask_visible = ins_rend == ins_id_i
             mask_occluded = mask_whole & ~mask_visible
 
-            pcd = objslampp.geometry.pointcloud_from_depth(
+            pcd = morefusion.geometry.pointcloud_from_depth(
                 depth, fx=K[0, 0], fy=K[1, 1], cx=K[0, 2], cy=K[1, 2]
             )
             quaternion, translation = get_grasp_pose(rgb, pcd, mask_whole)
@@ -323,7 +323,7 @@ def get_grasp_pose(rgb, pcd, mask):
     label = labels[index]
 
     normals = np.full_like(pcd, np.nan)
-    normals[y1:y2, x1:x2] = objslampp.geometry.estimate_pointcloud_normals(
+    normals[y1:y2, x1:x2] = morefusion.geometry.estimate_pointcloud_normals(
         pcd[y1:y2, x1:x2]
     )
 

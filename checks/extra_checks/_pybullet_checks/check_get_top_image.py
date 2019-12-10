@@ -4,17 +4,17 @@ import concurrent.futures
 
 import imgviz
 
-import objslampp
+import morefusion
 
 
 def _get_top_image(class_id):
-    models = objslampp.datasets.YCBVideoModels()
+    models = morefusion.datasets.YCBVideoModels()
     cad_file = models.get_cad_file(class_id=class_id)
-    return objslampp.extra.pybullet.get_top_image(cad_file)
+    return morefusion.extra.pybullet.get_top_image(cad_file)
 
 
 def main():
-    models = objslampp.datasets.YCBVideoModels()
+    models = morefusion.datasets.YCBVideoModels()
 
     with concurrent.futures.ProcessPoolExecutor() as executor:
         futures = []

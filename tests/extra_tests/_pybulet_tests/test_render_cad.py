@@ -1,8 +1,8 @@
 import numpy as np
 
-from objslampp import geometry
-from objslampp.datasets import YCBVideoModels
-from objslampp.extra import _pybullet as pybullet_module
+from morefusion import geometry
+from morefusion.datasets import YCBVideoModels
+from morefusion.extra import _pybullet as pybullet_module
 
 
 def test_render_cad():

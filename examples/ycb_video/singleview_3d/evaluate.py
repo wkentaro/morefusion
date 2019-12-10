@@ -11,11 +11,11 @@ import path
 import pybullet  # NOQA
 import tqdm
 
-import objslampp
-from objslampp.contrib import singleview_3d as contrib
+import morefusion
+from morefusion.contrib import singleview_3d as contrib
 
 
-models = objslampp.datasets.YCBVideoModels()
+models = morefusion.datasets.YCBVideoModels()
 
 
 def main():
@@ -41,7 +41,7 @@ def main():
     )
     model.to_gpu(0)
 
-    dataset = objslampp.datasets.MySyntheticYCB20190916RGBDPoseEstimationDataset(  # NOQA
+    dataset = morefusion.datasets.MySyntheticYCB20190916RGBDPoseEstimationDataset(  # NOQA
         split='val',
         class_ids=args_dict['class_ids'],
     )
@@ -79,12 +79,12 @@ def main():
         quaternion = quaternion[model.xp.arange(len(examples)), indices]
         translation = translation[model.xp.arange(len(examples)), indices]
 
-        transform = objslampp.functions.transformation_matrix(
+        transform = morefusion.functions.transformation_matrix(
             chainer.cuda.to_cpu(quaternion.array),
             chainer.cuda.to_cpu(translation.array),
         ).array
 
-        transform_true = objslampp.functions.transformation_matrix(
+        transform_true = morefusion.functions.transformation_matrix(
             batch['quaternion_true'], batch['translation_true']
         ).array
         transform_true = chainer.cuda.to_cpu(transform_true)
@@ -102,19 +102,19 @@ def main():
                 cad.visual = cad.visual.to_color()
             scene.add_geometry(cad, transform=transform[i])
             scene_true.add_geometry(cad, transform=transform_true[i])
-        scene.camera.transform = objslampp.extra.trimesh.to_opengl_transform()
+        scene.camera.transform = morefusion.extra.trimesh.to_opengl_transform()
         scenes = {'pose': scene, 'pose_true': scene_true, 'rgb': frame['rgb']}
-        objslampp.extra.trimesh.display_scenes(scenes, tile=(1, 3))
+        morefusion.extra.trimesh.display_scenes(scenes, tile=(1, 3))
         '''
 
         # add result w/ occupancy
         for i in range(len(examples)):
             points = models.get_pcd(class_id=examples[i]['class_id'])
-            add, add_s = objslampp.metrics.average_distance(
+            add, add_s = morefusion.metrics.average_distance(
                 [points], transform_true[i:i + 1], transform[i:i + 1]
             )
             add, add_s = add[0], add_s[0]
-            if examples[i]['class_id'] in objslampp.datasets.ycb_video.class_ids_symmetric:  # NOQA
+            if examples[i]['class_id'] in morefusion.datasets.ycb_video.class_ids_symmetric:  # NOQA
                 add_or_add_s = add_s
             else:
                 add_or_add_s = add
@@ -132,11 +132,11 @@ def main():
 
         for i in range(len(examples)):
             points = models.get_pcd(class_id=examples[i]['class_id'])
-            add, add_s = objslampp.metrics.average_distance(
+            add, add_s = morefusion.metrics.average_distance(
                 [points], transform_true[i:i + 1], transform_icp[i:i + 1]
             )
             add, add_s = add[0], add_s[0]
-            if examples[i]['class_id'] in objslampp.datasets.ycb_video.class_ids_symmetric:  # NOQA
+            if examples[i]['class_id'] in morefusion.datasets.ycb_video.class_ids_symmetric:  # NOQA
                 add_or_add_s = add_s
             else:
                 add_or_add_s = add
@@ -154,11 +154,11 @@ def main():
 
         for i in range(len(examples)):
             points = models.get_pcd(class_id=examples[i]['class_id'])
-            add, add_s = objslampp.metrics.average_distance(
+            add, add_s = morefusion.metrics.average_distance(
                 [points], transform_true[i:i + 1], transform_icc[i:i + 1]
             )
             add, add_s = add[0], add_s[0]
-            if examples[i]['class_id'] in objslampp.datasets.ycb_video.class_ids_symmetric:  # NOQA
+            if examples[i]['class_id'] in morefusion.datasets.ycb_video.class_ids_symmetric:  # NOQA
                 add_or_add_s = add_s
             else:
                 add_or_add_s = add
@@ -178,11 +178,11 @@ def main():
 
         for i in range(len(examples)):
             points = models.get_pcd(class_id=examples[i]['class_id'])
-            add, add_s = objslampp.metrics.average_distance(
+            add, add_s = morefusion.metrics.average_distance(
                 [points], transform_true[i:i + 1], transform_icc_icp[i:i + 1]
             )
             add, add_s = add[0], add_s[0]
-            if examples[i]['class_id'] in objslampp.datasets.ycb_video.class_ids_symmetric:  # NOQA
+            if examples[i]['class_id'] in morefusion.datasets.ycb_video.class_ids_symmetric:  # NOQA
                 add_or_add_s = add_s
             else:
                 add_or_add_s = add
@@ -205,7 +205,7 @@ def iterative_closest_point(examples, batch, transform, n_iteration=100):
     transform_icp = []
     for i in range(len(examples)):
         nonnan = ~np.isnan(examples[i]['pcd']).any(axis=2)
-        icp = objslampp.contrib.ICPRegistration(
+        icp = morefusion.contrib.ICPRegistration(
             examples[i]['pcd'][nonnan],
             models.get_pcd(class_id=examples[i]['class_id']),
             transform[i],
@@ -217,7 +217,7 @@ def iterative_closest_point(examples, batch, transform, n_iteration=100):
 
 def iterative_collision_check(examples, batch, transform):
     # refine with occupancy
-    link = objslampp.contrib.CollisionBasedPoseRefinementLink(
+    link = morefusion.contrib.CollisionBasedPoseRefinementLink(
         transform,
     )
     link.to_gpu()
@@ -247,7 +247,7 @@ def iterative_collision_check(examples, batch, transform):
         optimizer.update()
         link.zerograds()
     #
-    transform = objslampp.functions.transformation_matrix(
+    transform = morefusion.functions.transformation_matrix(
         link.quaternion, link.translation
     ).array
     transform = chainer.cuda.to_cpu(transform)

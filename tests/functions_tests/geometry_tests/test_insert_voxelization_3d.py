@@ -10,9 +10,9 @@ from chainer import testing
 from chainer.testing import attr
 from chainer.testing import condition
 
-from objslampp.functions.geometry.insert_voxelization_3d import \
+from morefusion.functions.geometry.insert_voxelization_3d import \
     insert_voxelization_3d
-from objslampp.functions.geometry.insert_voxelization_3d import \
+from morefusion.functions.geometry.insert_voxelization_3d import \
     InsertVoxelization3D
 
 

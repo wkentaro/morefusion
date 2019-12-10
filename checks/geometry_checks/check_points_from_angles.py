@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D  # NOQA
 import numpy as np
 
-from objslampp.geometry import points_from_angles
+from morefusion.geometry import points_from_angles
 
 
 def main():

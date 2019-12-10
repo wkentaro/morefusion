@@ -6,7 +6,7 @@ import chainer
 from chainer.backends import cuda
 import numpy as np
 
-import objslampp
+import morefusion
 
 import message_filters
 from morefusion_panda_ycb_video.msg import ObjectPoseArray
@@ -48,7 +48,7 @@ class LossObserver:
 
 class CollisionBasedPoseRefinement(topic_tools.LazyTransport):
 
-    _models = objslampp.datasets.YCBVideoModels()
+    _models = morefusion.datasets.YCBVideoModels()
 
     def __init__(self):
         self._sdf = {}
@@ -149,7 +149,7 @@ class CollisionBasedPoseRefinement(topic_tools.LazyTransport):
                 pose.pose.orientation.y,
                 pose.pose.orientation.z,
             ], dtype=np.float32)
-            transform = objslampp.functions.transformation_matrix(
+            transform = morefusion.functions.transformation_matrix(
                 quaternion, translation
             ).array
 
@@ -175,7 +175,7 @@ class CollisionBasedPoseRefinement(topic_tools.LazyTransport):
             '''
         grid_target = cuda.cupy.stack(grid_target)
 
-        link = objslampp.contrib.CollisionBasedPoseRefinementLink(transforms)
+        link = morefusion.contrib.CollisionBasedPoseRefinementLink(transforms)
         link.to_gpu()
         optimizer = chainer.optimizers.Adam(alpha=0.01)
         optimizer.setup(link)
@@ -183,7 +183,7 @@ class CollisionBasedPoseRefinement(topic_tools.LazyTransport):
 
         iteration = 30
         loss_observer = LossObserver()
-        # objslampp.ros.loginfo_green('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>')
+        # morefusion.ros.loginfo_green('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>')
         for i in range(iteration):
             loss = link(
                 points,
@@ -201,10 +201,10 @@ class CollisionBasedPoseRefinement(topic_tools.LazyTransport):
                 poses_msg, link.quaternion, link.translation, debug=True
             )
             max_delta = loss_observer.add(loss)  # NOQA
-            # objslampp.ros.loginfo_green(f"{i:04d}: max_delta={max_delta}")
+            # morefusion.ros.loginfo_green(f"{i:04d}: max_delta={max_delta}")
             if loss_observer.validate():
                 break
-        # objslampp.ros.loginfo_green('<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<')
+        # morefusion.ros.loginfo_green('<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<')
 
         self._publish(
             poses_msg, link.quaternion, link.translation, debug=False

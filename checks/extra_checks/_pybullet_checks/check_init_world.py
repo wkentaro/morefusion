@@ -2,12 +2,12 @@
 
 import time
 
-import objslampp
+import morefusion
 
 
-objslampp.extra.pybullet.init_world()
+morefusion.extra.pybullet.init_world()
 
 for _ in range(3):
     time.sleep(1)
 
-objslampp.extra.pybullet.del_world()
+morefusion.extra.pybullet.del_world()
