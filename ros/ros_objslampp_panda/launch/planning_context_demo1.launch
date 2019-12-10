@@ -10,8 +10,8 @@
   <param if="$(eval arg('load_robot_description'))" name="$(arg robot_description)" command="$(find xacro)/xacro --inorder '$(find ros_objslampp_panda)/robots/panda.urdf.xacro'"/>
 
   <!-- The semantic description that corresponds to the URDF -->
-  <param name="$(arg robot_description)_semantic" command="$(find xacro)/xacro --inorder '$(find ros_objslampp_panda)/config/panda_arm_suction_demo1.srdf.xacro'" />
-  
+  <param name="$(arg robot_description)_semantic" command="$(find xacro)/xacro --inorder '$(find ros_objslampp_panda)/robots/moveit/panda.srdf.xacro'" />
+
   <!-- Load updated joint limits (override information from URDF) -->
   <group ns="$(arg robot_description)_planning">
     <rosparam command="load" file="$(find panda_moveit_config)/config/joint_limits.yaml"/>
@@ -21,5 +21,5 @@
   <group ns="$(arg robot_description)_kinematics">
     <rosparam command="load" file="$(find panda_moveit_config)/config/kinematics.yaml"/>
   </group>
-  
+
 </launch>
