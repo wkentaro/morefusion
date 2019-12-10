@@ -1,14 +1,14 @@
 <h1 align="center">
-  objslampp
+  MoreFusion
 </h1>
 
-<h4 align="center">
-  Volumetric fusion and CAD alignment for object-level SLAM
-</h4>
+<h3 align="center">
+  Multi-object Reasoning for 6D Pose Estimation from Volumetric Fusion
+</h3>
 
 <div align="center">
-  <a href="https://github.com/wkentaro/objslampp/actions">
-    <img src="https://github.com/wkentaro/objslampp/workflows/CI/badge.svg">
+  <a href="https://github.com/wkentaro/morefusion/actions">
+    <img src="https://github.com/wkentaro/morefusion/workflows/CI/badge.svg">
   </a>
 </div>
 
@@ -24,21 +24,21 @@ make install
 ### ROS Project
 
 ```bash
-mkdir -p ~/ros_objslampp/src
-cd ~/ros_objslampp/src
+mkdir -p ~/ros_morefusion/src
+cd ~/ros_morefusion/src
 
-git clone https://github.com/wkentaro/objslampp.git
-cd objslampp
+git clone https://github.com/wkentaro/morefusion.git
+cd morefusion
 make install
 
-cd ~/ros_objslampp
+cd ~/ros_morefusion
 ln -s src/ros/*.sh .
 
 ./rosdep_install.sh
 ./catkin_build.robot_agent.sh
 
-ln -s src/objslampp/ros/autoenv.zsh .autoenv.zsh
-ln -s src/objslampp/ros/autoenv_leave.zsh .autoenv_leave.zsh
+ln -s src/morefusion/ros/autoenv.zsh .autoenv.zsh
+ln -s src/morefusion/ros/autoenv_leave.zsh .autoenv_leave.zsh
 source .autoenv.zsh
 ```
 
@@ -54,12 +54,12 @@ See <a href="#ros-project">above instruction</a>.
 #### @robot-node
 
 ```bash
-mkdir -p ~/ros_objslampp/src
-cd ~/ros_objslampp/src
+mkdir -p ~/ros_morefusion/src
+cd ~/ros_morefusion/src
 
-git clone https://github.com/wkentaro/objslampp.git
+git clone https://github.com/wkentaro/morefusion.git
 
-cd ~/ros_objslampp
+cd ~/ros_morefusion
 ln -s src/ros/*.sh .
 
 ./catkin_build.robot_node.sh
@@ -73,9 +73,9 @@ rosrun franka_control_custom create_udev_rules.sh
 ### Dynamic Scene
 
 ```bash
-roslaunch ros_objslampp_ycb_video rs_rgbd.robot.launch
-roslaunch ros_objslampp_ycb_video rviz_dynamic.robot.launch
-roslaunch ros_objslampp_ycb_video setup_dynamic.robot.launch
+roslaunch morefusion_panda_ycb_video rs_rgbd.robot.launch
+roslaunch morefusion_panda_ycb_video rviz_dynamic.robot.launch
+roslaunch morefusion_panda_ycb_video setup_dynamic.robot.launch
 ```
 
 <div>
@@ -88,9 +88,9 @@ roslaunch ros_objslampp_ycb_video setup_dynamic.robot.launch
 
 ```bash
 # using orb-slam2 for camera tracking
-roslaunch ros_objslampp_ycb_video rs_rgbd.launch
-roslaunch ros_objslampp_ycb_video rviz_static.desk.launch
-roslaunch ros_objslampp_ycb_video setup_static.desk.launch
+roslaunch morefusion_panda_ycb_video rs_rgbd.launch
+roslaunch morefusion_panda_ycb_video rviz_static.desk.launch
+roslaunch morefusion_panda_ycb_video setup_static.desk.launch
 ```
 
 <div>
@@ -101,9 +101,9 @@ roslaunch ros_objslampp_ycb_video setup_static.desk.launch
 
 ```bash
 # using robotic kinematics for camera tracking
-roslaunch ros_objslampp_ycb_video rs_rgbd.robot.launch
-roslaunch ros_objslampp_ycb_video rviz_static.robot.launch
-roslaunch ros_objslampp_ycb_video setup_static.robot.launch
+roslaunch morefusion_panda_ycb_video rs_rgbd.robot.launch
+roslaunch morefusion_panda_ycb_video rviz_static.robot.launch
+roslaunch morefusion_panda_ycb_video setup_static.robot.launch
 ```
 
 <div>
@@ -120,12 +120,12 @@ robot-node  $ sudo ntpdata 0.uk.pool.ntp.org  # for time synchronization
 
 robot-node  $ roscore
 
-robot-agent $ roslaunch ros_objslampp_panda panda.launch
+robot-agent $ roslaunch morefusion_panda panda.launch
 
-robot-node  $ roslaunch ros_objslampp_ycb_video rs_rgbd.robot.launch
-robot-node  $ roslaunch ros_objslampp_ycb_video rviz_static.launch
-robot-node  $ roslaunch ros_objslampp_ycb_video setup_static.robot.launch TARGET:=2
-robot-node  $ rosrun ros_objslampp_ycb_video robot_demo_node.py
+robot-node  $ roslaunch morefusion_panda_ycb_video rs_rgbd.robot.launch
+robot-node  $ roslaunch morefusion_panda_ycb_video rviz_static.launch
+robot-node  $ roslaunch morefusion_panda_ycb_video setup_static.robot.launch TARGET:=2
+robot-node  $ rosrun morefusion_panda_ycb_video robot_demo_node.py
 >>> ri.run()
 ```
 
