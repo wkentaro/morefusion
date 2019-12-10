@@ -1,7 +1,7 @@
 # flake8: noqa
 import numpy as _np
 import rospy as _rospy
-from ros_objslampp_ycb_video.srv import UpdateScene as _UpdateScene
+from morefusion_ycb_video.srv import UpdateScene as _UpdateScene
 from geometry_msgs.msg import Point as _Point
 from shape_msgs.msg import Mesh as _Mesh
 from shape_msgs.msg import MeshTriangle as _MeshTriangle

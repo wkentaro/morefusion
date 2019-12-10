@@ -12,7 +12,7 @@ from threading import Lock
 # ros
 import tf
 import rospy
-from ros_objslampp_ycb_video.msg import ObjectPose, ObjectPoseArray, ObjectClass, ObjectClassArray
+from morefusion_ycb_video.msg import ObjectPose, ObjectPoseArray, ObjectClass, ObjectClassArray
 from geometry_msgs.msg import Pose, PoseStamped, Point, Quaternion
 
 # objslampp

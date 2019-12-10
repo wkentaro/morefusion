@@ -8,7 +8,7 @@
 
 #include <opencv2/opencv.hpp>
 
-namespace ros_objslampp_ycb_video {
+namespace morefusion_ycb_video {
 namespace utils {
 
 template<typename T>
@@ -26,6 +26,6 @@ std::set<T> unique(const cv::Mat& input) {
 }
 
 }  // namespace utils
-}  // namespace ros_objslampp_ycb_video
+}  // namespace morefusion_ycb_video
 
 #endif  // ROS_ROS_OBJSLAMPP_YCB_VIDEO_INCLUDE_ROS_OBJSLAMPP_YCB_VIDEO_UTILS_OPENCV_H_

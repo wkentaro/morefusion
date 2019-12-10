@@ -19,7 +19,7 @@ import tf
 import topic_tools
 import rospy
 from geometry_msgs.msg import PoseArray
-from ros_objslampp_ycb_video.msg import ObjectPoseArray
+from morefusion_ycb_video.msg import ObjectPoseArray
 from sensor_msgs.msg import CameraInfo, Image
 
 

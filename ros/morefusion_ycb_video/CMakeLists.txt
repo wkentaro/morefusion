@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(ros_objslampp_ycb_video)
+project(morefusion_ycb_video)
 
 add_compile_options(-std=c++11)
 
@@ -56,7 +56,7 @@ generate_messages(
   geometry_msgs
   sensor_msgs
   moveit_msgs
-  ros_objslampp_ycb_video
+  morefusion_ycb_video
 )
 
 catkin_package(

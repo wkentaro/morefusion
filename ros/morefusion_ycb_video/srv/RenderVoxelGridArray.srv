@@ -1,6 +1,6 @@
 geometry_msgs/TransformStamped transform
 sensor_msgs/CameraInfo camera_info
 sensor_msgs/Image depth
-ros_objslampp_ycb_video/VoxelGridArray grids
+morefusion_ycb_video/VoxelGridArray grids
 ---
 sensor_msgs/Image label_ins

@@ -5,7 +5,7 @@
 
 #include <std_msgs/ColorRGBA.h>
 
-namespace ros_objslampp_ycb_video {
+namespace morefusion_ycb_video {
 namespace utils {
 
 std_msgs::ColorRGBA colorCategory40(int i) {
@@ -297,6 +297,6 @@ std_msgs::ColorRGBA colorCategory40(int i) {
 }
 
 }  // namespace utils
-}  // namespace ros_objslampp_ycb_video
+}  // namespace morefusion_ycb_video
 
 #endif  // ROS_ROS_OBJSLAMPP_YCB_VIDEO_INCLUDE_ROS_OBJSLAMPP_YCB_VIDEO_UTILS_COLOR_H_

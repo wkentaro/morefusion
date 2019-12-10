@@ -9,10 +9,10 @@ import trimesh.transformations as ttf
 import numpy as np
 import objslampp
 
-from ros_objslampp_ycb_video.msg import ObjectClassArray
-from ros_objslampp_ycb_video.msg import ObjectPose
-from ros_objslampp_ycb_video.msg import ObjectPoseArray
-from ros_objslampp_ycb_video.msg import VoxelGridArray
+from morefusion_ycb_video.msg import ObjectClassArray
+from morefusion_ycb_video.msg import ObjectPose
+from morefusion_ycb_video.msg import ObjectPoseArray
+from morefusion_ycb_video.msg import VoxelGridArray
 import rospy
 import tf
 

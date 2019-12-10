@@ -4,7 +4,7 @@
 
   <group ns="/camera/aligned_depth_to_color">
     <node name="depth_to_rgb"
-          pkg="ros_objslampp_ycb_video" type="depth_to_rgb.py"
+          pkg="morefusion_ycb_video" type="depth_to_rgb.py"
           clear_params="true">
       <remap from="~input/camera_info" to="camera_info" />
       <remap from="~input/depth" to="image_raw" />
@@ -15,7 +15,7 @@
 
   <group ns="visualize_rs_rgbd">
     <node name="tile_image"
-          pkg="ros_objslampp_ycb_video" type="tile_image.py"
+          pkg="morefusion_ycb_video" type="tile_image.py"
           clear_params="true">
       <rosparam subst_value="true">
         input_topics:

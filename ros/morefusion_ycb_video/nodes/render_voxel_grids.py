@@ -11,8 +11,8 @@ import objslampp
 
 import cv_bridge
 import rospy
-from ros_objslampp_ycb_video.srv import RenderVoxelGridArray
-from ros_objslampp_ycb_video.srv import RenderVoxelGridArrayResponse
+from morefusion_ycb_video.srv import RenderVoxelGridArray
+from morefusion_ycb_video.srv import RenderVoxelGridArrayResponse
 
 from voxel_grids_to_mesh_markers import grid_msg_to_mesh
 

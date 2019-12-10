@@ -2,7 +2,7 @@
 
   <arg name="GUI" default="false" />
 
-  <include file="$(find ros_objslampp_ycb_video)/launch/rs_rgbd.launch">
+  <include file="$(find morefusion_ycb_video)/launch/rs_rgbd.launch">
     <arg name="GUI" value="$(arg GUI)" />
   </include>
 

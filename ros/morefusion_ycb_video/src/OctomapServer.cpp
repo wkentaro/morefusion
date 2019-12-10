@@ -1,10 +1,10 @@
 // Copyright (c) 2019 Kentaro Wada
 
-#include "ros_objslampp_ycb_video/OctomapServer.h"
+#include "morefusion_ycb_video/OctomapServer.h"
 
 using octomap_msgs::Octomap;
 
-namespace ros_objslampp_ycb_video {
+namespace morefusion_ycb_video {
 
 OctomapServer::OctomapServer() {
   nh_ = ros::NodeHandle();
@@ -32,15 +32,15 @@ OctomapServer::OctomapServer() {
 
   pub_binary_map_ = pnh_.advertise<Octomap>("output/octomap_binary", 1);
   pub_full_map_ = pnh_.advertise<Octomap>("output/octomap_full", 1);
-  pub_grids_ = pnh_.advertise<ros_objslampp_ycb_video::VoxelGridArray>("output/grids", 1);
-  pub_grids_noentry_ = pnh_.advertise<ros_objslampp_ycb_video::VoxelGridArray>(
+  pub_grids_ = pnh_.advertise<morefusion_ycb_video::VoxelGridArray>("output/grids", 1);
+  pub_grids_noentry_ = pnh_.advertise<morefusion_ycb_video::VoxelGridArray>(
     "output/grids_noentry", 1);
   pub_markers_free_ = pnh_.advertise<visualization_msgs::MarkerArray>("output/markers_free", 1);
   pub_markers_bg_ = pnh_.advertise<visualization_msgs::MarkerArray>("output/markers_bg", 1);
   pub_markers_fg_ = pnh_.advertise<visualization_msgs::MarkerArray>("output/markers_fg", 1);
   pub_label_rendered_ = pnh_.advertise<sensor_msgs::Image>("output/label_rendered", 1);
   pub_label_tracked_ = pnh_.advertise<sensor_msgs::Image>("output/label_tracked", 1);
-  pub_class_ = pnh_.advertise<ros_objslampp_ycb_video::ObjectClassArray>("output/class", 1);
+  pub_class_ = pnh_.advertise<morefusion_ycb_video::ObjectClassArray>("output/class", 1);
 
   sub_camera_ = new message_filters::Subscriber<sensor_msgs::CameraInfo>(
     pnh_, "input/camera_info", 5);
@@ -50,16 +50,16 @@ OctomapServer::OctomapServer() {
     pnh_, "input/points", 5);
   sub_label_ins_ = new message_filters::Subscriber<sensor_msgs::Image>(
     pnh_, "input/label_ins", 5);
-  sub_class_ = new message_filters::Subscriber<ros_objslampp_ycb_video::ObjectClassArray>(
+  sub_class_ = new message_filters::Subscriber<morefusion_ycb_video::ObjectClassArray>(
     pnh_, "input/class", 5);
   sync_ = new message_filters::Synchronizer<ExactSyncPolicy>(100);
   sync_->connectInput(*sub_camera_, *sub_depth_, *sub_pcd_, *sub_label_ins_, *sub_class_);
   sync_->registerCallback(
     boost::bind(&OctomapServer::insertCloudCallback, this, _1, _2, _3, _4, _5));
 
-  client_render_ = pnh_.serviceClient<ros_objslampp_ycb_video::RenderVoxelGridArray>("render");
+  client_render_ = pnh_.serviceClient<morefusion_ycb_video::RenderVoxelGridArray>("render");
 
-  dynamic_reconfigure::Server<ros_objslampp_ycb_video::OctomapServerConfig>::CallbackType f =
+  dynamic_reconfigure::Server<morefusion_ycb_video::OctomapServerConfig>::CallbackType f =
     boost::bind(&OctomapServer::configCallback, this, _1, _2);
   server_reconfig_.setCallback(f);
 
@@ -67,7 +67,7 @@ OctomapServer::OctomapServer() {
 }
 
 void OctomapServer::configCallback(
-  const ros_objslampp_ycb_video::OctomapServerConfig& config, const uint32_t level) {
+  const morefusion_ycb_video::OctomapServerConfig& config, const uint32_t level) {
   ROS_INFO_BLUE("configCallback");
   m_groundAsNoEntry = config.ground_as_noentry;
   m_freeAsNoEntry = config.free_as_noentry;
@@ -78,7 +78,7 @@ void OctomapServer::insertCloudCallback(
     const sensor_msgs::ImageConstPtr& depth_msg,
     const sensor_msgs::PointCloud2ConstPtr& cloud,
     const sensor_msgs::ImageConstPtr& ins_msg,
-    const ros_objslampp_ycb_video::ObjectClassArrayConstPtr& class_msg) {
+    const morefusion_ycb_video::ObjectClassArrayConstPtr& class_msg) {
   // Get TF
   tf::StampedTransform sensorToWorldTf;
   if (!tf_listener_->waitForTransform(frame_id_world_,
@@ -92,7 +92,7 @@ void OctomapServer::insertCloudCallback(
   Eigen::Matrix4f sensorToWorld;
   pcl_ros::transformAsMatrix(sensorToWorldTf, sensorToWorld);
 
-  ros_objslampp_ycb_video::RenderVoxelGridArray srv;
+  morefusion_ycb_video::RenderVoxelGridArray srv;
   tf::transformStampedTFToMsg(sensorToWorldTf, srv.request.transform);
   srv.request.camera_info = *camera_info_msg;
   srv.request.depth = *depth_msg;
@@ -124,7 +124,7 @@ void OctomapServer::insertCloudCallback(
         class_msg->classes[i].instance_id,
         class_msg->classes[i].class_id));
   }
-  ros_objslampp_ycb_video::utils::track_instance_id(
+  morefusion_ycb_video::utils::track_instance_id(
     /*reference=*/label_ins_rend,
     /*target=*/&label_ins,
     /*instance_id_to_class_id=*/&instance_id_to_class_id,
@@ -142,14 +142,14 @@ void OctomapServer::insertCloudCallback(
   pub_label_tracked_.publish(
     cv_bridge::CvImage(ins_msg->header, "32SC1", label_ins).toImageMsg());
 
-  ros_objslampp_ycb_video::ObjectClassArray cls_rend_msg;
+  morefusion_ycb_video::ObjectClassArray cls_rend_msg;
   cls_rend_msg.header = cloud->header;
   for (std::map<int, unsigned>::iterator it = class_ids_.begin();
        it != class_ids_.end(); it++) {
     if (it->first == -1) {
       continue;
     }
-    ros_objslampp_ycb_video::ObjectClass cls;
+    morefusion_ycb_video::ObjectClass cls;
     cls.instance_id = it->first;
     cls.class_id = it->second;
     cls.confidence = 1;
@@ -161,7 +161,7 @@ void OctomapServer::insertCloudCallback(
   insertScan(sensorToWorldTf.getOrigin(), pc, label_ins, instance_id_to_class_id);
 
   // Publish Object Grids
-  std::set<int> instance_ids_active = ros_objslampp_ycb_video::utils::unique<int>(label_ins_rend);
+  std::set<int> instance_ids_active = morefusion_ycb_video::utils::unique<int>(label_ins_rend);
   publishGrids(cloud->header.stamp, sensorToWorld, instance_ids_active);
 
   // Publish Map
@@ -175,7 +175,7 @@ void OctomapServer::insertScan(
     const std::map<int, unsigned>& instance_id_to_class_id) {
   octomap::point3d sensorOrigin = octomap::pointTfToOctomap(sensorOriginTf);
 
-  std::set<int> instance_ids = ros_objslampp_ycb_video::utils::unique<int>(label_ins);
+  std::set<int> instance_ids = morefusion_ycb_video::utils::unique<int>(label_ins);
   octomap::KeySet free_cells_bg;
   std::map<int, octomap::KeySet> occupied_cells;
   for (int instance_id : instance_ids) {
@@ -192,7 +192,7 @@ void OctomapServer::insertScan(
       } else {
         class_id = instance_id_to_class_id.find(instance_id)->second;
       }
-      pitch = ros_objslampp_ycb_video::utils::class_id_to_voxel_pitch(class_id);
+      pitch = morefusion_ycb_video::utils::class_id_to_voxel_pitch(class_id);
     }
     if (octrees_.find(instance_id) == octrees_.end()) {
       OcTreeT* octree = new OcTreeT(pitch);
@@ -300,7 +300,7 @@ void OctomapServer::insertScan(
 
 void OctomapServer::getGridsInWorldFrame(
     const ros::Time& rostime,
-    ros_objslampp_ycb_video::VoxelGridArray& grids) {
+    morefusion_ycb_video::VoxelGridArray& grids) {
   grids.header.frame_id = frame_id_world_;
   grids.header.stamp = rostime;
   for (std::map<int, OcTreeT*>::iterator it_octree = octrees_.begin();
@@ -312,12 +312,12 @@ void OctomapServer::getGridsInWorldFrame(
       continue;
     }
     unsigned class_id = class_ids_.find(instance_id)->second;
-    double pitch = ros_objslampp_ycb_video::utils::class_id_to_voxel_pitch(class_id);
+    double pitch = morefusion_ycb_video::utils::class_id_to_voxel_pitch(class_id);
 
     // world frame
     octomap::point3d center = centers_.find(instance_id)->second;
 
-    ros_objslampp_ycb_video::VoxelGrid grid;
+    morefusion_ycb_video::VoxelGrid grid;
     grid.pitch = pitch;
     grid.dims.x = 32;
     grid.dims.y = 32;
@@ -359,10 +359,10 @@ void OctomapServer::publishGrids(
     return;
   }
 
-  ros_objslampp_ycb_video::VoxelGridArray grids;
+  morefusion_ycb_video::VoxelGridArray grids;
   grids.header.frame_id = frame_id_sensor_;
   grids.header.stamp = rostime;
-  ros_objslampp_ycb_video::VoxelGridArray grids_noentry;
+  morefusion_ycb_video::VoxelGridArray grids_noentry;
   grids_noentry.header = grids.header;
   for (std::map<int, OcTreeT*>::iterator it_octree = octrees_.begin();
        it_octree != octrees_.end(); it_octree++) {
@@ -377,7 +377,7 @@ void OctomapServer::publishGrids(
 
     OcTreeT* octree = it_octree->second;
     unsigned class_id = class_ids_.find(instance_id)->second;
-    double pitch = ros_objslampp_ycb_video::utils::class_id_to_voxel_pitch(class_id);
+    double pitch = morefusion_ycb_video::utils::class_id_to_voxel_pitch(class_id);
 
     octomap::point3d center = centers_.find(instance_id)->second;
 
@@ -385,7 +385,7 @@ void OctomapServer::publishGrids(
     center_sensor.push_back(PCLPoint(center.x(), center.y(), center.z()));
     pcl::transformPointCloud(center_sensor, center_sensor, sensorToWorld.inverse());
 
-    ros_objslampp_ycb_video::VoxelGrid grid;
+    morefusion_ycb_video::VoxelGrid grid;
     grid.pitch = pitch;
     grid.dims.x = 32;
     grid.dims.y = 32;
@@ -396,7 +396,7 @@ void OctomapServer::publishGrids(
     grid.instance_id = instance_id;
     grid.class_id = class_id;
 
-    ros_objslampp_ycb_video::VoxelGrid grid_noentry;
+    morefusion_ycb_video::VoxelGrid grid_noentry;
     grid_noentry.pitch = grid.pitch;
     grid_noentry.dims = grid.dims;
     grid_noentry.origin = grid.origin;
@@ -558,7 +558,7 @@ void OctomapServer::publishAll(const ros::Time& rostime) {
         occupiedNodesVis.markers[i].scale.y = size;
         occupiedNodesVis.markers[i].scale.z = size;
         occupiedNodesVis.markers[i].color =
-          ros_objslampp_ycb_video::utils::colorCategory40(instance_id + 1);
+          morefusion_ycb_video::utils::colorCategory40(instance_id + 1);
         occupiedNodesVis.markers[i].color.a = 0.5;
 
         if (occupiedNodesVis.markers[i].points.size() > 0)
@@ -675,11 +675,11 @@ bool OctomapServer::isSpeckleNode(const octomap::OcTreeKey& nKey) const {
   return neighborFound;
 }
 
-}  // namespace ros_objslampp_ycb_video
+}  // namespace morefusion_ycb_video
 
 int main(int argc, char** argv) {
   ros::init(argc, argv, "octomap_server");
-  ros_objslampp_ycb_video::OctomapServer server;
+  morefusion_ycb_video::OctomapServer server;
   ros::spin();
   return 0;
 }

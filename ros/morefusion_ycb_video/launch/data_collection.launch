@@ -2,7 +2,7 @@
 
   <!--
 
-      roslaunch ros_objslampp_ycb_video data_collection.launch
+      roslaunch morefusion_ycb_video data_collection.launch
       rosservice call /data_collection_server/save_request "{}"
 
   -->
