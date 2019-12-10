@@ -1,0 +1,12 @@
+<launch>
+
+  <include file="$(find morefusion_panda_ycb_video)/launch/rosbag_play_rs_rgbd.launch">
+    <!-- <arg name="BAG_ID" value="dynamic.desk" /> -->
+    <arg name="BAG_ID" value="static.robot" />
+    <arg name="SLEEP" value="0" />
+  </include>
+
+  <include file="$(find morefusion_panda_ycb_video)/launch/visualize_rs_rgbd.launch">
+  </include>
+
+</launch>

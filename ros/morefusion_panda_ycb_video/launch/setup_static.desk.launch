@@ -1,0 +1,10 @@
+<launch>
+
+  <include file="$(find morefusion_panda_ycb_video)/launch/orb_slam2_d435_rgbd.launch">
+    <arg name="SERIAL_NUMBER" value="814412071942" />
+  </include>
+
+  <include file="$(find morefusion_panda_ycb_video)/launch/setup_static.xml">
+  </include>
+
+</launch>

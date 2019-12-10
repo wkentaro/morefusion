@@ -79,4 +79,4 @@ set -x
 python -c 'import cv2'
 python -c 'from cv_bridge.boost.cv_bridge_boost import getCvType'
 
-catkin build morefusion_ycb_video
+catkin build morefusion_panda_ycb_video
