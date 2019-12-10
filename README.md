@@ -35,7 +35,7 @@ cd ~/ros_objslampp
 ln -s src/ros/*.sh .
 
 ./rosdep_install.sh
-./catkin_build.sh
+./catkin_build.robot_agent.sh
 
 ln -s src/objslampp/ros/autoenv.zsh .autoenv.zsh
 ln -s src/objslampp/ros/autoenv_leave.zsh .autoenv_leave.zsh
@@ -44,7 +44,7 @@ source .autoenv.zsh
 
 ### ROS Project for Robotic Demonstrations
 
-- `robot-agent`: A computer for visual processing and motion planning.
+- `robot-agent`: A computer for visual processing.
 - `robot-node`: A computer with real-time OS for Panda robot.
 
 #### @robot-agent
