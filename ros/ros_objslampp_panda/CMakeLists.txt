@@ -18,7 +18,6 @@ find_package(catkin REQUIRED COMPONENTS
         moveit_msgs
         genmsg
         message_generation
-        interactive_markers
         moveit_core
         moveit_visual_tools
         moveit_ros_planning
@@ -59,7 +58,6 @@ catkin_package(
         moveit_core
         moveit_visual_tools
         moveit_ros_planning_interface
-        interactive_markers
         message_runtime
         DEPENDS
         EIGEN3
