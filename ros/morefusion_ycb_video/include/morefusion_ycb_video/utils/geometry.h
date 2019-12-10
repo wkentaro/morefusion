@@ -12,11 +12,11 @@
 
 #include <opencv2/opencv.hpp>
 
-#include "ros_objslampp_ycb_video/utils/opencv.h"
-// #include "ros_objslampp_ycb_video/utils/log.h"
+#include "morefusion_ycb_video/utils/opencv.h"
+// #include "morefusion_ycb_video/utils/log.h"
 
 
-namespace ros_objslampp_ycb_video {
+namespace morefusion_ycb_video {
 namespace utils {
 
 std::tuple<int, int, int, int> mask_to_bbox(const cv::Mat& mask) {
@@ -51,7 +51,7 @@ bool is_detected_mask_too_small(const cv::Mat& mask2) {
       cv::drawContours(mask2_denoised, contours, i, /*color=*/0, /*thickness=*/CV_FILLED);
     }
   }
-  std::tuple<int, int, int, int> bbox2 = ros_objslampp_ycb_video::utils::mask_to_bbox(
+  std::tuple<int, int, int, int> bbox2 = morefusion_ycb_video::utils::mask_to_bbox(
     mask2_denoised);
   int y1 = std::get<0>(bbox2);
   int x1 = std::get<1>(bbox2);
@@ -82,8 +82,8 @@ void track_instance_id(
     cv::Mat* target,
     std::map<int, unsigned>* instance_id_to_class_id,
     unsigned* instance_counter) {
-  std::set<int> instance_ids1 = ros_objslampp_ycb_video::utils::unique<int>(reference);
-  std::set<int> instance_ids2 = ros_objslampp_ycb_video::utils::unique<int>(*target);
+  std::set<int> instance_ids1 = morefusion_ycb_video::utils::unique<int>(reference);
+  std::set<int> instance_ids2 = morefusion_ycb_video::utils::unique<int>(*target);
 
   cv::Mat mask_nonedge = cv::Mat::zeros(reference.rows, reference.cols, CV_8UC1);
   cv::rectangle(
@@ -108,7 +108,7 @@ void track_instance_id(
     cv::Mat mask2 = (*target) == ins_id2;
     ins_id2to1.insert(std::make_pair(ins_id2, std::make_tuple(-1, 0, 0)));
 
-    if (ros_objslampp_ycb_video::utils::is_detected_mask_too_small(mask2)) {
+    if (morefusion_ycb_video::utils::is_detected_mask_too_small(mask2)) {
       ins_ids2_suspicious.insert(ins_id2);
     }
 
@@ -216,7 +216,7 @@ void track_instance_id(
   }
 
   // Manipulate target
-  std::set<int> instance_ids_active = ros_objslampp_ycb_video::utils::unique<int>(*target);
+  std::set<int> instance_ids_active = morefusion_ycb_video::utils::unique<int>(*target);
   for (int ins_id : instance_ids_active) {
     if (ins_id < 0) {
       continue;
@@ -236,7 +236,7 @@ void track_instance_id(
   }
 
   // Manipulate reference
-  for (int ins_id : ros_objslampp_ycb_video::utils::unique<int>(reference)) {
+  for (int ins_id : morefusion_ycb_video::utils::unique<int>(reference)) {
      if (ins_id < 0) {
        continue;
      }
@@ -263,9 +263,9 @@ void track_instance_id(
   }
 
   // Merge target and reference for pose estimation
-  instance_ids1 = ros_objslampp_ycb_video::utils::unique<int>(*target);
+  instance_ids1 = morefusion_ycb_video::utils::unique<int>(*target);
   cv::Mat merged(reference.size(), CV_32SC1, -2);
-  for (int ins_id2 : ros_objslampp_ycb_video::utils::unique<int>(reference)) {
+  for (int ins_id2 : morefusion_ycb_video::utils::unique<int>(reference)) {
     if (ins_id2 < 0) {
       continue;
     }
@@ -283,6 +283,6 @@ void track_instance_id(
 
 }  // namespace utils
 
-}  // namespace ros_objslampp_ycb_video
+}  // namespace morefusion_ycb_video
 
 #endif  // ROS_ROS_OBJSLAMPP_YCB_VIDEO_INCLUDE_ROS_OBJSLAMPP_YCB_VIDEO_UTILS_GEOMETRY_H_

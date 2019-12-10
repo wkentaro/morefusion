@@ -14,10 +14,10 @@ import cv_bridge
 import rospy
 import message_filters
 from sensor_msgs.msg import Image, CameraInfo
-from ros_objslampp_ycb_video.msg import VoxelGridArray
-from ros_objslampp_ycb_video.msg import ObjectPose
-from ros_objslampp_ycb_video.msg import ObjectPoseArray
-from ros_objslampp_ycb_video.msg import ObjectClassArray
+from morefusion_ycb_video.msg import VoxelGridArray
+from morefusion_ycb_video.msg import ObjectPose
+from morefusion_ycb_video.msg import ObjectPoseArray
+from morefusion_ycb_video.msg import ObjectClassArray
 import topic_tools
 
 

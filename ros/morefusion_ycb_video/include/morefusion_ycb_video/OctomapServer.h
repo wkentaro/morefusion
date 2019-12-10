@@ -29,9 +29,9 @@
 #include <octomap_msgs/BoundingBoxQuery.h>
 #include <octomap_msgs/conversions.h>
 #include <ros/ros.h>
-#include <ros_objslampp_ycb_video/VoxelGridArray.h>
-#include <ros_objslampp_ycb_video/ObjectClassArray.h>
-#include <ros_objslampp_ycb_video/RenderVoxelGridArray.h>
+#include <morefusion_ycb_video/VoxelGridArray.h>
+#include <morefusion_ycb_video/ObjectClassArray.h>
+#include <morefusion_ycb_video/RenderVoxelGridArray.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/CameraInfo.h>
 #include <std_msgs/ColorRGBA.h>
@@ -48,10 +48,10 @@
 #include <boost/lexical_cast.hpp>
 #include <opencv2/opencv.hpp>
 
-#include "ros_objslampp_ycb_video/OctomapServerConfig.h"
-#include "ros_objslampp_ycb_video/utils.h"
+#include "morefusion_ycb_video/OctomapServerConfig.h"
+#include "morefusion_ycb_video/utils.h"
 
-namespace ros_objslampp_ycb_video {
+namespace morefusion_ycb_video {
 
 class OctomapServer {
  public:
@@ -67,7 +67,7 @@ class OctomapServer {
     sensor_msgs::Image,
     sensor_msgs::PointCloud2,
     sensor_msgs::Image,
-    ros_objslampp_ycb_video::ObjectClassArray> ExactSyncPolicy;
+    morefusion_ycb_video::ObjectClassArray> ExactSyncPolicy;
 
   explicit OctomapServer();
   virtual ~OctomapServer() {}
@@ -77,14 +77,14 @@ class OctomapServer {
     const sensor_msgs::ImageConstPtr& depth_msg,
     const sensor_msgs::PointCloud2ConstPtr& cloud,
     const sensor_msgs::ImageConstPtr& ins_msg,
-    const ros_objslampp_ycb_video::ObjectClassArrayConstPtr& class_msg);
+    const morefusion_ycb_video::ObjectClassArrayConstPtr& class_msg);
 
  protected:
   void publishBinaryOctoMap(const ros::Time& rostime = ros::Time::now()) const;
   void publishFullOctoMap(const ros::Time& rostime = ros::Time::now()) const;
   virtual void publishAll(const ros::Time& rostime = ros::Time::now());
 
-  void getGridsInWorldFrame(const ros::Time& rostime, ros_objslampp_ycb_video::VoxelGridArray& grids);
+  void getGridsInWorldFrame(const ros::Time& rostime, morefusion_ycb_video::VoxelGridArray& grids);
   void publishGrids(
       const ros::Time& rostime,
       const Eigen::Matrix4f& sensorToWorld,
@@ -112,7 +112,7 @@ class OctomapServer {
   bool isSpeckleNode(const octomap::OcTreeKey& key) const;
 
   void configCallback(
-    const ros_objslampp_ycb_video::OctomapServerConfig& config,
+    const morefusion_ycb_video::OctomapServerConfig& config,
     const uint32_t level);
 
   ros::NodeHandle nh_;
@@ -133,10 +133,10 @@ class OctomapServer {
   message_filters::Subscriber<sensor_msgs::Image>* sub_depth_;
   message_filters::Subscriber<sensor_msgs::PointCloud2>* sub_pcd_;
   message_filters::Subscriber<sensor_msgs::Image>* sub_label_ins_;
-  message_filters::Subscriber<ros_objslampp_ycb_video::ObjectClassArray>* sub_class_;
+  message_filters::Subscriber<morefusion_ycb_video::ObjectClassArray>* sub_class_;
   message_filters::Synchronizer<ExactSyncPolicy>* sync_;
 
-  dynamic_reconfigure::Server<ros_objslampp_ycb_video::OctomapServerConfig> server_reconfig_;
+  dynamic_reconfigure::Server<morefusion_ycb_video::OctomapServerConfig> server_reconfig_;
 
   ros::ServiceClient client_render_;
 
@@ -166,6 +166,6 @@ class OctomapServer {
   bool do_filter_speckles_;
 };
 
-}  // namespace ros_objslampp_ycb_video
+}  // namespace morefusion_ycb_video
 
 #endif  // ROS_ROS_OBJSLAMPP_YCB_VIDEO_INCLUDE_ROS_OBJSLAMPP_YCB_VIDEO_OCTOMAPSERVER_H_

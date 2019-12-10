@@ -24,14 +24,14 @@
     </node>
   </group>
 
-  <include file="$(find ros_objslampp_ycb_video)/launch/visualize_rs_rgbd.launch">
+  <include file="$(find morefusion_ycb_video)/launch/visualize_rs_rgbd.launch">
     <arg name="GUI" value="false" />
   </include>
 
-  <include file="$(find ros_objslampp_ycb_video)/launch/rviz_static.robot.launch">
+  <include file="$(find morefusion_ycb_video)/launch/rviz_static.robot.launch">
   </include>
 
-  <include file="$(find ros_objslampp_ycb_video)/launch/setup_static.robot.launch">
+  <include file="$(find morefusion_ycb_video)/launch/setup_static.robot.launch">
     <arg name="PROCESS" value="false" />
   </include>
 

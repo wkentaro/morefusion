@@ -6,7 +6,7 @@
 #include <map>
 #include <vector>
 
-namespace ros_objslampp_ycb_video {
+namespace morefusion_ycb_video {
 namespace utils {
 
 template<typename T, typename U>
@@ -19,6 +19,6 @@ std::vector<T> keys(std::map<T, U> map) {
 }
 
 }  // namespace utils
-}  // namespace ros_objslampp_ycb_video
+}  // namespace morefusion_ycb_video
 
 #endif  // ROS_ROS_OBJSLAMPP_YCB_VIDEO_INCLUDE_ROS_OBJSLAMPP_YCB_VIDEO_UTILS_STL_H_

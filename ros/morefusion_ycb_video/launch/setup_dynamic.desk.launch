@@ -1,14 +1,14 @@
 <launch>
 
-  <include file="$(find ros_objslampp_ycb_video)/launch/mask_rcnn_instance_segmentation.launch">
+  <include file="$(find morefusion_ycb_video)/launch/mask_rcnn_instance_segmentation.launch">
     <arg name="GUI" value="false" />
   </include>
 
-  <include file="$(find ros_objslampp_ycb_video)/launch/singleview_3d_pose_estimation.launch">
+  <include file="$(find morefusion_ycb_video)/launch/singleview_3d_pose_estimation.launch">
     <arg name="OCCUPANCY" value="false" />
   </include>
 
-  <include file="$(find ros_objslampp_ycb_video)/launch/orb_slam2_d435_rgbd.launch">
+  <include file="$(find morefusion_ycb_video)/launch/orb_slam2_d435_rgbd.launch">
     <arg name="SERIAL_NUMBER" value="814412071942" />
   </include>
 

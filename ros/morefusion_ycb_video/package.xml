@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>ros_objslampp_ycb_video</name>
+  <name>morefusion_ycb_video</name>
   <version>0.1.0</version>
   <description>Specific to objslampp for ycb_video example</description>
   <maintainer email="www.kentaro.wada@gmail.com">Kentaro Wada</maintainer>
@@ -23,13 +23,13 @@
 
   <exec_depend>cv_bridge</exec_depend>
   <exec_depend>franka_description</exec_depend>
-  <exec_depend>ros_objslampp_panda</exec_depend>
   <exec_depend>jsk_interactive_marker</exec_depend>
   <exec_depend>jsk_perception</exec_depend>
   <exec_depend>jsk_recognition_utils</exec_depend>
   <exec_depend>jsk_rviz_plugins</exec_depend>
   <exec_depend>jsk_tools</exec_depend>
   <exec_depend>message_runtime</exec_depend>
+  <exec_depend>morefusion_panda</exec_depend>
   <exec_depend>moveit_ros_visualization</exec_depend>
   <exec_depend>orb_slam2_ros</exec_depend>
   <exec_depend>realsense2_camera</exec_depend>

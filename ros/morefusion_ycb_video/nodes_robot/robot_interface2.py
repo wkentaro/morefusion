@@ -3,8 +3,8 @@ import time
 import rospy
 
 from std_srvs.srv import Empty
-from ros_objslampp_ycb_video.srv import MoveToJointPosition
-from ros_objslampp_ycb_video.srv import SetSuction
+from morefusion_ycb_video.srv import MoveToJointPosition
+from morefusion_ycb_video.srv import SetSuction
 
 
 class RobotInterface:

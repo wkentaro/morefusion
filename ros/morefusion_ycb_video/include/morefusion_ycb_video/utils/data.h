@@ -3,7 +3,7 @@
 #ifndef ROS_ROS_OBJSLAMPP_YCB_VIDEO_INCLUDE_ROS_OBJSLAMPP_YCB_VIDEO_UTILS_DATA_H_
 #define ROS_ROS_OBJSLAMPP_YCB_VIDEO_INCLUDE_ROS_OBJSLAMPP_YCB_VIDEO_UTILS_DATA_H_
 
-namespace ros_objslampp_ycb_video {
+namespace morefusion_ycb_video {
 namespace utils {
 
 double class_id_to_voxel_pitch(unsigned class_id) {
@@ -37,6 +37,6 @@ double class_id_to_voxel_pitch(unsigned class_id) {
 }
 
 }  // namespace utils
-}  // namespace ros_objslampp_ycb_video
+}  // namespace morefusion_ycb_video
 
 #endif  // ROS_ROS_OBJSLAMPP_YCB_VIDEO_INCLUDE_ROS_OBJSLAMPP_YCB_VIDEO_UTILS_DATA_H_

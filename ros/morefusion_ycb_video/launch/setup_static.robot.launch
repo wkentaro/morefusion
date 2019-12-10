@@ -9,14 +9,14 @@
         args="0 0 0 0 0 0 map panda_link0 100">
   </node>
 
-  <include file="$(find ros_objslampp_ycb_video)/launch/setup_static.xml">
+  <include file="$(find morefusion_ycb_video)/launch/setup_static.xml">
     <arg name="PROCESS" value="$(arg PROCESS)" />
     <arg name="USE_PASSTHROUGH" value="$(arg USE_PASSTHROUGH)" />
   </include>
 
   <group ns="camera">
     <node name="select_picking_order"
-          pkg="ros_objslampp_ycb_video" type="select_picking_order.py"
+          pkg="morefusion_ycb_video" type="select_picking_order.py"
           clear_params="true"
           output="screen" if="$(arg PROCESS)">
       <remap from="~input/camera_info" to="color/camera_info" />
@@ -29,7 +29,7 @@
 
   <group ns="robot_demo">
     <node name="object_poses_to_markers"
-          pkg="ros_objslampp_ycb_video" type="object_poses_to_markers.py"
+          pkg="morefusion_ycb_video" type="object_poses_to_markers.py"
           clear_params="true">
       <remap from="~input" to="output/placed" />
     </node>
