@@ -6,7 +6,7 @@ import path
 
 
 def main():
-    root_dir = chainer.dataset.get_dataset_directory('wkentaro/objslampp/ycb_video/dense_fusion/eval_result/ycb')  # NOQA
+    root_dir = chainer.dataset.get_dataset_directory('wkentaro/morefusion/ycb_video/dense_fusion/eval_result/ycb')  # NOQA
     root_dir = path.Path(root_dir)
 
     gdown.cached_download(

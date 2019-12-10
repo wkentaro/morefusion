@@ -5,7 +5,7 @@ import pybullet
 import trimesh
 import trimesh.transformations as ttf
 
-import objslampp
+import morefusion
 
 import cv_bridge
 import rospy
@@ -67,7 +67,7 @@ class RenderMeshMarkers(LazyTransport):
         )
         translation = np.asarray(translation)
         quaternion = np.asarray(quaternion)[[3, 0, 1, 2]]
-        transform = objslampp.functions.transformation_matrix(
+        transform = morefusion.functions.transformation_matrix(
             quaternion, translation
         ).array
         return transform
@@ -88,7 +88,7 @@ class RenderMeshMarkers(LazyTransport):
             if marker.type != Marker.MESH_RESOURCE:
                 continue
 
-            quaternion, translation = objslampp.ros.from_ros_pose(marker.pose)
+            quaternion, translation = morefusion.ros.from_ros_pose(marker.pose)
             if marker.header.frame_id != cam_msg.header.frame_id:
                 key = (marker.header.frame_id, marker.header.stamp)
                 if key in transforms:
@@ -103,7 +103,7 @@ class RenderMeshMarkers(LazyTransport):
                     if T_marker2cam is None:
                         return
                     transforms[key] = T_marker2cam
-                T_cad2marker = objslampp.functions.transformation_matrix(
+                T_cad2marker = morefusion.functions.transformation_matrix(
                     quaternion, translation
                 ).array
                 try:
@@ -125,7 +125,7 @@ class RenderMeshMarkers(LazyTransport):
                 )
             else:
                 mesh_file = marker.mesh_resource[len('file://'):]
-                unique_id = objslampp.extra.pybullet.add_model(
+                unique_id = morefusion.extra.pybullet.add_model(
                     visual_file=mesh_file,
                     position=translation,
                     orientation=quaternion,
@@ -138,7 +138,7 @@ class RenderMeshMarkers(LazyTransport):
             resolution=(cam_msg.width, cam_msg.height),
             focal=(K[0, 0], K[1, 1])
         )
-        rgb_rend, _, _ = objslampp.extra.pybullet.render_camera(
+        rgb_rend, _, _ = morefusion.extra.pybullet.render_camera(
             np.eye(4),
             fovy=camera.fov[1],
             height=camera.resolution[1],

@@ -4,7 +4,7 @@ import chainercv
 import imgviz
 import numpy as np
 
-import objslampp
+import morefusion
 
 from train_multi import transform_dataset
 
@@ -26,7 +26,7 @@ class Images:
 
         class_ids = label + 1
         captions = [
-            objslampp.datasets.ycb_video.class_names[c] for c in class_ids
+            morefusion.datasets.ycb_video.class_names[c] for c in class_ids
         ]
         viz = imgviz.instances2rgb(
             rgb,
@@ -42,10 +42,10 @@ class Images:
 model = chainercv.links.model.fpn.MaskRCNNFPNResNet50(
     n_fg_class=1, pretrained_model='imagenet'
 )
-dataset = objslampp.datasets.MySyntheticYCB20190916InstanceSegmentationDataset(
+dataset = morefusion.datasets.MySyntheticYCB20190916InstanceSegmentationDataset(
     split='train', bg_composite=True
 )
-# dataset = objslampp.datasets.YCBVideoInstanceSegmentationDataset(
+# dataset = morefusion.datasets.YCBVideoInstanceSegmentationDataset(
 #     split='train', sampling=15
 # )
 dataset = transform_dataset(dataset, model, train=True)

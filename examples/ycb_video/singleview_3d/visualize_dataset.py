@@ -6,7 +6,7 @@ import numpy as np
 import trimesh
 import trimesh.transformations as tf
 
-import objslampp
+import morefusion
 
 import contrib
 
@@ -17,7 +17,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument('--randomize-base', action='store_true')
 args = parser.parse_args()
 
-models = objslampp.datasets.YCBVideoModels()
+models = morefusion.datasets.YCBVideoModels()
 dataset = contrib.datasets.YCBVideoDataset('train')
 
 frame = dataset.get_frame(0)
@@ -29,7 +29,7 @@ for example in examples:
     points = example['pcd'][mask]
     values = example['rgb'][mask]
 
-    T_cad2cam = objslampp.functions.transformation_matrix(
+    T_cad2cam = morefusion.functions.transformation_matrix(
         example['quaternion_true'], example['translation_true']
     ).array
     if args.randomize_base:
@@ -42,7 +42,7 @@ for example in examples:
     center = np.median(points, axis=0)
     origin = center - pitch * 15.5
 
-    mapping = objslampp.geometry.VoxelMapping(
+    mapping = morefusion.geometry.VoxelMapping(
         origin=origin,
         pitch=pitch,
         voxel_dim=32,
@@ -59,7 +59,7 @@ for example in examples:
 scene.camera.resolution = (640, 480)
 K = frame['intrinsic_matrix']
 scene.camera.focal = (K[0, 0], K[1, 1])
-scene.camera.transform = objslampp.extra.trimesh.to_opengl_transform()
+scene.camera.transform = morefusion.extra.trimesh.to_opengl_transform()
 
 scenes = {'rgb': frame['rgb'], 'scene': scene}
-objslampp.extra.trimesh.display_scenes(scenes)
+morefusion.extra.trimesh.display_scenes(scenes)

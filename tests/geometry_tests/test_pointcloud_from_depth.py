@@ -1,7 +1,7 @@
 import numpy as np
 import trimesh
 
-from objslampp.geometry import pointcloud_from_depth
+from morefusion.geometry import pointcloud_from_depth
 
 
 def test_pointcloud_from_depth():

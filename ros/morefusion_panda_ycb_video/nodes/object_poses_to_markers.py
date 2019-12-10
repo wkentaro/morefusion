@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import objslampp
+import morefusion
 
 import rospy
 import topic_tools
@@ -11,7 +11,7 @@ from morefusion_panda_ycb_video.msg import ObjectPoseArray
 
 class ObjectPosesToMarkers(topic_tools.LazyTransport):
 
-    _models = objslampp.datasets.YCBVideoModels()
+    _models = morefusion.datasets.YCBVideoModels()
 
     def __init__(self):
         super().__init__()

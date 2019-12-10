@@ -2,7 +2,7 @@
 
 import concurrent.futures
 
-import objslampp
+import morefusion
 
 
 def get_uniform_scale_cad(models, class_id):
@@ -15,8 +15,8 @@ def get_uniform_scale_cad(models, class_id):
 
 
 def main():
-    models = objslampp.datasets.YCBVideoModels()
-    class_names = objslampp.datasets.ycb_video.class_names
+    models = morefusion.datasets.YCBVideoModels()
+    class_names = morefusion.datasets.ycb_video.class_names
 
     cads = []
     with concurrent.futures.ProcessPoolExecutor() as executor:
@@ -27,7 +27,7 @@ def main():
             cads.append(result)
     cads = [future.result() for future in cads]
 
-    scene = objslampp.extra.trimesh.tile_meshes(cads)
+    scene = morefusion.extra.trimesh.tile_meshes(cads)
     scene.show()
 
 

@@ -7,7 +7,7 @@ from chainer.testing import condition
 import numpy as np
 import trimesh.transformations as tf
 
-from objslampp.functions.geometry.compose_transform import compose_transform
+from morefusion.functions.geometry.compose_transform import compose_transform
 
 
 class TestComposeTransform(unittest.TestCase):

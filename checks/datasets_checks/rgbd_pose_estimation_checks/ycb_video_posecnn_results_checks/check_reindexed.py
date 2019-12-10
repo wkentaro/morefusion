@@ -2,14 +2,14 @@
 
 import imgviz
 
-import objslampp
+import morefusion
 
 
 class Images:
 
     def __init__(self):
-        self._dataset_parent = objslampp.datasets.YCBVideoPoseCNNResultsRGBDPoseEstimationDataset()  # NOQA
-        self._dataset = objslampp.datasets.YCBVideoPoseCNNResultsRGBDPoseEstimationDatasetReIndexed()  # NOQA
+        self._dataset_parent = morefusion.datasets.YCBVideoPoseCNNResultsRGBDPoseEstimationDataset()  # NOQA
+        self._dataset = morefusion.datasets.YCBVideoPoseCNNResultsRGBDPoseEstimationDatasetReIndexed()  # NOQA
 
     def __len__(self):
         return len(self._dataset)

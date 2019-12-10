@@ -5,11 +5,11 @@ import trimesh
 import trimesh.transformations as tf
 import pyglet
 
-import objslampp
+import morefusion
 
 
 def main():
-    models = objslampp.datasets.YCBVideoModels()
+    models = morefusion.datasets.YCBVideoModels()
     points = models.get_pcd(class_id=2)
 
     quaternion_true = tf.random_quaternion()
@@ -25,7 +25,7 @@ def main():
             transform_true[:3, 3] = translation_true
             transform_pred[:3, 3] = translation_pred
 
-        add = objslampp.metrics.average_distance(
+        add = morefusion.metrics.average_distance(
             [points], [transform_true], [transform_pred]
         )[0][0]
 
@@ -43,7 +43,7 @@ def main():
         geom = trimesh.PointCloud(vertices=points_pred, color=colors)
         scene.add_geometry(geom)
 
-        objslampp.extra.trimesh.show_with_rotation(
+        morefusion.extra.trimesh.show_with_rotation(
             scene,
             caption=f'use_translation: {use_translation}, add: {add}',
             start_loop=False,

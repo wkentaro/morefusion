@@ -9,20 +9,20 @@ import numpy as np
 import path
 import pybullet
 
-import objslampp
+import morefusion
 
 
 def generate_a_video(out, random_state, connection_method=None):
     out.makedirs_p()
     (out / 'models').mkdir_p()
 
-    models = objslampp.datasets.YCBVideoModels()
+    models = morefusion.datasets.YCBVideoModels()
 
     class_weight = np.zeros((models.n_class - 1,), dtype=float)
     class_weight[...] = 1
     class_weight /= class_weight.sum()
 
-    generator = objslampp.simulation.BinTypeSceneGeneration(
+    generator = morefusion.simulation.BinTypeSceneGeneration(
         extents=random_state.uniform((0.2, 0.2, 0.2), (0.5, 0.5, 0.3)),
         models=models,
         n_object=random_state.randint(8, 14),
@@ -50,7 +50,7 @@ def generate_a_video(out, random_state, connection_method=None):
     Ts_cam2world = generator.random_camera_trajectory(
         n_keypoints=5, n_points=15,
     )
-    camera = objslampp.extra.trimesh.OpenGLCamera(
+    camera = morefusion.extra.trimesh.OpenGLCamera(
         resolution=(640, 480), fovy=45
     )
 
@@ -106,7 +106,7 @@ def generate_a_video(out, random_state, connection_method=None):
         print(f'==> Saved: {npz_file}')
         np.savez_compressed(npz_file, **data)
 
-    objslampp.extra.pybullet.del_world()
+    morefusion.extra.pybullet.del_world()
 
 
 def main():
@@ -124,7 +124,7 @@ def main():
     now = datetime.datetime.utcnow()
     timestamp = now.strftime('%Y%m%d_%H%M%S.%f')
     root_dir = chainer.dataset.get_dataset_directory(
-        f'wkentaro/objslampp/ycb_video/synthetic_data/{timestamp}'
+        f'wkentaro/morefusion/ycb_video/synthetic_data/{timestamp}'
     )
     root_dir = path.Path(root_dir)
 

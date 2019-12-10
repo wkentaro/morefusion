@@ -8,9 +8,9 @@ from chainer import testing
 from chainer.testing import attr
 from chainer.testing import condition
 
-from objslampp.functions.geometry.max_voxelization_3d \
+from morefusion.functions.geometry.max_voxelization_3d \
     import max_voxelization_3d
-from objslampp.functions.geometry.max_voxelization_3d \
+from morefusion.functions.geometry.max_voxelization_3d \
     import MaxVoxelization3D
 
 

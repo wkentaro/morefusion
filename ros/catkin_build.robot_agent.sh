@@ -2,16 +2,16 @@
 
 set -e
 
-PY_ROOT_PREFIX=$HOME/ros_morefusion/src/objslampp
+PY_ROOT_PREFIX=$HOME/ros_morefusion/src/morefusion
 ROS_ROOT_PREFIX=$HOME/ros_morefusion
 
 if [ ! -d $PY_ROOT_PREFIX ]; then
-  echo "Please install objslampp to $PY_ROOT_PREFIX"
+  echo "Please install morefusion to $PY_ROOT_PREFIX"
   exit 1
 fi
 
 if [ ! -e $PY_ROOT_PREFIX/.anaconda3/bin/activate ]; then
-  echo "Please run 'make install' in objslampp"
+  echo "Please run 'make install' in morefusion"
   exit 1
 fi
 
@@ -33,7 +33,7 @@ cd $ROS_ROOT_PREFIX
 catkin init
 
 if [ ! -e $ROS_ROOT_PREFIX/src/.rosinstall ]; then
-  ln -s $ROS_ROOT_PREFIX/src/objslampp/ros/rosinstall $ROS_ROOT_PREFIX/src/.rosinstall
+  ln -s $ROS_ROOT_PREFIX/src/morefusion/ros/rosinstall $ROS_ROOT_PREFIX/src/.rosinstall
   (cd $ROS_ROOT_PREFIX/src && wstool up)
 fi
 

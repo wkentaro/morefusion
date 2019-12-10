@@ -9,7 +9,7 @@ import trimesh.transformations as tf
 import pyglet
 import sklearn.neighbors
 
-import objslampp
+import morefusion
 
 
 def visualize_instance_grids(
@@ -61,7 +61,7 @@ def visualize_instance_grids(
     for scene in [scene_pcd, scene_occupied, scene_empty]:
         scene.camera.resolution = (640, 480)
         scene.camera.focal = (K[0, 0], K[1, 1])
-        scene.camera.transform = objslampp.extra.trimesh.to_opengl_transform(
+        scene.camera.transform = morefusion.extra.trimesh.to_opengl_transform(
             tf.translation_matrix([0, 0, -0.5])
         )
 
@@ -143,7 +143,7 @@ def get_instance_grid(octrees, pitch, pcd, mask, extents, threshold=2):
 
 
 def main():
-    dataset = objslampp.datasets.YCBVideoDataset('train')
+    dataset = morefusion.datasets.YCBVideoDataset('train')
     frame = dataset[0]
 
     class_ids = frame['meta']['cls_indexes']
@@ -153,7 +153,7 @@ def main():
     depth = frame['depth']
     height, width = rgb.shape[:2]
     nonnan = ~np.isnan(depth)
-    pcd = objslampp.geometry.pointcloud_from_depth(
+    pcd = morefusion.geometry.pointcloud_from_depth(
         depth, fx=K[0, 0], fy=K[1, 1], cx=K[0, 2], cy=K[1, 2]
     )
     instance_label = frame['label']
@@ -171,7 +171,7 @@ def main():
         )
         octrees[instance_id] = octree
 
-    models = objslampp.datasets.YCBVideoModels()
+    models = morefusion.datasets.YCBVideoModels()
     instance_extents = []
     for instance_id, class_id in zip(instance_ids, class_ids):
         diagonal = models.get_bbox_diagonal(class_id=class_id)

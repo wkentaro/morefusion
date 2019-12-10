@@ -17,7 +17,7 @@ import termcolor
 import tensorboardX
 import yaml
 
-import objslampp
+import morefusion
 
 import contrib
 
@@ -165,7 +165,7 @@ def main():
         '--class-ids',
         type=int,
         nargs='*',
-        default=objslampp.datasets.ycb_video.class_ids_asymmetric.tolist(),
+        default=morefusion.datasets.ycb_video.class_ids_asymmetric.tolist(),
         help='class id',
     )
     parser.add_argument(
@@ -239,7 +239,7 @@ def main():
         now = datetime.datetime.now(datetime.timezone.utc)
         args.timestamp = now.isoformat()
         args.hostname = socket.gethostname()
-        args.githash = objslampp.utils.githash(__file__)
+        args.githash = morefusion.utils.githash(__file__)
 
         termcolor.cprint('==> Started training', attrs={'bold': True})
 
@@ -275,7 +275,7 @@ def main():
                 num_syn=args.num_syn,
             )
         elif args.dataset == 'my_synthetic':
-            root_dir = home / 'data/datasets/wkentaro/objslampp/ycb_video/synthetic_data/20190715_113906.827534'  # NOQA
+            root_dir = home / 'data/datasets/wkentaro/morefusion/ycb_video/synthetic_data/20190715_113906.827534'  # NOQA
             data = contrib.datasets.MySyntheticDataset(
                 root_dir=root_dir,
                 class_ids=args.class_ids,
@@ -309,7 +309,7 @@ def main():
     if args.multi_node:
         data_train = chainermn.scatter_dataset(data_train, comm, shuffle=True)
 
-    args.class_names = objslampp.datasets.ycb_video.class_names.tolist()
+    args.class_names = morefusion.datasets.ycb_video.class_names.tolist()
 
     loss = args.loss
     if re.match(r'add\+add_s\|.*', loss):
@@ -353,7 +353,7 @@ def main():
     )
     if not args.multi_node or comm.rank == 0:
         writer = tensorboardX.SummaryWriter(log_dir=args.out)
-        writer_with_updater = objslampp.training.SummaryWriterWithUpdater(
+        writer_with_updater = morefusion.training.SummaryWriterWithUpdater(
             writer
         )
         writer_with_updater.setup(updater)
@@ -398,7 +398,7 @@ def main():
         print(f'\n{msg}\n')
 
         trainer.extend(
-            objslampp.training.extensions.ArgsReport(args),
+            morefusion.training.extensions.ArgsReport(args),
             call_before_training=True,
         )
 
@@ -407,7 +407,7 @@ def main():
         eval_interval = 0.3, 'epoch'
 
         # evaluate
-        evaluator = objslampp.training.extensions.PoseEstimationEvaluator(
+        evaluator = morefusion.training.extensions.PoseEstimationEvaluator(
             iterator=iter_valid,
             converter=concat_list_of_examples,
             target=model,
@@ -454,14 +454,14 @@ def main():
 
         # log
         trainer.extend(
-            objslampp.training.extensions.LogTensorboardReport(
+            morefusion.training.extensions.LogTensorboardReport(
                 writer=writer,
                 trigger=log_interval,
             ),
             call_before_training=True,
         )
         trainer.extend(
-            objslampp.training.extensions.ParameterTensorboardReport(
+            morefusion.training.extensions.ParameterTensorboardReport(
                 writer=writer
             ),
             call_before_training=True,

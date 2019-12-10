@@ -6,10 +6,10 @@ import chainer
 from chainer import cuda
 import numpy as np
 
-import objslampp
+import morefusion
 
 
-models = objslampp.datasets.YCBVideoModels()
+models = morefusion.datasets.YCBVideoModels()
 
 points_list = []
 
@@ -18,7 +18,7 @@ print(f'iteration: {iteration}')
 
 for class_id in range(1, 1 + iteration):
     points = models.get_pcd(class_id=class_id)
-    points = objslampp.extra.open3d.voxel_down_sample(points, voxel_size=0.01)
+    points = morefusion.extra.open3d.voxel_down_sample(points, voxel_size=0.01)
     points = points.astype(np.float32)
     points = chainer.cuda.to_gpu(points)
     points_list.append(points)
@@ -32,10 +32,10 @@ print(f'dim: {dim}')
 
 for func in ['legacy', 'latest']:
     if func == 'legacy':
-        function = objslampp.functions.occupancy_grid_3d
+        function = morefusion.functions.occupancy_grid_3d
     else:
         assert func == 'latest'
-        function = objslampp.functions.pseudo_occupancy_voxelization
+        function = morefusion.functions.pseudo_occupancy_voxelization
 
     cuda.Stream().synchronize()
     t_start = time.time()

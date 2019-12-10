@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import objslampp
+import morefusion
 
 import imgviz
 import numpy as np
@@ -10,7 +10,7 @@ import trimesh
 def get_scene(dataset):
     camera = trimesh.scene.Camera(
         fov=(30, 22.5),
-        transform=objslampp.extra.trimesh.to_opengl_transform()
+        transform=morefusion.extra.trimesh.to_opengl_transform()
     )
     index = 0
     frame = dataset.get_frame(index)
@@ -95,9 +95,9 @@ def get_scene(dataset):
 
 
 if __name__ == '__main__':
-    dataset = objslampp.datasets.YCBVideoRGBDPoseEstimationDataset(
+    dataset = morefusion.datasets.YCBVideoRGBDPoseEstimationDataset(
         split='train'
     )
-    objslampp.extra.trimesh.display_scenes(
+    morefusion.extra.trimesh.display_scenes(
         get_scene(dataset), height=int(320 * 0.8), width=int(480 * 0.8)
     )

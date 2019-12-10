@@ -14,7 +14,7 @@ import pykalman
 import trimesh
 import trimesh.transformations as tf
 
-import objslampp
+import morefusion
 
 import contrib
 
@@ -51,9 +51,9 @@ def main():
 
     args.root_dir = chainer.dataset.get_dataset_directory(
         # plane type
-        'wkentaro/objslampp/ycb_video/synthetic_data/20190408_143724.600111',
+        'wkentaro/morefusion/ycb_video/synthetic_data/20190408_143724.600111',
         # bin type
-        # 'wkentaro/objslampp/ycb_video/synthetic_data/20190402_174648.841996',
+        # 'wkentaro/morefusion/ycb_video/synthetic_data/20190402_174648.841996',
     )
     args.class_ids = []
     dataset = contrib.datasets.MySyntheticDataset(
@@ -134,10 +134,10 @@ def main():
 
             if not args.kalman:
                 # check if poor prediction
-                cad_file = objslampp.datasets.YCBVideoModels()\
+                cad_file = morefusion.datasets.YCBVideoModels()\
                     .get_cad_file(class_id=class_ids[i])
                 _, _, mask_rend = \
-                    objslampp.extra.pybullet.render_cad(
+                    morefusion.extra.pybullet.render_cad(
                         cad_file, Ts_pred[i], fovy, height, width
                     )
                 mask_real = frame['instance_label'] == instance_id
@@ -221,10 +221,10 @@ def main():
                         assert Ts_vote[data['batch_index']] is None
                         Ts_vote[data['batch_index']] = T_cad2cam
             else:
-                pcd = objslampp.datasets.YCBVideoModels()\
+                pcd = morefusion.datasets.YCBVideoModels()\
                     .get_pcd(class_id=class_id)
                 Ts_prev = Ts_cad2world[:-1]
-                adds = objslampp.metrics.average_distance(
+                adds = morefusion.metrics.average_distance(
                     [pcd] * len(Ts_prev),
                     [Ts_cad2world[-1]] * len(Ts_prev),
                     Ts_prev,
@@ -250,15 +250,15 @@ def main():
                         (instance_id not in instances or
                             not instances[instance_id]['spawn'])):
                     continue
-                cad_file = objslampp.datasets.YCBVideoModels()\
+                cad_file = morefusion.datasets.YCBVideoModels()\
                     .get_cad_file(class_id=class_ids[i])
-                objslampp.extra.pybullet.add_model(
+                morefusion.extra.pybullet.add_model(
                     cad_file,
                     position=tf.translation_from_matrix(T),
                     orientation=tf.quaternion_from_matrix(T)[[1, 2, 3, 0]],
                 )
             rgb_rend, depth_rend, segm_rend = \
-                objslampp.extra.pybullet.render_camera(
+                morefusion.extra.pybullet.render_camera(
                     np.eye(4), fovy, height, width
                 )
             pybullet.disconnect()

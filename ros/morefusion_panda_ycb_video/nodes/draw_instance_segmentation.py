@@ -11,12 +11,12 @@ from sensor_msgs.msg import Image
 import imgviz
 import numpy as np
 
-import objslampp
+import morefusion
 
 
 class DrawInstanceSegmentation(LazyTransport):
 
-    _class_names = objslampp.datasets.ycb_video.class_names
+    _class_names = morefusion.datasets.ycb_video.class_names
 
     def __init__(self):
         super().__init__()

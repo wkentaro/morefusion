@@ -6,7 +6,7 @@ from chainercv.links.model.fpn import MaskRCNNFPNResNet50
 import imgviz
 import numpy as np
 
-import objslampp
+import morefusion
 
 from dataset import YCBVideoInstanceSegmentationDataset
 
@@ -16,7 +16,7 @@ class Images:
     def __init__(self, model_file):
         self.dataset = YCBVideoInstanceSegmentationDataset(
             split='keyframe', sampling=10)
-        self.class_names = objslampp.datasets.ycb_video.class_names
+        self.class_names = morefusion.datasets.ycb_video.class_names
 
         self.model = MaskRCNNFPNResNet50(
             n_fg_class=len(self.class_names[1:]),
@@ -32,7 +32,7 @@ class Images:
 
         rgb = self.dataset[i]['rgb']
 
-        with objslampp.utils.timer():
+        with morefusion.utils.timer():
             masks, labels, confs = self.model.predict(
                 [rgb.astype(np.float32).transpose(2, 0, 1)]
             )

@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas
 
-import objslampp
+import morefusion
 
 
 parser = argparse.ArgumentParser(
@@ -17,7 +17,7 @@ parser.add_argument('--metric', default='add', help='add or add_s')
 args = parser.parse_args()
 
 metric = args.metric
-models = objslampp.datasets.YCBVideoModels()
+models = morefusion.datasets.YCBVideoModels()
 
 # w/o occupancy
 with open('./logs/20190710_180413/log') as f:
@@ -69,7 +69,7 @@ for class_id in range(0, 1 + axes.size):
     ax = axes[row + 1][col]
     if class_id is not None:
         cad_file = models.get_cad_file(class_id=class_id)
-        top_image = objslampp.extra.pybullet.get_top_image(cad_file)
+        top_image = morefusion.extra.pybullet.get_top_image(cad_file)
         ax.imshow(top_image)
     ax.get_xaxis().set_visible(False)
     ax.get_yaxis().set_visible(False)

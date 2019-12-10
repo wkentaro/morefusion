@@ -1,4 +1,4 @@
-from objslampp.geometry import uniform_points_on_sphere
+from morefusion.geometry import uniform_points_on_sphere
 
 import numpy as np
 

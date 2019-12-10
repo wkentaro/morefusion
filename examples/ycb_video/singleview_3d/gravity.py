@@ -13,7 +13,7 @@ import trimesh
 import trimesh.viewer
 import trimesh.transformations as tf
 
-import objslampp
+import morefusion
 
 from common import Inference
 
@@ -26,7 +26,7 @@ parser.add_argument(
 )
 args = parser.parse_args()
 
-models = objslampp.datasets.YCBVideoModels()
+models = morefusion.datasets.YCBVideoModels()
 
 inference = Inference(gpu=0)
 frame, T_cad2cam_true, T_cad2cam_pred = inference(index=0, bg_class=True)
@@ -115,7 +115,7 @@ T_world2cam = np.linalg.inv(T_cam2world)
 # -----------------------------------------------------------------------------
 # rgb
 
-image = objslampp.extra.pyglet.numpy_to_image(frame['rgb'])
+image = morefusion.extra.pyglet.numpy_to_image(frame['rgb'])
 widget = glooey.Image(image, responsive=True)
 vbox = glooey.VBox()
 vbox.add(glooey.Label(text='input rgb', color=(255, 255, 255)), size=0)
@@ -151,7 +151,7 @@ for i in range(T_cad2world_pred.shape[0]):
 
 scene.camera.resolution = (width, height)
 scene.camera.focal = (K[0, 0], K[1, 1])
-scene.camera.transform = objslampp.extra.trimesh.to_opengl_transform(
+scene.camera.transform = morefusion.extra.trimesh.to_opengl_transform(
     T_cam2world
 )
 
@@ -164,7 +164,7 @@ grid[0, 1] = vbox
 # -----------------------------------------------------------------------------
 # pybullet
 
-objslampp.extra.pybullet.init_world(connection_method=pybullet.DIRECT)
+morefusion.extra.pybullet.init_world(connection_method=pybullet.DIRECT)
 # pybullet.resetDebugVisualizerCamera(
 #     cameraDistance=0.8,
 #     cameraYaw=30,
@@ -176,9 +176,9 @@ for ins_id, cad_file in frame['cad_files'].items():
     index = np.where(frame['instance_ids'] == ins_id)[0][0]
     T_cad2cam = frame['Ts_cad2cam'][index]
     T = frame['T_cam2world'] @ T_cad2cam
-    objslampp.extra.pybullet.add_model(
+    morefusion.extra.pybullet.add_model(
         visual_file=cad_file,
-        collision_file=objslampp.utils.get_collision_file(cad_file),
+        collision_file=morefusion.utils.get_collision_file(cad_file),
         position=tf.translation_from_matrix(T),
         orientation=tf.quaternion_from_matrix(T)[[1, 2, 3, 0]],
         base_mass=0,
@@ -187,10 +187,10 @@ for ins_id, cad_file in frame['cad_files'].items():
 for i in range(T_cad2world_pred.shape[0]):
     class_id = class_ids_fg[i]
     visual_file = models.get_cad_file(class_id=class_id)
-    collision_file = objslampp.utils.get_collision_file(visual_file)
+    collision_file = morefusion.utils.get_collision_file(visual_file)
     T = T_cad2world_pred[i]
     # T = T_cad2world_true[i]
-    objslampp.extra.pybullet.add_model(
+    morefusion.extra.pybullet.add_model(
         visual_file=visual_file,
         collision_file=collision_file,
         position=tf.translation_from_matrix(T),
@@ -199,7 +199,7 @@ for i in range(T_cad2world_pred.shape[0]):
 
 rgbs_sim = []
 for _ in tqdm.tqdm(range(60)):
-    rgb, _, _ = objslampp.extra.pybullet.render_camera(
+    rgb, _, _ = morefusion.extra.pybullet.render_camera(
         T_cam2world, fovy=scene.camera.fov[1], height=height, width=width
     )
     rgbs_sim.append(rgb)
@@ -208,7 +208,7 @@ for _ in tqdm.tqdm(range(60)):
 pybullet.disconnect()
 
 
-image = objslampp.extra.pyglet.numpy_to_image(rgbs_sim[0])
+image = morefusion.extra.pyglet.numpy_to_image(rgbs_sim[0])
 widget = glooey.Image(image, responsive=True)
 vbox = glooey.VBox()
 vbox.add(glooey.Label(text='pred rendered', color=(255, 255, 255)), size=0)
@@ -221,7 +221,7 @@ def callback(dt, image_widget):
         image_widget.index = 0
     rgb = rgbs_sim[image_widget.index]
     image_widget.index += 1
-    image = objslampp.extra.pyglet.numpy_to_image(rgb)
+    image = morefusion.extra.pyglet.numpy_to_image(rgb)
     image_widget.set_image(image)
 
 

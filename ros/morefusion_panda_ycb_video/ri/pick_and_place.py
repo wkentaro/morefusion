@@ -15,9 +15,9 @@ import rospy
 from morefusion_panda_ycb_video.msg import ObjectPose, ObjectPoseArray, ObjectClass, ObjectClassArray
 from geometry_msgs.msg import Pose, PoseStamped, Point, Quaternion
 
-# objslampp
-import objslampp
-import objslampp.datasets.ycb_video as ycb_video_dataset
+# morefusion
+import morefusion
+import morefusion.datasets.ycb_video as ycb_video_dataset
 
 # robot demo
 import contrib.general_kinematics as gk
@@ -47,7 +47,7 @@ class RobotDemoInterface(RobotInterface):
         self._object_models = ycb_video_dataset.YCBVideoModels()
         self._object_filepaths = [self._object_models.get_cad_file(
             i) for i in range(1, len(self._object_models.class_names))]
-        self._collision_filepaths = [objslampp.utils.get_collision_file(
+        self._collision_filepaths = [morefusion.utils.get_collision_file(
             cad_filename) for cad_filename in self._object_filepaths]
         self._collision_meshes_multi = [trimesh.load_mesh(
             str(filepath), process=False) for filepath in self._collision_filepaths]
@@ -439,7 +439,7 @@ class RobotDemoInterface(RobotInterface):
             ycb_video_dataset.class_names[i]
             for i in self._ordered_object_ids_to_grasp
         )
-        objslampp.ros.loginfo_blue(
+        morefusion.ros.loginfo_blue(
             f"Object tree: {' -> '.join(ordered_class_names)}"
         )
 
@@ -528,7 +528,7 @@ class RobotDemoInterface(RobotInterface):
     # ----#
 
     def get_scene(self):
-        objslampp.ros.loginfo_blue('Waiting for object tree')
+        morefusion.ros.loginfo_blue('Waiting for object tree')
         try:
             object_picking_poses = rospy.wait_for_message(
                 '/camera/select_picking_order/output/poses',
@@ -550,10 +550,10 @@ class RobotDemoInterface(RobotInterface):
         self._object_poses_callback(object_poses)
         self._update_static_scene()
 
-        objslampp.ros.loginfo_blue('Scene understanding complete')
+        morefusion.ros.loginfo_blue('Scene understanding complete')
 
     def scan_scene(self):
-        objslampp.ros.loginfo_blue('Performing scanning motion')
+        morefusion.ros.loginfo_blue('Performing scanning motion')
         self.run_scanning_motion()
         self.get_scene()
 
@@ -565,7 +565,7 @@ class RobotDemoInterface(RobotInterface):
 
             self._object_id_to_grasp = self._choose_next_object_to_grasp()
             class_name = ycb_video_dataset.class_names[self._object_id_to_grasp]
-            objslampp.ros.loginfo_blue(f'Picking up {class_name}')
+            morefusion.ros.loginfo_blue(f'Picking up {class_name}')
 
             self._broadcast_object_pose()
 
@@ -649,9 +649,9 @@ class RobotDemoInterface(RobotInterface):
             # ------------#
 
             self.move_to_overlook_pose()
-            objslampp.ros.loginfo_blue(f'Completed moving {class_name}')
+            morefusion.ros.loginfo_blue(f'Completed moving {class_name}')
 
-        objslampp.ros.loginfo_blue('Demo completed')
+        morefusion.ros.loginfo_blue('Demo completed')
         self.move_to_reset_pose()
 
     def run(self):

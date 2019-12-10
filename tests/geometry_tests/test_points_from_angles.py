@@ -1,6 +1,6 @@
 import numpy as np
 
-from objslampp.geometry import points_from_angles
+from morefusion.geometry import points_from_angles
 
 
 def test_points_from_angles():

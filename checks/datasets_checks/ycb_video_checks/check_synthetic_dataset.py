@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import objslampp
+import morefusion
 
 from check_dataset import MainApp as _MainApp
 
@@ -8,7 +8,7 @@ from check_dataset import MainApp as _MainApp
 class MainApp(_MainApp):
 
     def __init__(self):
-        self._dataset = objslampp.datasets.YCBVideoSyntheticDataset()
+        self._dataset = morefusion.datasets.YCBVideoSyntheticDataset()
         self._mainloop()
 
 

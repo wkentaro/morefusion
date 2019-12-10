@@ -4,7 +4,7 @@ import numpy as np
 import imgviz
 import trimesh
 
-import objslampp
+import morefusion
 
 
 def visualize_pcds(
@@ -19,7 +19,7 @@ def visualize_pcds(
     # camera
     camera_marker = camera.copy()
     camera_marker.transform = \
-        objslampp.extra.trimesh.from_opengl_transform(camera.transform)
+        morefusion.extra.trimesh.from_opengl_transform(camera.transform)
     geom = trimesh.creation.camera_marker(camera_marker, marker_height=0.1)
     scene_common.add_geometry(geom, geom_name='camera_marker')
 
@@ -42,7 +42,7 @@ def visualize_pcds(
 
 
 def main():
-    dataset = objslampp.datasets.YCBVideoDataset('train')
+    dataset = morefusion.datasets.YCBVideoDataset('train')
     frame = dataset[0]
 
     class_ids = frame['meta']['cls_indexes']
@@ -51,7 +51,7 @@ def main():
     rgb = frame['color']
     depth = frame['depth']
     height, width = rgb.shape[:2]
-    pcd = objslampp.geometry.pointcloud_from_depth(
+    pcd = morefusion.geometry.pointcloud_from_depth(
         depth, fx=K[0, 0], fy=K[1, 1], cx=K[0, 2], cy=K[1, 2]
     )
     instance_label = frame['label']
@@ -60,7 +60,7 @@ def main():
 
     # build octrees
     pitch = 0.005
-    mapping = objslampp.contrib.MultiInstanceOctreeMapping()
+    mapping = morefusion.contrib.MultiInstanceOctreeMapping()
     for ins_id in instance_ids_all:
         mask = instance_label == ins_id
         mapping.initialize(ins_id, pitch=pitch)
@@ -69,7 +69,7 @@ def main():
     camera = trimesh.scene.Camera(
         resolution=(640, 480),
         focal=(K[0, 0], K[1, 1]),
-        transform=objslampp.extra.trimesh.to_opengl_transform(),
+        transform=morefusion.extra.trimesh.to_opengl_transform(),
     )
 
     pcds_occupied = []
@@ -85,7 +85,7 @@ def main():
         pcds_occupied,
         pcds_empty,
     )
-    objslampp.extra.trimesh.display_scenes(scenes, tile=(1, 2))
+    morefusion.extra.trimesh.display_scenes(scenes, tile=(1, 2))
 
 
 if __name__ == '__main__':

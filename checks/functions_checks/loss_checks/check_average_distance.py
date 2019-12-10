@@ -3,11 +3,11 @@
 import numpy as np
 import trimesh.transformations as tf
 
-import objslampp
+import morefusion
 
 
 def main():
-    models = objslampp.datasets.YCBVideoModels()
+    models = morefusion.datasets.YCBVideoModels()
     points = models.get_pcd(class_id=2)
 
     quaternion_true = tf.random_quaternion()
@@ -23,7 +23,7 @@ def main():
     transform_pred[:3, 3] = translation_pred
 
     for symmetric in [False, True]:
-        add = objslampp.functions.loss.average_distance_l1(
+        add = morefusion.functions.loss.average_distance_l1(
             points,
             transform_true[None],
             transform_pred[None],

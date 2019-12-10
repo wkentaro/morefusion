@@ -4,7 +4,7 @@ import numpy as np
 import trimesh
 import trimesh.transformations as tf
 
-import objslampp
+import morefusion
 
 
 def visualize_grids(
@@ -35,7 +35,7 @@ def visualize_grids(
     # camera
     camera_marker = camera.copy()
     camera_marker.transform = \
-        objslampp.extra.trimesh.from_opengl_transform(camera.transform)
+        morefusion.extra.trimesh.from_opengl_transform(camera.transform)
     geom = trimesh.creation.camera_marker(camera_marker, marker_height=0.1)
     scene_common.add_geometry(geom, geom_name='camera_marker')
 
@@ -77,7 +77,7 @@ def visualize_grids(
 
 
 def main():
-    dataset = objslampp.datasets.YCBVideoDataset('train')
+    dataset = morefusion.datasets.YCBVideoDataset('train')
     frame = dataset.get_example(1000)
 
     # scene-level data
@@ -88,12 +88,12 @@ def main():
     K = frame['meta']['intrinsic_matrix']
     rgb = frame['color']
     nonnan = ~np.isnan(frame['depth'])
-    pcd = objslampp.geometry.pointcloud_from_depth(
+    pcd = morefusion.geometry.pointcloud_from_depth(
         frame['depth'], fx=K[0, 0], fy=K[1, 1], cx=K[0, 2], cy=K[1, 2]
     )
     instance_label = frame['label']
 
-    mapping = objslampp.contrib.MultiInstanceOctreeMapping()
+    mapping = morefusion.contrib.MultiInstanceOctreeMapping()
 
     # background
     ins_id = 0
@@ -115,11 +115,11 @@ def main():
     camera = trimesh.scene.Camera(
         resolution=(640, 480),
         focal=(K[0, 0] * 0.6, K[1, 1] * 0.6),
-        transform=objslampp.extra.trimesh.to_opengl_transform(),
+        transform=morefusion.extra.trimesh.to_opengl_transform(),
     )
     all_scenes = {}
     for ins_id, cls_id in zip(instance_ids, class_ids):
-        class_name = objslampp.datasets.ycb_video.class_names[cls_id]
+        class_name = morefusion.datasets.ycb_video.class_names[cls_id]
 
         pitch = 0.01
         dimensions = np.array([20, 20, 20], dtype=int)
@@ -149,7 +149,7 @@ def main():
             scenes[new_name] = scenes.pop(name)
         all_scenes.update(scenes)
 
-    objslampp.extra.trimesh.display_scenes(
+    morefusion.extra.trimesh.display_scenes(
         all_scenes,
         height=int(480 * 0.5),
         width=int(640 * 0.5),

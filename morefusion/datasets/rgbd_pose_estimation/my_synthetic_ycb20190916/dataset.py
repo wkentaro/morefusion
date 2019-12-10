@@ -9,7 +9,7 @@ class MySyntheticYCB20190916RGBDPoseEstimationDataset(
 
     def __init__(self, split, class_ids=None):
         root_dir = chainer.dataset.get_dataset_directory(
-            'wkentaro/objslampp/ycb_video/synthetic_data/20190916_124002.877532.v2',  # NOQA
+            'wkentaro/morefusion/ycb_video/synthetic_data/20190916_124002.877532.v2',  # NOQA
             create_directory=False,
         )
         super().__init__(

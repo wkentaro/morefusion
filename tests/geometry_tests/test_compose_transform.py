@@ -4,7 +4,7 @@ from chainer.backends import cuda
 from chainer import testing
 import trimesh.transformations as tf
 
-from objslampp.geometry.compose_transform import compose_transform
+from morefusion.geometry.compose_transform import compose_transform
 
 
 class TestComposeTransform(unittest.TestCase):

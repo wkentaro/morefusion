@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D  # NOQA
 import numpy as np
 
-from objslampp.geometry import uniform_points_on_sphere
+from morefusion.geometry import uniform_points_on_sphere
 
 
 def main():

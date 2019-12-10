@@ -1,6 +1,6 @@
 import unittest
 
-from objslampp.datasets.ycb_video import YCBVideoModels
+from morefusion.datasets.ycb_video import YCBVideoModels
 
 
 class TestYCBVideoModelsDataset(unittest.TestCase):

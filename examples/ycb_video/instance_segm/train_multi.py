@@ -26,7 +26,7 @@ from chainercv.links.model.fpn import mask_head_loss_post
 from chainercv.links.model.fpn import mask_head_loss_pre
 from chainercv.links.model.fpn import rpn_loss
 
-import objslampp
+import morefusion
 
 from transforms import Affine
 from transforms import AsType
@@ -204,7 +204,7 @@ def main():
     comm = chainermn.create_communicator('pure_nccl')
     device = comm.intra_rank
 
-    class_names = objslampp.datasets.ycb_video.class_names
+    class_names = morefusion.datasets.ycb_video.class_names
     fg_class_names = class_names[1:]
     model = MaskRCNNFPNResNet50(
         n_fg_class=len(fg_class_names),
@@ -219,18 +219,18 @@ def main():
 
     if comm.rank == 0:
         train = chainer.datasets.ConcatenatedDataset(
-            objslampp.datasets.YCBVideoInstanceSegmentationDataset(
+            morefusion.datasets.YCBVideoInstanceSegmentationDataset(
                 split='train', sampling=15
             ),
-            objslampp.datasets.YCBVideoSyntheticInstanceSegmentationDataset(
+            morefusion.datasets.YCBVideoSyntheticInstanceSegmentationDataset(
                 bg_composite=True
             ),
-            objslampp.datasets.MySyntheticYCB20190916InstanceSegmentationDataset(  # NOQA
+            morefusion.datasets.MySyntheticYCB20190916InstanceSegmentationDataset(  # NOQA
                 'train', bg_composite=True
             ),
         )
         train = transform_dataset(train, model, train=True)
-        val = objslampp.datasets.YCBVideoInstanceSegmentationDataset(
+        val = morefusion.datasets.YCBVideoInstanceSegmentationDataset(
             split='keyframe', sampling=1
         )
         val = transform_dataset(val, model, train=False)

@@ -6,12 +6,12 @@ import chainer.functions as F
 import chainer.links as L
 import numpy as np
 
-import objslampp
+import morefusion
 
 
 class Model(chainer.Chain):
 
-    _models = objslampp.datasets.YCBVideoModels()
+    _models = morefusion.datasets.YCBVideoModels()
     _lambda_confidence = 0.015
     _n_point = 1000
 
@@ -39,12 +39,12 @@ class Model(chainer.Chain):
         with self.init_scope():
             # extractor
             if pretrained_resnet18:
-                self.resnet_extractor = objslampp.models.ResNet18Extractor()
+                self.resnet_extractor = morefusion.models.ResNet18Extractor()
             else:
                 self.resnet_extractor = \
-                    objslampp.models.dense_fusion.ResNet18()
+                    morefusion.models.dense_fusion.ResNet18()
             self.pspnet_extractor = \
-                objslampp.models.dense_fusion.PSPNetExtractor()
+                morefusion.models.dense_fusion.PSPNetExtractor()
             self.posenet_extractor = PoseNetExtractor()
 
             # conv1
@@ -97,7 +97,7 @@ class Model(chainer.Chain):
                 ]
             assert keep.shape == (self._n_point,)
             iy, ix = xp.where(mask[i])
-            center = objslampp.extra.cupy.median(pcd[i, :, iy, ix], axis=0)
+            center = morefusion.extra.cupy.median(pcd[i, :, iy, ix], axis=0)
             iy, ix = iy[keep], ix[keep]
             h_rgb_i = h_rgb[i, :, iy, ix]      # CHW -> MC, M = self._n_point
             pcd_i = pcd[i, :, iy, ix]          # CHW -> MC
@@ -201,10 +201,10 @@ class Model(chainer.Chain):
 
         B = class_id.shape[0]
 
-        T_cad2cam_true = objslampp.functions.transformation_matrix(
+        T_cad2cam_true = morefusion.functions.transformation_matrix(
             quaternion_true, translation_true
         )
-        T_cad2cam_pred = objslampp.functions.transformation_matrix(
+        T_cad2cam_pred = morefusion.functions.transformation_matrix(
             quaternion_pred, translation_pred
         )
         T_cad2cam_true = cuda.to_cpu(T_cad2cam_true.array)
@@ -214,14 +214,14 @@ class Model(chainer.Chain):
         for i in range(B):
             class_id_i = int(class_id[i])
             cad_pcd = self._models.get_pcd(class_id=class_id_i)
-            add, add_s = objslampp.metrics.average_distance(
+            add, add_s = morefusion.metrics.average_distance(
                 points=[cad_pcd],
                 transform1=[T_cad2cam_true[i]],
                 transform2=[T_cad2cam_pred[i]],
             )
             add, add_s = add[0], add_s[0]
             is_symmetric = class_id_i in \
-                objslampp.datasets.ycb_video.class_ids_symmetric
+                morefusion.datasets.ycb_video.class_ids_symmetric
             add_or_add_s = add_s if is_symmetric else add
             if chainer.config.train:
                 summary.add({
@@ -257,11 +257,11 @@ class Model(chainer.Chain):
 
         loss = 0
         for i in range(B):
-            T_cad2cam_pred = objslampp.functions.transformation_matrix(
+            T_cad2cam_pred = morefusion.functions.transformation_matrix(
                 quaternion_pred[i], translation_pred[i]
             )  # (M, 4, 4)
 
-            T_cad2cam_true = objslampp.functions.transformation_matrix(
+            T_cad2cam_true = morefusion.functions.transformation_matrix(
                 quaternion_true[i], translation_true[i]
             )  # (4, 4)
 
@@ -271,12 +271,12 @@ class Model(chainer.Chain):
             cad_pcd = xp.asarray(cad_pcd, dtype=np.float32)
 
             is_symmetric = class_id_i in \
-                objslampp.datasets.ycb_video.class_ids_symmetric
+                morefusion.datasets.ycb_video.class_ids_symmetric
             if self._loss in ['add']:
                 is_symmetric = False
             else:
                 assert self._loss in ['add/add_s']
-            add = objslampp.functions.average_distance(
+            add = morefusion.functions.average_distance(
                 cad_pcd,
                 T_cad2cam_true,
                 T_cad2cam_pred,

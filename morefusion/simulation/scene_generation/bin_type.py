@@ -4,7 +4,7 @@ import numpy as np
 import path
 import trimesh
 
-import objslampp
+import morefusion
 
 from .base import SceneGenerationBase
 
@@ -31,7 +31,7 @@ class BinTypeSceneGeneration(SceneGenerationBase):
     def init_space(self):
         import pybullet
 
-        cad = objslampp.extra.trimesh.bin_model(
+        cad = morefusion.extra.trimesh.bin_model(
             extents=self._extents,
             thickness=self._thickness,
         )
@@ -40,9 +40,9 @@ class BinTypeSceneGeneration(SceneGenerationBase):
         if not cad_file.exists():
             trimesh.exchange.export.export_mesh(cad, str(cad_file))
 
-        unique_id = objslampp.extra.pybullet.add_model(
+        unique_id = morefusion.extra.pybullet.add_model(
             visual_file=cad_file,
-            collision_file=objslampp.utils.get_collision_file(cad_file),
+            collision_file=morefusion.utils.get_collision_file(cad_file),
             position=(0, 0, self._extents[2] / 2),
             base_mass=10,
         )

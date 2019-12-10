@@ -7,7 +7,7 @@ from chainer.testing import condition
 import trimesh.transformations as tf
 import numpy as np
 
-from objslampp.functions.geometry.translation_matrix import translation_matrix
+from morefusion.functions.geometry.translation_matrix import translation_matrix
 
 
 class TestTranslationMatrix(unittest.TestCase):

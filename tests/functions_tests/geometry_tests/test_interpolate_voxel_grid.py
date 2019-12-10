@@ -7,9 +7,9 @@ from chainer.testing import attr
 from chainer.testing import condition
 import numpy as np
 
-from objslampp.functions.geometry.interpolate_voxel_grid \
+from morefusion.functions.geometry.interpolate_voxel_grid \
     import interpolate_voxel_grid
-from objslampp.functions.geometry.interpolate_voxel_grid \
+from morefusion.functions.geometry.interpolate_voxel_grid \
     import InterpolateVoxelGrid
 
 

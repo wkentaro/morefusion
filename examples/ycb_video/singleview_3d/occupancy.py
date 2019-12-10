@@ -7,7 +7,7 @@ import numpy as np
 import trimesh
 import trimesh.transformations as tf
 
-import objslampp
+import morefusion
 
 from common import Inference
 
@@ -23,7 +23,7 @@ parser.add_argument(
 )
 args = parser.parse_args()
 
-models = objslampp.datasets.YCBVideoModels()
+models = morefusion.datasets.YCBVideoModels()
 dataset = 'my_real'
 inference = Inference(dataset=dataset, gpu=0)
 frame, Ts_cad2cam_true, Ts_cad2cam_pred = inference(index=0, bg_class=True)
@@ -53,7 +53,7 @@ if args.prior:
         R = tf.rotation_matrix(np.deg2rad(2), [0, 0, 1], [0, 0, 0]) @ R
         points = trimesh.transform_points(points, T @ R)
         points_occupied[0] = points
-        # mesh = objslampp.extra.trimesh.bin_model(
+        # mesh = morefusion.extra.trimesh.bin_model(
         #     (0.38, 0.25, 0.15), thickness=0.03)
         # T2 = tf.translation_matrix([0.0, 0, 0.45])
         # R_flip = tf.rotation_matrix(np.deg2rad(180), [0, 1, 0], [0, 0, 0])

@@ -7,7 +7,7 @@ import numpy as np
 import pybullet
 import trimesh
 
-import objslampp
+import morefusion
 
 import cv_bridge
 import rospy
@@ -33,19 +33,19 @@ class RenderVoxelGrids:
 
         if transform_msg.child_frame_id == cam_msg.header.frame_id:
             # cam2base
-            quaternion, translation = objslampp.ros.from_ros_transform(
+            quaternion, translation = morefusion.ros.from_ros_transform(
                 transform_msg.transform
             )
-            T_cam2base = objslampp.functions.transformation_matrix(
+            T_cam2base = morefusion.functions.transformation_matrix(
                 quaternion, translation
             ).array
             T_base2cam = np.linalg.inv(T_cam2base)
         else:
             # base2cam
-            quaternion, translation = objslampp.ros.from_ros_transform(
+            quaternion, translation = morefusion.ros.from_ros_transform(
                 transform_msg.transform
             )
-            T_base2cam = objslampp.functions.transformation_matrix(
+            T_base2cam = morefusion.functions.transformation_matrix(
                 quaternion, translation
             ).array
 
@@ -74,7 +74,7 @@ class RenderVoxelGrids:
                 mesh_file = tmp_dir / f'{instance_id:04d}.obj'
                 trimesh.exchange.export.export_mesh(mesh, mesh_file)
 
-                uniq_id = objslampp.extra.pybullet.add_model(
+                uniq_id = morefusion.extra.pybullet.add_model(
                     visual_file=mesh_file,
                     collision_file=mesh_file,
                     register=False,
@@ -86,7 +86,7 @@ class RenderVoxelGrids:
                 resolution=(cam_msg.width, cam_msg.height),
                 focal=(K[0, 0], K[1, 1])
             )
-            _, depth_rend, uniq = objslampp.extra.pybullet.render_camera(
+            _, depth_rend, uniq = morefusion.extra.pybullet.render_camera(
                 np.eye(4),
                 fovy=camera.fov[1],
                 height=camera.resolution[1],

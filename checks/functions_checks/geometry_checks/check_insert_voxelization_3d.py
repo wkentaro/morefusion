@@ -6,7 +6,7 @@ import pyglet
 import trimesh
 import trimesh.viewer
 
-import objslampp
+import morefusion
 
 
 def check_insert_voxelization_3d(origin, pitch, points, values, gpu, **kwargs):
@@ -15,7 +15,7 @@ def check_insert_voxelization_3d(origin, pitch, points, values, gpu, **kwargs):
         values = cuda.to_gpu(values)
         points = cuda.to_gpu(points)
 
-    y = objslampp.functions.insert_voxelization_3d(
+    y = morefusion.functions.insert_voxelization_3d(
         values,
         points,
         origin=origin,
@@ -45,8 +45,8 @@ def check_insert_voxelization_3d(origin, pitch, points, values, gpu, **kwargs):
 
 
 def main():
-    dataset = objslampp.datasets.YCBVideoDataset(split='train')
-    class_names = objslampp.datasets.ycb_video.class_names
+    dataset = morefusion.datasets.YCBVideoDataset(split='train')
+    class_names = morefusion.datasets.ycb_video.class_names
 
     example = dataset[1000]
 
@@ -54,7 +54,7 @@ def main():
     depth = example['depth']
 
     K = example['meta']['intrinsic_matrix']
-    pcd = objslampp.geometry.pointcloud_from_depth(
+    pcd = morefusion.geometry.pointcloud_from_depth(
         depth, fx=K[0, 0], fy=K[1, 1], cx=K[0, 2], cy=K[1, 2]
     )
 
@@ -66,7 +66,7 @@ def main():
     values = rgb[mask].astype(np.float32) / 255
 
     # pitch
-    models = objslampp.datasets.YCBVideoModels()
+    models = morefusion.datasets.YCBVideoModels()
     pitch = models.get_voxel_pitch(dimension=32, class_id=class_id)
 
     # origin

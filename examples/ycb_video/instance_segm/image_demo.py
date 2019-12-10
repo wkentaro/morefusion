@@ -9,7 +9,7 @@ import numpy as np
 import path
 import termcolor
 
-import objslampp
+import morefusion
 
 
 here = path.Path(__file__).abspath().parent
@@ -20,7 +20,7 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     root_dir = path.Path(chainer.dataset.get_dataset_directory(
-        'wkentaro/objslampp/ycb_video/real_data/20190613/1560417263794359922',
+        'wkentaro/morefusion/ycb_video/real_data/20190613/1560417263794359922',
         create_directory=False,
     ))
     default_image = root_dir / 'image.png'
@@ -70,7 +70,7 @@ def main():
 
     # visualize detections
     captions = [
-        f'{c:02d}: {objslampp.datasets.ycb_video.class_names[c]}'
+        f'{c:02d}: {morefusion.datasets.ycb_video.class_names[c]}'
         for c in class_ids
     ]
     detections_viz = imgviz.instances2rgb(

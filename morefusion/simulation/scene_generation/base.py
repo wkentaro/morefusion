@@ -4,7 +4,7 @@ import numpy as np
 import termcolor
 import trimesh
 
-import objslampp
+import morefusion
 
 
 class SceneGenerationBase:
@@ -41,7 +41,7 @@ class SceneGenerationBase:
         self._scene = None
 
         # launch simulator
-        objslampp.extra.pybullet.init_world(
+        morefusion.extra.pybullet.init_world(
             connection_method=connection_method
         )
 
@@ -57,7 +57,7 @@ class SceneGenerationBase:
 
     def _is_contained(self, unique_id):
         threshold = 0.5
-        ratio = objslampp.extra.pybullet.aabb_contained_ratio(
+        ratio = morefusion.extra.pybullet.aabb_contained_ratio(
             self._aabb, unique_id,
         )
         return ratio >= threshold
@@ -83,7 +83,7 @@ class SceneGenerationBase:
 
         # check collision
         is_colliding = False
-        for other_unique_id in objslampp.extra.pybullet.unique_ids:
+        for other_unique_id in morefusion.extra.pybullet.unique_ids:
             if other_unique_id == unique_id:
                 continue
             points = pybullet.getClosestPoints(
@@ -110,9 +110,9 @@ class SceneGenerationBase:
             mesh_scale = np.random.uniform(
                 self._mesh_scale[0], self._mesh_scale[1]
             )
-        unique_id = objslampp.extra.pybullet.add_model(
+        unique_id = morefusion.extra.pybullet.add_model(
             visual_file=cad_file,
-            collision_file=objslampp.utils.get_collision_file(cad_file),
+            collision_file=morefusion.utils.get_collision_file(cad_file),
             mesh_scale=mesh_scale
         )
         for _ in range(self._n_trial):
@@ -192,7 +192,7 @@ class SceneGenerationBase:
         R_cad2world = pybullet.getMatrixFromQuaternion(ori)
         R_cad2world = np.asarray(R_cad2world, dtype=float).reshape(3, 3)
         t_cad2world = np.asarray(pos, dtype=float)
-        T_cad2world = objslampp.geometry.compose_transform(
+        T_cad2world = morefusion.geometry.compose_transform(
             R=R_cad2world, t=t_cad2world
         )
         return T_cad2world
@@ -251,7 +251,7 @@ class SceneGenerationBase:
             obj=pyrender.PerspectiveCamera(
                 yfov=np.deg2rad(fovy), aspectRatio=width / height
             ),
-            pose=objslampp.extra.trimesh.to_opengl_transform(T_camera2world),
+            pose=morefusion.extra.trimesh.to_opengl_transform(T_camera2world),
         )
         for _ in range(4):
             direction = self._random_state.uniform(-1, 1, (3,))
@@ -276,7 +276,7 @@ class SceneGenerationBase:
         return rgb, depth
 
     def _render_pybullet(self, T_camera2world, fovy, height, width):
-        rgb, depth, ins = objslampp.extra.pybullet.render_camera(
+        rgb, depth, ins = morefusion.extra.pybullet.render_camera(
             T_camera2world, fovy, height=height, width=width
         )
         cls = np.zeros_like(ins)
@@ -296,14 +296,14 @@ class SceneGenerationBase:
         fovx = 60
         fovy = fovx / width * height
 
-        scene = objslampp.extra.pybullet.get_trimesh_scene()
+        scene = morefusion.extra.pybullet.get_trimesh_scene()
         list(scene.geometry.values())[0].visual.face_colors = (1., 1., 1.)
         for name, geometry in scene.geometry.items():
             if hasattr(geometry.visual, 'to_color'):
                 geometry.visual = geometry.visual.to_color()
         scene.camera.resolution = (width, height)
         scene.camera.fov = (fovx, fovy)
-        scene.camera.transform = objslampp.extra.trimesh.to_opengl_transform(
+        scene.camera.transform = morefusion.extra.trimesh.to_opengl_transform(
             T_camera2world
         )
 
@@ -324,7 +324,7 @@ class SceneGenerationBase:
         viz = imgviz.resize(viz, width=1500)
         imgviz.io.pyglet_imshow(viz, 'pybullet')
 
-        rgb = objslampp.extra.trimesh.save_image(scene)[:, :, :3]
+        rgb = morefusion.extra.trimesh.save_image(scene)[:, :, :3]
         ins_viz = imgviz.label2rgb(ins + 1, rgb)
         cls_viz = imgviz.label2rgb(
             cls, rgb, label_names=class_names, font_size=20
@@ -361,8 +361,8 @@ class SceneGenerationBase:
 
         # targets
         targets = self._random_state.uniform(*aabb, (n_keypoints, 3))
-        targets = objslampp.geometry.trajectory.sort(targets)
-        targets = objslampp.geometry.trajectory.interpolate(
+        targets = morefusion.geometry.trajectory.sort(targets)
+        targets = morefusion.geometry.trajectory.interpolate(
             targets, n_points=n_points
         )
 
@@ -374,21 +374,21 @@ class SceneGenerationBase:
             elevation[0], elevation[1], n_keypoints
         )
         azimuth = self._random_state.uniform(0, 360, n_keypoints)
-        eyes = objslampp.geometry.points_from_angles(
+        eyes = morefusion.geometry.points_from_angles(
             distance, elevation, azimuth
         )
         indices = np.linspace(0, n_points - 1, num=len(eyes))
         indices = indices.round().astype(int)
-        eyes = objslampp.geometry.trajectory.sort_by(
+        eyes = morefusion.geometry.trajectory.sort_by(
             eyes, key=targets[indices]
         )
-        eyes = objslampp.geometry.trajectory.interpolate(
+        eyes = morefusion.geometry.trajectory.interpolate(
             eyes, n_points=n_points
         )
 
         Ts_cam2world = np.zeros((n_points, 4, 4), dtype=float)
         for i in range(n_points):
-            Ts_cam2world[i] = objslampp.geometry.look_at(eyes[i], targets[i])
+            Ts_cam2world[i] = morefusion.geometry.look_at(eyes[i], targets[i])
         return Ts_cam2world
 
     def init_space(self):

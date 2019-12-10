@@ -3,7 +3,7 @@
 import numpy as np
 import trimesh
 
-import objslampp
+import morefusion
 
 import contrib
 
@@ -35,7 +35,7 @@ def get_scenes():
     camera = trimesh.scene.Camera(
         resolution=(640, 480),
         fov=(60, 45),
-        transform=objslampp.extra.trimesh.to_opengl_transform(),
+        transform=morefusion.extra.trimesh.to_opengl_transform(),
     )
 
     scenes = {}
@@ -71,7 +71,7 @@ def get_scenes():
 
 
 def main():
-    objslampp.extra.trimesh.display_scenes(
+    morefusion.extra.trimesh.display_scenes(
         get_scenes(),
         height=int(round(480 * 0.75)),
         width=int(round(640 * 0.75)),

@@ -7,7 +7,7 @@ from chainer.testing import condition
 import trimesh.transformations as tf
 import numpy as np
 
-from objslampp.functions.geometry.quaternion_matrix import quaternion_matrix
+from morefusion.functions.geometry.quaternion_matrix import quaternion_matrix
 
 
 class TestQuaternionMatrix(unittest.TestCase):

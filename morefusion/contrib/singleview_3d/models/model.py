@@ -6,12 +6,12 @@ import chainer.functions as F
 import chainer.links as L
 import numpy as np
 
-import objslampp
+import morefusion
 
 
 class Model(chainer.Chain):
 
-    _models = objslampp.datasets.YCBVideoModels()
+    _models = morefusion.datasets.YCBVideoModels()
     _lambda_confidence = 0.015
     _n_point = 1000
     _voxel_dim = 32
@@ -49,12 +49,12 @@ class Model(chainer.Chain):
         with self.init_scope():
             # extractor
             if pretrained_resnet18:
-                self.resnet_extractor = objslampp.models.ResNet18Extractor()
+                self.resnet_extractor = morefusion.models.ResNet18Extractor()
             else:
                 self.resnet_extractor = \
-                    objslampp.models.dense_fusion.ResNet18()
+                    morefusion.models.dense_fusion.ResNet18()
             self.pspnet_extractor = \
-                objslampp.models.dense_fusion.PSPNetExtractor()
+                morefusion.models.dense_fusion.PSPNetExtractor()
 
             # conv1
             self.conv1_rgb = L.Convolution1D(32, 64, 1)
@@ -113,11 +113,11 @@ class Model(chainer.Chain):
             grid_nontarget_empty = grid_nontarget_empty.astype(np.float32)
             grid_nontarget_empty = grid_nontarget_empty[:, None, :, :, :]
             h_occ = F.relu(self.conv1_occ(grid_nontarget_empty))
-            # h_occ_feat1 = objslampp.functions.interpolate_voxel_grid(
+            # h_occ_feat1 = morefusion.functions.interpolate_voxel_grid(
             #     h_occ, indices, batch_indices,
             # ).reshape(B, P, -1).transpose(0, 2, 1)
             h_occ = F.relu(self.conv2_occ(h_occ))
-            # h_occ_feat2 = objslampp.functions.interpolate_voxel_grid(
+            # h_occ_feat2 = morefusion.functions.interpolate_voxel_grid(
             #     h_occ, indices, batch_indices,
             # ).reshape(B, P, -1).transpose(0, 2, 1)
             voxelized = F.concat([voxelized, h_occ], axis=1)
@@ -125,13 +125,13 @@ class Model(chainer.Chain):
         # conv3, conv4
         h = F.relu(self.conv3(voxelized))
         assert h.shape == (B, 256, 16, 16, 16)
-        feat3 = objslampp.functions.interpolate_voxel_grid(
+        feat3 = morefusion.functions.interpolate_voxel_grid(
             h, indices / 2.0, batch_indices
         )
         feat3 = feat3.reshape(B, P, h.shape[1]).transpose(0, 2, 1)
         h = F.relu(self.conv4(h))
         assert h.shape == (B, 512, 8, 8, 8)
-        feat4 = objslampp.functions.interpolate_voxel_grid(
+        feat4 = morefusion.functions.interpolate_voxel_grid(
             h, indices / 4.0, batch_indices
         )
         feat4 = feat4.reshape(B, P, h.shape[1]).transpose(0, 2, 1)
@@ -151,7 +151,7 @@ class Model(chainer.Chain):
         values = values.reshape(B * P, -1)
         points = points.reshape(B * P, 3)
 
-        voxelized = objslampp.functions.average_voxelization_3d(
+        voxelized = morefusion.functions.average_voxelization_3d(
             values,
             points,
             batch_indices,
@@ -199,7 +199,7 @@ class Model(chainer.Chain):
                     dimension=self._voxel_dim, class_id=int(class_id[i])
                 )
             if origin[i] is None:
-                center_i = objslampp.extra.cupy.median(
+                center_i = morefusion.extra.cupy.median(
                     pcd[i, :, iy, ix], axis=0
                 )
                 origin[i] = center_i - pitch[i] * (self._voxel_dim / 2. - 0.5)
@@ -336,10 +336,10 @@ class Model(chainer.Chain):
 
         B = class_id.shape[0]
 
-        T_cad2cam_true = objslampp.functions.transformation_matrix(
+        T_cad2cam_true = morefusion.functions.transformation_matrix(
             quaternion_true, translation_true
         )
-        T_cad2cam_pred = objslampp.functions.transformation_matrix(
+        T_cad2cam_pred = morefusion.functions.transformation_matrix(
             quaternion_pred, translation_pred
         )
         T_cad2cam_true = cuda.to_cpu(T_cad2cam_true.array)
@@ -349,14 +349,14 @@ class Model(chainer.Chain):
         for i in range(B):
             class_id_i = int(class_id[i])
             cad_pcd = self._models.get_pcd(class_id=class_id_i)
-            add, add_s = objslampp.metrics.average_distance(
+            add, add_s = morefusion.metrics.average_distance(
                 points=[cad_pcd],
                 transform1=[T_cad2cam_true[i]],
                 transform2=[T_cad2cam_pred[i]],
             )
             add, add_s = add[0], add_s[0]
             is_symmetric = class_id_i in \
-                objslampp.datasets.ycb_video.class_ids_symmetric
+                morefusion.datasets.ycb_video.class_ids_symmetric
             add_or_add_s = add_s if is_symmetric else add
             if chainer.config.train:
                 summary.add({
@@ -404,11 +404,11 @@ class Model(chainer.Chain):
 
         loss = 0
         for i in range(B):
-            T_cad2cam_pred = objslampp.functions.transformation_matrix(
+            T_cad2cam_pred = morefusion.functions.transformation_matrix(
                 quaternion_pred[i], translation_pred[i]
             )  # (P, 4, 4)
 
-            T_cad2cam_true = objslampp.functions.transformation_matrix(
+            T_cad2cam_true = morefusion.functions.transformation_matrix(
                 quaternion_true[i], translation_true[i]
             )  # (4, 4)
 
@@ -418,12 +418,12 @@ class Model(chainer.Chain):
             cad_pcd = xp.asarray(cad_pcd, dtype=np.float32)
 
             is_symmetric = class_id_i in \
-                objslampp.datasets.ycb_video.class_ids_symmetric
+                morefusion.datasets.ycb_video.class_ids_symmetric
             if self._loss in ['add', 'add+occupancy']:
                 is_symmetric = False
             else:
                 assert self._loss in ['add/add_s', 'add/add_s+occupancy']
-            add = objslampp.functions.average_distance(
+            add = morefusion.functions.average_distance(
                 cad_pcd,
                 T_cad2cam_true,
                 T_cad2cam_pred,
@@ -447,8 +447,8 @@ class Model(chainer.Chain):
                     threshold=2.0,
                 )
                 grid_target_pred = \
-                    objslampp.functions.pseudo_occupancy_voxelization(
-                        points=objslampp.functions.transform_points(
+                    morefusion.functions.pseudo_occupancy_voxelization(
+                        points=morefusion.functions.transform_points(
                             solid_pcd, T_cad2cam_pred[i]
                         ), **kwargs
                     )

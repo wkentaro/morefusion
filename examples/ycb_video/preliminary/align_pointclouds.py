@@ -6,12 +6,12 @@ import numpy as np
 import trimesh
 import trimesh.transformations as tf
 
-import objslampp
+import morefusion
 
 
 class MultiInstanceICPRegistration:
 
-    _models = objslampp.datasets.YCBVideoModels()
+    _models = morefusion.datasets.YCBVideoModels()
 
     def __init__(
         self,
@@ -59,8 +59,8 @@ class MultiInstanceICPRegistration:
         class_id = self._class_ids[instance_id]
         pcd_cad = self._models.get_pcd(class_id=class_id).astype(np.float32)
 
-        pcd_cad = objslampp.extra.open3d.voxel_down_sample(pcd_cad, 0.01)
-        pcd_depth = objslampp.extra.open3d.voxel_down_sample(pcd_depth, 0.01)
+        pcd_cad = morefusion.extra.open3d.voxel_down_sample(pcd_cad, 0.01)
+        pcd_depth = morefusion.extra.open3d.voxel_down_sample(pcd_depth, 0.01)
 
         self._instance_id = instance_id
         self._pcd_cad = pcd_cad
@@ -72,7 +72,7 @@ class MultiInstanceICPRegistration:
                 pcd_depth, pcd_cad, self._Ts_cad2cam_pred[instance_id]
             )
         else:
-            registration = objslampp.contrib.ICPRegistration(
+            registration = morefusion.contrib.ICPRegistration(
                 pcd_depth, pcd_cad, self._Ts_cad2cam_pred[instance_id]
             )
         with chainer.using_config('debug', True):
@@ -93,7 +93,7 @@ class MultiInstanceICPRegistration:
         camera = trimesh.scene.Camera(
             resolution=(640, 480),
             fov=(60 * 0.7, 45 * 0.7),
-            transform=objslampp.extra.trimesh.to_opengl_transform(),
+            transform=morefusion.extra.trimesh.to_opengl_transform(),
         )
 
         scenes = {}
@@ -201,14 +201,14 @@ def refinement(
                 for _ in registration.register_instance(instance_id)
             )
 
-    objslampp.extra.trimesh.display_scenes(
+    morefusion.extra.trimesh.display_scenes(
         scenes_ggroup(), height=360, width=480, tile=(2, 3))
 
     return registration
 
 
 def main():
-    dataset = objslampp.datasets.YCBVideoDataset('train')
+    dataset = morefusion.datasets.YCBVideoDataset('train')
 
     frame = dataset[1000]
 
@@ -217,7 +217,7 @@ def main():
     depth = frame['depth']
     K = frame['meta']['intrinsic_matrix']
     rgb = frame['color']
-    pcd = objslampp.geometry.pointcloud_from_depth(
+    pcd = morefusion.geometry.pointcloud_from_depth(
         depth, fx=K[0, 0], fy=K[1, 1], cx=K[0, 2], cy=K[1, 2]
     )
     instance_label = frame['label']

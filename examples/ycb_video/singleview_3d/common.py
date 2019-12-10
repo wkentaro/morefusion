@@ -6,7 +6,7 @@ import numpy as np
 import path
 import trimesh.transformations as tf
 
-import objslampp
+import morefusion
 
 import contrib
 
@@ -37,13 +37,13 @@ class Inference:
         chainer.serializers.load_npz(model_file, model)
 
         if dataset == 'my_synthetic':
-            root_dir = home / 'data/datasets/wkentaro/objslampp/ycb_video/synthetic_data/20190507_121544.807309'  # NOQA
+            root_dir = home / 'data/datasets/wkentaro/morefusion/ycb_video/synthetic_data/20190507_121544.807309'  # NOQA
             dataset = contrib.datasets.MySyntheticDataset(
                 root_dir=root_dir,
                 class_ids=args_data['class_ids'],
             )
         elif dataset == 'my_real':
-            root_dir = home / 'data/datasets/wkentaro/objslampp/ycb_video/real_data/20190614_18'  # NOQA
+            root_dir = home / 'data/datasets/wkentaro/morefusion/ycb_video/real_data/20190614_18'  # NOQA
             dataset = contrib.datasets.MyRealDataset(
                 root_dir=root_dir,
                 class_ids=args_data['class_ids'],
@@ -80,7 +80,7 @@ class Inference:
         T_pred = self.T(quaternion_pred, translation_pred)
 
         K = frame['intrinsic_matrix']
-        frame['pcd'] = objslampp.geometry.pointcloud_from_depth(
+        frame['pcd'] = morefusion.geometry.pointcloud_from_depth(
             frame['depth'], fx=K[0, 0], fy=K[1, 1], cx=K[0, 2], cy=K[1, 2],
         )
 

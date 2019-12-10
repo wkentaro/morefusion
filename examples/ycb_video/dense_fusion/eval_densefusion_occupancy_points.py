@@ -4,14 +4,14 @@ import numpy as np
 import trimesh.transformations as tf
 import scipy.io
 
-import objslampp
+import morefusion
 
 import contrib
 import preliminary
 
 
-dataset = objslampp.datasets.YCBVideoDataset
-models = objslampp.datasets.YCBVideoModels()
+dataset = morefusion.datasets.YCBVideoDataset
+models = morefusion.datasets.YCBVideoModels()
 
 name = 'Densefusion_occupancy_points_result'
 occupancy_dir = contrib.get_eval_result(name)
@@ -30,7 +30,7 @@ for result_file in sorted(norefine_dir.glob('*.mat')):
     depth = frame['depth']
     nonnan = ~np.isnan(depth)
     K = frame['meta']['intrinsic_matrix']
-    pcd_scene = objslampp.geometry.pointcloud_from_depth(
+    pcd_scene = morefusion.geometry.pointcloud_from_depth(
         depth, fx=K[0, 0], fy=K[1, 1], cx=K[0, 2], cy=K[1, 2],
     )
 
@@ -45,12 +45,12 @@ for result_file in sorted(norefine_dir.glob('*.mat')):
     mapping.integrate(0, mask_bg, pcd_scene)
 
     instance_ids_all = np.r_[0, frame['meta']['cls_indexes']]
-    with objslampp.utils.timer(frame_id):
+    with morefusion.utils.timer(frame_id):
         poses_refined = np.zeros_like(result['poses'])
         for i, (cls_id, mask, pose) in enumerate(zip(
             result['labels'], result['masks'], result['poses']
         )):
-            transform_init = objslampp.geometry.compose_transform(
+            transform_init = morefusion.geometry.compose_transform(
                 R=tf.quaternion_matrix(pose[:4])[:3, :3],
                 t=pose[4:],
             )
@@ -80,13 +80,13 @@ for result_file in sorted(norefine_dir.glob('*.mat')):
             occupied_u = np.concatenate(occupied_u, axis=0)
             empty = np.concatenate(empty, axis=0)
 
-            pcd_cad = objslampp.extra.open3d.voxel_down_sample(
+            pcd_cad = morefusion.extra.open3d.voxel_down_sample(
                 pcd_cad, voxel_size=0.01
             )
-            pcd_depth_target = objslampp.extra.open3d.voxel_down_sample(
+            pcd_depth_target = morefusion.extra.open3d.voxel_down_sample(
                 occupied_t, voxel_size=0.01
             )
-            pcd_depth_nontarget = objslampp.extra.open3d.voxel_down_sample(
+            pcd_depth_nontarget = morefusion.extra.open3d.voxel_down_sample(
                 np.vstack((occupied_u, empty)), voxel_size=0.01
             )
 
@@ -98,7 +98,7 @@ for result_file in sorted(norefine_dir.glob('*.mat')):
                 gpu=0,
                 alpha=0.01,
             )
-            with objslampp.utils.timer('register'):
+            with morefusion.utils.timer('register'):
                 transform = registration.register(iteration=100)
 
             if np.isnan(transform).sum():
