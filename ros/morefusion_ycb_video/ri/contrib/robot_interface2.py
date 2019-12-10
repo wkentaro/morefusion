@@ -2,9 +2,12 @@ import time
 
 import rospy
 
+from geometry_msgs.msg import Pose, Point, Quaternion
 from std_srvs.srv import Empty
 from morefusion_ycb_video.srv import MoveToJointPosition
 from morefusion_ycb_video.srv import SetSuction
+
+from .get_scanning_poses import get_scanning_poses
 
 
 class RobotInterface:
@@ -76,19 +79,19 @@ class RobotInterface:
     # -------------------------------------------------------------------------
 
     def set_end_effector_position_linearly(self, *args, **kwargs):
-        from robot_interface import set_end_effector_position_linearly
+        from .robot_interface import set_end_effector_position_linearly
         return set_end_effector_position_linearly(*args, **kwargs)
 
     def set_end_effector_quaternion_pose_linearly(self, *args, **kwargs):
-        from robot_interface import set_end_effector_quaternion_pose_linearly
+        from .robot_interface import set_end_effector_quaternion_pose_linearly
         return set_end_effector_quaternion_pose_linearly(*args, **kwargs)
 
     def set_end_effector_quaternion_pose(self, *args, **kwargs):
-        from robot_interface import set_end_effector_quaternion_pose
+        from .robot_interface import set_end_effector_quaternion_pose
         return set_end_effector_quaternion_pose(*args, **kwargs)
 
     def set_end_effector_quaternion_pointing_pose(self, *args, **kwargs):
-        from robot_interface import set_end_effector_quaternion_pointing_pose
+        from .robot_interface import set_end_effector_quaternion_pointing_pose
         return set_end_effector_quaternion_pointing_pose(*args, **kwargs)
 
     def grasp(self):
@@ -122,9 +125,6 @@ class RobotInterface:
 
     def run_scanning_motion(self):
         self.move_to_overlook_pose()
-
-        from get_scanning_poses import get_scanning_poses
-        from geometry_msgs.msg import Pose, Point, Quaternion
 
         poses = get_scanning_poses()
         for i, robot_pose in enumerate(poses):

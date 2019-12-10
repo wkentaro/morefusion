@@ -2,7 +2,7 @@ import math
 
 import numpy as np
 
-import general_kinematics as gk
+from . import general_kinematics as gk
 
 
 def get_scanning_poses():
