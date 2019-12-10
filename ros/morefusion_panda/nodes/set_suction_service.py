@@ -2,7 +2,7 @@
 
 import rospy
 import serial
-from ros_objslampp_panda.srv import SetSuction
+from morefusion_panda.srv import SetSuction
 
 
 ser = serial.Serial('/dev/arduino0', baudrate=9600, timeout=1)
