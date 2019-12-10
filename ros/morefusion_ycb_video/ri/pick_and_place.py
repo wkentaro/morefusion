@@ -20,10 +20,10 @@ import objslampp
 import objslampp.datasets.ycb_video as ycb_video_dataset
 
 # robot demo
-import general_kinematics as gk
-import world_interface as world_interface
-from object_pose_interface import ObjectPoseInterface
-from robot_interface2 import RobotInterface
+import contrib.general_kinematics as gk
+import contrib.world_interface as world_interface
+from contrib.object_pose_interface import ObjectPoseInterface
+from contrib.robot_interface2 import RobotInterface
 
 
 class RobotDemoInterface(RobotInterface):
@@ -663,7 +663,7 @@ class RobotDemoInterface(RobotInterface):
 if __name__ == '__main__':
     import IPython
 
-    rospy.init_node('robot_demo')
+    rospy.init_node('pick_and_place')
     ri = RobotDemoInterface()
     header = '''\
 Usage:
@@ -671,6 +671,8 @@ Usage:
   >>> ri.move_to_reset_pose()
   >>> ri.scan_scane()
   >>> ri.pick_and_place()
+
+  or
 
   >>> ri.run()
 '''

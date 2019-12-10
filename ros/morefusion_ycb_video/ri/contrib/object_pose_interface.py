@@ -1,10 +1,11 @@
 # flake8: noqa
 import math
 import numpy as np
-import general_kinematics as gk
 import trimesh
 import trimesh.transformations as ttf
 from geometry_msgs.msg import Pose
+
+from . import general_kinematics as gk
 
 
 class ObjectPoseInterface:
