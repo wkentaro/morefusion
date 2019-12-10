@@ -2,15 +2,11 @@
 <package format="2">
   <name>morefusion_panda</name>
   <version>0.1.0</version>
-  <description>The moveit_tutorials package</description>
+  <description>ROS stack of MoreFusion- and PandaRobot-specific stuff.</description>
   <license>BSD</license>
 
-  <author email="sachinc@willowgarage.com">Sachin Chitta</author>
-  <author email="dave@picknik.ai">Dave Coleman</author>
-  <author email="mike@picknik.ai">Mike Lautman</author>
-
-  <maintainer email="dave@picknik.ai">Dave Coleman</maintainer>
-  <maintainer email="mike@picknik.ai">Mike Lautman</maintainer>
+  <maintainer email="www.kentaro.wada@gmail.com">Kentaro Wada</maintainer>
+  <author email="djl11@ic.ac.uk">Daniel Lenton</author>
 
   <buildtool_depend>catkin</buildtool_depend>
 
