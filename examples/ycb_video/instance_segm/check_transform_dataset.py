@@ -42,9 +42,10 @@ class Images:
 model = chainercv.links.model.fpn.MaskRCNNFPNResNet50(
     n_fg_class=1, pretrained_model='imagenet'
 )
-dataset = morefusion.datasets.MySyntheticYCB20190916InstanceSegmentationDataset(
-    split='train', bg_composite=True
-)
+dataset = \
+    morefusion.datasets.MySyntheticYCB20190916InstanceSegmentationDataset(
+        split='train', bg_composite=True
+    )
 # dataset = morefusion.datasets.YCBVideoInstanceSegmentationDataset(
 #     split='train', sampling=15
 # )

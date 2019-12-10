@@ -17,7 +17,9 @@ targets = np.random.uniform(
     aabb_min_target, aabb_max_target, (n_keypoints, 3)
 )
 targets = morefusion.geometry.trajectory.sort(targets)
-targets = morefusion.geometry.trajectory.interpolate(targets, n_points=n_points)
+targets = morefusion.geometry.trajectory.interpolate(
+    targets, n_points=n_points
+)
 
 # eye
 aabb_min_eye = (-1, -1, -1)
