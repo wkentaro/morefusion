@@ -20,4 +20,4 @@ echo_bold "==> Linting with flake8"
 flake8 .
 
 echo_bold "==> Linting with mypy"
-mypy -p objslampp --ignore-missing-imports
+mypy -p morefusion --ignore-missing-imports
