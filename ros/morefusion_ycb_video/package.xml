@@ -2,7 +2,7 @@
 <package format="2">
   <name>morefusion_ycb_video</name>
   <version>0.1.0</version>
-  <description>Specific to objslampp for ycb_video example</description>
+  <description>ROS stack of MoreFusion- and YCBVideo-specific stuff.</description>
   <maintainer email="www.kentaro.wada@gmail.com">Kentaro Wada</maintainer>
   <author email="www.kentaro.wada@gmaill.com">Kentaro Wada</author>
   <license>MIT</license>
