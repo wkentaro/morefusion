@@ -6,12 +6,13 @@ add_compile_options(-std=c++11)
 find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   dynamic_reconfigure
+  geometry_msgs
   jsk_recognition_msgs
+  message_generation
   octomap_ros
   pcl_ros
-  ros_objslampp_msgs
-  ros_objslampp_srvs
   roscpp
+  sensor_msgs
   tf
 )
 
@@ -26,6 +27,35 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 
 generate_dynamic_reconfigure_options(
   cfg/OctomapServer.cfg
+)
+
+add_message_files(
+  FILES
+  ObjectClass.msg
+  ObjectClassArray.msg
+  ObjectPose.msg
+  ObjectPoseArray.msg
+  VoxelDimensions.msg
+  VoxelGrid.msg
+  VoxelGridArray.msg
+)
+
+add_service_files(
+  FILES
+  RenderVoxelGridArray.srv
+  MoveToHome.srv
+  MoveToPose.srv
+  MoveToJointPosition.srv
+  SetSuction.srv
+  UpdateScene.srv
+)
+
+generate_messages(
+  DEPENDENCIES
+  geometry_msgs
+  sensor_msgs
+  moveit_msgs
+  ros_objslampp_ycb_video
 )
 
 catkin_package(

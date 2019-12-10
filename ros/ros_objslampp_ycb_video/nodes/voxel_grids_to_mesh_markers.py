@@ -10,7 +10,7 @@ import trimesh
 
 from geometry_msgs.msg import Point
 from visualization_msgs.msg import Marker, MarkerArray
-from ros_objslampp_msgs.msg import VoxelGridArray
+from ros_objslampp_ycb_video.msg import VoxelGridArray
 import rospy
 import topic_tools
 

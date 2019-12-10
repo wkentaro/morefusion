@@ -11,12 +11,12 @@
 
   <build_depend>cv_bridge</build_depend>
   <build_depend>dynamic_reconfigure</build_depend>
+  <build_depend>geometry_msgs</build_depend>
   <build_depend>jsk_recognition_msgs</build_depend>
+  <build_depend>message_generation</build_depend>
   <build_depend>octomap</build_depend>
   <build_depend>octomap_ros</build_depend>
   <build_depend>pcl_ros</build_depend>
-  <build_depend>ros_objslampp_msgs</build_depend>
-  <build_depend>ros_objslampp_srvs</build_depend>
   <build_depend>roscpp</build_depend>
   <build_depend>tf</build_depend>
 
@@ -28,6 +28,7 @@
   <exec_depend>jsk_recognition_utils</exec_depend>
   <exec_depend>jsk_rviz_plugins</exec_depend>
   <exec_depend>jsk_tools</exec_depend>
+  <exec_depend>message_runtime</exec_depend>
   <exec_depend>moveit_ros_visualization</exec_depend>
   <exec_depend>orb_slam2_ros</exec_depend>
   <exec_depend>realsense2_camera</exec_depend>

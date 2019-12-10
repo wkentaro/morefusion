@@ -9,8 +9,8 @@ import numpy as np
 import objslampp
 
 import message_filters
-from ros_objslampp_msgs.msg import ObjectPoseArray
-from ros_objslampp_msgs.msg import VoxelGridArray
+from ros_objslampp_ycb_video.msg import ObjectPoseArray
+from ros_objslampp_ycb_video.msg import VoxelGridArray
 import rospy
 import topic_tools
 

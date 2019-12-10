@@ -8,8 +8,8 @@ import objslampp
 
 import cv_bridge
 import rospy
-from ros_objslampp_msgs.msg import ObjectClass
-from ros_objslampp_msgs.msg import ObjectClassArray
+from ros_objslampp_ycb_video.msg import ObjectClass
+from ros_objslampp_ycb_video.msg import ObjectClassArray
 from sensor_msgs.msg import Image
 from topic_tools import LazyTransport
 

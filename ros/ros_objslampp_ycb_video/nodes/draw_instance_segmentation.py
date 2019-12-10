@@ -4,7 +4,7 @@ from topic_tools import LazyTransport
 
 import cv_bridge
 import message_filters
-from ros_objslampp_msgs.msg import ObjectClassArray
+from ros_objslampp_ycb_video.msg import ObjectClassArray
 import rospy
 from sensor_msgs.msg import Image
 

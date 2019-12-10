@@ -6,9 +6,9 @@ from geometry_msgs.msg import Pose as _Pose
 from geometry_msgs.msg import Vector3 as _Vector3
 from geometry_msgs.msg import Quaternion as _Quaternion
 
-from ros_objslampp_srvs.srv import MoveToPose as _MoveToPose
-from ros_objslampp_srvs.srv import SetSuction as _SetSuction
-from ros_objslampp_srvs.srv import MoveToJointPosition as _MoveToJointPosition
+from ros_objslampp_ycb_video.srv import MoveToPose as _MoveToPose
+from ros_objslampp_ycb_video.srv import SetSuction as _SetSuction
+from ros_objslampp_ycb_video.srv import MoveToJointPosition as _MoveToJointPosition
 
 
 # move to home #

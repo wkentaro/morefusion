@@ -6,7 +6,7 @@ import rospy
 import topic_tools
 from visualization_msgs.msg import Marker
 from visualization_msgs.msg import MarkerArray
-from ros_objslampp_msgs.msg import ObjectPoseArray
+from ros_objslampp_ycb_video.msg import ObjectPoseArray
 
 
 class ObjectPosesToMarkers(topic_tools.LazyTransport):
