@@ -10,7 +10,7 @@
 
   <!-- gripper {{ -->
 
-  <xacro:include filename="$(find ros_objslampp_panda)/robots/suction/suction_gripper.xacro"/>
+  <xacro:include filename="$(find ros_objslampp_panda)/robots/suction_gripper.xacro"/>
   <xacro:suction_gripper ns="panda" rpy="${pi} 0 ${-pi/4}" xyz="0 0 0.0065" connected_to="panda_link8"/>
 
   <!-- }} gripper -->
