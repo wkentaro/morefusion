@@ -9,6 +9,7 @@ find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   jsk_recognition_msgs
   message_generation
+  moveit_msgs
   octomap_ros
   pcl_ros
   roscpp
