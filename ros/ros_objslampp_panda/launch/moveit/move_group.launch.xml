@@ -1,6 +1,6 @@
 <launch>
 
-  <include file="$(find ros_objslampp_panda)/launch/planning_context_demo1.launch"/>
+  <include file="$(find ros_objslampp_panda)/launch/moveit/planning_context.launch.xml"/>
 
   <arg name="planner" default="ompl" />
 
@@ -8,7 +8,7 @@
   <arg name="debug" default="false" />
   <arg unless="$(arg debug)" name="launch_prefix" value="" />
   <arg     if="$(arg debug)" name="launch_prefix"
-	   value="gdb -x $(find panda_moveit_config)/launch/gdb_settings.gdb --ex run --args" />
+           value="gdb -x $(find panda_moveit_config)/launch/gdb_settings.gdb --ex run --args" />
 
   <!-- Verbose Mode Option -->
   <arg name="info" default="$(arg debug)" />
