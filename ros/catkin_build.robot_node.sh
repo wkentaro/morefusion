@@ -2,7 +2,7 @@
 
 set -e
 
-ROSOBJSLAMPP_PREFIX=$HOME/ros_objslampp
+ROS_ROOT_PREFIX=$HOME/ros_morefusion
 
 unset PYTHONPATH
 unset CMAKE_PREFIX_PATH
@@ -11,13 +11,13 @@ source /opt/ros/kinetic/setup.bash
 
 set -x
 
-mkdir -p $ROSOBJSLAMPP_PREFIX/src
-cd $ROSOBJSLAMPP_PREFIX
+mkdir -p $ROS_ROOT_PREFIX/src
+cd $ROS_ROOT_PREFIX
 catkin init
 
-if [ ! -e $ROSOBJSLAMPP_PREFIX/src/.rosinstall ]; then
-  ln -s $ROSOBJSLAMPP_PREFIX/src/objslampp/ros/rosinstall $ROSOBJSLAMPP_PREFIX/src/.rosinstall
-  (cd $ROSOBJSLAMPP_PREFIX/src && wstool up)
+if [ ! -e $ROS_ROOT_PREFIX/src/.rosinstall ]; then
+  ln -s $ROS_ROOT_PREFIX/src/objslampp/ros/rosinstall $ROS_ROOT_PREFIX/src/.rosinstall
+  (cd $ROS_ROOT_PREFIX/src && wstool up)
 fi
 
 catkin config --merge-devel \
@@ -61,9 +61,4 @@ catkin config --blacklist \
   topic_tools \
   xmlrpcpp
 
-catkin build ros_objslampp_panda
-
-set +x
-source /opt/ros/kinetic/setup.bash
-source $ROSOBJSLAMPP_PREFIX/devel/setup.bash
-set -x
+catkin build morefusion_panda
