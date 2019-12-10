@@ -7,7 +7,7 @@
   <arg name="robot_description" default="robot_description"/>
 
   <!-- Load universal robot description format (URDF) -->
-  <param if="$(eval arg('load_robot_description'))" name="$(arg robot_description)" command="$(find xacro)/xacro --inorder '$(find ros_objslampp_panda)/robots/panda_arm_suction_gripper_objslampp.urdf.xacro'"/>
+  <param if="$(eval arg('load_robot_description'))" name="$(arg robot_description)" command="$(find xacro)/xacro --inorder '$(find ros_objslampp_panda)/robots/panda.urdf.xacro'"/>
 
   <!-- The semantic description that corresponds to the URDF -->
   <param name="$(arg robot_description)_semantic" command="$(find xacro)/xacro --inorder '$(find ros_objslampp_panda)/config/panda_arm_suction_demo1.srdf.xacro'" />
