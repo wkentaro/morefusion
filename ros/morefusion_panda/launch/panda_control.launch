@@ -1,6 +1,6 @@
 <launch>
 
-  <param name="robot_description" command="$(find xacro)/xacro --inorder '$(find ros_objslampp_panda)/robots/panda.urdf.xacro'" />
+  <param name="robot_description" command="$(find xacro)/xacro --inorder '$(find morefusion_panda)/robots/panda.urdf.xacro'" />
 
   <!-- controllers {{ -->
 
@@ -37,7 +37,7 @@
   <!-- }} controllers -->
 
   <node name="set_suction_service"
-        pkg="ros_objslampp_panda" type="set_suction_service.py"
+        pkg="morefusion_panda" type="set_suction_service.py"
         output="screen" required="true" />
 
 </launch>

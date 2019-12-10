@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(ros_objslampp_panda)
+project(morefusion_panda)
 
 add_compile_options(-std=c++11)
 
@@ -50,7 +50,7 @@ generate_messages(
 )
 
 catkin_package(
-        LIBRARIES ros_objslampp_panda
+        LIBRARIES morefusion_panda
         interactivity_utils
         INCLUDE_DIRS
         ${THIS_PACKAGE_INCLUDE_DIRS}
@@ -81,10 +81,10 @@ link_directories(${catkin_LIBRARY_DIRS})
 
 add_executable(pose_service src/pose_service.cpp)
 target_link_libraries(pose_service ${catkin_LIBRARIES} ${Boost_LIBRARIES})
-add_dependencies(pose_service ros_objslampp_panda_gencpp)
+add_dependencies(pose_service morefusion_panda_gencpp)
 install(TARGETS pose_service DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
 add_executable(update_scene_service src/update_scene_service.cpp)
 target_link_libraries(update_scene_service ${catkin_LIBRARIES} ${Boost_LIBRARIES})
-add_dependencies(update_scene_service ros_objslampp_panda_gencpp)
+add_dependencies(update_scene_service morefusion_panda_gencpp)
 install(TARGETS update_scene_service DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
