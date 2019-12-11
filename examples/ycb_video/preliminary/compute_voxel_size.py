@@ -11,10 +11,10 @@ import morefusion
 
 
 def get_data():
-    class_names = morefusion.datasets.ycb_video.class_names
     models = morefusion.datasets.YCBVideoModels()
+    class_ids = list(range(models.n_class))[1:]
 
-    cad_files = [models.get_cad(class_name=name) for name in class_names[1:]]
+    cad_files = [models.get_cad_file(class_id=c) for c in class_ids]
 
     with concurrent.futures.ProcessPoolExecutor() as p:
         top_images = []
@@ -24,17 +24,18 @@ def get_data():
             )
 
         bbox_diagonals = []
-        for name in class_names[1:]:
+        for class_id in class_ids:
             bbox_diagonals.append(
-                p.submit(models.get_bbox_diagonal, class_name=name)
+                p.submit(models.get_bbox_diagonal, class_id=class_id)
             )
     top_images = [future.result() for future in top_images]
     bbox_diagonals = [future.result() for future in bbox_diagonals]
 
     data = []
-    for class_name, bbox_diagonal in zip(class_names[1:], bbox_diagonals):
+    for class_id, bbox_diagonal in zip(class_ids, bbox_diagonals):
+        class_name = models.class_names[class_id]
         ycb_class_id = int(class_name.split('_')[0])
-        ycb_video_class_id = class_names.index(class_name)
+        ycb_video_class_id = class_id
         voxel_size = bbox_diagonal / 32.
         data.append((
             ycb_class_id,
