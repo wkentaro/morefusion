@@ -9,6 +9,7 @@ import morefusion
 
 def visualize_pcds(
     camera,
+    camera_transform,
     instance_ids,
     pcds_occupied,
     pcds_empty,
@@ -24,10 +25,14 @@ def visualize_pcds(
     scene_common.add_geometry(geom, geom_name='camera_marker')
 
     scenes['occupied'] = trimesh.Scene(
-        camera=camera, geometry=scene_common.geometry
+        camera=camera,
+        geometry=scene_common.geometry,
+        camera_transform=camera_transform,
     )
     scenes['empty'] = trimesh.Scene(
-        camera=camera, geometry=scene_common.geometry
+        camera=camera,
+        geometry=scene_common.geometry,
+        camera_transform=camera_transform,
     )
     colormap = imgviz.label_colormap()
     for ins_id, occupied, empty in zip(
@@ -69,8 +74,8 @@ def main():
     camera = trimesh.scene.Camera(
         resolution=(640, 480),
         focal=(K[0, 0], K[1, 1]),
-        transform=morefusion.extra.trimesh.to_opengl_transform(),
     )
+    camera_transform = morefusion.extra.trimesh.to_opengl_transform()
 
     pcds_occupied = []
     pcds_empty = []
@@ -81,6 +86,7 @@ def main():
 
     scenes = visualize_pcds(
         camera,
+        camera_transform,
         instance_ids_all,
         pcds_occupied,
         pcds_empty,
