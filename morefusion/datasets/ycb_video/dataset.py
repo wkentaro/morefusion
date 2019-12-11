@@ -28,7 +28,7 @@ class YCBVideoDataset(DatasetBase):
         Root directory of this dataset.
     """
 
-    _root_dir = utils_module.get_data_path('ycb_video/YCBVideoDataset')
+    _root_dir = utils_module.get_data_path('ycb_video/YCB_Video_Dataset')
     _data_dir = 'data'
 
     def __init__(self, split: str, sampling=1):
