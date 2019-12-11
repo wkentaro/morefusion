@@ -303,7 +303,7 @@ class SceneGenerationBase:
                 geometry.visual = geometry.visual.to_color()
         scene.camera.resolution = (width, height)
         scene.camera.fov = (fovx, fovy)
-        scene.camera.transform = morefusion.extra.trimesh.to_opengl_transform(
+        scene.camera_transform = morefusion.extra.trimesh.to_opengl_transform(
             T_camera2world
         )
 

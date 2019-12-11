@@ -19,7 +19,7 @@ def visualize_pcds(
     # camera
     camera_marker = camera.copy()
     camera_marker.transform = \
-        morefusion.extra.trimesh.from_opengl_transform(camera.transform)
+        morefusion.extra.trimesh.from_opengl_transform(camera_transform)
     geom = trimesh.creation.camera_marker(camera_marker, marker_height=0.1)
     scene_common.add_geometry(geom, geom_name='camera_marker')
 

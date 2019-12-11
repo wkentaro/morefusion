@@ -61,7 +61,7 @@ def visualize_instance_grids(
     for scene in [scene_pcd, scene_occupied, scene_empty]:
         scene.camera.resolution = (640, 480)
         scene.camera.focal = (K[0, 0], K[1, 1])
-        scene.camera.transform = morefusion.extra.trimesh.to_opengl_transform(
+        scene.camera_transform = morefusion.extra.trimesh.to_opengl_transform(
             tf.translation_matrix([0, 0, -0.5])
         )
 
@@ -83,13 +83,13 @@ def visualize_instance_grids(
         if window.rotate:
             for scene in [scene_pcd, scene_occupied, scene_empty]:
                 axis = tf.transform_points(
-                    [[0, 1, 0]], scene.camera.transform, translate=False
+                    [[0, 1, 0]], scene.camera_transform, translate=False
                 )[0]
-                scene.camera.transform = tf.rotation_matrix(
+                scene.camera_transform = tf.rotation_matrix(
                     np.deg2rad(window.rotate),
                     axis,
                     point=scene_occupied.centroid,
-                ) @ scene.camera.transform
+                ) @ scene.camera_transform
 
     gui = glooey.Gui(window)
     hbox = glooey.HBox()

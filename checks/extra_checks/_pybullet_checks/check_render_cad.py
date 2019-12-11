@@ -31,7 +31,7 @@ axis.apply_transform(T_cad2cam)
 scene.add_geometry(axis.copy())
 scene.camera.resolution = camera.resolution
 scene.camera.fov = camera.fov
-scene.camera.transform = morefusion.extra.trimesh.to_opengl_transform()
+scene.camera_transform = morefusion.extra.trimesh.to_opengl_transform()
 scene.show(
     resolution=camera.resolution,
     caption='trimesh',

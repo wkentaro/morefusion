@@ -154,7 +154,7 @@ def algorithm():
         scene.add_geometry(
             geom, geom_name='b', node_name='b', transform=T_cad2cam
         )
-        scene.camera.transform = morefusion.extra.trimesh.to_opengl_transform()
+        scene.camera_transform = morefusion.extra.trimesh.to_opengl_transform()
         yield scene
 
 

@@ -119,7 +119,7 @@ class Dataset(morefusion.datasets.DatasetBase):
 
         scene.camera.resolution = rgb.shape[1], rgb.shape[0]
         scene.camera.focal = K[0, 0], K[1, 1]
-        scene.camera.transform = \
+        scene.camera_transform = \
             morefusion.extra.trimesh.to_opengl_transform(T_cam2world)
 
         ins_viz = imgviz.label2rgb(
