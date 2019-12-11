@@ -33,12 +33,8 @@ def display_scenes(
     scenes_group = None
     if isinstance(data, types.GeneratorType):
         next_data = next(data)
-        if isinstance(next_data, types.GeneratorType):
-            scenes = next(next_data)
-            scenes_group = next_data
-        else:
-            scenes = next_data
-            scenes_group = data
+        scenes = next_data
+        scenes_group = data
     else:
         scenes = data
 
