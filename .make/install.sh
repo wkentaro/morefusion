@@ -69,7 +69,7 @@ pip install -e .
 
 echo_bold "==> Checking the availability of Cupy"
 if ! python -c 'import cupy' &>/dev/null; then
-  echo_warning "Cupy is not yet installed. Please install it manually e.g., pip install cupy==7.0.0b4."
+  echo_warning "Cupy is not yet installed. Please install it manually e.g., pip install cupy."
 fi
 
 # ---------------------------------------------------------------------------------------
