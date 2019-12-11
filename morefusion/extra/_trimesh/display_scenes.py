@@ -31,10 +31,16 @@ def display_scenes(
 
     scenes = None
     scenes_group = None
+    scenes_ggroup = None
     if isinstance(data, types.GeneratorType):
         next_data = next(data)
-        scenes = next_data
-        scenes_group = data
+        if isinstance(next_data, types.GeneratorType):
+            scenes_ggroup = data
+            scenes_group = next_data
+            scenes = next(next_data)
+        else:
+            scenes_group = data
+            scenes = next_data
     else:
         scenes = data
 
@@ -70,6 +76,7 @@ def display_scenes(
         window.play = False
         window.next = False
     window.scenes_group = scenes_group
+    window.scenes_ggroup = scenes_ggroup
 
     def usage():
         return '''\
@@ -93,7 +100,15 @@ Usage:
                 if isinstance(widgets[name], trimesh.viewer.SceneWidget):
                     widgets[name].reset_view()
         elif symbol == pyglet.window.key.N:
-            window.next = True
+            if window.scenes_ggroup and \
+                    modifiers == pyglet.window.key.MOD_SHIFT:
+                try:
+                    window.scenes_group = next(window.scenes_ggroup)
+                    window.next = True
+                except StopIteration:
+                    return
+            else:
+                window.next = True
         elif symbol == pyglet.window.key.R:
             # rotate camera
             window.rotate = not window.rotate  # 0/1
@@ -111,7 +126,7 @@ Usage:
                         widget.scene.camera_transform,
                         translate=False,
                     )[0]
-                    widget.scene.camera_transform = tf.rotation_matrix(
+                    widget.scene.camera_transform[...] = tf.rotation_matrix(
                         np.deg2rad(window.rotate * rotation_scaling),
                         axis,
                         point=widget.scene.centroid,
@@ -129,8 +144,10 @@ Usage:
                         if clear:
                             widget.clear()
                         assert isinstance(scene, trimesh.Scene)
-                        widget.scene.geometry = scene.geometry
-                        widget.scene.graph = scene.graph
+                        widget.scene.geometry.update(scene.geometry)
+                        widget.scene.graph.load(
+                            scenes[key].graph.to_edgelist()
+                        )
                         widget.view['ball']._n_pose = scene.camera_transform
                         widget._draw()
                     elif isinstance(widget, glooey.Image):
