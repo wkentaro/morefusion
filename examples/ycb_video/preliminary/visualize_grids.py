@@ -2,13 +2,14 @@
 
 import numpy as np
 import trimesh
-import trimesh.transformations as tf
+import trimesh.transformations as ttf
 
 import morefusion
 
 
 def visualize_grids(
     camera,
+    camera_transform,
     rgb,
     pcd,
     pitch,
@@ -29,7 +30,7 @@ def visualize_grids(
     center = origin + dimensions / 2 * pitch
     geom = trimesh.path.creation.box_outline(
         extents=dimensions * pitch,
-        transform=tf.translation_matrix(center),
+        transform=ttf.translation_matrix(center),
     )
     scene_common.add_geometry(geom, geom_name='grid_aabb')
     # camera
@@ -42,20 +43,17 @@ def visualize_grids(
     scenes['occupied'] = trimesh.Scene(
         camera=scene_common.camera,
         geometry=scene_common.geometry,
+        camera_transform=camera_transform,
     )
     # grid_target
-    voxel = trimesh.voxel.Voxel(
-        matrix=grid_target,
-        pitch=pitch,
-        origin=origin,
+    voxel = trimesh.voxel.VoxelGrid(
+        grid_target, ttf.scale_and_translate(pitch, origin),
     )
     geom = voxel.as_boxes(colors=(1., 0, 0, 0.5))
     scenes['occupied'].add_geometry(geom, geom_name='grid_target')
     # grid_nontarget
-    voxel = trimesh.voxel.Voxel(
-        matrix=grid_nontarget,
-        pitch=pitch,
-        origin=origin,
+    voxel = trimesh.voxel.VoxelGrid(
+        grid_nontarget, ttf.scale_and_translate(pitch, origin),
     )
     geom = voxel.as_boxes(colors=(0, 1., 0, 0.5))
     scenes['occupied'].add_geometry(geom, geom_name='grid_nontarget')
@@ -63,12 +61,11 @@ def visualize_grids(
     scenes['empty'] = trimesh.Scene(
         camera=scene_common.camera,
         geometry=scene_common.geometry,
+        camera_transform=camera_transform,
     )
     # grid_empty
-    voxel = trimesh.voxel.Voxel(
-        matrix=grid_empty,
-        pitch=pitch,
-        origin=origin,
+    voxel = trimesh.voxel.VoxelGrid(
+        grid_empty, ttf.scale_and_translate(pitch, origin)
     )
     geom = voxel.as_boxes(colors=(0.5, 0.5, 0.5, 0.5))
     scenes['empty'].add_geometry(geom, geom_name='grid_empty')
@@ -115,8 +112,8 @@ def main():
     camera = trimesh.scene.Camera(
         resolution=(640, 480),
         focal=(K[0, 0] * 0.6, K[1, 1] * 0.6),
-        transform=morefusion.extra.trimesh.to_opengl_transform(),
     )
+    camera_transform = morefusion.extra.trimesh.to_opengl_transform()
     all_scenes = {}
     for ins_id, cls_id in zip(instance_ids, class_ids):
         class_name = morefusion.datasets.ycb_video.class_names[cls_id]
@@ -135,6 +132,7 @@ def main():
 
         scenes = visualize_grids(
             camera,
+            camera_transform,
             rgb,
             pcd,
             pitch,
