@@ -34,14 +34,3 @@ if [ ! -f $OUTPUT ]; then
   fi
   chmod u+x $OUTPUT
 fi
-
-source $ROOT/.anaconda3/bin/activate
-OUTPUT=$(python -c 'import site, sys; sys.stdout.write(site.getsitepackages()[0])')/binvox_rw.py
-if [ ! -f $OUTPUT ]; then
-  URL=https://raw.githubusercontent.com/dimatura/binvox-rw-py/public/binvox_rw.py
-  if which wget &>/dev/null; then
-    wget -q $URL -O $OUTPUT
-  else
-    curl -s $URL -o $OUTPUT
-  fi
-fi
