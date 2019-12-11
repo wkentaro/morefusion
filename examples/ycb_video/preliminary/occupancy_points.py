@@ -95,12 +95,14 @@ def algorithm():
         camera = trimesh.scene.Camera(
             resolution=(640, 480),
             fov=(60, 45),
-            transform=morefusion.extra.trimesh.to_opengl_transform(),
         )
+        camera_transform = morefusion.extra.trimesh.to_opengl_transform()
 
         scenes = {}
 
-        scenes['pcd'] = trimesh.Scene(camera=camera)
+        scenes['pcd'] = trimesh.Scene(
+            camera=camera, camera_transform=camera_transform
+        )
         geom = trimesh.PointCloud(pcd_depth_target, colors=[1., 0, 0])
         scenes['pcd'].add_geometry(geom, geom_name='a', node_name='a')
         geom = trimesh.PointCloud(pcd_cad, colors=[0, 1., 0])
@@ -108,7 +110,9 @@ def algorithm():
             geom, geom_name='b', node_name='b', transform=T_cad2cam
         )
 
-        scenes['cad'] = trimesh.Scene(camera=camera)
+        scenes['cad'] = trimesh.Scene(
+            camera=camera, camera_transform=camera_transform
+        )
         geom = trimesh.PointCloud(pcd_depth_target, colors=[1., 0, 0])
         scenes['cad'].add_geometry(geom, geom_name='a', node_name='a')
         geom = models.get_cad(class_id=target_id)
