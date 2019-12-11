@@ -93,17 +93,21 @@ class MultiInstanceICPRegistration:
         camera = trimesh.scene.Camera(
             resolution=(640, 480),
             fov=(60 * 0.7, 45 * 0.7),
-            transform=morefusion.extra.trimesh.to_opengl_transform(),
         )
+        camera_transform = morefusion.extra.trimesh.to_opengl_transform()
 
         scenes = {}
 
-        scenes['pcd'] = trimesh.Scene(camera=camera)
+        scenes['pcd'] = trimesh.Scene(
+            camera=camera, camera_transform=camera_transform
+        )
         nonnan = ~np.isnan(pcd).any(axis=2)
         geom = trimesh.PointCloud(pcd[nonnan], colors=rgb[nonnan])
         scenes['pcd'].add_geometry(geom)
 
-        scenes['instance_points'] = trimesh.Scene(camera=camera)
+        scenes['instance_points'] = trimesh.Scene(
+            camera=camera, camera_transform=camera_transform
+        )
         # points_source: points_from_depth
         geom = trimesh.PointCloud(
             vertices=self._pcd_depth, colors=(0, 1., 0)
@@ -120,7 +124,9 @@ class MultiInstanceICPRegistration:
             node_name='points_target',
         )
 
-        scenes['instance_cad'] = trimesh.Scene(camera=camera)
+        scenes['instance_cad'] = trimesh.Scene(
+            camera=camera, camera_transform=camera_transform
+        )
         # cad_pred
         scenes['instance_cad'].add_geometry(
             cad,
@@ -139,8 +145,12 @@ class MultiInstanceICPRegistration:
         )
 
         # scene-level
-        scenes['scene_cad'] = trimesh.Scene(camera=camera)
-        scenes['scene_pcd'] = trimesh.Scene(camera=camera)
+        scenes['scene_cad'] = trimesh.Scene(
+            camera=camera, camera_transform=camera_transform
+        )
+        scenes['scene_pcd'] = trimesh.Scene(
+            camera=camera, camera_transform=camera_transform
+        )
         nonnan = ~np.isnan(pcd).any(axis=2)
         geom = trimesh.PointCloud(pcd[nonnan], colors=rgb[nonnan])
         scenes['scene_pcd'].add_geometry(geom, geom_name='pcd')
@@ -157,7 +167,9 @@ class MultiInstanceICPRegistration:
                     geom_name=f'cad_pred_{instance_id}',
                 )
 
-        scenes['scene_label'] = trimesh.Scene(camera=camera)
+        scenes['scene_label'] = trimesh.Scene(
+            camera=camera, camera_transform=camera_transform
+        )
         geom = trimesh.PointCloud(
             pcd[nonnan],
             colors=self._instance_label_viz[nonnan],
