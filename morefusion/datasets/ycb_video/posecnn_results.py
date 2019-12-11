@@ -1,19 +1,18 @@
 import shlex
 import subprocess
 
-import chainer
 import gdown
 import scipy.io
 
+from ... import utils as utils_module
 from ..base import DatasetBase
 from .dataset import YCBVideoDataset
 
 
 class YCBVideoPoseCNNResultsDataset(DatasetBase):
 
-    _root_dir = chainer.dataset.get_dataset_directory(
-        'ycb_video/YCB_Video_toolbox/results_PoseCNN_RSS2018',
-        create_directory=False,
+    _root_dir = utils_module.get_data_path(
+        'ycb_video/YCB_Video_toolbox/results_PoseCNN_RSS2018'
     )
 
     def __init__(self):

@@ -1,5 +1,4 @@
-import chainer
-
+from .... import utils as utils_module
 from ..my_synthetic import MySyntheticRGBDPoseEstimationDataset
 
 
@@ -8,9 +7,8 @@ class MySyntheticYCB20190916RGBDPoseEstimationDataset(
 ):
 
     def __init__(self, split, class_ids=None):
-        root_dir = chainer.dataset.get_dataset_directory(
+        root_dir = utils_module.get_data_path(
             'wkentaro/morefusion/ycb_video/synthetic_data/20190916_124002.877532.v2',  # NOQA
-            create_directory=False,
         )
         super().__init__(
             root_dir=root_dir,

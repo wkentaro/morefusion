@@ -49,7 +49,7 @@ def main():
     chainer.serializers.load_npz(args.model, model)
     print('==> Done model loading')
 
-    args.root_dir = chainer.dataset.get_dataset_directory(
+    args.root_dir = morefusion.utils.get_data_path(
         # plane type
         'wkentaro/morefusion/ycb_video/synthetic_data/20190408_143724.600111',
         # bin type

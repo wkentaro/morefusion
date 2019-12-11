@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 
-import chainer
 import gdown
-import path
+
+import morefusion
 
 
 def main():
-    root_dir = chainer.dataset.get_dataset_directory('wkentaro/morefusion/ycb_video/dense_fusion/eval_result/ycb')  # NOQA
-    root_dir = path.Path(root_dir)
+    root_dir = morefusion.utils.get_data_path(
+        'wkentaro/morefusion/ycb_video/dense_fusion/eval_result/ycb'
+    )
 
     gdown.cached_download(
         url='https://drive.google.com/uc?id=1sqgpOgcFJB0P4Nx5vwHN8vKj_R0Ng0S0',  # NOQA

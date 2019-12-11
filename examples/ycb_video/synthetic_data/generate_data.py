@@ -4,7 +4,6 @@ import argparse
 import datetime
 import shutil
 
-import chainer
 import numpy as np
 import path
 import pybullet
@@ -123,7 +122,7 @@ def main():
 
     now = datetime.datetime.utcnow()
     timestamp = now.strftime('%Y%m%d_%H%M%S.%f')
-    root_dir = chainer.dataset.get_dataset_directory(
+    root_dir = morefusion.utils.get_data_path(
         f'wkentaro/morefusion/ycb_video/synthetic_data/{timestamp}'
     )
     root_dir = path.Path(root_dir)

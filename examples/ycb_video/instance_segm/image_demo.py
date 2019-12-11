@@ -2,7 +2,6 @@
 
 import argparse
 
-import chainer
 import chainercv
 import imgviz
 import numpy as np
@@ -19,10 +18,9 @@ def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    root_dir = path.Path(chainer.dataset.get_dataset_directory(
+    root_dir = morefusion.utils.get_data_path(
         'wkentaro/morefusion/ycb_video/real_data/20190613/1560417263794359922',
-        create_directory=False,
-    ))
+    )
     default_image = root_dir / 'image.png'
     parser.add_argument(
         '--image',

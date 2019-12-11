@@ -1,6 +1,5 @@
 import typing
 
-import chainer
 import binvox_rw
 import gdown
 import numpy as np
@@ -15,9 +14,7 @@ from .class_names import class_names as ycb_video_class_names
 
 class YCBVideoModels(ModelsBase):
 
-    _root_dir = chainer.dataset.get_dataset_directory(
-        'ycb_video/YCB_Video_Models', create_directory=False
-    )
+    _root_dir = utils_module.get_data_path('ycb_video/YCBVideoModels')
 
     _bbox_diagonal_cache: typing.Dict[str, float] = {}
     _cad_cache: typing.Dict[str, trimesh.Trimesh] = {}

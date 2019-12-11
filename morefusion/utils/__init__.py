@@ -4,6 +4,8 @@ from .get_binvox_file import get_binvox_file
 
 from .get_collision_file import get_collision_file
 
+from .get_data_path import get_data_path
+
 from .githash import githash
 
 from .open3d_to_trimesh import open3d_to_trimesh

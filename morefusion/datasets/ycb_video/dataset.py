@@ -1,6 +1,5 @@
 import typing
 
-import chainer
 import gdown
 import imgviz
 import numpy as np
@@ -8,6 +7,7 @@ import path
 import scipy.io
 
 from ..base import DatasetBase
+from ... import utils as utils_module
 
 
 class YCBVideoDataset(DatasetBase):
@@ -28,9 +28,7 @@ class YCBVideoDataset(DatasetBase):
         Root directory of this dataset.
     """
 
-    _root_dir = chainer.dataset.get_dataset_directory(
-        'ycb_video/YCB_Video_Dataset', create_directory=False
-    )
+    _root_dir = utils_module.get_data_path('ycb_video/YCBVideoDataset')
     _data_dir = 'data'
 
     def __init__(self, split: str, sampling=1):
