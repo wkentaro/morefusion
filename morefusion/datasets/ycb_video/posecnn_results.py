@@ -25,7 +25,7 @@ class YCBVideoPoseCNNResultsDataset(DatasetBase):
             url = 'https://github.com/yuxng/YCB_Video_toolbox.git'
             cmd = f'git clone {url} {self.root_dir}'
             subprocess.check_call(shlex.split(cmd))
-            gdown.extractall(self.root_dir / 'results_PoseCNN_RSS2018.zip')
+            gdown.extractall(self.root_dir + '.zip')
 
     def get_example(self, i):
         image_id = self._ids[i]
