@@ -25,7 +25,6 @@ class Dataset(morefusion.datasets.DatasetBase):
                 frame_ids.append(frame_id)
             self._ids.append(frame_ids)
 
-        self._scene = trimesh.Scene()
         self._depth2rgb = imgviz.Depth2RGB()
 
     def get_examples(self, index):
@@ -43,13 +42,6 @@ class Dataset(morefusion.datasets.DatasetBase):
         return example
 
     def get_scenes(self, index):
-        for node in self._scene.graph.nodes:
-            if node == 'world':
-                continue
-            if node.startswith('light_'):
-                continue
-            self._scene.graph.transforms.remove_node(node)
-        self._scene.geometry = {}
         self._depth2rgb = imgviz.Depth2RGB()
         for example in self.get_examples(index):
             yield self.get_scene(example)
@@ -78,7 +70,7 @@ class Dataset(morefusion.datasets.DatasetBase):
             mask_rend = np.zeros_like(rgb)
 
         # scene
-        scene = self._scene
+        scene = trimesh.Scene()
         K = example['intrinsic_matrix']
         T_cam2world = example['T_cam2world']
         pcd = morefusion.geometry.pointcloud_from_depth(
@@ -93,7 +85,7 @@ class Dataset(morefusion.datasets.DatasetBase):
             vertices=pcd[nonnan], colors=rgb[nonnan]
         )
         scene.add_geometry(
-            geom, geom_name='pcd', transform=T_cam2world
+            geom, transform=T_cam2world
         )
         for ins_id, cls_id, T_cad2cam in zip(
             example['instance_ids'],
@@ -146,11 +138,10 @@ def main():
 
     dataset = Dataset(root_dir=args.root_dir)
 
-    for index in range(len(dataset)):
-        morefusion.extra.trimesh.display_scenes(
-            dataset.get_scenes(index),
-            tile=(2, 3),
-        )
+    morefusion.extra.trimesh.display_scenes(
+        (dataset.get_scenes(index) for index in range(len(dataset))),
+        tile=(2, 3),
+    )
 
 
 if __name__ == '__main__':
