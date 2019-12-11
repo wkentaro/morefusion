@@ -59,7 +59,7 @@ for example in examples:
 scene.camera.resolution = (640, 480)
 K = frame['intrinsic_matrix']
 scene.camera.focal = (K[0, 0], K[1, 1])
-scene.camera.transform = morefusion.extra.trimesh.to_opengl_transform()
+scene.camera_transform = morefusion.extra.trimesh.to_opengl_transform()
 
 scenes = {'rgb': frame['rgb'], 'scene': scene}
 morefusion.extra.trimesh.display_scenes(scenes)

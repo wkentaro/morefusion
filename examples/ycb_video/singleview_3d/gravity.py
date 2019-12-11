@@ -151,7 +151,7 @@ for i in range(T_cad2world_pred.shape[0]):
 
 scene.camera.resolution = (width, height)
 scene.camera.focal = (K[0, 0], K[1, 1])
-scene.camera.transform = morefusion.extra.trimesh.to_opengl_transform(
+scene.camera_transform = morefusion.extra.trimesh.to_opengl_transform(
     T_cam2world
 )
 

@@ -516,7 +516,7 @@ N: next instance''')
             elif symbol == pyglet.window.key.Z:
                 for widget in widgets.values():
                     camera = widget.scene.camera
-                    camera.transform = \
+                    camera_transform = \
                         morefusion.extra.trimesh.to_opengl_transform()
         if symbol == pyglet.window.key.R:
             # rotate camera
@@ -547,11 +547,11 @@ N: next instance''')
             for widget in widgets.values():
                 camera = widget.scene.camera
                 axis = tf.transform_points(
-                    [[0, 1, 0]], camera.transform, translate=False
+                    [[0, 1, 0]], camera_transform, translate=False
                 )[0]
-                camera.transform = tf.rotation_matrix(
+                camera_transform = tf.rotation_matrix(
                     np.deg2rad(window.rotate), axis, point=point
-                ) @ camera.transform
+                ) @ camera_transform
             return
         if window.play:
             try:

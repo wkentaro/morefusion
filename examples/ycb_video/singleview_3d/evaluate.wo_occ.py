@@ -102,7 +102,7 @@ def main():
                 cad.visual = cad.visual.to_color()
             scene.add_geometry(cad, transform=transform[i])
             scene_true.add_geometry(cad, transform=transform_true[i])
-        scene.camera.transform = morefusion.extra.trimesh.to_opengl_transform()
+        scene.camera_transform = morefusion.extra.trimesh.to_opengl_transform()
         scenes = {'pose': scene, 'pose_true': scene_true, 'rgb': frame['rgb']}
         morefusion.extra.trimesh.display_scenes(scenes, tile=(1, 3))
         '''

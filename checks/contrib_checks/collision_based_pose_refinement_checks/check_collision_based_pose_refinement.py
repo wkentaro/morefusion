@@ -54,12 +54,12 @@ def get_scenes():
     link.translation.update_rule.hyperparam.alpha *= 0.1
 
     t_start = time.time()
+    scenes = {'scene': trimesh.Scene()}
     for i in range(200):
         transform = morefusion.functions.transformation_matrix(
             link.quaternion, link.translation
         )
         transform = cuda.to_cpu(transform.array)
-        scenes = {'scene': trimesh.Scene()}
         for j, instance in enumerate(instances):
             cad = models.get_cad(instance['class_id'])
             if hasattr(cad.visual, 'to_color'):
@@ -70,7 +70,7 @@ def get_scenes():
                 geom_name=str(instance['class_id']),
                 transform=transform[j],
             )
-        scenes['scene'].camera.transform = \
+        scenes['scene'].camera_transform = \
             morefusion.extra.trimesh.to_opengl_transform()
         yield scenes
 
