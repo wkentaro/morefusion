@@ -4,6 +4,7 @@ from chainer.backends import cuda
 import numpy as np
 import pyglet
 import trimesh
+import trimesh.transformations as ttf
 import trimesh.viewer
 
 import morefusion
@@ -38,8 +39,10 @@ def check_max_voxelization_3d(origin, pitch, points, values, gpu, **kwargs):
     scene = trimesh.Scene()
     scene.angles = np.zeros(3)
 
-    geom = trimesh.voxel.Voxel(
-        matrix=matrix_filled, pitch=pitch, origin=origin
+    transform = ttf.scale_matrix(pitch)
+    transform = ttf.translation_matrix(origin) @ transform
+    geom = trimesh.voxel.VoxelGrid(
+        encoding=matrix_filled, transform=transform
     ).as_boxes()
     I, J, K = zip(*np.argwhere(matrix_filled))
     geom.visual.face_colors = matrix_values[I, J, K].repeat(12, axis=0)
