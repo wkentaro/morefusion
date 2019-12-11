@@ -1,5 +1,4 @@
 import typing
-import warnings
 
 import gdown
 import numpy as np
@@ -77,7 +76,7 @@ class YCBVideoModels(ModelsBase):
             data = np.load(sdf_file)
             points, sdf = data['points'], data['sdf']
         else:
-            points = self.get_solid_voxel(class_id=class_id).points
+            points = self.get_solid_voxel_grid(class_id=class_id).points
             pitch = self.get_voxel_pitch(32, class_id=class_id)
             points = extra_module.open3d.voxel_down_sample(points, pitch)
             cad = self.get_cad(class_id=class_id)
@@ -91,13 +90,6 @@ class YCBVideoModels(ModelsBase):
         with open(binvox_file, 'rb') as f:
             vg = trimesh.exchange.binvox.load_binvox(f)
         return vg
-
-    def get_solid_voxel(self, class_id):
-        warnings.warn(
-            'YCBVideoModels.get_solid_voxel is deprecated. '
-            'Please use get_solid_voxel_grid instead.'
-        )
-        return self.get_solid_voxel_grid(class_id)
 
     def get_cad(self, class_id):
         class_name = self.class_names[class_id]

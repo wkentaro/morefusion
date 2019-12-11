@@ -438,7 +438,9 @@ class Model(chainer.Chain):
             )
 
             if self._loss in ['add+occupancy', 'add/add_s+occupancy']:
-                solid_pcd = self._models.get_solid_voxel(class_id=class_id_i)
+                solid_pcd = self._models.get_solid_voxel_grid(
+                    class_id=class_id_i
+                )
                 solid_pcd = xp.asarray(solid_pcd.points, dtype=np.float32)
                 kwargs = dict(
                     pitch=float(pitch[i]),
