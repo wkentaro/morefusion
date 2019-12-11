@@ -10,8 +10,6 @@ from .occupancy_grid_1d import occupancy_grid_1d
 from .occupancy_grid_2d import occupancy_grid_2d
 from .occupancy_grid_3d import occupancy_grid_3d
 
-from .insert_voxelization_3d import insert_voxelization_3d
-
 from .interpolate_voxel_grid import interpolate_voxel_grid
 
 from .quaternion_matrix import quaternion_matrix
