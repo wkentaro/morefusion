@@ -106,17 +106,17 @@ Usage:
         if window.rotate:
             for widget in widgets.values():
                 if isinstance(widget, trimesh.viewer.SceneWidget):
-                    scene = widget.scene
-                    camera = scene.camera
                     axis = tf.transform_points(
-                        [[0, 1, 0]], camera.transform, translate=False
+                        [[0, 1, 0]],
+                        widget.scene.camera_transform,
+                        translate=False,
                     )[0]
-                    camera.transform = tf.rotation_matrix(
+                    widget.scene.camera_transform = tf.rotation_matrix(
                         np.deg2rad(window.rotate * rotation_scaling),
                         axis,
-                        point=scene.centroid,
-                    ) @ camera.transform
-                    widget.view['ball']._n_pose = camera.transform
+                        point=widget.scene.centroid,
+                    ) @ widget.scene.camera_transform
+                    widget.view['ball']._n_pose = widget.scene.camera_transform
             return
 
         if window.scenes_group and (window.next or window.play):
