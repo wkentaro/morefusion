@@ -61,7 +61,7 @@ class RGBDPoseEstimationDatasetBase(DatasetBase):
             )
             vox = self._models.get_solid_voxel(example['class_id'])
             points = trimesh.transform_points(vox.points, T)
-            indices = trimesh.voxel.points_to_indices(
+            indices = trimesh.voxel.ops.points_to_indices(
                 points, pitch=pitch, origin=origin
             )
             I, J, K = indices[:, 0], indices[:, 1], indices[:, 2]
