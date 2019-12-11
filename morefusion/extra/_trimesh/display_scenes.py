@@ -126,7 +126,7 @@ Usage:
                         assert isinstance(scene, trimesh.Scene)
                         widget.scene.geometry = scene.geometry
                         widget.scene.graph = scene.graph
-                        widget.view['ball']._n_pose = scene.camera.transform
+                        widget.view['ball']._n_pose = scene.camera_transform
                         widget._draw()
                     elif isinstance(widget, glooey.Image):
                         widget.set_image(numpy_to_image(scene))
