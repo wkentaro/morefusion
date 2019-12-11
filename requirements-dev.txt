@@ -1,4 +1,4 @@
--e git+https://github.com/wkentaro/trimesh.git@objslampp#egg=trimesh[easy]
+-e git+https://github.com/wkentaro/trimesh.git@morefusion#egg=trimesh[easy]
 -r requirements.txt
 flake8
 ipdb
