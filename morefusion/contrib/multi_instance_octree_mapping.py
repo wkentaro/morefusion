@@ -65,10 +65,10 @@ class MultiInstanceOctreeMapping:
         grid_nontarget = np.zeros(dimensions, dtype=np.float32)
         grid_empty = np.zeros(dimensions, np.float32)
 
-        centers = trimesh.voxel.matrix_to_points(
+        centers = trimesh.voxel.ops.matrix_to_points(
             np.ones(dimensions), pitch=pitch, origin=origin
         )
-        indices = trimesh.voxel.points_to_indices(
+        indices = trimesh.voxel.ops.points_to_indices(
             centers, pitch=pitch, origin=origin
         )
         I, J, K = indices[:, 0], indices[:, 1], indices[:, 2]

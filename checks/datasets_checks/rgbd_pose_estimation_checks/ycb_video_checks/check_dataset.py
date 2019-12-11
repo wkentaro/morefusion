@@ -1,17 +1,15 @@
 #!/usr/bin/env python
 
-import morefusion
-
 import imgviz
 import numpy as np
 import trimesh
+import trimesh.transformations as ttf
+
+import morefusion
 
 
 def get_scene(dataset):
-    camera = trimesh.scene.Camera(
-        fov=(30, 22.5),
-        transform=morefusion.extra.trimesh.to_opengl_transform()
-    )
+    camera = trimesh.scene.Camera(fov=(30, 22.5))
     index = 0
     frame = dataset.get_frame(index)
     examples = dataset.get_example(index)
@@ -19,6 +17,8 @@ def get_scene(dataset):
     scenes = {
         'rgb': None,
     }
+
+    camera_transform = morefusion.extra.trimesh.to_opengl_transform()
 
     vizs = [frame['rgb']]
     for i, example in enumerate(examples):
@@ -38,33 +38,35 @@ def get_scene(dataset):
         )
         vizs.append(viz)
 
-        geom = trimesh.voxel.Voxel(
+        geom = trimesh.voxel.VoxelGrid(
             example['grid_target'],
-            example['pitch'],
-            example['origin'],
+            ttf.scale_and_translate(example['pitch'], example['origin']),
         ).as_boxes(colors=(1., 0, 0, 0.5))
-        scenes[f'occupied_{i:04d}'] = trimesh.Scene(geom, camera=camera)
+        scenes[f'occupied_{i:04d}'] = trimesh.Scene(
+            geom, camera=camera, camera_transform=camera_transform
+        )
 
-        geom = trimesh.voxel.Voxel(
+        geom = trimesh.voxel.VoxelGrid(
             example['grid_nontarget'],
-            example['pitch'],
-            example['origin'],
+            ttf.scale_and_translate(example['pitch'], example['origin']),
         ).as_boxes(colors=(0, 1., 0, 0.5))
         scenes[f'occupied_{i:04d}'].add_geometry(geom)
 
-        geom = trimesh.voxel.Voxel(
+        geom = trimesh.voxel.VoxelGrid(
             example['grid_empty'],
-            example['pitch'],
-            example['origin'],
+            ttf.scale_and_translate(example['pitch'], example['origin']),
         ).as_boxes(colors=(0.5, 0.5, 0.5, 0.5))
-        scenes[f'empty_{i:04d}'] = trimesh.Scene(geom, camera=camera)
+        scenes[f'empty_{i:04d}'] = trimesh.Scene(
+            geom, camera=camera, camera_transform=camera_transform
+        )
 
-        scenes[f'full_occupied_{i:04d}'] = trimesh.Scene(camera=camera)
+        scenes[f'full_occupied_{i:04d}'] = trimesh.Scene(
+            camera=camera, camera_transform=camera_transform
+        )
         if (example['grid_target_full'] > 0).any():
-            geom = trimesh.voxel.Voxel(
+            geom = trimesh.voxel.VoxelGrid(
                 example['grid_target_full'],
-                example['pitch'],
-                example['origin'],
+                ttf.scale_and_translate(example['pitch'], example['origin']),
             ).as_boxes(colors=(1., 0, 0, 0.5))
             scenes[f'full_occupied_{i:04d}'].add_geometry(geom)
 
@@ -72,10 +74,9 @@ def get_scene(dataset):
             colors = imgviz.label2rgb(
                 example['grid_nontarget_full'].reshape(1, -1) + 1
             ).reshape(example['grid_nontarget_full'].shape + (3,))
-            geom = trimesh.voxel.Voxel(
+            geom = trimesh.voxel.VoxelGrid(
                 example['grid_nontarget_full'],
-                example['pitch'],
-                example['origin'],
+                ttf.scale_and_translate(example['pitch'], example['origin']),
             ).as_boxes(colors=colors)
             scenes[f'full_occupied_{i:04d}'].add_geometry(geom)
 
