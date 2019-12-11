@@ -38,6 +38,8 @@ def display_scenes(
     else:
         scenes = data
 
+    scenes.pop('__clear__', False)
+
     if tile is None:
         nrow, ncol = _get_tile_shape(len(scenes), hw_ratio=height / width)
     else:
@@ -120,9 +122,12 @@ Usage:
         if window.scenes_group and (window.next or window.play):
             try:
                 scenes = next(window.scenes_group)
+                clear = scenes.get('__clear__', False)
                 for key, widget in widgets.items():
                     scene = scenes[key]
                     if isinstance(widget, trimesh.viewer.SceneWidget):
+                        if clear:
+                            widget.clear()
                         assert isinstance(scene, trimesh.Scene)
                         widget.scene.geometry = scene.geometry
                         widget.scene.graph = scene.graph
