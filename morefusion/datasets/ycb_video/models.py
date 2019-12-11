@@ -1,6 +1,6 @@
 import typing
+import warnings
 
-import binvox_rw
 import gdown
 import numpy as np
 import path
@@ -85,20 +85,19 @@ class YCBVideoModels(ModelsBase):
             np.savez_compressed(sdf_file, points=points, sdf=sdf)
         return points, sdf
 
-    def get_solid_voxel(self, class_id):
+    def get_solid_voxel_grid(self, class_id):
         cad_file = self.get_cad_file(class_id=class_id)
-        vox_file = utils_module.get_binvox_file(cad_file)
-        with open(vox_file, 'rb') as f:
-            vox = binvox_rw.read_as_3d_array(f)
+        binvox_file = utils_module.get_binvox_file(cad_file)
+        with open(binvox_file, 'rb') as f:
+            vg = trimesh.exchange.binvox.load_binvox(f)
+        return vg
 
-        assert vox.dims[0] == vox.dims[1] == vox.dims[2]
-        pitch = vox.scale / vox.dims[0]
-        voxel = trimesh.voxel.Voxel(
-            vox.data,
-            pitch=pitch,
-            origin=(0.5 * pitch,) * 3 + np.array(vox.translate),
+    def get_solid_voxel(self, class_id):
+        warnings.warn(
+            'YCBVideoModels.get_solid_voxel is deprecated. '
+            'Please use get_solid_voxel_grid instead.'
         )
-        return voxel
+        return self.get_solid_voxel_grid(class_id)
 
     def get_cad(self, class_id):
         class_name = self.class_names[class_id]

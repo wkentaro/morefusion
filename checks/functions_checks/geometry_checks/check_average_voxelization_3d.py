@@ -4,6 +4,7 @@ from chainer.backends import cuda
 import numpy as np
 import pyglet
 import trimesh
+import trimesh.transformations as ttf
 import trimesh.viewer
 
 import morefusion
@@ -37,8 +38,8 @@ def check_average_voxelization_3d(
     scene = trimesh.Scene()
     scene.angles = np.zeros(3)
 
-    geom = trimesh.voxel.Voxel(
-        matrix=matrix_filled, pitch=pitch, origin=origin
+    geom = trimesh.voxel.VoxelGrid(
+        matrix_filled, ttf.scale_and_translate(pitch, origin)
     ).as_boxes()
     I, J, K = zip(*np.argwhere(matrix_filled))
     geom.visual.face_colors = matrix_values[I, J, K].repeat(12, axis=0)
