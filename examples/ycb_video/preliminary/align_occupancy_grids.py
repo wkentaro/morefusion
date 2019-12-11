@@ -3,7 +3,7 @@
 import imgviz
 import numpy as np
 import trimesh
-import trimesh.transformations as tf
+import trimesh.transformations as ttf
 
 import morefusion
 
@@ -62,7 +62,7 @@ class MultiInstanceOccupancyRegistration:
             for instance_id in instance_ids:
                 mask = instance_label == instance_id
                 centroid = pcd[nonnan & mask].mean(axis=0)
-                T_cad2cam_pred = tf.translation_matrix(centroid)
+                T_cad2cam_pred = ttf.translation_matrix(centroid)
                 self._Ts_cad2cam_pred[instance_id] = T_cad2cam_pred
         else:
             assert len(instance_ids) == len(Ts_cad2cam_pred)
@@ -74,7 +74,7 @@ class MultiInstanceOccupancyRegistration:
         class_id = self._class_ids[instance_id]
         # points = self._models.get_pcd(class_id=class_id)
         points = self._models.get_solid_voxel_grid(class_id=class_id).points
-        points = tf.transform_points(points, T_cad2cam_pred)
+        points = ttf.transform_points(points, T_cad2cam_pred)
 
         self._mapping.update(instance_id, points)
 
@@ -154,15 +154,13 @@ class MultiInstanceOccupancyRegistration:
 
         scene = trimesh.Scene()
         # occupied target/untarget
-        voxel = trimesh.voxel.Voxel(
-            matrix=grid_target[0], pitch=pitch, origin=origin
+        voxel = trimesh.voxel.VoxelGrid(
+            grid_target[0], ttf.scale_and_translate(pitch, origin)
         )
         geom = voxel.as_boxes((1., 0, 0, 0.5))
         scene.add_geometry(geom, geom_name='occupied_target')
-        voxel = trimesh.voxel.Voxel(
-            matrix=grid_target[1],
-            pitch=pitch,
-            origin=origin,
+        voxel = trimesh.voxel.VoxelGrid(
+            grid_target[1], ttf.scale_and_translate(pitch, origin),
         )
         geom = voxel.as_boxes((0, 1., 0, 0.5))
         scene.add_geometry(geom, geom_name='occupied_untarget')
@@ -170,8 +168,8 @@ class MultiInstanceOccupancyRegistration:
 
         # empty
         scene = trimesh.Scene()
-        voxel = trimesh.voxel.Voxel(
-            matrix=grid_target[2], pitch=pitch, origin=origin
+        voxel = trimesh.voxel.VoxelGrid(
+            grid_target[2], ttf.scale_and_translate(pitch, origin)
         )
         geom = voxel.as_boxes((0.5, 0.5, 0.5, 0.5))
         scene.add_geometry(geom, geom_name='empty')
@@ -237,7 +235,7 @@ class MultiInstanceOccupancyRegistration:
             occupied, empty = self._mapping.get_target_pcds(instance_id)
             color = trimesh.visual.to_rgba(colormap[instance_id])
             color[3] = 127
-            geom = trimesh.voxel.multibox(
+            geom = trimesh.voxel.ops.multibox(
                 occupied, pitch=0.01, colors=color
             )
             scenes['scene_occupied'].add_geometry(
@@ -252,10 +250,11 @@ class MultiInstanceOccupancyRegistration:
         camera = trimesh.scene.Camera(
             resolution=(640, 480),
             fov=(60 * 0.7, 45 * 0.7),
-            transform=morefusion.extra.trimesh.to_opengl_transform(),
         )
+        camera_transform = morefusion.extra.trimesh.to_opengl_transform()
         for scene in scenes.values():
             scene.camera = camera
+            scene.camera_transform = camera_transform
         return scenes
 
 
