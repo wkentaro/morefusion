@@ -59,7 +59,7 @@ class RGBDPoseEstimationDatasetBase(DatasetBase):
             T = geometry_module.compose_transform(
                 R=T[:3, :3], t=example['translation_true']
             )
-            vox = self._models.get_solid_voxel(example['class_id'])
+            vox = self._models.get_solid_voxel_grid(example['class_id'])
             points = trimesh.transform_points(vox.points, T)
             indices = trimesh.voxel.ops.points_to_indices(
                 points, pitch=pitch, origin=origin

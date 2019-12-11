@@ -74,7 +74,7 @@ class MultiInstanceOccupancyRegistration:
 
         class_id = self._class_ids[instance_id]
         # points = self._models.get_pcd(class_id=class_id)
-        points = self._models.get_solid_voxel(class_id=class_id).points
+        points = self._models.get_solid_voxel_grid(class_id=class_id).points
         points = tf.transform_points(points, T_cad2cam_pred)
 
         self._mapping.update(instance_id, points)
@@ -118,7 +118,8 @@ class MultiInstanceOccupancyRegistration:
         #
         # points_source = models.get_pcd(class_id=class_id).astype(np.float32)
         pcd_cad = morefusion.extra.open3d.voxel_down_sample(
-            models.get_solid_voxel(class_id=class_id).points, voxel_size=pitch
+            models.get_solid_voxel_grid(class_id=class_id).points,
+            voxel_size=pitch,
         )
         pcd_depth_target = morefusion.extra.open3d.voxel_down_sample(
             occupied_t, voxel_size=pitch

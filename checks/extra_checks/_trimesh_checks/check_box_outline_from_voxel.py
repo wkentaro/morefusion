@@ -7,7 +7,7 @@ import morefusion
 
 models = morefusion.datasets.YCBVideoModels()
 
-voxel = models.get_solid_voxel(class_id=1)
+voxel = models.get_solid_voxel_grid(class_id=1)
 
 scene = trimesh.Scene()
 scene.add_geometry(voxel.as_boxes(colors=(0, 127, 0)))

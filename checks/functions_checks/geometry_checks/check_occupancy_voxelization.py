@@ -24,7 +24,7 @@ for is_solid in ['nonsolid', 'solid']:
         points = models.get_pcd(class_id=2)
     else:
         assert is_solid == 'solid'
-        points = models.get_solid_voxel(class_id=2).points
+        points = models.get_solid_voxel_grid(class_id=2).points
 
     points = morefusion.extra.open3d.voxel_down_sample(
         points, voxel_size=0.01
