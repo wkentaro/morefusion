@@ -72,6 +72,7 @@ def display_scenes(
             pass
     window.rotate = 0
 
+    window._clear = False
     if scenes_group:
         window.play = False
         window.next = False
@@ -105,6 +106,7 @@ Usage:
                 try:
                     window.scenes_group = next(window.scenes_ggroup)
                     window.next = True
+                    window._clear = True
                 except StopIteration:
                     return
             else:
@@ -137,17 +139,21 @@ Usage:
         if window.scenes_group and (window.next or window.play):
             try:
                 scenes = next(window.scenes_group)
-                clear = scenes.get('__clear__', False)
+                clear = scenes.get('__clear__', False) or window._clear
+                window._clear = False
                 for key, widget in widgets.items():
                     scene = scenes[key]
                     if isinstance(widget, trimesh.viewer.SceneWidget):
+                        assert isinstance(scene, trimesh.Scene)
                         if clear:
                             widget.clear()
-                        assert isinstance(scene, trimesh.Scene)
-                        widget.scene.geometry.update(scene.geometry)
-                        widget.scene.graph.load(
-                            scenes[key].graph.to_edgelist()
-                        )
+                            widget.scene = scene
+                        else:
+                            widget.scene.geometry.update(scene.geometry)
+                            graph = scene.graph.copy()
+                            graph.load(widget.scene.graph.to_edgelist())
+                            widget.scene.graph = graph
+                        widget.scene.camera_transform = scene.camera_transform
                         widget.view['ball']._n_pose = scene.camera_transform
                         widget._draw()
                     elif isinstance(widget, glooey.Image):
