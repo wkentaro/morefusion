@@ -110,6 +110,8 @@ class SceneGenerationBase:
             mesh_scale = np.random.uniform(
                 self._mesh_scale[0], self._mesh_scale[1]
             )
+        else:
+            mesh_scale = None
         unique_id = morefusion.extra.pybullet.add_model(
             visual_file=cad_file,
             collision_file=morefusion.utils.get_collision_file(cad_file),
