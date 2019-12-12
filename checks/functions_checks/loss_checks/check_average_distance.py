@@ -23,9 +23,9 @@ def main():
     transform_pred[:3, 3] = translation_pred
 
     for symmetric in [False, True]:
-        add = morefusion.functions.loss.average_distance_l1(
+        add = morefusion.functions.loss.average_distance(
             points,
-            transform_true[None],
+            transform_true,
             transform_pred[None],
             symmetric=symmetric,
         )
