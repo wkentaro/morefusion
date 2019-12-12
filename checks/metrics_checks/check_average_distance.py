@@ -18,6 +18,7 @@ def main():
     transform_true = tf.quaternion_matrix(quaternion_true)
     transform_pred = tf.quaternion_matrix(quaternion_pred)
 
+    scenes = {}
     for use_translation in [False, True]:
         if use_translation:
             translation_true = np.random.uniform(-0.02, 0.02, (3,))
@@ -43,13 +44,12 @@ def main():
         geom = trimesh.PointCloud(vertices=points_pred, color=colors)
         scene.add_geometry(geom)
 
-        morefusion.extra.trimesh.show_with_rotation(
-            scene,
-            caption=f'use_translation: {use_translation}, add: {add}',
-            start_loop=False,
-        )
+        scenes[f'use_translation: {use_translation}, add: {add}'] = scene
+        if scenes:
+            camera_transform = list(scenes.values())[0].camera_transform
+            scene.camera_transform = camera_transform
 
-    pyglet.app.run()
+    morefusion.extra.trimesh.display_scenes(scenes)
 
 
 if __name__ == '__main__':

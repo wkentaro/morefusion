@@ -18,9 +18,7 @@ mesh = morefusion.extra.trimesh.bin_model(
 scene = trimesh.Scene()
 scene.add_geometry(trimesh.creation.axis(0.01))
 scene.add_geometry(mesh)
-morefusion.extra.trimesh.show_with_rotation(
-    scene,
-    step=(0, 0, np.deg2rad(1)),
-    init_angles=(np.deg2rad(45), 0, 0),
-    resolution=(400, 400),
+morefusion.extra.trimesh.display_scenes(
+    {'scene': scene},
+    rotate=True,
 )

@@ -34,4 +34,4 @@ for point in trajectory:
     transform = tf.translation_matrix(point)
     scene.add_geometry(axis, transform=transform)
 
-morefusion.extra.trimesh.show_with_rotation(scene)
+morefusion.extra.trimesh.display_scenes({'scene': scene})

@@ -1,5 +1,6 @@
 import numpy as np
 import trimesh
+import trimesh.transformations as ttf
 
 
 class VoxelMapping(object):
@@ -46,8 +47,8 @@ class VoxelMapping(object):
         self.values[I, J, K] = values[keep]
 
     def as_boxes(self):
-        geom = trimesh.voxel.Voxel(
-            self.matrix, self.pitch, self.origin
+        geom = trimesh.voxel.VoxelGrid(
+            self.matrix, ttf.scale_and_translate(self.pitch, self.origin)
         )
         geom = geom.as_boxes()
         I, J, K = zip(*np.argwhere(self.matrix))

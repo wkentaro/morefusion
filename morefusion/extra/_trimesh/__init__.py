@@ -11,25 +11,6 @@ from .opengl_camera import OpenGLCamera  # NOQA
 from .tile_meshes import tile_meshes  # NOQA
 
 
-def show_with_rotation(scene, step=None, init_angles=None, **kwargs):
-    if step is None:
-        step = (0, np.deg2rad(1), 0)
-    if init_angles is None:
-        init_angles = (0, 0, 0)
-
-    step = np.asarray(step, dtype=float)
-    init_angles = np.asarray(init_angles, dtype=float)
-
-    def callback(scene):
-        if hasattr(scene, 'angles'):
-            scene.angles += step
-        else:
-            scene.angles = init_angles
-        scene.set_camera(angles=scene.angles)
-
-    return trimesh.viewer.SceneViewer(scene=scene, callback=callback, **kwargs)
-
-
 def to_opengl_transform(transform=None):
     if transform is None:
         transform = np.eye(4)
