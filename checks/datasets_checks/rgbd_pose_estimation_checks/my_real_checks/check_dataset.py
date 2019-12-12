@@ -1,15 +1,24 @@
 #!/usr/bin/env python
 
-import morefusion
-
+import gdown
 import imgviz
+
+import morefusion
 
 
 class Images:
 
     def __init__(self):
-        self._dataset = morefusion.datasets.MyRealRGBDPoseEstimationDataset(  # NOQA
-            root_dir='/home/wkentaro/data/datasets/wkentaro/morefusion/ycb_video/real_data/20190614_18'  # NOQA
+        root_dir = morefusion.utils.get_data_path(
+            'wkentaro/morefusion/ycb_video/real_data/20191212_163242.566559922'
+        )
+        gdown.cached_download(
+            url='https://drive.google.com/uc?id=1llWN7MOLzJZnaRDD4XGSmRWAFBtP3P9z',  # NOQA
+            md5='a773bb947377811b2b66ab9bc17f4d8d',
+            path=root_dir + '.zip',
+        )
+        self._dataset = morefusion.datasets.MyRealRGBDPoseEstimationDataset(
+            root_dir=root_dir,
         )
 
     def __len__(self):
