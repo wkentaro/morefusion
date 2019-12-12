@@ -3,7 +3,6 @@
 import numpy as np
 import trimesh
 import trimesh.transformations as tf
-import pyglet
 
 import morefusion
 
