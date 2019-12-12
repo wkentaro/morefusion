@@ -3,6 +3,7 @@
 import concurrent.futures
 
 import imgviz
+import pybullet  # NOQA
 
 import morefusion
 
