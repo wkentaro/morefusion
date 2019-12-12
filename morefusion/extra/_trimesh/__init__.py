@@ -5,7 +5,7 @@ import PIL.Image
 import trimesh
 import trimesh.viewer
 
-from .box_outline_from_voxel import box_outline_from_voxel  # NOQA
+from .box_outline_from_voxel_grid import box_outline_from_voxel_grid  # NOQA
 from .display_scenes import display_scenes  # NOQA
 from .opengl_camera import OpenGLCamera  # NOQA
 from .tile_meshes import tile_meshes  # NOQA
@@ -56,13 +56,11 @@ def save_image(scene, **kwargs):
 def bin_model(extents, thickness, color=None):
     xlength, ylength, zlength = extents
 
-    mesh = trimesh.Trimesh()
-
     wall_xp = trimesh.creation.box((thickness, ylength, zlength))
     wall_xn = wall_xp.copy()
     wall_xp.apply_translation((xlength / 2, 0, 0))
     wall_xn.apply_translation((- xlength / 2, 0, 0))
-    mesh += wall_xp
+    mesh = wall_xp.copy()
     mesh += wall_xn
 
     wall_yp = trimesh.creation.box((xlength, thickness, zlength))
