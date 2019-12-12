@@ -3,6 +3,7 @@
 import argparse
 
 import chainercv
+import gdown
 import imgviz
 import numpy as np
 import path
@@ -27,13 +28,17 @@ def main():
         help='image file',
         default=default_image,
     )
-    default_model = here / 'logs/20190518_071729/model_iter_best'
     parser.add_argument(
         '--model',
         help='model file',
-        default=default_model,
     )
     args = parser.parse_args()
+
+    if args.model is None:
+        args.model = gdown.cached_download(
+            url='https://drive.google.com/uc?id=1Ge2S9JudxC5ODdsrjOy5XoW7l7Zcz65E',  # NOQA
+            md5='fc06b1292a7e99f9c1deb063accbf7ea',
+        )
 
     args.image = path.Path(args.image)
     args.model = path.Path(args.model)
