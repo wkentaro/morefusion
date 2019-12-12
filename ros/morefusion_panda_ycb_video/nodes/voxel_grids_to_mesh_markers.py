@@ -94,9 +94,10 @@ def grid_msg_to_mesh(grid):
     matrix = scipy.ndimage.morphology.grey_dilation(
         matrix, size=(1, 1, 1)
     )
-    mesh = trimesh.voxel.matrix_to_marching_cubes(
-        matrix, pitch, origin
+    mesh = trimesh.voxel.ops.matrix_to_marching_cubes(
+        matrix, pitch
     )
+    mesh.apply_translation(origin)
     mesh = trimesh.smoothing.filter_humphrey(mesh)
     return mesh
 
