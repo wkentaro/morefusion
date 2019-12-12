@@ -1,13 +1,21 @@
 import math
 
+import numpy as np
 import path
+import sklearn.neighbors
 
 
 here = path.Path(__file__).abspath().parent
 cu_file = here / 'cuComputeDistanceGlobal.cu'
 
 
-def nn(ref, query):
+def nn_cpu(ref, query):
+    kdtree = sklearn.neighbors.KDTree(ref)
+    indices = kdtree.query(query, return_distance=False)
+    return indices[:, 0]
+
+
+def nn_gpu(ref, query):
     import cupy
 
     with open(cu_file) as f:
@@ -39,6 +47,12 @@ def nn(ref, query):
 
     indices = cupy.argmin(dist, axis=0)
     return indices
+
+
+def nn(ref, query):
+    if isinstance(ref, np.ndarray) and isinstance(query, np.ndarray):
+        return nn_cpu(ref, query)
+    return nn_gpu(ref, query)
 
 
 if __name__ == '__main__':
