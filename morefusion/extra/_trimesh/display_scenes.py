@@ -25,6 +25,7 @@ def display_scenes(
     width=640,
     tile=None,
     caption=None,
+    rotate=False,
     rotation_scaling=1,
 ):
     import glooey
@@ -70,7 +71,7 @@ def display_scenes(
             break
         except pyglet.window.NoSuchConfigException:
             pass
-    window.rotate = 0
+    window.rotate = rotate
 
     window._clear = False
     if scenes_group:

@@ -52,4 +52,4 @@ for eye, target in zip(eyes, targets):
     ray = trimesh.load_path([eye, target])
     scene.add_geometry(ray)
 
-morefusion.extra.trimesh.show_with_rotation(scene, resolution=(400, 400))
+morefusion.extra.trimesh.display_scenes({'scene': scene})
