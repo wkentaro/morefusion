@@ -38,6 +38,7 @@ scenes = {}
 
 geom = trimesh.PointCloud(points_extracted, values[keep])
 scenes['original'] = trimesh.Scene(geom)
+camera_transform = scenes['original'].camera_transform
 
 I = I.round().astype(int)
 J = J.round().astype(int)
@@ -45,7 +46,7 @@ K = K.round().astype(int)
 values_extracted = mapping.values[I, J, K] / 255.
 geom = trimesh.PointCloud(points_extracted, colors=values_extracted)
 scenes['integer_indexing'] = trimesh.Scene(
-    geom, camera=scenes['original'].camera
+    geom, camera_transform=camera_transform
 )
 
 voxelized = mapping.values.astype(np.float32).transpose(3, 0, 1, 2)
@@ -64,7 +65,7 @@ else:
 values_extracted = cuda.to_cpu(values_extracted.array)
 geom = trimesh.PointCloud(points_extracted, colors=values_extracted)
 scenes['float_indexing'] = trimesh.Scene(
-    geom, camera=scenes['original'].camera
+    geom, camera_transform=camera_transform
 )
 
 morefusion.extra.trimesh.display_scenes(
