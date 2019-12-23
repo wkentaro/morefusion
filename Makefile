@@ -15,11 +15,11 @@ install_binvox: install_anaconda3
 install: install_anaconda3 install_v-hacd install_binvox
 	@.make/install.sh
 
-lint:
+lint: install_anaconda3
 	@.make/lint.sh
 
-test:
+test: install_anaconda3
 	@.make/test.sh
 
-check:
+check: install_anaconda3
 	@.make/check.sh
