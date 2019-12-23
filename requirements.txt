@@ -22,4 +22,4 @@ termcolor
 tqdm
 tensorboardX<1.7
 tensorflow==1.13.1
-trimesh[easy]
+trimesh[easy]>=3.5.0
