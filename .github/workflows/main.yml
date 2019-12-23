@@ -12,10 +12,17 @@ jobs:
 
     - uses: actions/cache@v1
       with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+        path: ~/.cache/pip/http
+        key: ${{ runner.os }}-pip-http-${{ hashFiles('requirements.txt') }}
         restore-keys: |
-          ${{ runner.os }}-pip-
+          ${{ runner.os }}-pip-http-
+
+    - uses: actions/cache@v1
+      with:
+        path: ~/.cache/pip/wheels
+        key: ${{ runner.os }}-pip-wheels-${{ hashFiles('requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-wheels-
 
     - name: Update submodules
       run: |
