@@ -7,8 +7,8 @@
 </h3>
 
 <div align="center">
-  <a href="https://github.com/wkentaro/morefusion/actions">
-    <img src="https://github.com/wkentaro/morefusion/workflows/CI/badge.svg">
+  <a href="https://travis-ci.com/wkentaro/morefusion">
+    <img src="https://travis-ci.com/wkentaro/morefusion.svg?token=zM5rExyvuRoJThsnqHAF&branch=master">
   </a>
 </div>
 
