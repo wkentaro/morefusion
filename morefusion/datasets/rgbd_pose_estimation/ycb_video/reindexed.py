@@ -1,10 +1,10 @@
-import os.path as osp
 import collections
 import json
+import os.path as osp
 
-from ..reindexed import RGBDPoseEstimationDatasetReIndexedBase
 from ...ycb_video import YCBVideoDataset
 from ...ycb_video import YCBVideoSyntheticDataset
+from ..reindexed import RGBDPoseEstimationDatasetReIndexedBase
 
 
 class YCBVideoRGBDPoseEstimationDatasetReIndexed(

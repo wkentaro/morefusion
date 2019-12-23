@@ -1,6 +1,6 @@
-import os.path as osp
 import collections
 import json
+import os.path as osp
 
 from ..reindexed import RGBDPoseEstimationDatasetReIndexedBase
 from .dataset import MySyntheticYCB20190916RGBDPoseEstimationDataset

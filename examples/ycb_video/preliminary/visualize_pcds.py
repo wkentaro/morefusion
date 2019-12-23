@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-import numpy as np
 import imgviz
+import numpy as np
 import trimesh
 
 import morefusion

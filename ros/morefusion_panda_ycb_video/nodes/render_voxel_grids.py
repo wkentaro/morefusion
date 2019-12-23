@@ -10,9 +10,9 @@ import trimesh
 import morefusion
 
 import cv_bridge
-import rospy
 from morefusion_panda_ycb_video.srv import RenderVoxelGridArray
 from morefusion_panda_ycb_video.srv import RenderVoxelGridArrayResponse
+import rospy
 
 from voxel_grids_to_mesh_markers import grid_msg_to_mesh
 

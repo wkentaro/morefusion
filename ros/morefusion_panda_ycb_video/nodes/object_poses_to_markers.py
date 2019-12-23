@@ -2,11 +2,11 @@
 
 import morefusion
 
+from morefusion_panda_ycb_video.msg import ObjectPoseArray
 import rospy
 import topic_tools
 from visualization_msgs.msg import Marker
 from visualization_msgs.msg import MarkerArray
-from morefusion_panda_ycb_video.msg import ObjectPoseArray
 
 
 class ObjectPosesToMarkers(topic_tools.LazyTransport):

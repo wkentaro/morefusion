@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
+from morefusion_panda.srv import SetSuction
 import rospy
 import serial
-from morefusion_panda.srv import SetSuction
 
 
 ser = serial.Serial('/dev/arduino0', baudrate=9600, timeout=1)

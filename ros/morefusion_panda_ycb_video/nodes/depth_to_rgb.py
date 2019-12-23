@@ -8,7 +8,8 @@ import morefusion
 import cv_bridge
 import message_filters
 import rospy
-from sensor_msgs.msg import CameraInfo, Image
+from sensor_msgs.msg import CameraInfo
+from sensor_msgs.msg import Image
 import topic_tools
 
 

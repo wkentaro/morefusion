@@ -9,10 +9,11 @@ import scipy.ndimage
 import trimesh
 
 from geometry_msgs.msg import Point
-from visualization_msgs.msg import Marker, MarkerArray
 from morefusion_panda_ycb_video.msg import VoxelGridArray
 import rospy
 import topic_tools
+from visualization_msgs.msg import Marker
+from visualization_msgs.msg import MarkerArray
 
 
 class VoxelGridsToMeshMarkers(topic_tools.LazyTransport):

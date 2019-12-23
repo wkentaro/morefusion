@@ -2,10 +2,12 @@ import time
 
 import rospy
 
-from geometry_msgs.msg import Pose, Point, Quaternion
-from std_srvs.srv import Empty
+from geometry_msgs.msg import Point
+from geometry_msgs.msg import Pose
+from geometry_msgs.msg import Quaternion
 from morefusion_panda_ycb_video.srv import MoveToJointPosition
 from morefusion_panda_ycb_video.srv import SetSuction
+from std_srvs.srv import Empty
 
 from .get_scanning_poses import get_scanning_poses
 

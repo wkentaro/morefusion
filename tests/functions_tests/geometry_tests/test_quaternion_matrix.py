@@ -4,8 +4,8 @@ from chainer import cuda
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import condition
-import trimesh.transformations as tf
 import numpy as np
+import trimesh.transformations as tf
 
 from morefusion.functions.geometry.quaternion_matrix import quaternion_matrix
 

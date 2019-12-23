@@ -1,6 +1,6 @@
-import os.path as osp
 import collections
 import json
+import os.path as osp
 
 import numpy as np
 

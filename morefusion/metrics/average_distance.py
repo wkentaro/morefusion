@@ -1,6 +1,6 @@
 import numpy as np
-import trimesh.transformations as tf
 import sklearn.neighbors
+import trimesh.transformations as tf
 
 
 def _average_distance(points, transform1, transform2, translate=True):

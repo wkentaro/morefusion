@@ -4,20 +4,21 @@ import json
 
 import chainer
 import gdown
-import numpy as np
 import imgviz
+import numpy as np
 
 import morefusion
 import morefusion.contrib.singleview_3d as contrib
 
 import cv_bridge
-import rospy
 import message_filters
-from sensor_msgs.msg import Image, CameraInfo
-from morefusion_panda_ycb_video.msg import VoxelGridArray
+from morefusion_panda_ycb_video.msg import ObjectClassArray
 from morefusion_panda_ycb_video.msg import ObjectPose
 from morefusion_panda_ycb_video.msg import ObjectPoseArray
-from morefusion_panda_ycb_video.msg import ObjectClassArray
+from morefusion_panda_ycb_video.msg import VoxelGridArray
+import rospy
+from sensor_msgs.msg import CameraInfo
+from sensor_msgs.msg import Image
 import topic_tools
 
 

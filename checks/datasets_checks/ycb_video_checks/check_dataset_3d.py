@@ -2,8 +2,8 @@
 
 import numpy as np
 import trimesh
-import trimesh.viewer
 import trimesh.transformations as tf
+import trimesh.viewer
 
 import morefusion
 

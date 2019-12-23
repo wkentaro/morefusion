@@ -9,10 +9,12 @@ import morefusion
 
 import cv_bridge
 import rospy
-from sensor_msgs.msg import Image, CameraInfo
+from sensor_msgs.msg import CameraInfo
+from sensor_msgs.msg import Image
 import tf
 from topic_tools import LazyTransport
-from visualization_msgs.msg import Marker, MarkerArray
+from visualization_msgs.msg import Marker
+from visualization_msgs.msg import MarkerArray
 
 
 class RenderMeshMarkers(LazyTransport):

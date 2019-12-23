@@ -4,9 +4,9 @@ import copy
 import itertools
 import queue
 
+import numpy as np
 import trimesh.transformations as ttf
 
-import numpy as np
 import morefusion
 
 from morefusion_panda_ycb_video.msg import ObjectClassArray

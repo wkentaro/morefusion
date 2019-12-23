@@ -6,8 +6,8 @@ import numpy as np
 import path
 import scipy.io
 
-from ..base import DatasetBase
 from ... import utils as utils_module
+from ..base import DatasetBase
 
 
 class YCBVideoDataset(DatasetBase):

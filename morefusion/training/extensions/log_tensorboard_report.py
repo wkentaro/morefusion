@@ -3,13 +3,13 @@ import os
 import shutil
 import warnings
 
-import six
 from chainer import reporter
 from chainer import serializer as serializer_module
 from chainer.training import extension
 from chainer.training import trigger as trigger_module
 from chainer import utils
 from chainer import Variable
+import six
 
 
 class LogTensorboardReport(extension.Extension):

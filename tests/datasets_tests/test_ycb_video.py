@@ -3,8 +3,8 @@ import unittest
 import numpy as np
 import pytest
 
-from morefusion.datasets.ycb_video import YCBVideoDataset
 from morefusion.datasets.ycb_video import class_names
+from morefusion.datasets.ycb_video import YCBVideoDataset
 
 
 @pytest.mark.heavy

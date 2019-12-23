@@ -3,10 +3,10 @@ import numpy as np
 import trimesh
 import trimesh.transformations as tf
 
-from ..base import DatasetBase
 from ... import extra as extra_module
 from ... import geometry as geometry_module
 from ...contrib import MultiInstanceOctreeMapping
+from ..base import DatasetBase
 
 
 class RGBDPoseEstimationDatasetBase(DatasetBase):

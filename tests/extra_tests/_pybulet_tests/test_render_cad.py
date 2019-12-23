@@ -1,8 +1,8 @@
 import numpy as np
 
-from morefusion import geometry
 from morefusion.datasets import YCBVideoModels
 from morefusion.extra import _pybullet as pybullet_module
+from morefusion import geometry
 
 
 def test_render_cad():

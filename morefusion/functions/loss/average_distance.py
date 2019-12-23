@@ -1,7 +1,7 @@
 import chainer.functions as F
 
-from ..geometry import transform_points
 from ... import geometry as geometry_module
+from ..geometry import transform_points
 
 
 # def average_distance_l2(points, transform1, transform2):

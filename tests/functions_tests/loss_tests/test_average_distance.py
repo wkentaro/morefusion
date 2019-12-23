@@ -6,8 +6,8 @@ from chainer.backends import cuda
 from chainer import testing
 import numpy as np
 
-from morefusion import metrics
 from morefusion.functions.loss.average_distance import average_distance
+from morefusion import metrics
 
 
 class TestAverageDistance(unittest.TestCase):

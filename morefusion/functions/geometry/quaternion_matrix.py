@@ -1,6 +1,6 @@
 import chainer
-import chainer.functions as F
 from chainer.backends import cuda
+import chainer.functions as F
 
 
 class QuaternionMatrix(chainer.Function):

@@ -15,12 +15,13 @@ import trimesh.transformations as ttf
 import morefusion
 
 import cv_bridge
-import tf
-import topic_tools
-import rospy
 from geometry_msgs.msg import PoseArray
 from morefusion_panda_ycb_video.msg import ObjectPoseArray
-from sensor_msgs.msg import CameraInfo, Image
+import rospy
+from sensor_msgs.msg import CameraInfo
+from sensor_msgs.msg import Image
+import tf
+import topic_tools
 
 
 def get_leaves(graph, target):

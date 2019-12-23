@@ -1,7 +1,7 @@
 import imgviz
 import numpy as np
-import yaml
 import trimesh.transformations as tf
+import yaml
 
 from .... import geometry as geometry_module
 from ...ycb_video import YCBVideoModels

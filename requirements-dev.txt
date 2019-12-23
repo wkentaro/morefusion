@@ -1,6 +1,7 @@
 -e git+https://github.com/wkentaro/trimesh.git@morefusion#egg=trimesh[easy]
 -r requirements.txt
 flake8
+hacking
 ipdb
 ipython
 pycd

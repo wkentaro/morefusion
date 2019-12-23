@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 import numpy as np
-import trimesh.transformations as tf
 import scipy.io
+import trimesh.transformations as tf
 
 import morefusion
 

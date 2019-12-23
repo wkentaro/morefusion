@@ -7,8 +7,8 @@ import warnings
 import chainer
 from chainer.dataset import convert as convert_module
 from chainer import function
-from chainer.training.extensions.evaluator import _IteratorProgressBar
 import chainer.reporter as reporter_module
+from chainer.training.extensions.evaluator import _IteratorProgressBar
 import numpy as np
 import pandas
 

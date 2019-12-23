@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 
-import rospy
-from morefusion_panda.srv import MoveToPose, MoveToPoseResponse
-from moveit_commander import MoveGroupCommander, RobotCommander
 from actionlib_msgs.msg import GoalStatusArray
+from morefusion_panda.srv import MoveToPose
+from morefusion_panda.srv import MoveToPoseResponse
+from moveit_commander import MoveGroupCommander
+from moveit_commander import RobotCommander
+import rospy
 
 commander = MoveGroupCommander('panda_arm')
 robot = RobotCommander()

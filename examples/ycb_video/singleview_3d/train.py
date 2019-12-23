@@ -13,8 +13,8 @@ import chainer
 from chainer.training import extensions as E
 import numpy as np
 import path
-import termcolor
 import tensorboardX
+import termcolor
 
 import morefusion
 

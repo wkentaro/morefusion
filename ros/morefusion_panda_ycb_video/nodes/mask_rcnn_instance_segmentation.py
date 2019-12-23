@@ -7,9 +7,9 @@ import numpy as np
 import morefusion
 
 import cv_bridge
-import rospy
 from morefusion_panda_ycb_video.msg import ObjectClass
 from morefusion_panda_ycb_video.msg import ObjectClassArray
+import rospy
 from sensor_msgs.msg import Image
 from topic_tools import LazyTransport
 
