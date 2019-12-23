@@ -14,7 +14,7 @@ cd $ROOT
 source .anaconda3/bin/activate
 
 echo_bold "==> Installing flake8 and mypy"
-pip install -U flake8 mypy
+pip install -U flake8 hacking mypy
 
 echo_bold "==> Linting with flake8"
 flake8 .
