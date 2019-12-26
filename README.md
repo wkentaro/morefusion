@@ -32,13 +32,11 @@ cd morefusion
 make install
 
 cd ~/ros_morefusion
-ln -s src/ros/*.sh .
+ln -s src/ros/*sh .
 
 ./rosdep_install.sh
 ./catkin_build.robot_agent.sh
 
-ln -s src/morefusion/ros/autoenv.zsh .autoenv.zsh
-ln -s src/morefusion/ros/autoenv_leave.zsh .autoenv_leave.zsh
 source .autoenv.zsh
 ```
 
