@@ -24,6 +24,14 @@ install:
 script:
   - make test
 
+  - |
+    mkdir -p ~/ros_morefusion/src
+    ln -s $TRAVIS_BUILD_DIR ~/ros_morefusion/src/morefusion
+    cd ~/ros_morefusion
+    ln -s src/morefusion/ros/*sh .
+    ./rosdep_install.sh
+    ./catkin_build.robot_agent.sh
+
 branches:
   only:
     - master
