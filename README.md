@@ -32,7 +32,7 @@ cd morefusion
 make install
 
 cd ~/ros_morefusion
-ln -s src/ros/*sh .
+ln -s src/ros/*.sh .
 
 ./rosdep_install.sh
 ./catkin_build.robot_agent.sh

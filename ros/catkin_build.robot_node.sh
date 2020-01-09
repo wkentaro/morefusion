@@ -2,10 +2,8 @@
 
 set -e
 
-ROS_ROOT_PREFIX=$HOME/ros_morefusion
-
-unset PYTHONPATH
-unset CMAKE_PREFIX_PATH
+HERE="$(dirname $(realpath ${BASH_SOURCE[0]}))"
+source $HERE/.init.sh
 
 source /opt/ros/kinetic/setup.bash
 

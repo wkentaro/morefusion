@@ -1,6 +1,7 @@
 #!/bin/bash
 
-ROS_ROOT_PREFIX=$HOME/ros_morefusion
+HERE="$(dirname $(realpath ${BASH_SOURCE[0]}))"
+source $HERE/.init.sh
 
 cd $ROS_ROOT_PREFIX
 
