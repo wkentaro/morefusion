@@ -669,7 +669,7 @@ if __name__ == '__main__':
 Usage:
 
   >>> ri.move_to_reset_pose()
-  >>> ri.scan_scane()
+  >>> ri.scan_scene()
   >>> ri.pick_and_place()
 
   or
