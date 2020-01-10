@@ -443,14 +443,15 @@ Visualization Manager:
             2: true
             3: true
             4: true
+            5: true
           Queue Size: 1
           Value: true
         - Class: rviz/MarkerArray
           Enabled: true
-          Marker Topic: /robot_demo/object_poses_to_markers/output
+          Marker Topic: /pick_and_place/object_poses_to_markers/output
           Name: Moved
           Namespaces:
-            {}
+            "": true
           Queue Size: 1
           Value: true
       Enabled: true
@@ -487,18 +488,18 @@ Visualization Manager:
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.383222282
-        Y: -0.25838235
-        Z: 0.861317217
+        X: 0.454601288
+        Y: -0.160960391
+        Z: 0.964104235
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.0500000007
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.629797101
+      Pitch: 0.649796903
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 4.18040419
+      Yaw: 4.4154048
     Saved: ~
 Window Geometry:
   Displays:

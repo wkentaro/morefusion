@@ -27,7 +27,7 @@
     </node>
   </group>
 
-  <group ns="robot_demo">
+  <group ns="pick_and_place">
     <node name="object_poses_to_markers"
           pkg="morefusion_panda_ycb_video" type="object_poses_to_markers.py"
           clear_params="true">
