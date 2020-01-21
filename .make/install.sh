@@ -65,7 +65,8 @@ done
 echo_bold "==> Installing with requirements-dev.txt"
 pip install -r requirements-dev.txt
 
-pip install -e .
+echo_bold "==> Installing main package"
+pip install -e .  --no-deps
 
 echo_bold "==> Checking the availability of Cupy"
 if ! python -c 'import cupy' &>/dev/null; then

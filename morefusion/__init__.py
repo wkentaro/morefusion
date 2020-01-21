@@ -11,3 +11,5 @@ from . import ros
 from . import simulation
 from . import training
 from . import utils
+
+__version__ = '0.1.0'
