@@ -1,8 +1,6 @@
 import re
 from setuptools import find_packages
 from setuptools import setup
-import shlex
-import subprocess
 
 
 def get_version():
