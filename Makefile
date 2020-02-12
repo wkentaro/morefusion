@@ -4,22 +4,22 @@ all:
 	@$(MAKE) -pRrq -f $(lastword $(MAKEFILE_LIST)) : 2>/dev/null | awk -v RS= -F: '/^# File/,/^# Finished Make data base/ {if ($$1 !~ "^[#.]") {print $$1}}' | sort | egrep -v -e '^[^[:alnum:]]' -e '^$@$$' | xargs
 
 install_anaconda3:
-	@.make/install_anaconda3.sh
+	@Makefile.scripts/install_anaconda3.sh
 
 install_v-hacd: install_anaconda3
-	@.make/install_v-hacd.sh
+	@Makefile.scripts/install_v-hacd.sh
 
 install_binvox: install_anaconda3
-	@.make/install_binvox.sh
+	@Makefile.scripts/install_binvox.sh
 
 install: install_anaconda3 install_v-hacd install_binvox
-	@.make/install.sh
+	@Makefile.scripts/install.sh
 
 lint: install_anaconda3
-	@.make/lint.sh
+	@Makefile.scripts/lint.sh
 
 test: install_anaconda3
-	@.make/test.sh
+	@Makefile.scripts/test.sh
 
 check: install_anaconda3
-	@.make/check.sh
+	@Makefile.scripts/check.sh
