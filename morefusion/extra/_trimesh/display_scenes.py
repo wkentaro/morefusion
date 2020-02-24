@@ -151,9 +151,7 @@ Usage:
                             widget.scene = scene
                         else:
                             widget.scene.geometry.update(scene.geometry)
-                            graph = scene.graph.copy()
-                            graph.load(widget.scene.graph.to_edgelist())
-                            widget.scene.graph = graph
+                            widget.scene.graph.load(scene.graph.to_edgelist())
                         widget.scene.camera_transform = scene.camera_transform
                         widget.view['ball']._n_pose = scene.camera_transform
                         widget._draw()
