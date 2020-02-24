@@ -52,7 +52,7 @@ def get_scenes():
         geom = trimesh.creation.camera_marker(
             scene.camera, marker_height=0.05
         )[1]
-        geom.colors = (0, 1., 0)
+        geom.colors = [(0, 1., 0)] * len(geom.entities)
         scene.add_geometry(geom, transform=T_cam2world)
 
         index += 15
