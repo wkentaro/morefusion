@@ -113,8 +113,8 @@ roslaunch morefusion_panda_ycb_video setup_static.robot.launch
 ### Robotic Pick-and-Place
 
 ```bash
-robot-agent $ sudo ntpdata 0.uk.pool.ntp.org  # for time synchronization
-robot-node  $ sudo ntpdata 0.uk.pool.ntp.org  # for time synchronization
+robot-agent $ sudo ntpdate 0.uk.pool.ntp.org  # for time synchronization
+robot-node  $ sudo ntpdate 0.uk.pool.ntp.org  # for time synchronization
 
 robot-node  $ roscore
 
