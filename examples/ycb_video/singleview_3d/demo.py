@@ -15,8 +15,7 @@ import trimesh
 import trimesh.transformations as tf
 
 import morefusion
-
-import contrib
+from morefusion.contrib import singleview_3d
 
 from train import Transform
 
@@ -38,7 +37,7 @@ def main():
     if args.gpu >= 0:
         chainer.cuda.get_device_from_id(args.gpu).use()
 
-    model = contrib.models.Model(
+    model = singleview_3d.models.Model(
         n_fg_class=len(args_data['class_names'][1:]),
         pretrained_resnet18=args_data['pretrained_resnet18'],
         with_occupancy=args_data['with_occupancy'],

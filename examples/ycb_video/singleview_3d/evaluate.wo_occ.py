@@ -12,7 +12,7 @@ import pybullet  # NOQA
 import tqdm
 
 import morefusion
-from morefusion.contrib import singleview_3d as contrib
+from morefusion.contrib import singleview_3d
 
 
 models = morefusion.datasets.YCBVideoModels()
@@ -29,7 +29,7 @@ def main():
     with open(args.log_dir / 'args') as f:
         args_dict = json.load(f)
 
-    model = contrib.models.Model(
+    model = singleview_3d.models.Model(
         n_fg_class=len(args_dict['class_names'][1:]),
         pretrained_resnet18=args_dict['pretrained_resnet18'],
         with_occupancy=args_dict['with_occupancy'],

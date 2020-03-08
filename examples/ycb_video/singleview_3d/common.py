@@ -7,8 +7,7 @@ import path
 import trimesh.transformations as tf
 
 import morefusion
-
-import contrib
+from morefusion.contrib import singleview_3d
 
 
 home = path.Path('~').expanduser()
@@ -26,7 +25,7 @@ class Inference:
         with open(args_file) as f:
             args_data = json.load(f)
 
-        model = contrib.models.BaselineModel(
+        model = singleview_3d.models.BaselineModel(
             n_fg_class=len(args_data['class_names'][1:]),
             freeze_until=args_data['freeze_until'],
             voxelization=args_data.get('voxelization', 'average'),
@@ -38,13 +37,13 @@ class Inference:
 
         if dataset == 'my_synthetic':
             root_dir = home / 'data/datasets/wkentaro/morefusion/ycb_video/synthetic_data/20190507_121544.807309'  # NOQA
-            dataset = contrib.datasets.MySyntheticDataset(
+            dataset = singleview_3d.datasets.MySyntheticDataset(
                 root_dir=root_dir,
                 class_ids=args_data['class_ids'],
             )
         elif dataset == 'my_real':
             root_dir = home / 'data/datasets/wkentaro/morefusion/ycb_video/real_data/20190614_18'  # NOQA
-            dataset = contrib.datasets.MyRealDataset(
+            dataset = singleview_3d.datasets.MyRealDataset(
                 root_dir=root_dir,
                 class_ids=args_data['class_ids'],
             )

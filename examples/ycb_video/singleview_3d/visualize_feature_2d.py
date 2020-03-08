@@ -9,7 +9,7 @@ import easydict
 import imgviz
 import numpy as np
 
-import contrib
+from morefusion.contrib import singleview_3d
 
 
 def get_images():
@@ -18,7 +18,7 @@ def get_images():
     with open(log_dir / 'args') as f:
         args = easydict.EasyDict(json.load(f))
 
-    model = contrib.models.BaselineModel(
+    model = singleview_3d.models.BaselineModel(
         n_fg_class=len(args.class_names[1:]),
     )
     model.to_gpu(0)
@@ -27,7 +27,7 @@ def get_images():
         log_dir / 'snapshot_model_best_auc_add.npz', model
     )
 
-    dataset = contrib.datasets.YCBVideoDataset(
+    dataset = singleview_3d.datasets.YCBVideoDataset(
         'train', class_ids=args.class_ids
     )
 

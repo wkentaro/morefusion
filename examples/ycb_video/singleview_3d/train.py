@@ -17,8 +17,7 @@ import tensorboardX
 import termcolor
 
 import morefusion
-
-import contrib
+from morefusion.contrib import singleview_3d
 
 
 home = path.Path('~').expanduser()
@@ -337,7 +336,7 @@ def main():
         loss = 'add+occupancy'
 
     # model initialization
-    model = contrib.models.Model(
+    model = singleview_3d.models.Model(
         n_fg_class=len(args.class_names[1:]),
         pretrained_resnet18=args.pretrained_resnet18,
         with_occupancy=args.with_occupancy,

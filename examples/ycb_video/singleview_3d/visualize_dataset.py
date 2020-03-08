@@ -7,8 +7,7 @@ import trimesh
 import trimesh.transformations as tf
 
 import morefusion
-
-import contrib
+from morefusion.contrib import singleview_3d
 
 
 parser = argparse.ArgumentParser(
@@ -18,7 +17,7 @@ parser.add_argument('--randomize-base', action='store_true')
 args = parser.parse_args()
 
 models = morefusion.datasets.YCBVideoModels()
-dataset = contrib.datasets.YCBVideoDataset('train')
+dataset = singleview_3d.datasets.YCBVideoDataset('train')
 
 frame = dataset.get_frame(0)
 examples = dataset.get_example(0)

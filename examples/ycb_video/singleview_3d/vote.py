@@ -15,8 +15,7 @@ import trimesh
 import trimesh.transformations as tf
 
 import morefusion
-
-import contrib
+from morefusion.contrib import singleview_3d
 
 
 def main():
@@ -37,7 +36,7 @@ def main():
     if args.gpu >= 0:
         chainer.cuda.get_device_from_id(args.gpu).use()
 
-    model = contrib.models.BaselineModel(
+    model = singleview_3d.models.BaselineModel(
         n_fg_class=len(args_data['class_names'][1:]),
         freeze_until=args_data['freeze_until'],
         voxelization=args_data.get('voxelization', 'average'),
@@ -56,7 +55,7 @@ def main():
         # 'wkentaro/morefusion/ycb_video/synthetic_data/20190402_174648.841996',
     )
     args.class_ids = []
-    dataset = contrib.datasets.MySyntheticDataset(
+    dataset = singleview_3d.datasets.MySyntheticDataset(
         args.root_dir, class_ids=args.class_ids
     )
 
