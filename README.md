@@ -77,7 +77,7 @@ roslaunch morefusion_panda_ycb_video setup_dynamic.robot.launch
 ```
 
 <div>
-  <img src="https://drive.google.com/uc?id=1E3aqKf9TdSWDjL8rsbAe_oq_jEOQ5RbE" width="40%" />
+  <img src="https://drive.google.com/uc?id=1sTRNlsTK2jp5oGUk7EPA4_lwrDnIdyW5" width="40%" />
   <br/>
   <i>Figure 1. Dynamic Scene Reconstruction with the Human Hand-mounted Camera.</i>
 </div>
@@ -128,9 +128,9 @@ robot-node  $ rosrun morefusion_panda_ycb_video robot_demo_node.py
 ```
 
 <div>
-  <img src="https://drive.google.com/uc?id=1JeIlT2yyhruR5DreFbI9htP8N4X4fP10" width="30%" />
-  <img src="https://drive.google.com/uc?id=1vO0k7NS0iRkzGhcmGHBpqe8sp7_i-n0a" width="30%" />
-  <img src="https://drive.google.com/uc?id=1aj657Z8_T4JR4ceEh0laiP88ggBllYPK" width="30%" />
+  <img src="https://drive.google.com/uc?id=1GOb7jS8KRu_7T3c7CwLn3zDo2GVWvFuE" width="30%" />
+  <img src="https://drive.google.com/uc?id=1a_7vv-jhBO4Sf3cNIFHwwIVU6sBsgyZy" width="30%" />
+  <img src="https://drive.google.com/uc?id=1dCbxZ120RW9RjvYTSwTtJ2Y_tEDlt5cb" width="30%" />
   <br/>
   <i>Figure 4. Targetted Object Pick-and-Place. (a) Scanning the Scene; (b) Removing Distractor Objects; (c) Picking Target Object.</i>
 </div>
