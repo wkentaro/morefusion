@@ -1,11 +1,8 @@
 #!/bin/bash
 
-echo_bold () {
-  echo -e "\033[1m$*\033[0m"
-}
-
-HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT=$HERE/..
+HERE=$(realpath $(dirname ${BASH_SOURCE[0]}))
+source $HERE/__init__.sh
+ROOT=$(realpath $HERE/..)
 
 CI=${1:-0}
 shift

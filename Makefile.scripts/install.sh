@@ -1,29 +1,8 @@
-#!/bin/bash
+#!/bin/bash -e
 
-set -e
-
-echo_bold () {
-  echo -e "\033[1m$*\033[0m"
-}
-
-echo_warning () {
-  echo -e "\033[1;33m$*\033[0m"
-}
-
-echo_error () {
-  echo -e "\033[1;31m$*\033[0m"
-}
-
-conda_check_installed () {
-  if [ ! $# -eq 1 ]; then
-    echo "usage: $0 PACKAGE_NAME"
-    return 1
-  fi
-  conda list | awk '{print $1}' | egrep "^$1$" &>/dev/null
-}
-
-HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT=$HERE/..
+HERE=$(realpath $(dirname ${BASH_SOURCE[0]}))
+source $HERE/__init__.sh
+ROOT=$(realpath $HERE/..)
 
 cd $ROOT
 
@@ -40,33 +19,23 @@ conda_check_installed pygraphviz || conda install -c anaconda pygraphviz -y
 if [ "$CI" = "true" ]; then
   # it fails with following error with pip install:
   # ImportError: dlopen: cannot load any more object with static TLS
-  conda install -y scikit-learn
+  conda_install -y scikit-learn
 fi
 
 echo_bold "==> Installing latest pip and setuptools"
-pip install -U pip setuptools wheel
+pip_install -U pip setuptools wheel
 
 echo_bold "==> Installing cython and numpy"
-pip install cython numpy
-
-echo_bold "==> Checking the remaining change in src/"
-for dir in src/*; do
-  if [ ! -d $dir/.git ]; then
-    continue
-  fi
-  diff=$(cd $dir && git diff)
-  if [ "$diff" != "" ]; then
-    echo_error "==> Found a diff in the source: $dir"
-    echo "$diff"
-    exit 1
-  fi
-done
+pip_install cython numpy
 
 echo_bold "==> Installing with requirements-dev.txt"
-pip install -r requirements-dev.txt
+pip_install -r requirements-dev.txt
+
+echo_bold "==> Installing pre-commit"
+pre-commit install
 
 echo_bold "==> Installing main package"
-pip install -e .  --no-deps
+pip_install -e .  --no-deps
 
 echo_bold "==> Checking the availability of Cupy"
 if ! python -c 'import cupy' &>/dev/null; then

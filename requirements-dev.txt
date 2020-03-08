@@ -4,5 +4,6 @@ hacking
 ipdb
 ipython
 mypy
+pre-commit
 pycd
 pytest
