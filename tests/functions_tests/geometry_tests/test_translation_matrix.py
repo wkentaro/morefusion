@@ -11,19 +11,20 @@ from morefusion.functions.geometry.translation_matrix import translation_matrix
 
 
 class TestTranslationMatrix(unittest.TestCase):
-
     def setUp(self):
         batch_size = 5
-        self.translations = np.array([
-            tf.random_vector((3,)) for _ in range(batch_size)
-        ], dtype=np.float32)
-        self.transforms = np.array([
-            tf.translation_matrix(q) for q in self.translations
-        ], dtype=np.float32)
-        self.gTs = np.random.uniform(
-            -1, 1, (batch_size, 4, 4)
-        ).astype(np.float32)
-        self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
+        self.translations = np.array(
+            [tf.random_vector((3,)) for _ in range(batch_size)],
+            dtype=np.float32,
+        )
+        self.transforms = np.array(
+            [tf.translation_matrix(q) for q in self.translations],
+            dtype=np.float32,
+        )
+        self.gTs = np.random.uniform(-1, 1, (batch_size, 4, 4)).astype(
+            np.float32
+        )
+        self.check_backward_options = {"atol": 5e-4, "rtol": 5e-3}
 
     def check_forward(self, translations):
         Ts = translation_matrix(translations)

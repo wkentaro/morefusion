@@ -3,16 +3,17 @@ import numpy as np
 
 
 class Voxelization3D(chainer.Function):
-
     def __init__(self, *, batch_size, pitch, origin, dimensions):
         self.batch_size = batch_size
         self.pitch = pitch
         self.origin = origin
 
-        if not (isinstance(dimensions, tuple) and
-                len(dimensions) == 3 and
-                all(isinstance(d, int) for d in dimensions)):
-            raise ValueError('dimensions must be a tuple of 4 integers')
+        if not (
+            isinstance(dimensions, tuple)
+            and len(dimensions) == 3
+            and all(isinstance(d, int) for d in dimensions)
+        ):
+            raise ValueError("dimensions must be a tuple of 4 integers")
 
         self.dimensions = dimensions
 

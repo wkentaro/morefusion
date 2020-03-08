@@ -15,8 +15,7 @@ def _get_tile_shape(num: int) -> typing.Tuple[int, int]:
 
 
 def tile_meshes(
-    meshes: typing.List[typing.Any],
-    shape: typing.Optional[tuple] = None,
+    meshes: typing.List[typing.Any], shape: typing.Optional[tuple] = None,
 ) -> trimesh.Scene:
     meshes = copy.deepcopy(meshes)
 
@@ -24,7 +23,7 @@ def tile_meshes(
         shape = _get_tile_shape(len(meshes))
 
     transforms = []
-    min_z = float('inf')
+    min_z = float("inf")
     for i, mesh in enumerate(meshes):
         scale = mesh.bounding_box.extents.max()
         mesh.apply_scale(0.5 / scale)
@@ -43,12 +42,14 @@ def tile_meshes(
 
     plane_depth = 0.01
     plane = trimesh.creation.box([shape[0], shape[1], plane_depth])
-    plane.apply_translation([
-        shape[0] / 2. - 0.5,
-        shape[1] / 2. - 0.5,
-        - plane_depth / 2. + min_z,
-    ])
-    plane.visual.face_colors = [[1., 1., 1.]] * len(plane.faces)
+    plane.apply_translation(
+        [
+            shape[0] / 2.0 - 0.5,
+            shape[1] / 2.0 - 0.5,
+            -plane_depth / 2.0 + min_z,
+        ]
+    )
+    plane.visual.face_colors = [[1.0, 1.0, 1.0]] * len(plane.faces)
     scene.add_geometry(plane)
 
     return scene

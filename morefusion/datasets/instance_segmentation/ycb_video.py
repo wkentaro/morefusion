@@ -7,11 +7,11 @@ from .voc_background_composite import VOCBackgroundComposite
 
 
 def _ycb_video_to_instance_segmentation(example):
-    rgb = example['color']
-    lbl = example['label']
-    meta = example['meta']
+    rgb = example["color"]
+    lbl = example["label"]
+    meta = example["meta"]
 
-    labels = meta['cls_indexes'].astype(np.int32)
+    labels = meta["cls_indexes"].astype(np.int32)
     masks = lbl[None, :, :] == labels[:, None, None]
 
     keep = masks.sum(axis=(1, 2)) > 0
@@ -20,12 +20,7 @@ def _ycb_video_to_instance_segmentation(example):
 
     bboxes = geometry_module.masks_to_bboxes(masks)
 
-    return dict(
-        rgb=rgb,
-        bboxes=bboxes,
-        labels=labels,
-        masks=masks,
-    )
+    return dict(rgb=rgb, bboxes=bboxes, labels=labels, masks=masks,)
 
 
 class YCBVideoSyntheticInstanceSegmentationDataset(YCBVideoSyntheticDataset):
@@ -49,8 +44,8 @@ class YCBVideoSyntheticInstanceSegmentationDataset(YCBVideoSyntheticDataset):
         example = super().get_example(i)
 
         if self._bg_composite:
-            example['color'] = self._bg_composite(
-                example['color'], example['label']
+            example["color"] = self._bg_composite(
+                example["color"], example["label"]
             )
 
         return _ycb_video_to_instance_segmentation(example)

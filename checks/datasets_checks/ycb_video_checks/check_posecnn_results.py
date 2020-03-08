@@ -6,7 +6,6 @@ import morefusion
 
 
 class Images:
-
     def __init__(self):
         self._dataset = morefusion.datasets.YCBVideoPoseCNNResultsDataset()
 
@@ -16,17 +15,15 @@ class Images:
     def __getitem__(self, i):
         example = self._dataset[i]
 
-        rgb = example['color']
-        depth_viz = imgviz.depth2rgb(example['depth'])
+        rgb = example["color"]
+        depth_viz = imgviz.depth2rgb(example["depth"])
         label_viz = imgviz.label2rgb(
-            example['result']['labels'],
+            example["result"]["labels"],
             label_names=morefusion.datasets.ycb_video.class_names,
         )
 
         viz = imgviz.tile(
-            [rgb, depth_viz, label_viz],
-            shape=(1, 3),
-            border=(255, 255, 255),
+            [rgb, depth_viz, label_viz], shape=(1, 3), border=(255, 255, 255),
         )
         viz = imgviz.resize(viz, width=1000)
         return viz

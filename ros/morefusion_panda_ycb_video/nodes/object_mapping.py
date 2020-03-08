@@ -39,10 +39,10 @@ class Object:
 
     def __repr__(self):
         return (
-            f'{self.__class__.__name__}('
-            f'class_id={self.class_id}, '
-            f'n_poses={len(self._poses)}, '
-            f'is_spawned={self.is_spawned})'
+            f"{self.__class__.__name__}("
+            f"class_id={self.class_id}, "
+            f"n_poses={len(self._poses)}, "
+            f"is_spawned={self.is_spawned})"
         )
 
     def append_pose(self, pose):
@@ -61,9 +61,7 @@ class Object:
             list(itertools.islice(self._poses, len(self._poses) - 1))
         )
         add, add_s = morefusion.metrics.average_distance(
-            [self._pcd] * len(poses),
-            [latest_pose] * len(poses),
-            poses,
+            [self._pcd] * len(poses), [latest_pose] * len(poses), poses,
         )
         if self._is_symmetric:
             add = add_s
@@ -90,23 +88,23 @@ class ObjectMapping:
     def __init__(self):
         self._objects = {}  # instance_id: Object()
         self._instance_ids_removed = set()
-        self._base_frame = rospy.get_param('~frame_id', 'map')
+        self._base_frame = rospy.get_param("~frame_id", "map")
         self._pub = rospy.Publisher(
-            '~output/poses', ObjectPoseArray, queue_size=1, latch=True
+            "~output/poses", ObjectPoseArray, queue_size=1, latch=True
         )
         self._pub_grids = rospy.Publisher(
-            '~output/grids', VoxelGridArray, queue_size=1, latch=True
+            "~output/grids", VoxelGridArray, queue_size=1, latch=True
         )
 
         self._tf_listener = tf.TransformListener(cache_time=rospy.Duration(30))
         self._sub = rospy.Subscriber(
-            '~input/poses', ObjectPoseArray, self._callback, queue_size=1
+            "~input/poses", ObjectPoseArray, self._callback, queue_size=1
         )
         self._sub_grids = rospy.Subscriber(
-            '~input/grids', VoxelGridArray, self._callback_grids, queue_size=1
+            "~input/grids", VoxelGridArray, self._callback_grids, queue_size=1
         )
         self._sub_remove = rospy.Subscriber(
-            '~input/remove',
+            "~input/remove",
             ObjectClassArray,
             self._callback_remove,
             queue_size=1,
@@ -116,8 +114,10 @@ class ObjectMapping:
         out_msg = copy.deepcopy(grids_msg)
         out_msg.grids = []
         for grid in grids_msg.grids:
-            if (grid.instance_id in self._objects and
-                    self._objects[grid.instance_id].is_spawned):
+            if (
+                grid.instance_id in self._objects
+                and self._objects[grid.instance_id].is_spawned
+            ):
                 continue
             out_msg.grids.append(grid)
         self._pub_grids.publish(out_msg)
@@ -137,10 +137,7 @@ class ObjectMapping:
             if not obj.validate():
                 continue
 
-            pose = ObjectPose(
-                instance_id=ins_id,
-                class_id=obj.class_id,
-            )
+            pose = ObjectPose(instance_id=ins_id, class_id=obj.class_id,)
             T_cad2base = obj.pose
             translation = ttf.translation_from_matrix(T_cad2base)
             quaternion = ttf.quaternion_from_matrix(T_cad2base)
@@ -194,15 +191,15 @@ class ObjectMapping:
                 self._objects[instance_id] = Object(
                     class_id=class_id,
                     pcd=self._models.get_pcd(class_id),
-                    is_symmetric=class_id in
-                    morefusion.datasets.ycb_video.class_ids_symmetric
+                    is_symmetric=class_id
+                    in morefusion.datasets.ycb_video.class_ids_symmetric,
                 )
                 self._objects[instance_id].append_pose(T_cad2base)
 
         self._publish_poses(stamp=poses_msg.header.stamp)
 
 
-if __name__ == '__main__':
-    rospy.init_node('object_mapping', disable_signals=True)
+if __name__ == "__main__":
+    rospy.init_node("object_mapping", disable_signals=True)
     ObjectMapping()
     rospy.spin()

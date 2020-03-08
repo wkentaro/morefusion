@@ -13,19 +13,19 @@ import morefusion
 parser = argparse.ArgumentParser(
     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
 )
-parser.add_argument('--metric', default='add', help='add or add_s')
+parser.add_argument("--metric", default="add", help="add or add_s")
 args = parser.parse_args()
 
 metric = args.metric
 models = morefusion.datasets.YCBVideoModels()
 
 # w/o occupancy
-with open('./logs/20190710_180413/log') as f:
+with open("./logs/20190710_180413/log") as f:
     data = json.load(f)
 df_wo = pandas.DataFrame(data)
 
 # w/ occupancy
-with open('./logs/20190711_110540/log') as f:
+with open("./logs/20190711_110540/log") as f:
     data = json.load(f)
 df_wi = pandas.DataFrame(data)
 
@@ -34,16 +34,16 @@ assert np.all(columns == df_wi.columns)
 
 fig, axes = plt.subplots(6, 6)
 
-ymin = float('inf')
-ymax = - float('inf')
+ymin = float("inf")
+ymax = -float("inf")
 index = 0
 axes_plot = []
 for class_id in range(0, 1 + axes.size):
     if class_id == 0:
-        column = f'validation/main/{metric}'
+        column = f"validation/main/{metric}"
         class_id = None
     else:
-        column = f'validation/main/{metric}/{class_id:04d}'
+        column = f"validation/main/{metric}/{class_id:04d}"
         if column not in columns:
             continue
 
@@ -52,15 +52,13 @@ for class_id in range(0, 1 + axes.size):
 
     ax = axes[row][col]
     df_wo[column].dropna().plot(
-        label=f'w/o occ ({class_id})',
-        ax=ax,
+        label=f"w/o occ ({class_id})", ax=ax,
     )
     df_wi[column].dropna().plot(
-        label=f'w/ occ ({class_id})',
-        ax=ax,
+        label=f"w/ occ ({class_id})", ax=ax,
     )
-    ax.set_xlabel('iteration')
-    ax.set_ylabel(f'{metric}')
+    ax.set_xlabel("iteration")
+    ax.set_ylabel(f"{metric}")
     ax.legend()
     axes_plot.append(ax)
 

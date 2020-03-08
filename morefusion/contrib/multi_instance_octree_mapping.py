@@ -4,10 +4,9 @@ import trimesh
 
 
 class MultiInstanceOctreeMapping:
-
     def __init__(self):
         self._octrees = {}  # key: instance_id, value: octree
-        self._pcds = {}     # key: instance_id, value: (occupied, empty)
+        self._pcds = {}  # key: instance_id, value: (occupied, empty)
 
     @property
     def instance_ids(self):
@@ -15,7 +14,7 @@ class MultiInstanceOctreeMapping:
 
     def initialize(self, instance_id, *, pitch):
         if instance_id in self.instance_ids:
-            raise ValueError('instance {instance_id} already exists')
+            raise ValueError("instance {instance_id} already exists")
         self._octrees[instance_id] = octomap.OcTree(pitch)
 
     def integrate(self, instance_id, mask, pcd, origin=(0, 0, 0)):
@@ -34,7 +33,7 @@ class MultiInstanceOctreeMapping:
             self._pcds.pop(instance_id)  # clear cache
 
     def get_target_grids(self, target_id, *, dimensions, pitch, origin):
-        '''Get voxel grids of the specified instance.
+        """Get voxel grids of the specified instance.
 
         Parameters
         ----------
@@ -55,7 +54,7 @@ class MultiInstanceOctreeMapping:
             Occupied space of non-target instance.
         grid_empty: numpy.ndarray
             Empty space.
-        '''
+        """
         assert not np.isnan(origin).any()
         assert len(dimensions) == 3
         assert (np.asarray(dimensions) > 0).all()
@@ -81,9 +80,9 @@ class MultiInstanceOctreeMapping:
                 return -1
 
         for ins_id, octree in self._octrees.items():
-            occupancies = np.array([
-                get_occupancy(octree, center) for center in centers
-            ])
+            occupancies = np.array(
+                [get_occupancy(octree, center) for center in centers]
+            )
             q = occupancies >= 0.5
             if ins_id == target_id:
                 grid_target[I[q], J[q], K[q]] = occupancies[q]
@@ -95,7 +94,7 @@ class MultiInstanceOctreeMapping:
         return grid_target, grid_nontarget, grid_empty
 
     def get_target_pcds(self, target_id, aabb_min=None, aabb_max=None):
-        '''Get point clouds of the specified instance.
+        """Get point clouds of the specified instance.
 
         Parameters
         ----------
@@ -112,7 +111,7 @@ class MultiInstanceOctreeMapping:
             Occupied points.
         empty: (M, 3) numpy.ndarray, np.float64
             Empty points.
-        '''
+        """
         octree = self._octrees[target_id]
         if target_id not in self._pcds:
             occupied, empty = octree.extractPointCloud()

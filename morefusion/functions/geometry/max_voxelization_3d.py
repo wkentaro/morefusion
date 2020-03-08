@@ -5,13 +5,12 @@ from .voxelization_3d import Voxelization3D
 
 
 class MaxVoxelization3D(Voxelization3D):
-
     def forward_cpu(self, inputs):
         values, points, batch_indices, intensities = inputs
 
         # validation
         if np.isnan(points).sum():
-            raise ValueError('points include nan')
+            raise ValueError("points include nan")
 
         B = self.batch_size
         C = values.shape[1]
@@ -31,15 +30,16 @@ class MaxVoxelization3D(Voxelization3D):
             valid = ((0 <= index) & (index < self.dimensions)).all()
             if valid:
                 ix, iy, iz = index
-                if ((indices[batch_index, ix, iy, iz] < 0) or
-                        (intensity > max_intensities[batch_index, ix, iy, iz])):  # NOQA
+                if (indices[batch_index, ix, iy, iz] < 0) or (
+                    intensity > max_intensities[batch_index, ix, iy, iz]
+                ):  # NOQA
                     matrix[batch_index, :, ix, iy, iz] = value
                     indices[batch_index, ix, iy, iz] = i
                     max_intensities[batch_index, ix, iy, iz] = intensity
 
         self.indices = indices
         self.n_points = points.shape[0]
-        return matrix,
+        return (matrix,)
 
     def backward_cpu(self, inputs, gy):
         gmatrix = gy[0]
@@ -58,7 +58,7 @@ class MaxVoxelization3D(Voxelization3D):
 
         # validation
         if cuda.cupy.isnan(points).sum():
-            raise ValueError('points include nan')
+            raise ValueError("points include nan")
 
         B = self.batch_size
         C = values.shape[1]
@@ -73,16 +73,16 @@ class MaxVoxelization3D(Voxelization3D):
 
         # cuda.elementwise(
         cuda.cupy.ElementwiseKernel(
-            '''
+            """
             raw float32 values, raw float32 points, int32 batch_indices,
             raw float32 intensities,
             float32 pitch, raw float32 origin, raw int32 shape
-            ''',
-            '''
+            """,
+            """
             raw float32 matrix, raw int32 indices,
             raw float32 max_intensities
-            ''',
-            r'''
+            """,
+            r"""
             int B = shape[0];
             int C = shape[1];
             int X = shape[2];
@@ -118,12 +118,19 @@ class MaxVoxelization3D(Voxelization3D):
                     }
                 }
             }
-            ''',
-            'max_voxelization_3d_fwd',
+            """,
+            "max_voxelization_3d_fwd",
         )(
-            values, points, batch_indices, intensities,
-            self.pitch, origin, shape,
-            matrix, indices, max_intensities,
+            values,
+            points,
+            batch_indices,
+            intensities,
+            self.pitch,
+            origin,
+            shape,
+            matrix,
+            indices,
+            max_intensities,
         )
 
         valid = indices >= 0
@@ -133,7 +140,7 @@ class MaxVoxelization3D(Voxelization3D):
         self.indices = indices
         self.n_points = points.shape[0]
 
-        return matrix,
+        return (matrix,)
 
     def backward_gpu(self, inputs, gy):
         gmatrix = gy[0]
@@ -144,11 +151,11 @@ class MaxVoxelization3D(Voxelization3D):
         gvalues = cuda.cupy.zeros((self.n_points, channels), dtype=np.float32)
 
         cuda.cupy.ElementwiseKernel(
-            '''
+            """
             float32 gmatrix, raw int32 indices, raw int32 shape
-            ''',
-            'raw float32 gvalues',
-            r'''
+            """,
+            "raw float32 gvalues",
+            r"""
             int B = shape[0];
             int C = shape[1];
             int X = shape[2];
@@ -169,11 +176,10 @@ class MaxVoxelization3D(Voxelization3D):
             if (n >= 0) {
                 atomicAdd(&gvalues[n * C + c], gmatrix);
             }
-            ''',
-            'max_voxelization_3d_bwd',
+            """,
+            "max_voxelization_3d_bwd",
         )(
-            gmatrix, indices, shape,
-            gvalues,
+            gmatrix, indices, shape, gvalues,
         )
 
         return gvalues, None, None, None

@@ -37,16 +37,19 @@ def main():
             rgb, depth, ins, cls = generator.render(
                 T_cam2world, fovy=45, height=480, width=640,
             )
-            viz = imgviz.tile([
-                rgb,
-                depth2rgb(depth),
-                imgviz.label2rgb(ins + 1, rgb),
-                imgviz.label2rgb(cls, rgb),
-            ], border=(255, 255, 255))
+            viz = imgviz.tile(
+                [
+                    rgb,
+                    depth2rgb(depth),
+                    imgviz.label2rgb(ins + 1, rgb),
+                    imgviz.label2rgb(cls, rgb),
+                ],
+                border=(255, 255, 255),
+            )
             viz = imgviz.resize(viz, width=1000)
 
             font_size = 25
-            text = f'{i + 1:04d} / {n_points:04d}'
+            text = f"{i + 1:04d} / {n_points:04d}"
             size = imgviz.draw.text_size(text, font_size)
             viz = imgviz.draw.rectangle(
                 viz, (1, 1), size, outline=(0, 255, 0), fill=(0, 255, 0)
@@ -61,5 +64,5 @@ def main():
     images(generator, Ts_cam2world)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -12,21 +12,21 @@ def task(reindexed_root_dir, dataset, index):
     examples = dataset.get_example(index)
     id_to_meta = {}
     for i_example, example in enumerate(examples):
-        instance_id = f'{image_id}/{i_example:08d}'
-        npz_file = reindexed_root_dir / f'{instance_id}.npz'
+        instance_id = f"{image_id}/{i_example:08d}"
+        npz_file = reindexed_root_dir / f"{instance_id}.npz"
         npz_file.parent.makedirs_p()
         np.savez_compressed(npz_file, **example)
         id_to_meta[instance_id] = {
-            'class_id': int(example['class_id']),
-            'visibility': float(example['visibility']),
+            "class_id": int(example["class_id"]),
+            "visibility": float(example["visibility"]),
         }
     return id_to_meta
 
 
 def reindex(reindexed_root_dir: str, datasets: list):
-    print(f'Re-indexing following datasets to: {reindexed_root_dir}:')
+    print(f"Re-indexing following datasets to: {reindexed_root_dir}:")
     for dataset in datasets:
-        print(f'  - {dataset}')
+        print(f"  - {dataset}")
 
     id_to_meta: dict = {}
 
@@ -42,5 +42,5 @@ def reindex(reindexed_root_dir: str, datasets: list):
             for id, meta in future.result().items():
                 id_to_meta[id] = meta
 
-    with open(path.Path(reindexed_root_dir) / 'meta.json', 'w') as f:
+    with open(path.Path(reindexed_root_dir) / "meta.json", "w") as f:
         json.dump(id_to_meta, f, indent=4)

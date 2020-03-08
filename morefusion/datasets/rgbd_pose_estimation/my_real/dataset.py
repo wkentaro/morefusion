@@ -9,12 +9,10 @@ from ..base import RGBDPoseEstimationDatasetBase
 
 
 class MyRealRGBDPoseEstimationDataset(RGBDPoseEstimationDatasetBase):
-
     def __init__(self, root_dir=None, class_ids=None):
         self._root_dir = root_dir
         super().__init__(
-            models=YCBVideoModels(),
-            class_ids=class_ids,
+            models=YCBVideoModels(), class_ids=class_ids,
         )
         self._ids = self._get_ids()
 
@@ -25,25 +23,25 @@ class MyRealRGBDPoseEstimationDataset(RGBDPoseEstimationDatasetBase):
     def get_frame(self, index):
         frame_dir = self.ids[index]
 
-        rgb_file = frame_dir / 'image.png'
+        rgb_file = frame_dir / "image.png"
         rgb = imgviz.io.imread(rgb_file)[:, :, :3]
 
-        depth_file = frame_dir / 'depth.npz'
-        depth = np.load(depth_file)['arr_0']
-        depth = depth.astype(np.float32) / 1000.
+        depth_file = frame_dir / "depth.npz"
+        depth = np.load(depth_file)["arr_0"]
+        depth = depth.astype(np.float32) / 1000.0
         depth[depth == 0] = np.nan
         assert rgb.shape[:2] == depth.shape
 
-        detections_file = frame_dir / 'detections.npz'
+        detections_file = frame_dir / "detections.npz"
         detections = np.load(detections_file)
-        masks = detections['masks']
-        class_ids = detections['class_ids']
+        masks = detections["masks"]
+        class_ids = detections["class_ids"]
         # scores = detections['scores']
 
-        camera_info_file = frame_dir / 'camera_info.yaml'
+        camera_info_file = frame_dir / "camera_info.yaml"
         with open(camera_info_file) as f:
             camera_info = yaml.safe_load(f)
-        K = np.array(camera_info['K']).reshape(3, 3)
+        K = np.array(camera_info["K"]).reshape(3, 3)
 
         instance_ids = []
         instance_label = np.zeros(rgb.shape[:2], dtype=np.int32)

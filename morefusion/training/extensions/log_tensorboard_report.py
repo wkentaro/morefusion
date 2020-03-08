@@ -13,14 +13,13 @@ import six
 
 
 class LogTensorboardReport(extension.Extension):
-
     def __init__(
         self,
         writer,
         keys=None,
-        trigger=(1, 'epoch'),
+        trigger=(1, "epoch"),
         postprocess=None,
-        log_name='log',
+        log_name="log",
     ):
         self._writer = writer
         self._keys = keys
@@ -55,9 +54,9 @@ class LogTensorboardReport(extension.Extension):
                 stats_cpu[name] = float(value)  # copy to CPU
 
             updater = trainer.updater
-            stats_cpu['epoch'] = updater.epoch
-            stats_cpu['iteration'] = updater.iteration
-            stats_cpu['elapsed_time'] = trainer.elapsed_time
+            stats_cpu["epoch"] = updater.epoch
+            stats_cpu["iteration"] = updater.iteration
+            stats_cpu["elapsed_time"] = trainer.elapsed_time
 
             if self._postprocess is not None:
                 self._postprocess(stats_cpu)
@@ -68,8 +67,8 @@ class LogTensorboardReport(extension.Extension):
             if self._log_name is not None:
                 log_name = self._log_name.format(**stats_cpu)
                 with utils.tempdir(prefix=log_name, dir=trainer.out) as tempd:
-                    path = os.path.join(tempd, 'log.json')
-                    with open(path, 'w') as f:
+                    path = os.path.join(tempd, "log.json")
+                    with open(path, "w") as f:
                         json.dump(self._log, f, indent=4)
 
                     new_path = os.path.join(trainer.out, log_name)
@@ -84,21 +83,21 @@ class LogTensorboardReport(extension.Extension):
         return self._log
 
     def serialize(self, serializer):
-        if hasattr(self._trigger, 'serialize'):
-            self._trigger.serialize(serializer['_trigger'])
+        if hasattr(self._trigger, "serialize"):
+            self._trigger.serialize(serializer["_trigger"])
 
         try:
-            self._summary.serialize(serializer['_summary'])
+            self._summary.serialize(serializer["_summary"])
         except KeyError:
-            warnings.warn('The statistics are not saved.')
+            warnings.warn("The statistics are not saved.")
 
         # Note that this serialization may lose some information of small
         # numerical differences.
         if isinstance(serializer, serializer_module.Serializer):
             log = json.dumps(self._log)
-            serializer('_log', log)
+            serializer("_log", log)
         else:
-            log = serializer('_log', '')
+            log = serializer("_log", "")
             self._log = json.loads(log)
 
     def _init_summary(self):

@@ -4,7 +4,6 @@ from chainer.dataset import DatasetMixin
 
 
 class RandomSamplingDataset(DatasetMixin):
-
     def __init__(self, dataset, n_sample, seed=0):
         self._dataset = dataset
         self._n_sample = n_sample

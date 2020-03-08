@@ -5,7 +5,8 @@ import sys
 
 import cv2
 import matplotlib
-matplotlib.use('Agg')  # NOQA
+
+matplotlib.use("Agg")  # NOQA
 import matplotlib.cm
 import numpy as np
 import scipy.ndimage
@@ -76,53 +77,65 @@ def label2rgb(lbl, img=None, label_names=None, alpha=0.3, bg_label=0):
         font_scale = 0.7
         thickness = 2
         text_size, baseline = cv2.getTextSize(
-            text, font_face, font_scale, thickness)
+            text, font_face, font_scale, thickness
+        )
 
         color = get_text_color(lbl_viz[y, x])
-        cv2.putText(lbl_viz, text,
-                    (x - text_size[0] // 2, y),
-                    font_face, font_scale, color, thickness)
+        cv2.putText(
+            lbl_viz,
+            text,
+            (x - text_size[0] // 2, y),
+            font_face,
+            font_scale,
+            color,
+            thickness,
+        )
     return lbl_viz
 
 
 class LabelImageDecomposer(ConnectionBasedTransport):
-
     def __init__(self):
         super(LabelImageDecomposer, self).__init__()
 
         self._srv_dynparam = dynamic_reconfigure.server.Server(
-            LabelImageDecomposerConfig, self._config_callback)
+            LabelImageDecomposerConfig, self._config_callback
+        )
 
-        self.pub_img = self.advertise('~output', Image, queue_size=5)
-        self.pub_label_viz = self.advertise('~output/label_viz', Image,
-                                            queue_size=5)
-        self._bg_label = rospy.get_param('~bg_label', 0)  # ignored label
-        self._only_label = rospy.get_param('~only_label', False)
-        self._label_names = rospy.get_param('~label_names', None)
+        self.pub_img = self.advertise("~output", Image, queue_size=5)
+        self.pub_label_viz = self.advertise(
+            "~output/label_viz", Image, queue_size=5
+        )
+        self._bg_label = rospy.get_param("~bg_label", 0)  # ignored label
+        self._only_label = rospy.get_param("~only_label", False)
+        self._label_names = rospy.get_param("~label_names", None)
         # publish masks of fg/bg by decomposing each label
-        self._publish_mask = rospy.get_param('~publish_mask', False)
+        self._publish_mask = rospy.get_param("~publish_mask", False)
         if self._publish_mask:
-            self.pub_fg_mask = self.advertise('~output/fg_mask', Image,
-                                              queue_size=5)
-            self.pub_bg_mask = self.advertise('~output/bg_mask', Image,
-                                              queue_size=5)
+            self.pub_fg_mask = self.advertise(
+                "~output/fg_mask", Image, queue_size=5
+            )
+            self.pub_bg_mask = self.advertise(
+                "~output/bg_mask", Image, queue_size=5
+            )
         # publish each region image. this can take time so optional.
-        self._publish_tile = rospy.get_param('~publish_tile', False)
-        rospy.loginfo('~publish_tile: {}'.format(self._publish_tile))
+        self._publish_tile = rospy.get_param("~publish_tile", False)
+        rospy.loginfo("~publish_tile: {}".format(self._publish_tile))
         if self._only_label and self._publish_tile:
-            rospy.logerr('Can not publish tile image when ~only_label is true,'
-                         ' so forcely set ~publish_tile to false.')
+            rospy.logerr(
+                "Can not publish tile image when ~only_label is true,"
+                " so forcely set ~publish_tile to false."
+            )
             self._publish_tile = False
         if self._publish_tile:
-            self.pub_tile = self.advertise('~output/tile', Image, queue_size=5)
+            self.pub_tile = self.advertise("~output/tile", Image, queue_size=5)
 
         rospy.Timer(rospy.Duration(1), self._timer_callback, oneshot=True)
 
     def _timer_callback(self, event):
         bridge = cv_bridge.CvBridge()
         img = np.zeros((480, 640, 3), dtype=np.uint8)
-        imgmsg = bridge.cv2_to_imgmsg(img, 'rgb8')
-        imgmsg.header.frame_id = 'camera_color_optical_frame'
+        imgmsg = bridge.cv2_to_imgmsg(img, "rgb8")
+        imgmsg.header.frame_id = "camera_color_optical_frame"
         imgmsg.header.stamp = event.current_real
         self.pub_label_viz.publish(imgmsg)
 
@@ -131,28 +144,34 @@ class LabelImageDecomposer(ConnectionBasedTransport):
         return config
 
     def subscribe(self):
-        self.sub_label = message_filters.Subscriber('~input/label', Image)
+        self.sub_label = message_filters.Subscriber("~input/label", Image)
         if self._only_label:
             self.sub_label.registerCallback(self._apply)
             return
-        self.sub_img = message_filters.Subscriber('~input', Image)
-        warn_no_remap('~input', '~input/label')
-        use_async = rospy.get_param('~approximate_sync', False)
-        queue_size = rospy.get_param('~queue_size', 10)
-        rospy.loginfo('~approximate_sync: {}, queue_size: {}'
-                      .format(use_async, queue_size))
+        self.sub_img = message_filters.Subscriber("~input", Image)
+        warn_no_remap("~input", "~input/label")
+        use_async = rospy.get_param("~approximate_sync", False)
+        queue_size = rospy.get_param("~queue_size", 10)
+        rospy.loginfo(
+            "~approximate_sync: {}, queue_size: {}".format(
+                use_async, queue_size
+            )
+        )
         if use_async:
-            slop = rospy.get_param('~slop', 0.1)
-            rospy.loginfo('~slop: {}'.format(slop))
+            slop = rospy.get_param("~slop", 0.1)
+            rospy.loginfo("~slop: {}".format(slop))
             sync = message_filters.ApproximateTimeSynchronizer(
                 [self.sub_label, self.sub_img],
-                queue_size=queue_size, slop=slop)
+                queue_size=queue_size,
+                slop=slop,
+            )
             sync.registerCallback(self._apply)
             if self._publish_tile:
                 sync.registerCallback(self._apply_tile)
         else:
             sync = message_filters.TimeSynchronizer(
-                [self.sub_label, self.sub_img], queue_size=queue_size)
+                [self.sub_label, self.sub_img], queue_size=queue_size
+            )
             sync.registerCallback(self._apply)
             if self._publish_tile:
                 sync.registerCallback(self._apply_tile)
@@ -169,11 +188,13 @@ class LabelImageDecomposer(ConnectionBasedTransport):
             # publish only valid label region
             applied = img.copy()
             applied[label_img == self._bg_label] = 0
-            applied_msg = bridge.cv2_to_imgmsg(applied, encoding=img_msg.encoding)
+            applied_msg = bridge.cv2_to_imgmsg(
+                applied, encoding=img_msg.encoding
+            )
             applied_msg.header = img_msg.header
             self.pub_img.publish(applied_msg)
             # publish visualized label
-            if img_msg.encoding in {'16UC1', '32SC1'}:
+            if img_msg.encoding in {"16UC1", "32SC1"}:
                 # do dynamic scaling to make it look nicely
                 min_value, max_value = img.min(), img.max()
                 img = (img - min_value) / (max_value - min_value) * 255
@@ -182,21 +203,26 @@ class LabelImageDecomposer(ConnectionBasedTransport):
         else:
             img = None
 
-        label_viz = label2rgb(label_img, img, label_names=self._label_names,
-                              alpha=self._alpha, bg_label=self._bg_label)
-        label_viz_msg = bridge.cv2_to_imgmsg(label_viz, encoding='rgb8')
+        label_viz = label2rgb(
+            label_img,
+            img,
+            label_names=self._label_names,
+            alpha=self._alpha,
+            bg_label=self._bg_label,
+        )
+        label_viz_msg = bridge.cv2_to_imgmsg(label_viz, encoding="rgb8")
         label_viz_msg.header = label_msg.header
         self.pub_label_viz.publish(label_viz_msg)
 
         # publish mask
         if self._publish_mask:
-            bg_mask = (label_img == 0)
+            bg_mask = label_img == 0
             fg_mask = ~bg_mask
             bg_mask = (bg_mask * 255).astype(np.uint8)
             fg_mask = (fg_mask * 255).astype(np.uint8)
-            fg_mask_msg = bridge.cv2_to_imgmsg(fg_mask, encoding='mono8')
+            fg_mask_msg = bridge.cv2_to_imgmsg(fg_mask, encoding="mono8")
             fg_mask_msg.header = label_msg.header
-            bg_mask_msg = bridge.cv2_to_imgmsg(bg_mask, encoding='mono8')
+            bg_mask_msg = bridge.cv2_to_imgmsg(bg_mask, encoding="mono8")
             bg_mask_msg.header = label_msg.header
             self.pub_fg_mask.publish(fg_mask_msg)
             self.pub_bg_mask.publish(bg_mask_msg)
@@ -219,12 +245,12 @@ class LabelImageDecomposer(ConnectionBasedTransport):
             img_tmp = bounding_rect_of_mask(img_tmp, mask)
             imgs.append(img_tmp)
         tile_img = get_tile_image(imgs)
-        tile_msg = bridge.cv2_to_imgmsg(tile_img, encoding='bgr8')
+        tile_msg = bridge.cv2_to_imgmsg(tile_img, encoding="bgr8")
         tile_msg.header = img_msg.header
         self.pub_tile.publish(tile_msg)
 
 
-if __name__ == '__main__':
-    rospy.init_node('label_image_decomposer')
+if __name__ == "__main__":
+    rospy.init_node("label_image_decomposer")
     label_image_decomposer = LabelImageDecomposer()
     rospy.spin()

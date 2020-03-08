@@ -16,16 +16,13 @@ class ObjectPosesToMarkers(topic_tools.LazyTransport):
     def __init__(self):
         super().__init__()
         self._pub = self.advertise(
-            '~output', MarkerArray, queue_size=1, latch=True
+            "~output", MarkerArray, queue_size=1, latch=True
         )
         self._post_init()
 
     def subscribe(self):
         self._sub = rospy.Subscriber(
-            '~input',
-            ObjectPoseArray,
-            self._callback,
-            queue_size=1,
+            "~input", ObjectPoseArray, self._callback, queue_size=1,
         )
 
     def unsubscribe(self):
@@ -35,9 +32,7 @@ class ObjectPosesToMarkers(topic_tools.LazyTransport):
         markers_msg = MarkerArray()
 
         marker = Marker(
-            header=poses_msg.header,
-            id=-1,
-            action=Marker.DELETEALL
+            header=poses_msg.header, id=-1, action=Marker.DELETEALL
         )
         markers_msg.markers.append(marker)
 
@@ -52,14 +47,14 @@ class ObjectPosesToMarkers(topic_tools.LazyTransport):
             marker.scale.y = 1
             marker.scale.z = 1
             cad_file = self._models.get_cad_file(class_id=pose.class_id)
-            marker.mesh_resource = f'file://{cad_file}'
+            marker.mesh_resource = f"file://{cad_file}"
             marker.mesh_use_embedded_materials = True
             markers_msg.markers.append(marker)
 
         self._pub.publish(markers_msg)
 
 
-if __name__ == '__main__':
-    rospy.init_node('object_poses_to_markers')
+if __name__ == "__main__":
+    rospy.init_node("object_poses_to_markers")
     ObjectPosesToMarkers()
     rospy.spin()

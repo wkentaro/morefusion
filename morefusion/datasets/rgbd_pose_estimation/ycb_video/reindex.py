@@ -2,10 +2,10 @@ from ..reindex import reindex
 from .dataset import YCBVideoRGBDPoseEstimationDataset
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     datasets = [
-        YCBVideoRGBDPoseEstimationDataset('val'),
-        YCBVideoRGBDPoseEstimationDataset('train'),
+        YCBVideoRGBDPoseEstimationDataset("val"),
+        YCBVideoRGBDPoseEstimationDataset("train"),
     ]
-    reindexed_root_dir = datasets[0].root_dir + '.reindexed.v2'
+    reindexed_root_dir = datasets[0].root_dir + ".reindexed.v2"
     reindex(reindexed_root_dir, datasets)

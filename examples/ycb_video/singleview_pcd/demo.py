@@ -26,12 +26,12 @@ def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument('model', help='model file in a log dir')
-    parser.add_argument('--gpu', type=int, default=0, help='gpu id')
-    parser.add_argument('--save', action='store_true', help='save')
+    parser.add_argument("model", help="model file in a log dir")
+    parser.add_argument("--gpu", type=int, default=0, help="gpu id")
+    parser.add_argument("--save", action="store_true", help="save")
     args = parser.parse_args()
 
-    args_file = path.Path(args.model).parent / 'args'
+    args_file = path.Path(args.model).parent / "args"
     with open(args_file) as f:
         args_data = json.load(f)
     pprint.pprint(args_data)
@@ -40,9 +40,9 @@ def main():
         chainer.cuda.get_device_from_id(args.gpu).use()
 
     model = contrib.models.Model(
-        n_fg_class=len(args_data['class_names'][1:]),
-        pretrained_resnet18=args_data['pretrained_resnet18'],
-        centerize_pcd=args_data['centerize_pcd'],
+        n_fg_class=len(args_data["class_names"][1:]),
+        pretrained_resnet18=args_data["pretrained_resnet18"],
+        centerize_pcd=args_data["centerize_pcd"],
         # with_occupancy=args_data['with_occupancy'],
         # loss=args_data['loss'],
         # loss_scale=args_data['loss_scale'],
@@ -50,17 +50,16 @@ def main():
     if args.gpu >= 0:
         model.to_gpu()
 
-    print(f'==> Loading trained model: {args.model}')
+    print(f"==> Loading trained model: {args.model}")
     chainer.serializers.load_npz(args.model, model)
-    print('==> Done model loading')
+    print("==> Done model loading")
 
-    split = 'val'
+    split = "val"
     dataset = morefusion.datasets.YCBVideoRGBDPoseEstimationDataset(
         split=split
     )
     dataset_reindexed = morefusion.datasets.YCBVideoRGBDPoseEstimationDatasetReIndexed(  # NOQA
-        split=split,
-        class_ids=args_data['class_ids'],
+        split=split, class_ids=args_data["class_ids"],
     )
     # transform = Transform(
     #     train=False,
@@ -84,12 +83,13 @@ def main():
             continue
         inputs = chainer.dataset.concat_examples(examples, device=args.gpu)
 
-        with chainer.no_backprop_mode() and \
-                chainer.using_config('train', False):
+        with chainer.no_backprop_mode() and chainer.using_config(
+            "train", False
+        ):
             quaternion_pred, translation_pred, confidence_pred = model.predict(
-                class_id=inputs['class_id'],
-                rgb=inputs['rgb'],
-                pcd=inputs['pcd'],
+                class_id=inputs["class_id"],
+                rgb=inputs["rgb"],
+                pcd=inputs["pcd"],
                 # pitch=inputs.get('pitch'),
                 # origin=inputs.get('origin'),
                 # grid_nontarget_empty=inputs.get('grid_nontarget_empty'),
@@ -104,13 +104,13 @@ def main():
             ]
 
             reporter = chainer.Reporter()
-            reporter.add_observer('main', model)
+            reporter.add_observer("main", model)
             observation = {}
             with reporter.scope(observation):
                 model.evaluate(
-                    class_id=inputs['class_id'],
-                    quaternion_true=inputs['quaternion_true'],
-                    translation_true=inputs['translation_true'],
+                    class_id=inputs["class_id"],
+                    quaternion_true=inputs["quaternion_true"],
+                    translation_true=inputs["translation_true"],
                     quaternion_pred=quaternion_pred,
                     translation_pred=translation_pred,
                 )
@@ -118,27 +118,27 @@ def main():
         # TODO(wkentaro)
         observation_new = {}
         for k, v in observation.items():
-            if re.match(r'main/add_or_add_s/[0-9]+/.+', k):
-                k_new = '/'.join(k.split('/')[:-1])
+            if re.match(r"main/add_or_add_s/[0-9]+/.+", k):
+                k_new = "/".join(k.split("/")[:-1])
                 observation_new[k_new] = v
         observation = observation_new
 
-        print(f'[{index:08d}] {observation}')
+        print(f"[{index:08d}] {observation}")
 
         # ---------------------------------------------------------------------
 
-        K = frame['intrinsic_matrix']
-        height, width = frame['rgb'].shape[:2]
+        K = frame["intrinsic_matrix"]
+        height, width = frame["rgb"].shape[:2]
         fovy = trimesh.scene.Camera(
             resolution=(width, height), focal=(K[0, 0], K[1, 1])
         ).fov[1]
 
-        batch_size = len(inputs['class_id'])
-        class_ids = cuda.to_cpu(inputs['class_id'])
+        batch_size = len(inputs["class_id"])
+        class_ids = cuda.to_cpu(inputs["class_id"])
         quaternion_pred = cuda.to_cpu(quaternion_pred.array)
         translation_pred = cuda.to_cpu(translation_pred.array)
-        quaternion_true = cuda.to_cpu(inputs['quaternion_true'])
-        translation_true = cuda.to_cpu(inputs['translation_true'])
+        quaternion_true = cuda.to_cpu(inputs["quaternion_true"])
+        translation_true = cuda.to_cpu(inputs["translation_true"])
 
         Ts_pred = []
         Ts_true = []
@@ -154,33 +154,37 @@ def main():
         Ts = dict(true=Ts_true, pred=Ts_pred)
 
         vizs = []
-        depth_viz = depth2rgb(frame['depth'])
-        for which in ['true', 'pred']:
+        depth_viz = depth2rgb(frame["depth"])
+        for which in ["true", "pred"]:
             pybullet.connect(pybullet.DIRECT)
             for i, T in enumerate(Ts[which]):
-                cad_file = morefusion.datasets.YCBVideoModels()\
-                    .get_cad_file(class_id=class_ids[i])
+                cad_file = morefusion.datasets.YCBVideoModels().get_cad_file(
+                    class_id=class_ids[i]
+                )
                 morefusion.extra.pybullet.add_model(
                     cad_file,
                     position=tf.translation_from_matrix(T),
                     orientation=tf.quaternion_from_matrix(T)[[1, 2, 3, 0]],
                 )
-            rgb_rend, depth_rend, segm_rend = \
-                morefusion.extra.pybullet.render_camera(
-                    np.eye(4), fovy, height, width
-                )
+            (
+                rgb_rend,
+                depth_rend,
+                segm_rend,
+            ) = morefusion.extra.pybullet.render_camera(
+                np.eye(4), fovy, height, width
+            )
             pybullet.disconnect()
 
             segm_rend = imgviz.label2rgb(
-                segm_rend + 1, img=frame['rgb'], alpha=0.7
+                segm_rend + 1, img=frame["rgb"], alpha=0.7
             )
             depth_rend = depth2rgb(depth_rend)
             rgb_input = imgviz.tile(
-                cuda.to_cpu(inputs['rgb']), border=(255, 255, 255)
+                cuda.to_cpu(inputs["rgb"]), border=(255, 255, 255)
             )
             viz = imgviz.tile(
                 [
-                    frame['rgb'],
+                    frame["rgb"],
                     depth_viz,
                     rgb_input,
                     segm_rend,
@@ -192,30 +196,30 @@ def main():
             )
             viz = imgviz.resize(viz, width=1800)
 
-            if which == 'pred':
+            if which == "pred":
                 text = []
                 for class_id in np.unique(class_ids):
-                    add = observation[f'main/add_or_add_s/{class_id:04d}']
+                    add = observation[f"main/add_or_add_s/{class_id:04d}"]
                     text.append(
-                        f'[{which}] [{class_id:04d}]: '
-                        f'add/add_s={add * 100:.1f}cm'
+                        f"[{which}] [{class_id:04d}]: "
+                        f"add/add_s={add * 100:.1f}cm"
                     )
-                text = '\n'.join(text)
+                text = "\n".join(text)
             else:
-                text = f'[{which}]'
+                text = f"[{which}]"
             viz = imgviz.draw.text_in_rectangle(
                 viz,
-                loc='lt',
+                loc="lt",
                 text=text,
                 size=20,
                 background=(0, 255, 0),
                 color=(0, 0, 0),
             )
-            if which == 'true':
+            if which == "true":
                 viz = imgviz.draw.text_in_rectangle(
                     viz,
-                    loc='rt',
-                    text='singleview_pcd',
+                    loc="rt",
+                    text="singleview_pcd",
                     size=20,
                     background=(255, 0, 0),
                     color=(0, 0, 0),
@@ -224,14 +228,14 @@ def main():
         viz = imgviz.tile(vizs, (2, 1), border=(255, 255, 255))
 
         if args.save:
-            out_file = path.Path(args.model).parent / f'video/{index:08d}.jpg'
+            out_file = path.Path(args.model).parent / f"video/{index:08d}.jpg"
             out_file.parent.makedirs_p()
             imgviz.io.imsave(out_file, viz)
 
         yield viz
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     vizs = main()
     try:
         imgviz.io.pyglet_imshow(vizs)

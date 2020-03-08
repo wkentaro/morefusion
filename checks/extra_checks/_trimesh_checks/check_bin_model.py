@@ -18,6 +18,5 @@ scene = trimesh.Scene()
 scene.add_geometry(trimesh.creation.axis(0.01))
 scene.add_geometry(mesh)
 morefusion.extra.trimesh.display_scenes(
-    {'scene': scene},
-    rotate=True,
+    {"scene": scene}, rotate=True,
 )

@@ -2,7 +2,6 @@ import contextlib
 
 
 class SummaryWriterWithUpdater(object):
-
     def __init__(self, writer):
         self._writer = writer
         self._updater = None
@@ -19,7 +18,7 @@ class SummaryWriterWithUpdater(object):
 
     def scoped(self, tag):
         if self._scope:
-            return self._scope + '/' + tag
+            return self._scope + "/" + tag
         else:
             return tag
 
@@ -27,7 +26,7 @@ class SummaryWriterWithUpdater(object):
     def global_step(self):
         if self._updater is None:
             raise AttributeError(
-                'SummaryWriterWithUpdater.setup is not yet called'
+                "SummaryWriterWithUpdater.setup is not yet called"
             )
         return self._updater.iteration
 

@@ -36,15 +36,15 @@ def main():
     auc, x, y = morefusion.metrics.auc_for_errors(
         adds, max_threshold=max_distance, return_xy=True
     )
-    print('auc:', auc)
+    print("auc:", auc)
 
     plt.plot(x, y)
-    plt.xlabel('add threshold')
+    plt.xlabel("add threshold")
     plt.xlim(0, max_distance)
-    plt.ylabel('accuracy')
+    plt.ylabel("accuracy")
     plt.ylim(0, 1)
     plt.show()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

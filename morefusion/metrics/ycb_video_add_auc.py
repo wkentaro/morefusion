@@ -2,16 +2,11 @@ import numpy as np
 
 
 # https://github.com/yuxng/YCB_Video_toolbox/blob/d08b645d406b93a988087fea42a5f6ac7330933c/plot_accuracy_keyframe.m#L65-L77  # NOQA
-def ycb_video_add_auc(
-    adds,
-    *,
-    max_value=0.1,
-    return_xy=False
-):
+def ycb_video_add_auc(adds, *, max_value=0.1, return_xy=False):
     adds = np.asarray(adds)
 
     assert adds.ndim == 1
-    assert adds.min() >= 0, f'min of adds must be >=0: {adds.min()}'
+    assert adds.min() >= 0, f"min of adds must be >=0: {adds.min()}"
 
     D = adds.copy()
     D[D > max_value] = np.inf

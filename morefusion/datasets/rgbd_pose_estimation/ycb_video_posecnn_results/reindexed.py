@@ -10,19 +10,20 @@ from .dataset import YCBVideoPoseCNNResultsRGBDPoseEstimationDataset
 
 class YCBVideoPoseCNNResultsRGBDPoseEstimationDatasetReIndexed(DatasetBase):
 
-    _root_dir = YCBVideoPoseCNNResultsRGBDPoseEstimationDataset._root_dir + \
-        '.reindexed'
+    _root_dir = (
+        YCBVideoPoseCNNResultsRGBDPoseEstimationDataset._root_dir
+        + ".reindexed"
+    )
 
     def __init__(
-        self,
-        class_ids=None,
+        self, class_ids=None,
     ):
         if not self.root_dir.exists():
             raise IOError(
-                f'{self.root_dir} does not exist. '
-                'Please run following: python -m '
-                'morefusion.datasets.rgbd_pose_estimation.'
-                'ycb_video_posecnn_results.reindex'
+                f"{self.root_dir} does not exist. "
+                "Please run following: python -m "
+                "morefusion.datasets.rgbd_pose_estimation."
+                "ycb_video_posecnn_results.reindex"
             )
 
         if class_ids is not None:
@@ -33,7 +34,7 @@ class YCBVideoPoseCNNResultsRGBDPoseEstimationDatasetReIndexed(DatasetBase):
 
     def _get_ids(self):
         image_id_to_instance_ids = collections.defaultdict(list)
-        with open(self.root_dir / 'id_to_class_id.json') as f:
+        with open(self.root_dir / "id_to_class_id.json") as f:
             instance_id_to_class_id = json.load(f)
             for instance_id, class_id in instance_id_to_class_id.items():
                 image_id = osp.dirname(instance_id)
@@ -41,7 +42,7 @@ class YCBVideoPoseCNNResultsRGBDPoseEstimationDatasetReIndexed(DatasetBase):
         image_id_to_instance_ids = dict(image_id_to_instance_ids)
 
         dataset = YCBVideoPoseCNNResultsRGBDPoseEstimationDataset()
-        image_ids = [f'data/{x}' for x in dataset._ids]
+        image_ids = [f"data/{x}" for x in dataset._ids]
 
         ids = []
         for image_id in image_ids:
@@ -56,5 +57,5 @@ class YCBVideoPoseCNNResultsRGBDPoseEstimationDatasetReIndexed(DatasetBase):
 
     def get_example(self, index):
         id = self._ids[index]
-        npz_file = self.root_dir / f'{id}.npz'
+        npz_file = self.root_dir / f"{id}.npz"
         return dict(np.load(npz_file))

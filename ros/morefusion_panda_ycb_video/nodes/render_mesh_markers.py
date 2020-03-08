@@ -18,11 +18,10 @@ from visualization_msgs.msg import MarkerArray
 
 
 class RenderMeshMarkers(LazyTransport):
-
     def __init__(self):
         super().__init__()
         self._markers_msg = None
-        self._pub = self.advertise('~output', Image, queue_size=1)
+        self._pub = self.advertise("~output", Image, queue_size=1)
         self._tf_listener = tf.TransformListener(cache_time=rospy.Duration(30))
         self._post_init()
 
@@ -36,10 +35,10 @@ class RenderMeshMarkers(LazyTransport):
 
     def subscribe(self):
         sub_markers = rospy.Subscriber(
-            '~input/markers', MarkerArray, self._callback_markers, queue_size=1
+            "~input/markers", MarkerArray, self._callback_markers, queue_size=1
         )
         sub_cam = rospy.Subscriber(
-            '~input/camera_info', CameraInfo, self._callback, queue_size=1
+            "~input/camera_info", CameraInfo, self._callback, queue_size=1
         )
         self._subscribers = [sub_markers, sub_cam]
 
@@ -63,9 +62,7 @@ class RenderMeshMarkers(LazyTransport):
             return
 
         translation, quaternion = self._tf_listener.lookupTransform(
-            target_frame=target_frame,
-            source_frame=source_frame,
-            time=time,
+            target_frame=target_frame, source_frame=source_frame, time=time,
         )
         translation = np.asarray(translation)
         quaternion = np.asarray(quaternion)[[3, 0, 1, 2]]
@@ -121,12 +118,10 @@ class RenderMeshMarkers(LazyTransport):
             if key in self._marker_to_unique_id:
                 unique_id = self._marker_to_unique_id[key]
                 pybullet.resetBasePositionAndOrientation(
-                    unique_id,
-                    translation,
-                    quaternion,
+                    unique_id, translation, quaternion,
                 )
             else:
-                mesh_file = marker.mesh_resource[len('file://'):]
+                mesh_file = marker.mesh_resource[len("file://") :]
                 unique_id = morefusion.extra.pybullet.add_model(
                     visual_file=mesh_file,
                     position=translation,
@@ -138,7 +133,7 @@ class RenderMeshMarkers(LazyTransport):
         K = np.array(cam_msg.K).reshape(3, 3)
         camera = trimesh.scene.Camera(
             resolution=(cam_msg.width, cam_msg.height),
-            focal=(K[0, 0], K[1, 1])
+            focal=(K[0, 0], K[1, 1]),
         )
         rgb_rend, _, _ = morefusion.extra.pybullet.render_camera(
             np.eye(4),
@@ -157,12 +152,12 @@ class RenderMeshMarkers(LazyTransport):
             )
 
         bridge = cv_bridge.CvBridge()
-        rgb_rend_msg = bridge.cv2_to_imgmsg(rgb_rend, encoding='rgb8')
+        rgb_rend_msg = bridge.cv2_to_imgmsg(rgb_rend, encoding="rgb8")
         rgb_rend_msg.header = cam_msg.header
         self._pub.publish(rgb_rend_msg)
 
 
-if __name__ == '__main__':
-    rospy.init_node('render_mesh_markers')
+if __name__ == "__main__":
+    rospy.init_node("render_mesh_markers")
     RenderMeshMarkers()
     rospy.spin()

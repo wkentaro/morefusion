@@ -5,14 +5,13 @@ from .voxelization_3d import Voxelization3D
 
 
 class AverageVoxelization3D(Voxelization3D):
-
     def forward_cpu(self, inputs):
         self.retain_inputs((1, 2))
         values, points, batch_indices = inputs
 
         # validation
         if np.isnan(points).sum():
-            raise ValueError('points include nan')
+            raise ValueError("points include nan")
 
         B = self.batch_size
         P = points.shape[0]
@@ -38,7 +37,7 @@ class AverageVoxelization3D(Voxelization3D):
         matrix[IB, :, IX, IY, IZ] /= counts[IB, IX, IY, IZ][:, None]
 
         self.counts = counts
-        return matrix,
+        return (matrix,)
 
     def forward_gpu(self, inputs):
         self.retain_inputs((1, 2))
@@ -46,7 +45,7 @@ class AverageVoxelization3D(Voxelization3D):
 
         # validation
         if cuda.cupy.isnan(points).sum():
-            raise ValueError('points include nan')
+            raise ValueError("points include nan")
 
         B = self.batch_size
         C = values.shape[1]
@@ -59,12 +58,12 @@ class AverageVoxelization3D(Voxelization3D):
 
         # cuda.elementwise(
         cuda.cupy.ElementwiseKernel(
-            '''
+            """
             float32 values, raw float32 points, raw int32 batch_indices,
             float32 pitch, raw float32 origin, raw int32 shape
-            ''',
-            'raw float32 matrix, raw int32 counts',
-            r'''
+            """,
+            "raw float32 matrix, raw int32 counts",
+            r"""
             int B = shape[0];
             int C = shape[1];
             int X = shape[2];
@@ -98,12 +97,17 @@ class AverageVoxelization3D(Voxelization3D):
                 atomicAdd(&matrix[index], values);
                 atomicAdd(&counts[index], 1);
             }
-            ''',
-            'average_voxelization_3d_fwd',
+            """,
+            "average_voxelization_3d_fwd",
         )(
-            values, points, batch_indices,
-            self.pitch, origin, shape,
-            matrix, counts,
+            values,
+            points,
+            batch_indices,
+            self.pitch,
+            origin,
+            shape,
+            matrix,
+            counts,
         )
 
         counts = counts[:, 0]  # counts[:, i] == count[j]
@@ -111,7 +115,7 @@ class AverageVoxelization3D(Voxelization3D):
         matrix[IB, :, IX, IY, IZ] /= counts[IB, IX, IY, IZ][:, None]
 
         self.counts = counts
-        return matrix,
+        return (matrix,)
 
     def backward_cpu(self, inputs, gy):
         points = inputs[1]
@@ -133,8 +137,10 @@ class AverageVoxelization3D(Voxelization3D):
             valid = ((0 <= index) & (index < self.dimensions)).all()
             if valid:
                 ix, iy, iz = index
-                gvalues[i] = gmatrix[batch_index, :, ix, iy, iz] / \
-                    counts[batch_index, ix, iy, iz]
+                gvalues[i] = (
+                    gmatrix[batch_index, :, ix, iy, iz]
+                    / counts[batch_index, ix, iy, iz]
+                )
 
         return gvalues, None, None
 
@@ -155,13 +161,13 @@ class AverageVoxelization3D(Voxelization3D):
 
         # cuda.elementwise(
         cuda.cupy.ElementwiseKernel(
-            '''
+            """
             raw float32 points, raw int32 batch_indices,
             raw float32 gmatrix, raw int32 counts,
             float32 pitch, raw float32 origin, raw int32 shape
-            ''',
-            'float32 gvalues',
-            r'''
+            """,
+            "float32 gvalues",
+            r"""
             int B = shape[0];
             int C = shape[1];
             int X = shape[2];
@@ -198,11 +204,16 @@ class AverageVoxelization3D(Voxelization3D):
                                    iz;
                 gvalues = gmatrix[index_matrix] / counts[index_counts];
             }
-            ''',
-            'voxelize_bwd',
+            """,
+            "voxelize_bwd",
         )(
-            points, batch_indices, gmatrix, counts,
-            self.pitch, origin, shape,
+            points,
+            batch_indices,
+            gmatrix,
+            counts,
+            self.pitch,
+            origin,
+            shape,
             gvalues,
         )
 

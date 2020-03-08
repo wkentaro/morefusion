@@ -12,7 +12,7 @@ from morefusion.extra._cupy import resize_image
 
 
 def main(gpu=-1):
-    print('gpu:', gpu)
+    print("gpu:", gpu)
 
     # uint8
     img = scipy.misc.face()
@@ -20,7 +20,7 @@ def main(gpu=-1):
     img_org = img.copy()
     if gpu >= 0:
         img = cuda.to_gpu(img)
-    img = resize_image(img, (2 * H, 2 * W), order='HWC')
+    img = resize_image(img, (2 * H, 2 * W), order="HWC")
     img = cuda.to_cpu(img)
 
     assert img.shape == (2 * H, 2 * W, 3)
@@ -29,7 +29,7 @@ def main(gpu=-1):
     plt.imshow(img_org)
     plt.subplot(122)
     plt.imshow(img)
-    plt.suptitle('uint8')
+    plt.suptitle("uint8")
     plt.tight_layout()
 
     # float32
@@ -38,7 +38,7 @@ def main(gpu=-1):
     img = img.astype(np.float32) / 255
     if gpu >= 0:
         img = cuda.to_gpu(img)
-    img = resize_image(img, (2 * H, 2 * W), order='HWC')
+    img = resize_image(img, (2 * H, 2 * W), order="HWC")
     img = cuda.to_cpu(img)
     img = (img * 255).round().astype(np.uint8)
 
@@ -48,7 +48,7 @@ def main(gpu=-1):
     plt.imshow(img_org)
     plt.subplot(122)
     plt.imshow(img)
-    plt.suptitle('float32')
+    plt.suptitle("float32")
     plt.tight_layout()
 
     # bool
@@ -59,24 +59,24 @@ def main(gpu=-1):
     if gpu >= 0:
         mask = cuda.to_gpu(mask)
     mask = cuda.to_cpu(mask)
-    mask = resize_image(mask, (2 * H, 2 * W), order='HW')
+    mask = resize_image(mask, (2 * H, 2 * W), order="HW")
 
     plt.figure()
     plt.subplot(121)
-    plt.imshow(mask_org, cmap='gray')
+    plt.imshow(mask_org, cmap="gray")
     plt.subplot(122)
-    plt.imshow(mask, cmap='gray')
-    plt.suptitle('bool')
+    plt.imshow(mask, cmap="gray")
+    plt.suptitle("bool")
     plt.tight_layout()
 
     plt.show()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument('--gpu', type=int, default=-1, help='gpu id')
+    parser.add_argument("--gpu", type=int, default=-1, help="gpu id")
     args = parser.parse_args()
 
     main(gpu=args.gpu)

@@ -45,7 +45,7 @@ def display_scenes(
     else:
         scenes = data
 
-    scenes.pop('__clear__', False)
+    scenes.pop("__clear__", False)
 
     if tile is None:
         nrow, ncol = _get_tile_shape(len(scenes), hw_ratio=height / width)
@@ -81,7 +81,7 @@ def display_scenes(
     window.scenes_ggroup = scenes_ggroup
 
     def usage():
-        return '''\
+        return """\
 Usage:
   q: quit
   s: play / pause
@@ -89,7 +89,7 @@ Usage:
   n: next
   r: rotate view (clockwise)
   R: rotate view (anti-clockwise)\
-'''
+"""
 
     @window.event
     def on_key_press(symbol, modifiers):
@@ -102,8 +102,10 @@ Usage:
                 if isinstance(widgets[name], trimesh.viewer.SceneWidget):
                     widgets[name].reset_view()
         elif symbol == pyglet.window.key.N:
-            if window.scenes_ggroup and \
-                    modifiers == pyglet.window.key.MOD_SHIFT:
+            if (
+                window.scenes_ggroup
+                and modifiers == pyglet.window.key.MOD_SHIFT
+            ):
                 try:
                     window.scenes_group = next(window.scenes_ggroup)
                     window.next = True
@@ -129,18 +131,21 @@ Usage:
                         widget.scene.camera_transform,
                         translate=False,
                     )[0]
-                    widget.scene.camera_transform[...] = tf.rotation_matrix(
-                        np.deg2rad(window.rotate * rotation_scaling),
-                        axis,
-                        point=widget.scene.centroid,
-                    ) @ widget.scene.camera_transform
-                    widget.view['ball']._n_pose = widget.scene.camera_transform
+                    widget.scene.camera_transform[...] = (
+                        tf.rotation_matrix(
+                            np.deg2rad(window.rotate * rotation_scaling),
+                            axis,
+                            point=widget.scene.centroid,
+                        )
+                        @ widget.scene.camera_transform
+                    )
+                    widget.view["ball"]._n_pose = widget.scene.camera_transform
             return
 
         if window.scenes_group and (window.next or window.play):
             try:
                 scenes = next(window.scenes_group)
-                clear = scenes.get('__clear__', False) or window._clear
+                clear = scenes.get("__clear__", False) or window._clear
                 window._clear = False
                 for key, widget in widgets.items():
                     scene = scenes[key]
@@ -153,12 +158,12 @@ Usage:
                             widget.scene.geometry.update(scene.geometry)
                             widget.scene.graph.load(scene.graph.to_edgelist())
                         widget.scene.camera_transform = scene.camera_transform
-                        widget.view['ball']._n_pose = scene.camera_transform
+                        widget.view["ball"]._n_pose = scene.camera_transform
                         widget._draw()
                     elif isinstance(widget, glooey.Image):
                         widget.set_image(numpy_to_image(scene))
             except StopIteration:
-                print('Reached the end of the scenes')
+                print("Reached the end of the scenes")
                 window.play = False
             window.next = False
 
@@ -174,15 +179,15 @@ Usage:
         if isinstance(scene, trimesh.Scene):
             widgets[name] = trimesh.viewer.SceneWidget(scene)
             if trackball is None:
-                trackball = widgets[name].view['ball']
+                trackball = widgets[name].view["ball"]
             else:
-                widgets[name].view['ball'] = trackball
+                widgets[name].view["ball"] = trackball
         elif isinstance(scene, np.ndarray):
             widgets[name] = glooey.Image(
                 numpy_to_image(scene), responsive=True
             )
         else:
-            raise TypeError(f'unsupported type of scene: {scene}')
+            raise TypeError(f"unsupported type of scene: {scene}")
         vbox.add(widgets[name])
         grid[i // ncol, i % ncol] = vbox
 

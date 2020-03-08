@@ -4,7 +4,6 @@ import numpy as np
 
 
 class TruncatedDistanceFunction(chainer.Function):
-
     def __init__(self, *, pitch, origin, dims, truncation):
         self.pitch = pitch
         self.origin = origin
@@ -14,17 +13,16 @@ class TruncatedDistanceFunction(chainer.Function):
     def check_type_forward(self, in_types):
         chainer.utils.type_check.expect(in_types.size() == 1)
 
-        points_type, = in_types
+        (points_type,) = in_types
         chainer.utils.type_check.expect(
-            points_type.ndim == 2,
-            points_type.shape[1] == 3,
+            points_type.ndim == 2, points_type.shape[1] == 3,
         )
 
     def forward_gpu(self, inputs):
         cupy = cuda.cupy
 
         self.retain_inputs((0,))
-        points, = inputs
+        (points,) = inputs
         dtype = points.dtype
 
         pitch = cupy.asarray(self.pitch, dtype=dtype)
@@ -44,13 +42,13 @@ class TruncatedDistanceFunction(chainer.Function):
 
         indexer = cupy.empty((points.shape[0], ksize ** 3), dtype=np.int8)
         cuda.elementwise(
-            '''
+            """
             int8 indexer, raw T points, T pitch,
             raw T origin, raw int32 dims, T truncation,
             int32 ksize, raw T kernel
-            ''',
-            'raw T matrix, raw int32 indices',
-            '''
+            """,
+            "raw T matrix, raw int32 indices",
+            """
             int K = ksize * ksize * ksize;
             int k = i % K;
             int p = i / K;
@@ -79,8 +77,8 @@ class TruncatedDistanceFunction(chainer.Function):
                     }
                 }
             }
-            ''',
-            'truncated_distance_function_fwd',
+            """,
+            "truncated_distance_function_fwd",
         )(
             indexer,
             points,
@@ -100,25 +98,25 @@ class TruncatedDistanceFunction(chainer.Function):
         self._ksize = ksize
         self._kernel = kernel
 
-        return matrix,
+        return (matrix,)
 
     def backward_gpu(self, inputs, grad_outputs):
         cupy = cuda.cupy
 
-        points, = inputs
-        gmatrix, = grad_outputs
+        (points,) = inputs
+        (gmatrix,) = grad_outputs
         dtype = points.dtype
 
         gpoints = cupy.zeros(points.shape, dtype=dtype)
 
         cuda.elementwise(
-            '''
+            """
             T gmatrix, raw T points, int32 indices,
             T pitch, raw T origin,
             int32 ksize, raw T kernel
-            ''',
-            'raw T gpoints',
-            '''
+            """,
+            "raw T gpoints",
+            """
             if (indices < 0) {
                 return;
             }
@@ -145,8 +143,8 @@ class TruncatedDistanceFunction(chainer.Function):
                 atomicAdd(&gpoints[3 * p + 1], idy / idistance * gmatrix);
                 atomicAdd(&gpoints[3 * p + 2], idz / idistance * gmatrix);
             }
-            ''',
-            'truncated_distance_function_bwd',
+            """,
+            "truncated_distance_function_bwd",
         )(
             gmatrix,
             points,
@@ -165,17 +163,14 @@ class TruncatedDistanceFunction(chainer.Function):
         # kernel_indices[keep] = self._indices[keep] % K
         # point_indices[keep] = self._indices[keep] / K
 
-        return gpoints,
+        return (gpoints,)
 
 
 def truncated_distance_function(
     points, *, pitch, origin, dims, truncation, return_indices=False
 ):
     func = TruncatedDistanceFunction(
-        pitch=pitch,
-        origin=origin,
-        dims=dims,
-        truncation=truncation,
+        pitch=pitch, origin=origin, dims=dims, truncation=truncation,
     )
     tdf = func(points)
     if return_indices:
@@ -217,7 +212,7 @@ def pseudo_occupancy_voxelization(
     return grid_weighted_uniform, grid_weighted_surface, grid_weighted_inside
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     gpu = 0
     xp = cuda.cupy
 
@@ -226,30 +221,23 @@ if __name__ == '__main__':
     pitch = 0.5
     origin = (0, 0, 0)
     dims = (5, 5, 5)
-    points = np.array([
-        [0.5, 0.5, 0.5],
-        [1.48, 1.48, 1.48],
-    ], dtype=np.float32)
+    points = np.array([[0.5, 0.5, 0.5], [1.48, 1.48, 1.48]], dtype=np.float32)
     points = cuda.to_gpu(points)
-    print(f'points:\n{points}')
+    print(f"points:\n{points}")
     points = chainer.Variable(points)
     truncation = 1.2
     m_pred = truncated_distance_function(
-        points,
-        pitch=pitch,
-        origin=origin,
-        dims=dims,
-        truncation=truncation,
+        points, pitch=pitch, origin=origin, dims=dims, truncation=truncation,
     )
     m_true = m_pred.array.copy()
     m_true += xp.random.uniform(-0.2, 0.2, m_true.shape)
-    print(f'm_pred:\n{m_pred.array}')
-    print(f'm_true:\n{m_true}')
+    print(f"m_pred:\n{m_pred.array}")
+    print(f"m_true:\n{m_true}")
 
     loss = chainer.functions.mean_squared_error(m_pred, m_true)
     loss.backward()
 
-    print(f'points.grad:\n{points.grad}')
+    print(f"points.grad:\n{points.grad}")
 
     def check_backward(points_data, grad_matrix):
         chainer.gradient_check.check_backward(

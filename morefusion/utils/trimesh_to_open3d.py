@@ -11,7 +11,7 @@ def trimesh_to_open3d(src):
 
         vertex_colors = np.zeros((len(src.vertices), 3), dtype=float)
         for face, face_color in zip(src.faces, src.visual.face_colors):
-            vertex_colors[face] += (face_color[:3] / 255.)  # uint8 -> float
+            vertex_colors[face] += face_color[:3] / 255.0  # uint8 -> float
         indices, counts = np.unique(src.faces.flatten(), return_counts=True)
         vertex_colors[indices] /= counts[:, None]
         dst.vertex_colors = open3d.Vector3dVector(vertex_colors)
@@ -21,7 +21,7 @@ def trimesh_to_open3d(src):
         dst.points = open3d.Vector3dVector(src.vertices)
         if src.colors:
             colors = src.colors
-            colors = (colors[:, :3] / 255.).astype(float)
+            colors = (colors[:, :3] / 255.0).astype(float)
             dst.colors = open3d.Vector3dVector(colors)
     elif isinstance(src, trimesh.scene.Camera):
         dst = open3d.PinholeCameraIntrinsic(
@@ -45,6 +45,6 @@ def trimesh_to_open3d(src):
     elif isinstance(src, list):
         dst = [trimesh_to_open3d(x) for x in src]
     else:
-        raise ValueError('Unsupported type of src: {}'.format(type(src)))
+        raise ValueError("Unsupported type of src: {}".format(type(src)))
 
     return dst

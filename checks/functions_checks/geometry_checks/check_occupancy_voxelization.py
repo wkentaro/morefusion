@@ -17,18 +17,16 @@ models = morefusion.datasets.YCBVideoModels()
 
 scenes = {}
 
-for is_solid in ['nonsolid', 'solid']:
-    name = f'{is_solid}'
+for is_solid in ["nonsolid", "solid"]:
+    name = f"{is_solid}"
 
-    if is_solid == 'nonsolid':
+    if is_solid == "nonsolid":
         points = models.get_pcd(class_id=2)
     else:
-        assert is_solid == 'solid'
+        assert is_solid == "solid"
         points = models.get_solid_voxel_grid(class_id=2).points
 
-    points = morefusion.extra.open3d.voxel_down_sample(
-        points, voxel_size=0.01
-    )
+    points = morefusion.extra.open3d.voxel_down_sample(points, voxel_size=0.01)
     points = points.astype(np.float32)
 
     geom = trimesh.PointCloud(vertices=points)
@@ -36,10 +34,10 @@ for is_solid in ['nonsolid', 'solid']:
 
     dim = 16
     pitch = max(geom.extents) / dim * 1.1
-    origin = (- pitch * dim / 2,) * 3
+    origin = (-pitch * dim / 2,) * 3
     sdf = models.get_cad(class_id=2).nearest.signed_distance(points)
-    print(f'[{name}] pitch: {pitch}')
-    print(f'[{name}] dim: {dim}')
+    print(f"[{name}] pitch: {pitch}")
+    print(f"[{name}] dim: {dim}")
     grid, _, _ = morefusion.functions.pseudo_occupancy_voxelization(
         points=cuda.to_gpu(points),
         sdf=cuda.to_gpu(sdf),
@@ -49,13 +47,9 @@ for is_solid in ['nonsolid', 'solid']:
         threshold=2,
     )
     grid = cuda.to_cpu(grid.array)
-    colors = imgviz.depth2rgb(
-        grid.reshape(1, -1), min_value=0, max_value=1
-    )
+    colors = imgviz.depth2rgb(grid.reshape(1, -1), min_value=0, max_value=1)
     colors = colors.reshape(dim, dim, dim, 3)
-    colors = np.concatenate(
-        (colors, np.full((dim, dim, dim, 1), 127)), axis=3
-    )
+    colors = np.concatenate((colors, np.full((dim, dim, dim, 1), 127)), axis=3)
 
     voxel = trimesh.voxel.VoxelGrid(
         grid, ttf.scale_and_translate(pitch, origin)

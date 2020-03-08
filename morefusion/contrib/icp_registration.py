@@ -4,7 +4,6 @@ import trimesh.transformations as tf
 
 
 class ICPRegistration:
-
     def __init__(self, pcd_depth, pcd_cad, transform_init=None):
         self._pcd_depth = pcd_depth
         self._pcd_cad = pcd_cad
@@ -56,9 +55,9 @@ class ICPRegistration:
                 open3d.TransformationEstimationPointToPoint(False),
                 open3d.ICPConvergenceCriteria(max_iteration=1),
             )
-            print(f'[{i:08d}] fitness={result.fitness:.2g} '
-                  f'inlier_rmse={result.inlier_rmse:.2g}')
-            self._transform = tf.inverse_matrix(
-                result.transformation
+            print(
+                f"[{i:08d}] fitness={result.fitness:.2g} "
+                f"inlier_rmse={result.inlier_rmse:.2g}"
             )
+            self._transform = tf.inverse_matrix(result.transformation)
             yield self._transform

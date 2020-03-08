@@ -3,8 +3,8 @@ import scipy.spatial
 
 
 def sort(points):
-    assert points.ndim == 2, 'points must be 2 dimensional'
-    assert points.shape[1] == 3, 'points shape must be (N, 3)'
+    assert points.ndim == 2, "points must be 2 dimensional"
+    assert points.shape[1] == 3, "points shape must be (N, 3)"
 
     points_left = points.copy()[1:]
     points_sorted = [points[0]]
@@ -18,11 +18,11 @@ def sort(points):
 
 
 def sort_by(points, key):
-    assert points.ndim == 2, 'points must be 2 dimensional'
-    assert points.shape[1] == 3, 'points shape must be (N, 3)'
-    assert key.ndim == 2, 'key must be 2 dimensional'
-    assert key.shape[1] == 3, 'key shape must be (N, 3)'
-    assert len(points) == len(key), 'points and key must be same size'
+    assert points.ndim == 2, "points must be 2 dimensional"
+    assert points.shape[1] == 3, "points shape must be (N, 3)"
+    assert key.ndim == 2, "key must be 2 dimensional"
+    assert key.shape[1] == 3, "key shape must be (N, 3)"
+    assert len(points) == len(key), "points and key must be same size"
 
     points_sorted = []
     points_left = points.copy()

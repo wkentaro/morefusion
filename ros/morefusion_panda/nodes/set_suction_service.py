@@ -5,16 +5,16 @@ import rospy
 import serial
 
 
-ser = serial.Serial('/dev/arduino0', baudrate=9600, timeout=1)
+ser = serial.Serial("/dev/arduino0", baudrate=9600, timeout=1)
 
 
 def handle_set_suction(req):
 
     try:
         if req.on:
-            ser.write(b'g')
+            ser.write(b"g")
         else:
-            ser.write(b's')
+            ser.write(b"s")
     except Exception:
         return False
     return True
@@ -22,10 +22,10 @@ def handle_set_suction(req):
 
 def main():
 
-    rospy.init_node('set_suction_server', anonymous=True)
-    rospy.Service('set_suction', SetSuction, handle_set_suction)
+    rospy.init_node("set_suction_server", anonymous=True)
+    rospy.Service("set_suction", SetSuction, handle_set_suction)
     rospy.spin()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

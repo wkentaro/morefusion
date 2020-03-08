@@ -39,69 +39,95 @@ class ResNet(chainercv.links.PickableSequentialChain):
     def __call__(self, x):
         self.mean = self.xp.asarray(self.mean)
         self.std = self.xp.asarray(self.std)
-        h = (x / 255. - self.mean[None]) / self.std[None]
+        h = (x / 255.0 - self.mean[None]) / self.std[None]
         return super().__call__(h)
 
 
 class ResNet18(ResNet):
-
     def __init__(self):
         super().__init__(n_layer=13)
 
 
 class ResNet34(ResNet):
-
     def __init__(self):
         super().__init__(n_layer=34)
 
 
 class ResBlock(chainer.Chain):
-
-    def __init__(self, n_layer, in_channels, out_channels,
-                 stride, dilate, residual_conv=True):
+    def __init__(
+        self,
+        n_layer,
+        in_channels,
+        out_channels,
+        stride,
+        dilate,
+        residual_conv=True,
+    ):
         super().__init__()
         with self.init_scope():
             self.a = BasicBlock(
-                in_channels, out_channels, stride, 1,
-                residual_conv=residual_conv)
+                in_channels,
+                out_channels,
+                stride,
+                1,
+                residual_conv=residual_conv,
+            )
             for i in range(n_layer - 1):
-                name = 'b{}'.format(i + 1)
+                name = "b{}".format(i + 1)
                 block = BasicBlock(
-                    out_channels, out_channels, 1, dilate,
-                    residual_conv=False)
+                    out_channels, out_channels, 1, dilate, residual_conv=False
+                )
                 setattr(self, name, block)
         self.n_layer = n_layer
 
     def __call__(self, x):
         h = self.a(x)
         for i in range(self.n_layer - 1):
-            h = getattr(self, 'b{}'.format(i + 1))(h)
+            h = getattr(self, "b{}".format(i + 1))(h)
         return h
 
 
 class BasicBlock(chainer.Chain):
-
-    def __init__(self, in_channels, out_channels, stride, dilate,
-                 initialW=None, residual_conv=False):
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        stride,
+        dilate,
+        initialW=None,
+        residual_conv=False,
+    ):
         super().__init__()
         with self.init_scope():
             # pad = dilate
             self.conv1 = L.Convolution2D(
-                in_channels, out_channels, 3, stride,
-                pad=dilate, dilate=dilate, nobias=True)
+                in_channels,
+                out_channels,
+                3,
+                stride,
+                pad=dilate,
+                dilate=dilate,
+                nobias=True,
+            )
             self.conv2 = L.Convolution2D(
-                out_channels, out_channels, 3, 1,
-                pad=dilate, dilate=dilate, nobias=True)
+                out_channels,
+                out_channels,
+                3,
+                1,
+                pad=dilate,
+                dilate=dilate,
+                nobias=True,
+            )
             if residual_conv:
                 self.residual_conv = L.Convolution2D(
-                    in_channels, out_channels, 1, stride,
-                    nobias=True)
+                    in_channels, out_channels, 1, stride, nobias=True
+                )
 
     def __call__(self, x):
         h = F.relu(self.conv1(x))
         h = self.conv2(h)
 
-        if hasattr(self, 'residual_conv'):
+        if hasattr(self, "residual_conv"):
             residual = self.residual_conv(x)
         else:
             residual = x

@@ -13,9 +13,9 @@ from morefusion.contrib import singleview_3d
 
 
 def get_images():
-    log_dir = path.Path('logs.20190822/20190825_015100.635309989')
+    log_dir = path.Path("logs.20190822/20190825_015100.635309989")
 
-    with open(log_dir / 'args') as f:
+    with open(log_dir / "args") as f:
         args = easydict.EasyDict(json.load(f))
 
     model = singleview_3d.models.BaselineModel(
@@ -24,11 +24,11 @@ def get_images():
     model.to_gpu(0)
 
     chainer.serializers.load_npz(
-        log_dir / 'snapshot_model_best_auc_add.npz', model
+        log_dir / "snapshot_model_best_auc_add.npz", model
     )
 
     dataset = singleview_3d.datasets.YCBVideoDataset(
-        'train', class_ids=args.class_ids
+        "train", class_ids=args.class_ids
     )
 
     nchannel2rgb = imgviz.Nchannel2RGB()
@@ -41,18 +41,15 @@ def get_images():
 
         print(f"index: {index}, class_id: {in_data['class_id']}")
 
-        values, points = model._extract(
-            in_data['rgb'],
-            in_data['pcd'],
-        )
+        values, points = model._extract(in_data["rgb"], in_data["pcd"],)
 
         feats = []
         for i in range(len(values)):
-            mask = ~np.isnan(cuda.to_cpu(in_data['pcd'][i])).any(axis=2)
+            mask = ~np.isnan(cuda.to_cpu(in_data["pcd"][i])).any(axis=2)
 
             values_i = cuda.to_cpu(values[i].array)
             _, C = values_i.shape
-            H, W = in_data['rgb'].shape[1:3]
+            H, W = in_data["rgb"].shape[1:3]
             feat = np.zeros((H, W, C), dtype=values_i.dtype)
             feat[mask] = values_i
             feats.append(feat)
@@ -62,7 +59,7 @@ def get_images():
 
         vizs = []
         for i in range(len(values)):
-            rgb = cuda.to_cpu(in_data['rgb'][i])
+            rgb = cuda.to_cpu(in_data["rgb"][i])
             feat = feats[i]
             feat_viz = nchannel2rgb(feat, dtype=np.uint8)
             viz = imgviz.tile([rgb, feat_viz])
@@ -75,5 +72,5 @@ def main():
     imgviz.io.pyglet_run()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

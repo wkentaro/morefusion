@@ -8,7 +8,6 @@ import morefusion
 
 
 class SceneGenerationBase:
-
     def __init__(
         self,
         models,
@@ -73,9 +72,7 @@ class SceneGenerationBase:
 
         for _ in range(nstep):
             for unique_id, pose in poses.items():
-                pybullet.resetBasePositionAndOrientation(
-                    unique_id, *pose
-                )
+                pybullet.resetBasePositionAndOrientation(unique_id, *pose)
             pybullet.stepSimulation()
 
     def _is_colliding(self, unique_id):
@@ -102,8 +99,8 @@ class SceneGenerationBase:
         cad_file = self._models.get_cad_file_from_id(cad_id=cad_id)
 
         termcolor.cprint(
-            f'==> Spawning a new object: class_id={class_id:04d}, cad_id={cad_id}',  # NOQA
-            attrs={'bold': True},
+            f"==> Spawning a new object: class_id={class_id:04d}, cad_id={cad_id}",  # NOQA
+            attrs={"bold": True},
         )
 
         if self._mesh_scale is not None:
@@ -115,7 +112,7 @@ class SceneGenerationBase:
         unique_id = morefusion.extra.pybullet.add_model(
             visual_file=cad_file,
             collision_file=morefusion.utils.get_collision_file(cad_file),
-            mesh_scale=mesh_scale
+            mesh_scale=mesh_scale,
         )
         for _ in range(self._n_trial):
             position = self._random_state.uniform(*self._aabb)
@@ -133,9 +130,7 @@ class SceneGenerationBase:
                 continue
 
             self._objects[unique_id] = dict(
-                class_id=class_id,
-                cad_id=cad_id,
-                mesh_scale=mesh_scale,
+                class_id=class_id, cad_id=cad_id, mesh_scale=mesh_scale,
             )
             break
         else:
@@ -143,8 +138,8 @@ class SceneGenerationBase:
 
     def generate(self):
         termcolor.cprint(
-            f'==> Started SceneGeneration: {self.__class__.__name__}',
-            attrs={'bold': True},
+            f"==> Started SceneGeneration: {self.__class__.__name__}",
+            attrs={"bold": True},
         )
         self.init_space()
 
@@ -155,13 +150,13 @@ class SceneGenerationBase:
             p=self._class_weight,
         )
         termcolor.cprint(
-            f'==> Selected Classes: {class_ids}', attrs={'bold': True}
+            f"==> Selected Classes: {class_ids}", attrs={"bold": True}
         )
 
         for class_id in class_ids:
             self._spawn_object(class_id=class_id)
         self._simulate(nstep=10000)
-        termcolor.cprint('==> Finished scene generation', attrs={'bold': True})
+        termcolor.cprint("==> Finished scene generation", attrs={"bold": True})
 
     @property
     def unique_ids(self):
@@ -169,15 +164,15 @@ class SceneGenerationBase:
 
     def unique_id_to_cad_id(self, unique_id):
         if unique_id in self._objects:
-            return self._objects[unique_id].get('cad_id', '')
-        return ''
+            return self._objects[unique_id].get("cad_id", "")
+        return ""
 
     def unique_ids_to_cad_ids(self, unique_ids):
         return np.array([self.unique_id_to_cad_id(u) for u in unique_ids])
 
     def unique_id_to_class_id(self, unique_id):
         if unique_id in self._objects:
-            return self._objects[unique_id]['class_id']
+            return self._objects[unique_id]["class_id"]
         else:
             return 0  # background
 
@@ -201,19 +196,17 @@ class SceneGenerationBase:
 
     def unique_ids_to_poses(self, unique_ids):
         return np.array(
-            [self.unique_id_to_pose(i) for i in unique_ids],
-            dtype=float,
+            [self.unique_id_to_pose(i) for i in unique_ids], dtype=float,
         )
 
     def unique_id_to_scale(self, unique_id):
         if unique_id in self._objects:
-            return self._objects[unique_id].get('mesh_scale', (1, 1, 1))
+            return self._objects[unique_id].get("mesh_scale", (1, 1, 1))
         return (1, 1, 1)
 
     def unique_ids_to_scales(self, unique_ids):
         return np.array(
-            [self.unique_id_to_scale(i) for i in unique_ids],
-            dtype=float,
+            [self.unique_id_to_scale(i) for i in unique_ids], dtype=float,
         )
 
     @property
@@ -225,11 +218,11 @@ class SceneGenerationBase:
 
         scene = pyrender.Scene(bg_color=(0, 0, 0))
         for ins_id, data in self._objects.items():
-            if 'cad_file' in data:
-                cad_file = data['cad_file']
+            if "cad_file" in data:
+                cad_file = data["cad_file"]
             else:
-                assert data['class_id'] != 0
-                cad_file = self._models.get_cad_file(class_id=data['class_id'])
+                assert data["class_id"] != 0
+                cad_file = self._models.get_cad_file(class_id=data["class_id"])
             cad = trimesh.load_mesh(cad_file, process=False)
             try:
                 obj = pyrender.Mesh.from_trimesh(cad, smooth=True)
@@ -299,9 +292,9 @@ class SceneGenerationBase:
         fovy = fovx / width * height
 
         scene = morefusion.extra.pybullet.get_trimesh_scene()
-        list(scene.geometry.values())[0].visual.face_colors = (1., 1., 1.)
+        list(scene.geometry.values())[0].visual.face_colors = (1.0, 1.0, 1.0)
         for name, geometry in scene.geometry.items():
-            if hasattr(geometry.visual, 'to_color'):
+            if hasattr(geometry.visual, "to_color"):
                 geometry.visual = geometry.visual.to_color()
         scene.camera.resolution = (width, height)
         scene.camera.fov = (fovx, fovy)
@@ -324,7 +317,7 @@ class SceneGenerationBase:
             [rgb, ins_viz, cls_viz], border=(255, 255, 255), shape=(1, 3)
         )
         viz = imgviz.resize(viz, width=1500)
-        imgviz.io.pyglet_imshow(viz, 'pybullet')
+        imgviz.io.pyglet_imshow(viz, "pybullet")
 
         rgb = morefusion.extra.trimesh.save_image(scene)[:, :, :3]
         ins_viz = imgviz.label2rgb(ins + 1, rgb)
@@ -335,7 +328,7 @@ class SceneGenerationBase:
             [rgb, ins_viz, cls_viz], border=(255, 255, 255), shape=(1, 3)
         )
         viz = imgviz.resize(viz, width=1500)
-        imgviz.io.pyglet_imshow(viz, 'trimesh')
+        imgviz.io.pyglet_imshow(viz, "trimesh")
 
         imgviz.io.pyglet_run()
 

@@ -11,7 +11,6 @@ from morefusion import metrics
 
 
 class TestAverageDistance(unittest.TestCase):
-
     def setUp(self):
         self.points = tf.random_vector((128, 3)).astype(np.float32)
         self.T1 = tf.random_rotation_matrix()

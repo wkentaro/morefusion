@@ -8,10 +8,13 @@ import morefusion
 
 
 class Images:
-
     def __init__(self):
-        self._dataset_parent = morefusion.datasets.YCBVideoRGBDPoseEstimationDataset('train')  # NOQA
-        self._dataset = morefusion.datasets.YCBVideoRGBDPoseEstimationDatasetReIndexed('train')  # NOQA
+        self._dataset_parent = morefusion.datasets.YCBVideoRGBDPoseEstimationDataset(  # NOQA
+            "train"
+        )
+        self._dataset = morefusion.datasets.YCBVideoRGBDPoseEstimationDatasetReIndexed(  # NOQA
+            "train"
+        )
 
     def __len__(self):
         return len(self._dataset)
@@ -24,13 +27,16 @@ class Images:
         index_parent = self._dataset_parent._ids.index(image_id)
         frame = self._dataset_parent.get_frame(index_parent)
 
-        viz = imgviz.tile([
-            example['rgb'],
-            imgviz.depth2rgb(example['pcd'][:, :, 0]),
-            imgviz.depth2rgb(example['pcd'][:, :, 1]),
-            imgviz.depth2rgb(example['pcd'][:, :, 2]),
-        ], border=(255, 255, 255))
-        viz = imgviz.tile([frame['rgb'], viz], (1, 2))
+        viz = imgviz.tile(
+            [
+                example["rgb"],
+                imgviz.depth2rgb(example["pcd"][:, :, 0]),
+                imgviz.depth2rgb(example["pcd"][:, :, 1]),
+                imgviz.depth2rgb(example["pcd"][:, :, 2]),
+            ],
+            border=(255, 255, 255),
+        )
+        viz = imgviz.tile([frame["rgb"], viz], (1, 2))
         return viz
 
 

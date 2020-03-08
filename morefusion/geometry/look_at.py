@@ -6,7 +6,7 @@ from .compose_transform import compose_transform
 
 
 def normalize(x: np.ndarray) -> np.ndarray:
-    assert x.ndim == 1, 'x must be a vector (ndim: 1)'
+    assert x.ndim == 1, "x must be a vector (ndim: 1)"
     return x / np.linalg.norm(x)
 
 
@@ -49,9 +49,9 @@ def look_at(
     else:
         up = np.asarray(up, dtype=float)
 
-    assert eye.shape == (3,), 'eye must be (3,) float'
-    assert target.shape == (3,), 'target must be (3,) float'
-    assert up.shape == (3,), 'up must be (3,) float'
+    assert eye.shape == (3,), "eye must be (3,) float"
+    assert target.shape == (3,), "target must be (3,) float"
+    assert up.shape == (3,), "up must be (3,) float"
 
     # create new axes
     z_axis: np.ndarray = normalize(target - eye)

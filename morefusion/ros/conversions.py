@@ -14,19 +14,13 @@ def from_ros_pose(pose):
 
 
 def from_ros_vector3(vector3):
-    vector3 = np.array([
-        vector3.x,
-        vector3.y,
-        vector3.z,
-    ], dtype=np.float32)
+    vector3 = np.array([vector3.x, vector3.y, vector3.z], dtype=np.float32)
     return vector3
 
 
 def from_ros_orientation(orientation):
-    quaternion = np.array([
-        orientation.w,
-        orientation.x,
-        orientation.y,
-        orientation.z,
-    ], dtype=np.float32)
+    quaternion = np.array(
+        [orientation.w, orientation.x, orientation.y, orientation.z],
+        dtype=np.float32,
+    )
     return quaternion

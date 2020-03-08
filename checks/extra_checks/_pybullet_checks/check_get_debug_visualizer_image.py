@@ -19,8 +19,7 @@ pybullet.resetDebugVisualizerCamera(
 )
 
 morefusion.extra.pybullet.add_model(
-    visual_file=cad_file,
-    position=(0, 0, 0.3),
+    visual_file=cad_file, position=(0, 0, 0.3),
 )
 for _ in range(1000):
     pybullet.stepSimulation()

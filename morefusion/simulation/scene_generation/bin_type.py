@@ -10,14 +10,13 @@ from .base import SceneGenerationBase
 
 
 class BinTypeSceneGeneration(SceneGenerationBase):
-
     def __init__(self, *args, **kwargs):
-        extents = kwargs.pop('extents', (0.5, 0.5, 0.2))
+        extents = kwargs.pop("extents", (0.5, 0.5, 0.2))
         assert len(extents) == 3
         assert all(isinstance(x, numbers.Number) for x in extents)
         self._extents = np.asarray(extents, dtype=float)
 
-        thickness = kwargs.pop('thickness', 0.01)
+        thickness = kwargs.pop("thickness", 0.01)
         assert isinstance(thickness, numbers.Number)
         self._thickness = thickness
 
@@ -32,11 +31,10 @@ class BinTypeSceneGeneration(SceneGenerationBase):
         import pybullet
 
         cad = morefusion.extra.trimesh.bin_model(
-            extents=self._extents,
-            thickness=self._thickness,
+            extents=self._extents, thickness=self._thickness,
         )
 
-        cad_file = self._temp_dir / f'{cad.md5()}.obj'
+        cad_file = self._temp_dir / f"{cad.md5()}.obj"
         if not cad_file.exists():
             trimesh.exchange.export.export_mesh(cad, str(cad_file))
 

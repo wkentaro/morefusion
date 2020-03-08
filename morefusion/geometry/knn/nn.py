@@ -6,7 +6,7 @@ import sklearn.neighbors
 
 
 here = path.Path(__file__).abspath().parent
-cu_file = here / 'cuComputeDistanceGlobal.cu'
+cu_file = here / "cuComputeDistanceGlobal.cu"
 
 
 def nn_cpu(ref, query):
@@ -19,7 +19,7 @@ def nn_gpu(ref, query):
     import cupy
 
     with open(cu_file) as f:
-        kernel = cupy.RawKernel(f.read(), 'cuComputeDistanceGlobal')
+        kernel = cupy.RawKernel(f.read(), "cuComputeDistanceGlobal")
 
     ref_nb, ref_dim = ref.shape
     query_nb, query_dim = query.shape
@@ -55,7 +55,7 @@ def nn(ref, query):
     return nn_gpu(ref, query)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import cupy
 
     def nn_naive(ref, query):

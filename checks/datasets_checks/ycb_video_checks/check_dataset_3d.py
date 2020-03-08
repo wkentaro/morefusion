@@ -9,7 +9,7 @@ import morefusion
 
 
 def get_scenes():
-    dataset = morefusion.datasets.YCBVideoDataset('train')
+    dataset = morefusion.datasets.YCBVideoDataset("train")
 
     index = 0
     video_id_prev = None
@@ -17,7 +17,7 @@ def get_scenes():
     while index < len(dataset):
         example = dataset[index]
 
-        video_id, frame_id = dataset.ids[index].split('/')
+        video_id, frame_id = dataset.ids[index].split("/")
 
         clear = False
         if video_id_prev is not None and video_id_prev != video_id:
@@ -26,12 +26,12 @@ def get_scenes():
                 scene.graph.transforms.remove_node(node_name)
         video_id_prev = video_id
 
-        rgb = example['color']
-        depth = example['depth']
-        K = example['meta']['intrinsic_matrix']
+        rgb = example["color"]
+        depth = example["depth"]
+        K = example["meta"]["intrinsic_matrix"]
 
         T_world2cam = np.r_[
-            example['meta']['rotation_translation_matrix'], [[0, 0, 0, 1]]
+            example["meta"]["rotation_translation_matrix"], [[0, 0, 0, 1]]
         ]
         T_cam2world = np.linalg.inv(T_world2cam)
         pcd = morefusion.geometry.pointcloud_from_depth(
@@ -52,17 +52,17 @@ def get_scenes():
         geom = trimesh.creation.camera_marker(
             scene.camera, marker_height=0.05
         )[1]
-        geom.colors = [(0, 1., 0)] * len(geom.entities)
+        geom.colors = [(0, 1.0, 0)] * len(geom.entities)
         scene.add_geometry(geom, transform=T_cam2world)
 
         index += 15
-        print(f'[{index:08d}] video_id={video_id}')
-        yield {'__clear__': clear, 'rgb': rgb, 'scene': scene}
+        print(f"[{index:08d}] video_id={video_id}")
+        yield {"__clear__": clear, "rgb": rgb, "scene": scene}
 
 
 def main():
     morefusion.extra.trimesh.display_scenes(get_scenes(), tile=(1, 2))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

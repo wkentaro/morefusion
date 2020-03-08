@@ -25,12 +25,10 @@ def main():
         distance=[1], elevation=[45], azimuth=[45],
     )[0]
     T_camera2world = morefusion.geometry.look_at(
-        eye=eye,
-        target=(0, 0, 0),
-        up=(0, 0, -1),
+        eye=eye, target=(0, 0, 0), up=(0, 0, -1),
     )
     generator.debug_render(T_camera2world)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

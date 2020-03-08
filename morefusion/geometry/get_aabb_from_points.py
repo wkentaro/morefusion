@@ -14,17 +14,15 @@ def voxel_down_sample(points: np.ndarray, voxel_size: float) -> np.ndarray:
 
 
 def get_aabb_from_points(
-    points: np.ndarray
+    points: np.ndarray,
 ) -> typing.Tuple[np.ndarray, np.ndarray]:
     pcd_roi_flat_down: np.ndarray = voxel_down_sample(
         points=points, voxel_size=0.01
     )
     fclusterdata = scipy.cluster.hierarchy.fclusterdata(
-        pcd_roi_flat_down, criterion='distance', t=0.02
+        pcd_roi_flat_down, criterion="distance", t=0.02
     )
-    cluster_ids, cluster_counts = np.unique(
-        fclusterdata, return_counts=True
-    )
+    cluster_ids, cluster_counts = np.unique(fclusterdata, return_counts=True)
     cluster_id: int = cluster_ids[np.argmax(cluster_counts)]
     keep: np.ndarray = fclusterdata == cluster_id
     pcd_roi_flat_down = pcd_roi_flat_down[keep]

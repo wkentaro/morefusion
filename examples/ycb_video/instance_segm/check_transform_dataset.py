@@ -10,7 +10,6 @@ from train_multi import transform_dataset
 
 
 class Images:
-
     def __init__(self, dataset, model):
         self._dataset = dataset
         self._model = model
@@ -29,23 +28,18 @@ class Images:
             morefusion.datasets.ycb_video.class_names[c] for c in class_ids
         ]
         viz = imgviz.instances2rgb(
-            rgb,
-            labels=class_ids,
-            masks=mask,
-            bboxes=bbox,
-            captions=captions,
+            rgb, labels=class_ids, masks=mask, bboxes=bbox, captions=captions,
         )
         viz = imgviz.tile([rgb, viz], shape=(1, 2), border=(255, 255, 255))
         return imgviz.resize(viz, width=1500)
 
 
 model = chainercv.links.model.fpn.MaskRCNNFPNResNet50(
-    n_fg_class=1, pretrained_model='imagenet'
+    n_fg_class=1, pretrained_model="imagenet"
 )
-dataset = \
-    morefusion.datasets.MySyntheticYCB20190916InstanceSegmentationDataset(
-        split='train', bg_composite=True
-    )
+dataset = morefusion.datasets.MySyntheticYCB20190916InstanceSegmentationDataset(  # NOQA
+    split="train", bg_composite=True
+)
 # dataset = morefusion.datasets.YCBVideoInstanceSegmentationDataset(
 #     split='train', sampling=15
 # )

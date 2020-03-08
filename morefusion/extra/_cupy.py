@@ -12,20 +12,20 @@ def resize_image(x, output_shape, order):
     assert x.ndim in {2, 3}
 
     # check order
-    if order == 'HWC':
+    if order == "HWC":
         x = x.transpose(2, 0, 1)  # HWC -> CHW
-        y = resize_image(x, output_shape, order='CHW')
+        y = resize_image(x, output_shape, order="CHW")
         y = y.transpose(1, 2, 0)  # CHW -> HWC
         return y
-    elif order == 'HW':
+    elif order == "HW":
         x = x[None, :, :]  # HW -> CHW
-        y = resize_image(x, output_shape, order='CHW')
-        y = y[0, :, :]     # CHW -> HW
+        y = resize_image(x, output_shape, order="CHW")
+        y = y[0, :, :]  # CHW -> HW
         return y
-    elif order == 'CHW':
+    elif order == "CHW":
         pass
     else:
-        raise ValueError('unsupported order: {}'.format(order))
+        raise ValueError("unsupported order: {}".format(order))
 
     # check dtype
     if np.issubdtype(x.dtype, np.floating):
@@ -39,7 +39,7 @@ def resize_image(x, output_shape, order):
         y = _resize_image_float(x, output_shape)
         y = y > 0.5
     else:
-        raise TypeError('unsupported dtype: {}'.format(x.dtype))
+        raise TypeError("unsupported dtype: {}".format(x.dtype))
 
     return y
 

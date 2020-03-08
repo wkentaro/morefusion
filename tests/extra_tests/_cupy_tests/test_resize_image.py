@@ -10,7 +10,6 @@ from morefusion.extra._cupy import resize_image
 
 
 class TestResizeImage(unittest.TestCase):
-
     def setUp(self):
         self.image_uint8 = scipy.misc.face()
         self.image_float32 = self.image_uint8.astype(np.float32) / 255
@@ -19,11 +18,11 @@ class TestResizeImage(unittest.TestCase):
     def check_resize_image_uint8(self, src):
         H, W, C = src.shape
         H_2x, W_2x = 2 * H, 2 * W
-        dst = resize_image(src, (H_2x, W_2x), order='HWC')
+        dst = resize_image(src, (H_2x, W_2x), order="HWC")
         assert dst.shape == (H_2x, W_2x, C)
         assert src.dtype == dst.dtype
 
-        dst = resize_image(dst, (H, W), order='HWC')
+        dst = resize_image(dst, (H, W), order="HWC")
         assert dst.shape == (H, W, C)
         assert src.dtype == dst.dtype
 
@@ -37,11 +36,11 @@ class TestResizeImage(unittest.TestCase):
     def check_resize_image_float32(self, src):
         H, W, C = src.shape
         H_2x, W_2x = 2 * H, 2 * W
-        dst = resize_image(src, (H_2x, W_2x), order='HWC')
+        dst = resize_image(src, (H_2x, W_2x), order="HWC")
         assert dst.shape == (H_2x, W_2x, C)
         assert src.dtype == dst.dtype
 
-        dst = resize_image(dst, (H, W), order='HWC')
+        dst = resize_image(dst, (H, W), order="HWC")
         assert dst.shape == (H, W, C)
         assert src.dtype == dst.dtype
 
@@ -55,11 +54,11 @@ class TestResizeImage(unittest.TestCase):
     def check_resize_image_bool(self, src):
         H, W = src.shape
         H_2x, W_2x = 2 * H, 2 * W
-        dst = resize_image(src, (H_2x, W_2x), order='HW')
+        dst = resize_image(src, (H_2x, W_2x), order="HW")
         assert dst.shape == (H_2x, W_2x)
         assert src.dtype == dst.dtype
 
-        dst = resize_image(dst, (H, W), order='HW')
+        dst = resize_image(dst, (H, W), order="HW")
         assert dst.shape == (H, W)
         assert src.dtype == dst.dtype
 

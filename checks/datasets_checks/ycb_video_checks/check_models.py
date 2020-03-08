@@ -24,7 +24,7 @@ def main():
             if class_id == 0:
                 continue
             result = executor.submit(get_uniform_scale_cad, models, class_id)
-            cads[f'{class_id:04d}'] = result
+            cads[f"{class_id:04d}"] = result
 
     scenes = {}
     camera_transform = None
@@ -42,5 +42,5 @@ def main():
     )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

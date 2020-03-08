@@ -8,7 +8,7 @@ def estimate_pointcloud_normals(points):
     elif points.ndim == 2:
         return _estimate_pointcloud_normals_unorganized(points)
     else:
-        raise ValueError('points shape must be either (H, W, 3) or (N, 3)')
+        raise ValueError("points shape must be either (H, W, 3) or (N, 3)")
 
 
 def _estimate_pointcloud_normals_unorganized(points):
@@ -19,7 +19,7 @@ def _estimate_pointcloud_normals_unorganized(points):
     points_open3d.points = open3d.Vector3dVector(points[nonnan])
     open3d.estimate_normals(
         points_open3d,
-        search_param=open3d.KDTreeSearchParamHybrid(radius=0.1, max_nn=30)
+        search_param=open3d.KDTreeSearchParamHybrid(radius=0.1, max_nn=30),
     )
     return np.asarray(points_open3d.normals)
 
@@ -42,13 +42,12 @@ def _estimate_pointcloud_normals_organized(points):
     points = np.pad(
         points,
         pad_width=((d, d), (d, d), (0, 0)),
-        mode='constant',
+        mode="constant",
         constant_values=np.nan,
     )
-    lookups = np.array([
-        (-d, 0), (-d, d), (0, d), (d, d),
-        (d, 0), (d, -d), (0, -d), (-d, -d)
-    ])
+    lookups = np.array(
+        [(-d, 0), (-d, d), (0, d), (d, d), (d, 0), (d, -d), (0, -d), (-d, -d)]
+    )
 
     j, i = np.meshgrid(np.arange(W), np.arange(H))
     k = np.arange(8)
@@ -67,9 +66,8 @@ def _estimate_pointcloud_normals_organized(points):
     j3 = j1[None, :, :] + lookup[1][:, None, None]
     points3 = points[i3, j3]
 
-    diff = (
-        np.linalg.norm(points2 - points1, axis=3) +
-        np.linalg.norm(points3 - points1, axis=3)
+    diff = np.linalg.norm(points2 - points1, axis=3) + np.linalg.norm(
+        points3 - points1, axis=3
     )
     diff[np.isnan(diff)] = np.inf
     indices = np.argmin(diff, axis=0)

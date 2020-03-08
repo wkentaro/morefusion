@@ -22,7 +22,7 @@ class VoxelGridsToMeshMarkers(topic_tools.LazyTransport):
 
     def __init__(self):
         super().__init__()
-        self._pub = self.advertise('~output', MarkerArray, queue_size=1)
+        self._pub = self.advertise("~output", MarkerArray, queue_size=1)
         self._tmp_dir = path.Path(tempfile.mkdtemp())
         self._post_init()
 
@@ -31,7 +31,7 @@ class VoxelGridsToMeshMarkers(topic_tools.LazyTransport):
 
     def subscribe(self):
         self._sub = rospy.Subscriber(
-            '~input',
+            "~input",
             VoxelGridArray,
             self._callback,
             queue_size=1,
@@ -89,21 +89,15 @@ def grid_msg_to_mesh(grid):
     matrix = matrix.flatten()
     matrix[list(grid.indices)] = grid.values
     matrix = matrix.reshape(dims)
-    matrix = scipy.ndimage.morphology.grey_opening(
-        matrix, size=(1, 1, 1)
-    )
-    matrix = scipy.ndimage.morphology.grey_dilation(
-        matrix, size=(1, 1, 1)
-    )
-    mesh = trimesh.voxel.ops.matrix_to_marching_cubes(
-        matrix, pitch
-    )
+    matrix = scipy.ndimage.morphology.grey_opening(matrix, size=(1, 1, 1))
+    matrix = scipy.ndimage.morphology.grey_dilation(matrix, size=(1, 1, 1))
+    mesh = trimesh.voxel.ops.matrix_to_marching_cubes(matrix, pitch)
     mesh.apply_translation(origin)
     mesh = trimesh.smoothing.filter_humphrey(mesh)
     return mesh
 
 
-if __name__ == '__main__':
-    rospy.init_node('voxel_grids_to_mesh_markers')
+if __name__ == "__main__":
+    rospy.init_node("voxel_grids_to_mesh_markers")
     VoxelGridsToMeshMarkers()
     rospy.spin()

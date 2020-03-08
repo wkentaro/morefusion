@@ -11,7 +11,7 @@ import morefusion
 
 from common import Inference
 
-sys.path.insert(0, '../preliminary')  # NOQA
+sys.path.insert(0, "../preliminary")  # NOQA
 from align_occupancy_grids import refinement
 
 
@@ -19,12 +19,12 @@ parser = argparse.ArgumentParser(
     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
 )
 parser.add_argument(
-    '--prior', action='store_true', help='prior of ground and bin'
+    "--prior", action="store_true", help="prior of ground and bin"
 )
 args = parser.parse_args()
 
 models = morefusion.datasets.YCBVideoModels()
-dataset = 'my_real'
+dataset = "my_real"
 inference = Inference(dataset=dataset, gpu=0)
 frame, Ts_cad2cam_true, Ts_cad2cam_pred = inference(index=0, bg_class=True)
 
@@ -34,17 +34,17 @@ if args.prior:
     dim = (64, 64, 16)
     pitch = 0.01
     matrix = np.ones(dim, dtype=bool)
-    origin = - dim[0] * pitch / 2, - dim[1] * pitch / 2, - dim[2] * pitch
+    origin = -dim[0] * pitch / 2, -dim[1] * pitch / 2, -dim[2] * pitch
     points = trimesh.voxel.matrix_to_points(matrix, pitch, origin)
-    if dataset == 'my_synthetic':
+    if dataset == "my_synthetic":
         points = trimesh.transform_points(
-            points, frame['Ts_cad2cam'][frame['instance_ids'] == 0][0]
+            points, frame["Ts_cad2cam"][frame["instance_ids"] == 0][0]
         )
         points_occupied[0] = points
         # bin
-        mesh = trimesh.load(str(frame['cad_files'][1]))
+        mesh = trimesh.load(str(frame["cad_files"][1]))
         mesh.apply_transform(
-            frame['Ts_cad2cam'][frame['instance_ids'] == 1][0]
+            frame["Ts_cad2cam"][frame["instance_ids"] == 1][0]
         )
         points_occupied[1] = mesh.voxelized(0.01).points
     else:
@@ -67,18 +67,18 @@ if args.prior:
         #         vertices=frame['pcd'][~isnan], colors=frame['rgb'][~isnan]))
         # scene.show()
 
-keep = np.isin(frame['class_ids'], inference.dataset._class_ids)
-frame['class_ids'] = frame['class_ids'][keep]
-frame['instance_ids'] = frame['instance_ids'][keep]
-frame['Ts_cad2cam'] = frame['Ts_cad2cam'][keep]
+keep = np.isin(frame["class_ids"], inference.dataset._class_ids)
+frame["class_ids"] = frame["class_ids"][keep]
+frame["instance_ids"] = frame["instance_ids"][keep]
+frame["Ts_cad2cam"] = frame["Ts_cad2cam"][keep]
 
 refinement(
-    instance_ids=frame['instance_ids'],
-    class_ids=frame['class_ids'],
-    rgb=frame['rgb'],
-    pcd=frame['pcd'],
-    instance_label=frame['instance_label'],
-    Ts_cad2cam_true=frame['Ts_cad2cam'],
+    instance_ids=frame["instance_ids"],
+    class_ids=frame["class_ids"],
+    rgb=frame["rgb"],
+    pcd=frame["pcd"],
+    instance_label=frame["instance_label"],
+    Ts_cad2cam_true=frame["Ts_cad2cam"],
     Ts_cad2cam_pred=Ts_cad2cam_pred,
     points_occupied=points_occupied,
 )

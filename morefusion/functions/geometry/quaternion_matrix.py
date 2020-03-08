@@ -4,19 +4,17 @@ import chainer.functions as F
 
 
 class QuaternionMatrix(chainer.Function):
-
     def check_type_forward(self, in_types):
         chainer.utils.type_check.expect(in_types.size() == 1)
 
-        q_type, = in_types
+        (q_type,) = in_types
         chainer.utils.type_check.expect(
-            q_type.ndim == 3,
-            q_type.shape[1:3] == (4, 4),
+            q_type.ndim == 3, q_type.shape[1:3] == (4, 4),
         )
 
     def forward(self, x):
         xp = cuda.get_array_module(*x)
-        q, = x
+        (q,) = x
 
         batch_size = q.shape[0]
         R = xp.eye(4, dtype=q.dtype)[None].repeat(batch_size, axis=0)
@@ -31,26 +29,26 @@ class QuaternionMatrix(chainer.Function):
         R[:, 2, 1] = q[:, 2, 3] + q[:, 1, 0]
         R[:, 2, 2] = 1 - q[:, 1, 1] - q[:, 2, 2]
 
-        return R,
+        return (R,)
 
     def backward(self, x, gy):
         xp = cuda.get_array_module(*gy)
-        gR, = gy
+        (gR,) = gy
 
         batch_size = gR.shape[0]
         gq = xp.zeros((batch_size, 4, 4), dtype=gR.dtype)
 
-        gq[:, 1, 0] = - gR[:, 1, 2] + gR[:, 2, 1]
-        gq[:, 1, 1] = - gR[:, 1, 1] - gR[:, 2, 2]
+        gq[:, 1, 0] = -gR[:, 1, 2] + gR[:, 2, 1]
+        gq[:, 1, 1] = -gR[:, 1, 1] - gR[:, 2, 2]
         gq[:, 1, 2] = gR[:, 0, 1] + gR[:, 1, 0]
         gq[:, 1, 3] = gR[:, 0, 2] + gR[:, 2, 0]
         gq[:, 2, 0] = gR[:, 0, 2] - gR[:, 2, 0]
-        gq[:, 2, 2] = - gR[:, 0, 0] - gR[:, 2, 2]
+        gq[:, 2, 2] = -gR[:, 0, 0] - gR[:, 2, 2]
         gq[:, 2, 3] = gR[:, 1, 2] + gR[:, 2, 1]
-        gq[:, 3, 0] = - gR[:, 0, 1] + gR[:, 1, 0]
-        gq[:, 3, 3] = - gR[:, 0, 0] - gR[:, 1, 1]
+        gq[:, 3, 0] = -gR[:, 0, 1] + gR[:, 1, 0]
+        gq[:, 3, 3] = -gR[:, 0, 0] - gR[:, 1, 1]
 
-        return gq,
+        return (gq,)
 
 
 def outer(a, b):
@@ -71,7 +69,7 @@ def quaternion_matrix(quaternion):
         quaternion = quaternion[None]
 
     norm = F.sum(quaternion ** 2, axis=1, keepdims=True)
-    quaternion = quaternion * F.sqrt(2. / norm)
+    quaternion = quaternion * F.sqrt(2.0 / norm)
     quaternion = outer(quaternion, quaternion)
     matrix = QuaternionMatrix()(quaternion)
 

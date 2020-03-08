@@ -7,7 +7,6 @@ from .. import functions as functions_module
 
 
 class CollisionBasedPoseRefinementLink(chainer.Link):
-
     def __init__(self, transform, voxel_dim=32, voxel_threshold=2):
         super().__init__()
 
@@ -43,15 +42,18 @@ class CollisionBasedPoseRefinementLink(chainer.Link):
         grid_inside = []
         grid_nontarget_empty = [g for g in grid_nontarget_empty]
         for i in range(len(points)):
-            grid_uniform_i, grid_surface_i, grid_inside_i = \
-                functions_module.pseudo_occupancy_voxelization(
-                    points[i],
-                    sdf[i],
-                    pitch=pitch[i],
-                    origin=origin[i],
-                    dims=(self._voxel_dim,) * 3,
-                    threshold=self._voxel_threshold,
-                )
+            (
+                grid_uniform_i,
+                grid_surface_i,
+                grid_inside_i,
+            ) = functions_module.pseudo_occupancy_voxelization(
+                points[i],
+                sdf[i],
+                pitch=pitch[i],
+                origin=origin[i],
+                dims=(self._voxel_dim,) * 3,
+                threshold=self._voxel_threshold,
+            )
             grid_uniform.append(grid_uniform_i)
             grid_surface.append(grid_surface_i)
             grid_inside.append(grid_inside_i)
@@ -83,8 +85,9 @@ class CollisionBasedPoseRefinementLink(chainer.Link):
         grid_nontarget_empty = F.stack(grid_nontarget_empty)
 
         reward = F.sum(grid_surface * grid_target) / F.sum(grid_target)
-        penalty = F.sum(grid_uniform * grid_nontarget_empty) / \
-            F.sum(grid_uniform)
+        penalty = F.sum(grid_uniform * grid_nontarget_empty) / F.sum(
+            grid_uniform
+        )
         # penalty = F.sum(grid_inside * grid_nontarget_empty) / \
         #     F.sum(grid_inside)
         loss = penalty - reward

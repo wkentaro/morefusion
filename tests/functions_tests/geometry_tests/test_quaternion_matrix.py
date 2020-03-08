@@ -11,19 +11,20 @@ from morefusion.functions.geometry.quaternion_matrix import quaternion_matrix
 
 
 class TestQuaternionMatrix(unittest.TestCase):
-
     def setUp(self):
         batch_size = 5
-        self.quaternions = np.array([
-            tf.random_quaternion() for _ in range(batch_size)
-        ], dtype=np.float32)
-        self.transforms = np.array([
-            tf.quaternion_matrix(q) for q in self.quaternions
-        ], dtype=np.float32)
-        self.gTs = np.random.uniform(
-            -1, 1, (batch_size, 4, 4)
-        ).astype(np.float32)
-        self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
+        self.quaternions = np.array(
+            [tf.random_quaternion() for _ in range(batch_size)],
+            dtype=np.float32,
+        )
+        self.transforms = np.array(
+            [tf.quaternion_matrix(q) for q in self.quaternions],
+            dtype=np.float32,
+        )
+        self.gTs = np.random.uniform(-1, 1, (batch_size, 4, 4)).astype(
+            np.float32
+        )
+        self.check_backward_options = {"atol": 5e-4, "rtol": 5e-3}
 
     def check_forward(self, quaternions):
         Ts = quaternion_matrix(quaternions)

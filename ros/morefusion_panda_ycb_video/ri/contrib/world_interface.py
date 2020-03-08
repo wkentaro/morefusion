@@ -42,8 +42,8 @@ def add_static_meshes(mesh_ids, meshes, poses):
 
         collision_objects.append(collision_object_msg)
 
-    _rospy.wait_for_service('update_scene')
-    update_scene = _rospy.ServiceProxy('update_scene', _UpdateScene)
+    _rospy.wait_for_service("update_scene")
+    update_scene = _rospy.ServiceProxy("update_scene", _UpdateScene)
     response = update_scene(list(), collision_objects)
     return response.success
 
@@ -59,8 +59,8 @@ def remove_static_meshes(mesh_ids):
         collision_object_msg.operation = collision_object_msg.REMOVE
         collision_objects.append(collision_object_msg)
 
-    _rospy.wait_for_service('update_scene')
-    update_scene = _rospy.ServiceProxy('update_scene', _UpdateScene)
+    _rospy.wait_for_service("update_scene")
+    update_scene = _rospy.ServiceProxy("update_scene", _UpdateScene)
     response = update_scene(list(), collision_objects)
     return response.success
 
@@ -69,11 +69,17 @@ def add_attached_meshes(mesh_ids, meshes, poses, link_names):
 
     attached_objects = list()
 
-    for mesh_id, mesh, pose, link_name in zip(mesh_ids, meshes, poses, link_names):
+    for mesh_id, mesh, pose, link_name in zip(
+        mesh_ids, meshes, poses, link_names
+    ):
 
         attached_object_msg = _AttachedCollisionObject()
         attached_object_msg.link_name = link_name
-        attached_object_msg.touch_links = ['panda_suction_cup', 'panda_table', 'panda_target_box']
+        attached_object_msg.touch_links = [
+            "panda_suction_cup",
+            "panda_table",
+            "panda_target_box",
+        ]
 
         triangles = list()
         for face in _np.array(mesh.faces):
@@ -101,8 +107,8 @@ def add_attached_meshes(mesh_ids, meshes, poses, link_names):
 
         attached_objects.append(attached_object_msg)
 
-    _rospy.wait_for_service('update_scene')
-    update_scene = _rospy.ServiceProxy('update_scene', _UpdateScene)
+    _rospy.wait_for_service("update_scene")
+    update_scene = _rospy.ServiceProxy("update_scene", _UpdateScene)
     response = update_scene(attached_objects, list())
     return response.success
 
@@ -116,11 +122,13 @@ def remove_attached_meshes(mesh_ids, link_names):
         attached_object_msg = _AttachedCollisionObject()
         attached_object_msg.object.id = mesh_id
         attached_object_msg.link_name = link_name
-        attached_object_msg.object.operation = attached_object_msg.object.REMOVE
+        attached_object_msg.object.operation = (
+            attached_object_msg.object.REMOVE
+        )
 
         attached_objects.append(attached_object_msg)
 
-    _rospy.wait_for_service('update_scene')
-    update_scene = _rospy.ServiceProxy('update_scene', _UpdateScene)
+    _rospy.wait_for_service("update_scene")
+    update_scene = _rospy.ServiceProxy("update_scene", _UpdateScene)
     response = update_scene(attached_objects, list())
     return response.success

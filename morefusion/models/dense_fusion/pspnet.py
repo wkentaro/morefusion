@@ -8,7 +8,6 @@ import numpy as np
 
 
 class PSPNetExtractor(chainer.Chain):
-
     def __init__(self):
         super(PSPNetExtractor, self).__init__()
         sizes = [1, 2, 3, 6]
@@ -37,16 +36,18 @@ class PSPNetExtractor(chainer.Chain):
 
 
 class PSPModule(chainer.Chain):
-
     def __init__(self, in_channels, out_channels, sizes):
         super(PSPModule, self).__init__()
         with self.init_scope():
             for i in range(len(sizes)):
                 setattr(
-                    self, 'conv{}'.format(i+1),
-                    L.Convolution2D(in_channels, in_channels, 1, nobias=True))
+                    self,
+                    "conv{}".format(i + 1),
+                    L.Convolution2D(in_channels, in_channels, 1, nobias=True),
+                )
             self.bottleneck = L.Convolution2D(
-                in_channels * (len(sizes) + 1), out_channels, 1)
+                in_channels * (len(sizes) + 1), out_channels, 1
+            )
         self.sizes = sizes
 
     def __call__(self, x):
@@ -59,7 +60,7 @@ class PSPModule(chainer.Chain):
         hs = []
         for i, ksize in enumerate(ksizes):
             h = F.average_pooling_2d(x, ksize, ksize)
-            h = getattr(self, 'conv{}'.format(i+1))(h)
+            h = getattr(self, "conv{}".format(i + 1))(h)
             h = F.resize_images(h, (H, W))
             hs.append(h)
         hs.append(x)
@@ -68,7 +69,6 @@ class PSPModule(chainer.Chain):
 
 
 class PSPUpsample(chainer.Chain):
-
     def __init__(self, in_channels, out_channels):
         super(PSPUpsample, self).__init__()
         with self.init_scope():
@@ -77,6 +77,6 @@ class PSPUpsample(chainer.Chain):
 
     def __call__(self, x):
         H, W = x.shape[2:]
-        h = F.resize_images(x, (H*2, W*2))
+        h = F.resize_images(x, (H * 2, W * 2))
         h = self.prelu(self.conv(h))
         return h

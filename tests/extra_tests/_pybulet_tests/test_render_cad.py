@@ -15,11 +15,7 @@ def test_render_cad():
     T_cam2cad = geometry.look_at((1, 1, 1), (0, 0, 0), up=(0, 0, -1))
     T_cad2cam = np.linalg.inv(T_cam2cad)
     rgbs, depths, masks = pybullet_module.render_cad(
-        visual_file,
-        T_cad2cam,
-        fovy=45,
-        height=H,
-        width=W,
+        visual_file, T_cad2cam, fovy=45, height=H, width=W,
     )
     assert T_cad2cam.shape == (4, 4)
     assert rgbs.shape == (H, W, 3)
@@ -34,11 +30,7 @@ def test_render_cad():
     T_cad2cam = np.linalg.inv(T_cam2cad)
     Ts_cad2cam = T_cad2cam[None].repeat(2, axis=0)
     rgbs, depths, masks = pybullet_module.render_cad(
-        visual_file,
-        Ts_cad2cam,
-        fovy=45,
-        height=H,
-        width=W,
+        visual_file, Ts_cad2cam, fovy=45, height=H, width=W,
     )
     assert Ts_cad2cam.shape == (2, 4, 4)
     assert rgbs.shape == (2, H, W, 3)

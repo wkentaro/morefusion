@@ -22,92 +22,100 @@ import morefusion
 import contrib
 
 
-home = path.Path('~').expanduser()
+home = path.Path("~").expanduser()
 here = path.Path(__file__).abspath().parent
 
 
 class Transform:
-
     def __init__(self, train):
         self._train = train
 
     def __call__(self, examples):
         for example in examples:
-            if 'grid_target' not in example:
+            if "grid_target" not in example:
                 continue
-            assert 'grid_nontarget' in example
-            assert 'grid_empty' in example
+            assert "grid_nontarget" in example
+            assert "grid_empty" in example
 
-            if example['class_id'] == -1:
-                example['grid_nontarget_empty'] = np.zeros_like(
-                    example['grid_target']
+            if example["class_id"] == -1:
+                example["grid_nontarget_empty"] = np.zeros_like(
+                    example["grid_target"]
                 )
-                example.pop('grid_nontarget')
-                example.pop('grid_empty')
-                example.pop('grid_target_full')
-                example.pop('grid_nontarget_full')
+                example.pop("grid_nontarget")
+                example.pop("grid_empty")
+                example.pop("grid_target_full")
+                example.pop("grid_nontarget_full")
                 continue
 
             if self._train:
-                case = np.random.choice([
-                    'none',
-                    'empty',
-                    'nontarget',
-                    'empty+nontarget',
-                    'nontarget_full',
-                    'empty+nontarget_full',
-                    'other_full',
-                    'nontarget_full+other_full',
-                    'empty+nontarget_full+other_full',
-                ])
+                case = np.random.choice(
+                    [
+                        "none",
+                        "empty",
+                        "nontarget",
+                        "empty+nontarget",
+                        "nontarget_full",
+                        "empty+nontarget_full",
+                        "other_full",
+                        "nontarget_full+other_full",
+                        "empty+nontarget_full+other_full",
+                    ]
+                )
             else:
-                case = 'empty+nontarget'
+                case = "empty+nontarget"
 
-            if case == 'none':
-                grid_nontarget_empty = np.zeros_like(example['grid_target'])
-            elif case == 'empty+nontarget_full+other_full':
-                grid_nontarget_empty = ~example[
-                    'grid_target_full'
-                ].astype(bool)
+            if case == "none":
+                grid_nontarget_empty = np.zeros_like(example["grid_target"])
+            elif case == "empty+nontarget_full+other_full":
+                grid_nontarget_empty = ~example["grid_target_full"].astype(
+                    bool
+                )
             else:
-                if case == 'empty':
-                    grid_nontarget_empty = example['grid_empty'] > 0.5
-                elif case == 'nontarget':
-                    grid_nontarget_empty = example['grid_nontarget'] > 0.5
-                elif case == 'empty+nontarget':
-                    grid_nontarget_empty = np.maximum(
-                        example['grid_nontarget'], example['grid_empty']
-                    ) > 0.5
-                elif case == 'nontarget_full':
-                    grid_nontarget_empty = example['grid_nontarget_full'] > 0.5
-                elif case == 'empty+nontarget_full':
-                    grid_nontarget_empty = np.maximum(
-                        example['grid_empty'], example['grid_nontarget_full']
-                    ) > 0.5
+                if case == "empty":
+                    grid_nontarget_empty = example["grid_empty"] > 0.5
+                elif case == "nontarget":
+                    grid_nontarget_empty = example["grid_nontarget"] > 0.5
+                elif case == "empty+nontarget":
+                    grid_nontarget_empty = (
+                        np.maximum(
+                            example["grid_nontarget"], example["grid_empty"]
+                        )
+                        > 0.5
+                    )
+                elif case == "nontarget_full":
+                    grid_nontarget_empty = example["grid_nontarget_full"] > 0.5
+                elif case == "empty+nontarget_full":
+                    grid_nontarget_empty = (
+                        np.maximum(
+                            example["grid_empty"],
+                            example["grid_nontarget_full"],
+                        )
+                        > 0.5
+                    )
                 else:
                     grid_other_full = (
-                        ~example['grid_target_full'].astype(bool) &
-                        ~example['grid_nontarget_full'].astype(bool) &
-                        ~example['grid_empty'].astype(bool) &
-                        ~example['grid_target'].astype(bool) &
-                        ~example['grid_nontarget'].astype(bool)
+                        ~example["grid_target_full"].astype(bool)
+                        & ~example["grid_nontarget_full"].astype(bool)
+                        & ~example["grid_empty"].astype(bool)
+                        & ~example["grid_target"].astype(bool)
+                        & ~example["grid_nontarget"].astype(bool)
                     )
-                    if case == 'other_full':
+                    if case == "other_full":
                         grid_nontarget_empty = grid_other_full
                     else:
-                        assert case == 'nontarget_full+other_full'
+                        assert case == "nontarget_full+other_full"
                         grid_nontarget_empty = (
-                            example['grid_nontarget_full'].astype(bool) |
-                            grid_other_full
+                            example["grid_nontarget_full"].astype(bool)
+                            | grid_other_full
                         )
-            example['grid_nontarget_empty'] = grid_nontarget_empty.astype(
+            example["grid_nontarget_empty"] = grid_nontarget_empty.astype(
                 np.float64
             )
 
-            example.pop('grid_nontarget')
-            example.pop('grid_empty')
-            example.pop('grid_target_full')
-            example.pop('grid_nontarget_full')
+            example.pop("grid_nontarget")
+            example.pop("grid_empty")
+            example.pop("grid_target_full")
+            example.pop("grid_nontarget_full")
         return examples
 
 
@@ -124,71 +132,60 @@ def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
+    parser.add_argument("--multi-node", action="store_true", help="multi node")
+    parser.add_argument("--out", help="output directory")
+    parser.add_argument("--debug", action="store_true", help="debug mode")
+    parser.add_argument("--gpu", type=int, default=0, help="gpu id")
+    parser.add_argument("--seed", type=int, default=0, help="random seed")
     parser.add_argument(
-        '--multi-node', action='store_true', help='multi node'
-    )
-    parser.add_argument('--out', help='output directory')
-    parser.add_argument('--debug', action='store_true', help='debug mode')
-    parser.add_argument('--gpu', type=int, default=0, help='gpu id')
-    parser.add_argument('--seed', type=int, default=0, help='random seed')
-    parser.add_argument(
-        '--dataset',
-        choices=['ycb_video', 'my_synthetic'],
-        default='ycb_video',
-        help='dataset',
+        "--dataset",
+        choices=["ycb_video", "my_synthetic"],
+        default="ycb_video",
+        help="dataset",
     )
     parser.add_argument(
-        '--augmentation',
-        nargs='*',
+        "--augmentation",
+        nargs="*",
         default=None,
-        choices=['rgb', 'depth'],
-        help='augmentation',
+        choices=["rgb", "depth"],
+        help="augmentation",
     )
     parser.add_argument(
-        '--lr',
-        type=float,
-        default=0.0001,
-        help='learning rate',
+        "--lr", type=float, default=0.0001, help="learning rate",
     )
     parser.add_argument(
-        '--max-epoch',
+        "--max-epoch", type=int, default=120, help="max epoch",
+    )
+    parser.add_argument(
+        "--call-evaluation-before-training",
+        action="store_true",
+        help="call evaluation before training",
+    )
+    parser.add_argument(
+        "--class-ids",
         type=int,
-        default=120,
-        help='max epoch',
-    )
-    parser.add_argument(
-        '--call-evaluation-before-training',
-        action='store_true',
-        help='call evaluation before training',
-    )
-    parser.add_argument(
-        '--class-ids',
-        type=int,
-        nargs='*',
+        nargs="*",
         default=morefusion.datasets.ycb_video.class_ids_asymmetric.tolist(),
-        help='class id',
+        help="class id",
     )
     parser.add_argument(
-        '--use-occupancy',
-        action='store_true',
-        help='use occupancy',
+        "--use-occupancy", action="store_true", help="use occupancy",
     )
 
     def argparse_type_loss(string):
         patterns = [
-            'add',
-            r'add\+occupancy',
-            'add_s',
-            r'add_s\+occupancy',
-            'add/add_s',
-            r'add/add_s\+occupancy',
-            r'add\+add_s',
-            r'add\+add_s\|linear',
-            r'add\+add_s\|step\|\d+'
-            'overlap',
-            r'overlap\+occupancy',
-            'iou',
-            r'iou\+occupancy',
+            "add",
+            r"add\+occupancy",
+            "add_s",
+            r"add_s\+occupancy",
+            "add/add_s",
+            r"add/add_s\+occupancy",
+            r"add\+add_s",
+            r"add\+add_s\|linear",
+            r"add\+add_s\|step\|\d+" "overlap",
+            r"overlap\+occupancy",
+            "iou",
+            r"iou\+occupancy",
         ]
         for pattern in patterns:
             if re.match(pattern, string):
@@ -198,25 +195,21 @@ def main():
         return string
 
     parser.add_argument(
-        '--loss',
-        default='add/add_s',
-        type=argparse_type_loss,
-        help='loss',
+        "--loss", default="add/add_s", type=argparse_type_loss, help="loss",
     )
     parser.add_argument(
-        '--loss-scale',
+        "--loss-scale",
         type=yaml.safe_load,
-        help='loss scale e.g., {occupancy: 1.0}',
+        help="loss scale e.g., {occupancy: 1.0}",
     )
     parser.add_argument(
-        '--num-syn',
+        "--num-syn",
         type=float,
         default=0.25,
-        help='number of synthetic examples used',
+        help="number of synthetic examples used",
     )
     parser.add_argument(
-        '--pretrained-model',
-        help='pretrained model',
+        "--pretrained-model", help="pretrained model",
     )
     args = parser.parse_args()
 
@@ -228,7 +221,7 @@ def main():
     if args.multi_node:
         import chainermn
 
-        comm = chainermn.create_communicator('hierarchical')
+        comm = chainermn.create_communicator("hierarchical")
         device = comm.intra_rank
         n_gpu = comm.size
     else:
@@ -241,11 +234,11 @@ def main():
         args.hostname = socket.gethostname()
         args.githash = morefusion.utils.githash(__file__)
 
-        termcolor.cprint('==> Started training', attrs={'bold': True})
+        termcolor.cprint("==> Started training", attrs={"bold": True})
 
     if args.out is None:
         if not args.multi_node or comm.rank == 0:
-            args.out = osp.join(here, 'logs', now.strftime('%Y%m%d_%H%M%S.%f'))
+            args.out = osp.join(here, "logs", now.strftime("%Y%m%d_%H%M%S.%f"))
         else:
             args.out = None
         if args.multi_node:
@@ -261,21 +254,25 @@ def main():
         chainer.cuda.cupy.random.seed(args.seed)
 
     # dataset initialization
-    return_occupancy_grids = \
-        args.use_occupancy or args.loss == 'add/add_s+complete'
+    return_occupancy_grids = (
+        args.use_occupancy or args.loss == "add/add_s+complete"
+    )
     data_train = None
     data_valid = None
     if not args.multi_node or comm.rank == 0:
-        if args.dataset == 'ycb_video':
+        if args.dataset == "ycb_video":
             data_train = contrib.datasets.YCBVideoDataset(
-                'train',
+                "train",
                 class_ids=args.class_ids,
                 # augmentation=args.augmentation,
                 # return_occupancy_grids=return_occupancy_grids,
                 num_syn=args.num_syn,
             )
-        elif args.dataset == 'my_synthetic':
-            root_dir = home / 'data/datasets/wkentaro/morefusion/ycb_video/synthetic_data/20190715_113906.827534'  # NOQA
+        elif args.dataset == "my_synthetic":
+            root_dir = (
+                home
+                / "data/datasets/wkentaro/morefusion/ycb_video/synthetic_data/20190715_113906.827534"
+            )  # NOQA
             data = contrib.datasets.MySyntheticDataset(
                 root_dir=root_dir,
                 class_ids=args.class_ids,
@@ -288,17 +285,17 @@ def main():
                 data, split_at=600 * 15
             )
         else:
-            raise ValueError(f'unsupported dataset: {args.dataset}')
+            raise ValueError(f"unsupported dataset: {args.dataset}")
 
         if data_valid is None:
             data_valid = contrib.datasets.YCBVideoDataset(
-                'val',
+                "val",
                 class_ids=args.class_ids,
                 # return_occupancy_grids=return_occupancy_grids,
             )
 
-        termcolor.cprint('==> Dataset size', attrs={'bold': True})
-        print(f'train={len(data_train)}, val={len(data_valid)}')
+        termcolor.cprint("==> Dataset size", attrs={"bold": True})
+        print(f"train={len(data_train)}, val={len(data_valid)}")
 
         data_train = chainer.datasets.TransformDataset(
             data_train, Transform(train=True)
@@ -312,8 +309,8 @@ def main():
     args.class_names = morefusion.datasets.ycb_video.class_names.tolist()
 
     loss = args.loss
-    if re.match(r'add\+add_s\|.*', loss):
-        loss = 'add+add_s'
+    if re.match(r"add\+add_s\|.*", loss):
+        loss = "add+add_s"
 
     # model initialization
     model = contrib.models.BaselineModel(
@@ -334,7 +331,7 @@ def main():
     optimizer.setup(model)
 
     if not args.multi_node or comm.rank == 0:
-        termcolor.cprint('==> Link update rules', attrs={'bold': True})
+        termcolor.cprint("==> Link update rules", attrs={"bold": True})
         for name, link in model.namedlinks():
             print(name, link.update_enabled)
 
@@ -347,9 +344,7 @@ def main():
     )
 
     updater = chainer.training.StandardUpdater(
-        iterator=iter_train,
-        optimizer=optimizer,
-        device=device,
+        iterator=iter_train, optimizer=optimizer, device=device,
     )
     if not args.multi_node or comm.rank == 0:
         writer = tensorboardX.SummaryWriter(log_dir=args.out)
@@ -361,31 +356,31 @@ def main():
     # -------------------------------------------------------------------------
 
     trainer = chainer.training.Trainer(
-        updater, (args.max_epoch, 'epoch'), out=args.out
+        updater, (args.max_epoch, "epoch"), out=args.out
     )
     trainer.extend(E.FailOnNonNumber())
 
-    @chainer.training.make_extension(trigger=(1, 'iteration'))
+    @chainer.training.make_extension(trigger=(1, "iteration"))
     def update_loss_scale(trainer):
         updater = trainer.updater
-        optimizer = updater.get_optimizer('main')
+        optimizer = updater.get_optimizer("main")
         target = optimizer.target
-        assert trainer.stop_trigger.unit == 'epoch'
+        assert trainer.stop_trigger.unit == "epoch"
         max_epoch = trainer.stop_trigger.period
 
-        if args.loss == 'add+add_s|linear':
+        if args.loss == "add+add_s|linear":
             loss_scale_add = 1 - updater.epoch_detail / max_epoch
-        elif re.match(r'add\+add_s\|step\|\d+', args.loss):
-            match = re.match(r'add\+add_s\|step\|(\d+)', args.loss)
+        elif re.match(r"add\+add_s\|step\|\d+", args.loss):
+            match = re.match(r"add\+add_s\|step\|(\d+)", args.loss)
             epoch_anchor = int(match.groups()[0])
             loss_scale_add = 1
             if updater.epoch_detail > epoch_anchor:
                 loss_scale_add = 0
         else:
             return
-        target._loss_scale['add+add_s'] = loss_scale_add
+        target._loss_scale["add+add_s"] = loss_scale_add
 
-        report = {f'loss_scale/{k}': v for k, v in target._loss_scale.items()}
+        report = {f"loss_scale/{k}": v for k, v in target._loss_scale.items()}
         chainer.report(report)
 
     trainer.extend(update_loss_scale)
@@ -393,18 +388,18 @@ def main():
     if not args.multi_node or comm.rank == 0:
         # print arguments
         msg = pprint.pformat(args.__dict__)
-        msg = textwrap.indent(msg, prefix=' ' * 2)
-        termcolor.cprint('==> Arguments', attrs={'bold': True})
-        print(f'\n{msg}\n')
+        msg = textwrap.indent(msg, prefix=" " * 2)
+        termcolor.cprint("==> Arguments", attrs={"bold": True})
+        print(f"\n{msg}\n")
 
         trainer.extend(
             morefusion.training.extensions.ArgsReport(args),
             call_before_training=True,
         )
 
-        log_interval = 1, 'iteration'
-        param_log_interval = 100, 'iteration'
-        eval_interval = 0.3, 'epoch'
+        log_interval = 1, "iteration"
+        param_log_interval = 100, "iteration"
+        eval_interval = 0.3, "epoch"
 
         # evaluate
         evaluator = morefusion.training.extensions.PoseEstimationEvaluator(
@@ -422,32 +417,28 @@ def main():
 
         # snapshot
         trigger_best_add = chainer.training.triggers.MaxValueTrigger(
-            key='validation/main/auc/add',
-            trigger=eval_interval,
+            key="validation/main/auc/add", trigger=eval_interval,
         )
         trigger_best_add_s = chainer.training.triggers.MaxValueTrigger(
-            key='validation/main/auc/add_s',
+            key="validation/main/auc/add_s", trigger=eval_interval,
+        )
+        trainer.extend(
+            E.snapshot(filename="snapshot_trainer_latest.npz"),
             trigger=eval_interval,
         )
         trainer.extend(
-            E.snapshot(filename='snapshot_trainer_latest.npz'),
+            E.snapshot_object(model, filename="snapshot_model_latest.npz"),
             trigger=eval_interval,
         )
         trainer.extend(
             E.snapshot_object(
-                model, filename='snapshot_model_latest.npz'
-            ),
-            trigger=eval_interval,
-        )
-        trainer.extend(
-            E.snapshot_object(
-                model, filename='snapshot_model_best_auc_add.npz'
+                model, filename="snapshot_model_best_auc_add.npz"
             ),
             trigger=trigger_best_add,
         )
         trainer.extend(
             E.snapshot_object(
-                model, filename='snapshot_model_best_auc_add_s.npz'
+                model, filename="snapshot_model_best_auc_add_s.npz"
             ),
             trigger=trigger_best_add_s,
         )
@@ -455,8 +446,7 @@ def main():
         # log
         trainer.extend(
             morefusion.training.extensions.LogTensorboardReport(
-                writer=writer,
-                trigger=log_interval,
+                writer=writer, trigger=log_interval,
             ),
             call_before_training=True,
         )
@@ -470,28 +460,26 @@ def main():
         trainer.extend(
             E.PrintReport(
                 [
-                    'epoch',
-                    'iteration',
-                    'elapsed_time',
-                    'main/loss',
-                    'main/add',
-                    'main/add_s',
-                    'validation/main/auc/add',
-                    'validation/main/auc/add_s',
+                    "epoch",
+                    "iteration",
+                    "elapsed_time",
+                    "main/loss",
+                    "main/add",
+                    "main/add_s",
+                    "validation/main/auc/add",
+                    "validation/main/auc/add_s",
                 ],
-                log_report='LogTensorboardReport',
+                log_report="LogTensorboardReport",
             ),
             trigger=log_interval,
             call_before_training=True,
         )
-        trainer.extend(
-            E.ProgressBar(update_interval=1)
-        )
+        trainer.extend(E.ProgressBar(update_interval=1))
 
     # -------------------------------------------------------------------------
 
     trainer.run()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

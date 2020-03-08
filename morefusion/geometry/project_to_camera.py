@@ -11,10 +11,12 @@ def project_to_camera(
     cy: float,
     image_shape: typing.Optional[tuple] = None,
 ) -> typing.Tuple[np.ndarray, np.ndarray]:
-    assert points.ndim == 2, 'points.ndim must be 2'
+    assert points.ndim == 2, "points.ndim must be 2"
     if image_shape is not None:
-        assert len(image_shape) in (2, 3), \
-            'image_shape must be (H, W) or (H, W, C)'
+        assert len(image_shape) in (
+            2,
+            3,
+        ), "image_shape must be (H, W) or (H, W, C)"
 
     x = points[:, 0]
     y = points[:, 1]

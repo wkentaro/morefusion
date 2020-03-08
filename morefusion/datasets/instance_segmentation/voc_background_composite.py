@@ -4,7 +4,6 @@ import numpy as np
 
 
 class VOCBackgroundComposite:
-
     def __init__(self, bg_instance_ids):
         self._random_state = np.random.mtrand._rand
         self._voc_dataset = chainercv.datasets.VOCBboxDataset()
@@ -26,7 +25,7 @@ class VOCBackgroundComposite:
         scale = max(H / H_bg, W / W_bg)
         H = int(round(scale * H_bg))
         W = int(round(scale * W_bg))
-        bg = imgviz.resize(bg, height=H, width=W, backend='opencv')
+        bg = imgviz.resize(bg, height=H, width=W, backend="opencv")
 
         y1 = self._random_state.randint(0, H - H_fg + 1)
         y2 = y1 + H_fg

@@ -4,13 +4,12 @@ from morefusion.datasets.ycb_video import YCBVideoModels
 
 
 class TestYCBVideoModelsDataset(unittest.TestCase):
-
     def setUp(self):
         self.dataset = YCBVideoModels()
 
     def test_init(self):
-        assert hasattr(self.dataset, 'download')
-        assert hasattr(self.dataset, 'get_bbox_diagonal')
+        assert hasattr(self.dataset, "download")
+        assert hasattr(self.dataset, "get_bbox_diagonal")
 
     def test_get_bbox_diagonal(self):
         bbox_diagonal = self.dataset.get_bbox_diagonal(class_id=2)

@@ -31,18 +31,18 @@ class Model(chainer.Chain):
         self._with_occupancy = with_occupancy
 
         if loss is None:
-            loss = 'add/add_s'
+            loss = "add/add_s"
         assert loss in [
-            'add',
-            'add/add_s',
-            'add+occupancy',
-            'add/add_s+occupancy',
+            "add",
+            "add/add_s",
+            "add+occupancy",
+            "add/add_s+occupancy",
         ]
         self._loss = loss
 
         if loss_scale is None:
             loss_scale = {
-                'occupancy': 1.0,
+                "occupancy": 1.0,
             }
         self._loss_scale = loss_scale
 
@@ -51,10 +51,12 @@ class Model(chainer.Chain):
             if pretrained_resnet18:
                 self.resnet_extractor = morefusion.models.ResNet18Extractor()
             else:
-                self.resnet_extractor = \
+                self.resnet_extractor = (
                     morefusion.models.dense_fusion.ResNet18()
-            self.pspnet_extractor = \
+                )
+            self.pspnet_extractor = (
                 morefusion.models.dense_fusion.PSPNetExtractor()
+            )
 
             # conv1
             self.conv1_rgb = L.Convolution1D(32, 64, 1)
@@ -105,7 +107,7 @@ class Model(chainer.Chain):
         h_pcd = F.relu(self.conv2_pcd(h_pcd))
         feat2 = F.concat((h_rgb, h_pcd), axis=1)
         voxelized = self._voxelize(
-            values=feat2.transpose(0, 2, 1),   # BCP -> BPC
+            values=feat2.transpose(0, 2, 1),  # BCP -> BPC
             points=points.transpose(0, 2, 1),  # BCP -> BPC
         )
 
@@ -139,9 +141,7 @@ class Model(chainer.Chain):
         return feat
 
     def _voxelize(
-        self,
-        values,
-        points,
+        self, values, points,
     ):
         B, P, _ = values.shape
         assert P == self._n_point
@@ -202,7 +202,7 @@ class Model(chainer.Chain):
                 center_i = morefusion.extra.cupy.median(
                     pcd[i, :, iy, ix], axis=0
                 )
-                origin[i] = center_i - pitch[i] * (self._voxel_dim / 2. - 0.5)
+                origin[i] = center_i - pitch[i] * (self._voxel_dim / 2.0 - 0.5)
 
             n_point = int(mask[i].sum())
             if chainer.config.train:
@@ -210,7 +210,7 @@ class Model(chainer.Chain):
             else:
                 random_state = np.random.RandomState(1234)
             if n_point >= self._n_point:
-                keep = random_state.permutation(n_point)[:self._n_point]
+                keep = random_state.permutation(n_point)[: self._n_point]
             else:
                 keep = np.r_[
                     np.arange(n_point),
@@ -219,8 +219,8 @@ class Model(chainer.Chain):
             assert keep.shape == (self._n_point,)
             iy, ix = iy[keep], ix[keep]
 
-            values_i = h_rgb[i, :, iy, ix]       # CHW -> PC, P = self._n_point
-            points_i = pcd[i, :, iy, ix]         # CHW -> PC
+            values_i = h_rgb[i, :, iy, ix]  # CHW -> PC, P = self._n_point
+            points_i = pcd[i, :, iy, ix]  # CHW -> PC
 
             values_i = values_i.transpose(1, 0)  # PC -> CP
             points_i = points_i.transpose(1, 0)  # PC -> CP
@@ -269,7 +269,7 @@ class Model(chainer.Chain):
         conf = cls_conf[xp.arange(B), fg_class_id]
 
         rot = F.normalize(rot, axis=1)
-        rot = rot.transpose(0, 2, 1)    # B4P -> BP4
+        rot = rot.transpose(0, 2, 1)  # B4P -> BP4
         trans = trans.transpose(0, 2, 1)  # B3P -> BP3
 
         return rot, trans, conf
@@ -355,23 +355,27 @@ class Model(chainer.Chain):
                 transform2=[T_cad2cam_pred[i]],
             )
             add, add_s = add[0], add_s[0]
-            is_symmetric = class_id_i in \
-                morefusion.datasets.ycb_video.class_ids_symmetric
+            is_symmetric = (
+                class_id_i in morefusion.datasets.ycb_video.class_ids_symmetric
+            )
             add_or_add_s = add_s if is_symmetric else add
             if chainer.config.train:
-                summary.add({
-                    f'add': add,
-                    f'add_s': add_s,
-                    f'add_or_add_s': add_or_add_s,
-                })
+                summary.add(
+                    {
+                        f"add": add,
+                        f"add_s": add_s,
+                        f"add_or_add_s": add_or_add_s,
+                    }
+                )
             else:
                 instance_id_i = uuid.uuid1()
-                summary.add({
-                    f'add/{class_id_i:04d}/{instance_id_i}': add,
-                    f'add_s/{class_id_i:04d}/{instance_id_i}': add_s,
-                    f'add_or_add_s/{class_id_i:04d}/{instance_id_i}':
-                        add_or_add_s,
-                })
+                summary.add(
+                    {
+                        f"add/{class_id_i:04d}/{instance_id_i}": add,
+                        f"add_s/{class_id_i:04d}/{instance_id_i}": add_s,
+                        f"add_or_add_s/{class_id_i:04d}/{instance_id_i}": add_or_add_s,  # NOQA
+                    }
+                )
         chainer.report(summary.compute_mean(), self)
 
     def loss(
@@ -417,12 +421,13 @@ class Model(chainer.Chain):
             cad_pcd = cad_pcd[np.random.permutation(cad_pcd.shape[0])[:500]]
             cad_pcd = xp.asarray(cad_pcd, dtype=np.float32)
 
-            is_symmetric = class_id_i in \
-                morefusion.datasets.ycb_video.class_ids_symmetric
-            if self._loss in ['add', 'add+occupancy']:
+            is_symmetric = (
+                class_id_i in morefusion.datasets.ycb_video.class_ids_symmetric
+            )
+            if self._loss in ["add", "add+occupancy"]:
                 is_symmetric = False
             else:
-                assert self._loss in ['add/add_s', 'add/add_s+occupancy']
+                assert self._loss in ["add/add_s", "add/add_s+occupancy"]
             add = morefusion.functions.average_distance(
                 cad_pcd,
                 T_cad2cam_true,
@@ -433,11 +438,11 @@ class Model(chainer.Chain):
 
             keep = confidence_pred[i].array > 0
             loss_i = F.mean(
-                add[keep] * confidence_pred[i][keep] -
-                self._lambda_confidence * F.log(confidence_pred[i][keep])
+                add[keep] * confidence_pred[i][keep]
+                - self._lambda_confidence * F.log(confidence_pred[i][keep])
             )
 
-            if self._loss in ['add+occupancy', 'add/add_s+occupancy']:
+            if self._loss in ["add+occupancy", "add/add_s+occupancy"]:
                 solid_pcd = self._models.get_solid_voxel_grid(
                     class_id=class_id_i
                 )
@@ -448,17 +453,17 @@ class Model(chainer.Chain):
                     dims=(self._voxel_dim,) * 3,
                     threshold=2.0,
                 )
-                grid_target_pred = \
-                    morefusion.functions.pseudo_occupancy_voxelization(
-                        points=morefusion.functions.transform_points(
-                            solid_pcd, T_cad2cam_pred[i]
-                        ), **kwargs
-                    )
+                grid_target_pred = morefusion.functions.pseudo_occupancy_voxelization(  # NOQA
+                    points=morefusion.functions.transform_points(
+                        solid_pcd, T_cad2cam_pred[i]
+                    ),
+                    **kwargs,
+                )
                 # give reward intersection w/ target voxels
                 intersection = F.sum(grid_target_pred * grid_target[i])
                 denominator = F.sum(grid_target[i]) + 1e-16
                 loss_i -= (
-                    self._loss_scale['occupancy'] * intersection / denominator
+                    self._loss_scale["occupancy"] * intersection / denominator
                 )
                 # penalize intersection w/ nontarget voxels
                 intersection = F.sum(
@@ -466,13 +471,13 @@ class Model(chainer.Chain):
                 )
                 denominator = F.sum(grid_target_pred) + 1e-16
                 loss_i += (
-                    self._loss_scale['occupancy'] * intersection / denominator
+                    self._loss_scale["occupancy"] * intersection / denominator
                 )
 
             loss += loss_i
         loss /= B
 
-        values = {'loss': loss}
+        values = {"loss": loss}
         chainer.report(values, observer=self)
 
         return loss

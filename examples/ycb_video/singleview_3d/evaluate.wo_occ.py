@@ -24,36 +24,37 @@ def main():
     )
     args = parser.parse_args()
 
-    args.log_dir = path.Path('./data.gdrive/logs.20191008.all_data/20191019_081729.757749023')  # NOQA
+    args.log_dir = path.Path(
+        "./data.gdrive/logs.20191008.all_data/20191019_081729.757749023"
+    )  # NOQA
 
-    with open(args.log_dir / 'args') as f:
+    with open(args.log_dir / "args") as f:
         args_dict = json.load(f)
 
     model = singleview_3d.models.Model(
-        n_fg_class=len(args_dict['class_names'][1:]),
-        pretrained_resnet18=args_dict['pretrained_resnet18'],
-        with_occupancy=args_dict['with_occupancy'],
+        n_fg_class=len(args_dict["class_names"][1:]),
+        pretrained_resnet18=args_dict["pretrained_resnet18"],
+        with_occupancy=args_dict["with_occupancy"],
     )
-    assert args_dict['pretrained_resnet18'] is True
-    assert args_dict['with_occupancy'] is False
+    assert args_dict["pretrained_resnet18"] is True
+    assert args_dict["with_occupancy"] is False
     chainer.serializers.load_npz(
-        args.log_dir / 'snapshot_model_best_add.npz', model
+        args.log_dir / "snapshot_model_best_add.npz", model
     )
     model.to_gpu(0)
 
     dataset = morefusion.datasets.MySyntheticYCB20190916RGBDPoseEstimationDataset(  # NOQA
-        split='val',
-        class_ids=args_dict['class_ids'],
+        split="val", class_ids=args_dict["class_ids"],
     )
 
     def transform(examples):
         for example in examples:
-            grid_target = example.pop('grid_target') > 0.5
-            grid_nontarget = example.pop('grid_nontarget') > 0.5
-            grid_empty = example.pop('grid_empty') > 0.5
+            grid_target = example.pop("grid_target") > 0.5
+            grid_nontarget = example.pop("grid_nontarget") > 0.5
+            grid_empty = example.pop("grid_empty") > 0.5
             grid_nontarget_empty = grid_nontarget | grid_empty
-            example['grid_target'] = grid_target
-            example['grid_nontarget_empty'] = grid_nontarget_empty
+            example["grid_target"] = grid_target
+            example["grid_nontarget_empty"] = grid_nontarget_empty
         return examples
 
     dataset = chainer.datasets.TransformDataset(dataset, transform)
@@ -66,14 +67,14 @@ def main():
         examples = dataset.get_example(index)
 
         batch = chainer.dataset.concat_examples(examples, device=0)
-        with chainer.no_backprop_mode(), chainer.using_config('train', False):
+        with chainer.no_backprop_mode(), chainer.using_config("train", False):
             quaternion, translation, confidence = model.predict(
-                class_id=batch['class_id'],
-                rgb=batch['rgb'],
-                pcd=batch['pcd'],
-                pitch=batch['pitch'],
-                origin=batch['origin'],
-                grid_nontarget_empty=batch['grid_nontarget_empty'],
+                class_id=batch["class_id"],
+                rgb=batch["rgb"],
+                pcd=batch["pcd"],
+                pitch=batch["pitch"],
+                origin=batch["origin"],
+                grid_nontarget_empty=batch["grid_nontarget_empty"],
             )
         indices = model.xp.argmax(confidence.array, axis=1)
         quaternion = quaternion[model.xp.arange(len(examples)), indices]
@@ -85,12 +86,12 @@ def main():
         ).array
 
         transform_true = morefusion.functions.transformation_matrix(
-            batch['quaternion_true'], batch['translation_true']
+            batch["quaternion_true"], batch["translation_true"]
         ).array
         transform_true = chainer.cuda.to_cpu(transform_true)
 
         # visualization
-        '''
+        """
         import trimesh
         frame = dataset._dataset.get_frame(index)
         scene = trimesh.Scene()
@@ -105,28 +106,33 @@ def main():
         scene.camera_transform = morefusion.extra.trimesh.to_opengl_transform()
         scenes = {'pose': scene, 'pose_true': scene_true, 'rgb': frame['rgb']}
         morefusion.extra.trimesh.display_scenes(scenes, tile=(1, 3))
-        '''
+        """
 
         # add result w/ occupancy
         for i in range(len(examples)):
-            points = models.get_pcd(class_id=examples[i]['class_id'])
+            points = models.get_pcd(class_id=examples[i]["class_id"])
             add, add_s = morefusion.metrics.average_distance(
-                [points], transform_true[i:i + 1], transform[i:i + 1]
+                [points], transform_true[i : i + 1], transform[i : i + 1]
             )
             add, add_s = add[0], add_s[0]
-            if examples[i]['class_id'] in morefusion.datasets.ycb_video.class_ids_symmetric:  # NOQA
+            if (
+                examples[i]["class_id"]
+                in morefusion.datasets.ycb_video.class_ids_symmetric
+            ):  # NOQA
                 add_or_add_s = add_s
             else:
                 add_or_add_s = add
-            data.append({
-                'frame_index': index,
-                'batch_index': i,
-                'class_id': examples[i]['class_id'],
-                'add_or_add_s': add_or_add_s,
-                'add_s': add_s,
-                'visibility': examples[i]['visibility'],
-                'method': 'morefusion-occ',
-            })
+            data.append(
+                {
+                    "frame_index": index,
+                    "batch_index": i,
+                    "class_id": examples[i]["class_id"],
+                    "add_or_add_s": add_or_add_s,
+                    "add_s": add_s,
+                    "visibility": examples[i]["visibility"],
+                    "method": "morefusion-occ",
+                }
+            )
 
         # transform_icp = iterative_closest_point(examples, batch, transform)
         #
@@ -198,16 +204,16 @@ def main():
 
         if (index + 1) % 15 == 0:
             df = pandas.DataFrame(data)
-            df.to_csv(f'data.wo_occ.{index:08d}.csv')
+            df.to_csv(f"data.wo_occ.{index:08d}.csv")
 
 
 def iterative_closest_point(examples, batch, transform, n_iteration=100):
     transform_icp = []
     for i in range(len(examples)):
-        nonnan = ~np.isnan(examples[i]['pcd']).any(axis=2)
+        nonnan = ~np.isnan(examples[i]["pcd"]).any(axis=2)
         icp = morefusion.contrib.ICPRegistration(
-            examples[i]['pcd'][nonnan],
-            models.get_pcd(class_id=examples[i]['class_id']),
+            examples[i]["pcd"][nonnan],
+            models.get_pcd(class_id=examples[i]["class_id"]),
             transform[i],
         )
         transform_i = icp.register(iteration=n_iteration)
@@ -217,9 +223,7 @@ def iterative_closest_point(examples, batch, transform, n_iteration=100):
 
 def iterative_collision_check(examples, batch, transform):
     # refine with occupancy
-    link = morefusion.contrib.CollisionBasedPoseRefinementLink(
-        transform,
-    )
+    link = morefusion.contrib.CollisionBasedPoseRefinementLink(transform,)
     link.to_gpu()
     optimizer = chainer.optimizers.Adam(alpha=0.01)
     optimizer.setup(link)
@@ -228,7 +232,7 @@ def iterative_collision_check(examples, batch, transform):
     points = []
     sdfs = []
     for i in range(len(examples)):
-        pcd, sdf = models.get_sdf(examples[i]['class_id'])
+        pcd, sdf = models.get_sdf(examples[i]["class_id"])
         keep = ~np.isnan(sdf)
         pcd, sdf = pcd[keep], sdf[keep]
         points.append(cupy.asarray(pcd, dtype=np.float32))
@@ -238,10 +242,10 @@ def iterative_collision_check(examples, batch, transform):
         loss = link(
             points,
             sdfs,
-            batch['pitch'].astype(np.float32),
-            batch['origin'].astype(np.float32),
-            batch['grid_target'].astype(np.float32),
-            batch['grid_nontarget_empty'].astype(np.float32),
+            batch["pitch"].astype(np.float32),
+            batch["origin"].astype(np.float32),
+            batch["grid_target"].astype(np.float32),
+            batch["grid_nontarget_empty"].astype(np.float32),
         )
         loss.backward()
         optimizer.update()
@@ -254,5 +258,5 @@ def iterative_collision_check(examples, batch, transform):
     return transform
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -12,15 +12,14 @@ from dataset import YCBVideoInstanceSegmentationDataset
 
 
 class Images:
-
     def __init__(self, model_file):
         self.dataset = YCBVideoInstanceSegmentationDataset(
-            split='keyframe', sampling=10)
+            split="keyframe", sampling=10
+        )
         self.class_names = morefusion.datasets.ycb_video.class_names
 
         self.model = MaskRCNNFPNResNet50(
-            n_fg_class=len(self.class_names[1:]),
-            pretrained_model=model_file,
+            n_fg_class=len(self.class_names[1:]), pretrained_model=model_file,
         )
         self.model.to_gpu()
 
@@ -30,7 +29,7 @@ class Images:
     def __getitem__(self, i):
         image_id = self.dataset._ids[i]
 
-        rgb = self.dataset[i]['rgb']
+        rgb = self.dataset[i]["rgb"]
 
         with morefusion.utils.timer():
             masks, labels, confs = self.model.predict(
@@ -48,7 +47,7 @@ class Images:
         class_ids = labels + 1
 
         captions = [
-            f'{self.class_names[cid]}: {conf:.1%}'
+            f"{self.class_names[cid]}: {conf:.1%}"
             for cid, conf in zip(class_ids, confs)
         ]
         for caption in captions:
@@ -62,7 +61,7 @@ class Images:
         )
         viz = imgviz.tile([rgb, viz], (1, 2), border=(0, 0, 0))
         viz = imgviz.draw.text_in_rectangle(
-            viz, loc='lt', text=image_id, size=25, background=(0, 255, 0)
+            viz, loc="lt", text=image_id, size=25, background=(0, 255, 0)
         )
         return viz
 
@@ -71,12 +70,12 @@ def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument('model_file', help='model file')
+    parser.add_argument("model_file", help="model file")
     args = parser.parse_args()
 
     imgviz.io.pyglet_imshow(Images(args.model_file), interval=1 / 10)
     imgviz.io.pyglet_run()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

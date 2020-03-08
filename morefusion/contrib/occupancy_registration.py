@@ -8,29 +8,18 @@ import morefusion
 
 
 class OccupancyRegistrationLink(chainer.Link):
-
     def __init__(self, quaternion_init=None, translation_init=None):
         super().__init__()
         with self.init_scope():
             if quaternion_init is None:
                 quaternion_init = np.array([1, 0, 0, 0], dtype=np.float32)
-            self.quaternion = chainer.Parameter(
-                initializer=quaternion_init
-            )
+            self.quaternion = chainer.Parameter(initializer=quaternion_init)
             if translation_init is None:
                 translation_init = np.zeros((3,), dtype=np.float32)
-            self.translation = chainer.Parameter(
-                initializer=translation_init
-            )
+            self.translation = chainer.Parameter(initializer=translation_init)
 
     def forward(
-        self,
-        points_source,
-        grid_target,
-        *,
-        pitch,
-        origin,
-        threshold,
+        self, points_source, grid_target, *, pitch, origin, threshold,
     ):
         transform = morefusion.functions.quaternion_matrix(
             self.quaternion[None]
@@ -67,12 +56,11 @@ class OccupancyRegistrationLink(chainer.Link):
         denominator = F.sum(grid_source)
         penalty = intersection / denominator
 
-        loss = - reward + penalty
+        loss = -reward + penalty
         return loss
 
 
 class OccupancyRegistration:
-
     def __init__(
         self,
         points_source,

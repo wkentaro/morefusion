@@ -7,7 +7,7 @@ from moveit_commander import MoveGroupCommander
 from moveit_commander import RobotCommander
 import rospy
 
-commander = MoveGroupCommander('panda_arm')
+commander = MoveGroupCommander("panda_arm")
 robot = RobotCommander()
 
 
@@ -23,15 +23,15 @@ def handle_move_to_joint_position(req):
 
 def main():
 
-    rospy.init_node('move_to_joint_position_server', anonymous=True)
-    rospy.wait_for_message('move_group/status', GoalStatusArray)
+    rospy.init_node("move_to_joint_position_server", anonymous=True)
+    rospy.wait_for_message("move_group/status", GoalStatusArray)
     rospy.Service(
-        'move_to_joint_position',
+        "move_to_joint_position",
         MoveToJointPosition,
         handle_move_to_joint_position,
     )
     rospy.spin()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

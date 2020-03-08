@@ -52,8 +52,8 @@ def nx_graph_to_image(graph, dpi=300):
     with io.BytesIO() as f:
         agraph = networkx.nx_agraph.to_agraph(graph)
         agraph.graph_attr.update(dpi=300)
-        agraph.layout(prog='dot')
-        agraph.draw(f, format='png')
+        agraph.layout(prog="dot")
+        agraph.draw(f, format="png")
         img = np.asarray(PIL.Image.open(f))[:, :, :3]
         return img
 
@@ -77,28 +77,26 @@ class SelectPickingOrder(topic_tools.LazyTransport):
         self._poses_msg = None
 
         super().__init__()
-        self._target = rospy.get_param('~target')
+        self._target = rospy.get_param("~target")
         self._pub_poses = self.advertise(
-            '~output/poses', ObjectPoseArray, queue_size=1
+            "~output/poses", ObjectPoseArray, queue_size=1
         )
         self._pub_poses_viz = self.advertise(
-            '~output/poses_viz', PoseArray, queue_size=1
+            "~output/poses_viz", PoseArray, queue_size=1
         )
-        self._pub_graph = self.advertise(
-            '~output/graph', Image, queue_size=1
-        )
+        self._pub_graph = self.advertise("~output/graph", Image, queue_size=1)
         self._pub_rend = self.advertise(
-            '~output/rgb_rend', Image, queue_size=1
+            "~output/rgb_rend", Image, queue_size=1
         )
         self._tf_listener = tf.TransformListener(cache_time=rospy.Duration(30))
         self._post_init()
 
     def subscribe(self):
         self._sub_cam = rospy.Subscriber(
-            '~input/camera_info', CameraInfo, self._callback, queue_size=1
+            "~input/camera_info", CameraInfo, self._callback, queue_size=1
         )
         self._sub_poses = rospy.Subscriber(
-            '~input/poses', ObjectPoseArray, self._callback_poses, queue_size=1
+            "~input/poses", ObjectPoseArray, self._callback_poses, queue_size=1
         )
         self._subscribers = [self._sub_cam, self._sub_poses]
 
@@ -119,9 +117,7 @@ class SelectPickingOrder(topic_tools.LazyTransport):
             return
 
         translation, quaternion = self._tf_listener.lookupTransform(
-            target_frame=target_frame,
-            source_frame=source_frame,
-            time=time,
+            target_frame=target_frame, source_frame=source_frame, time=time,
         )
         translation = np.asarray(translation)
         quaternion = np.asarray(quaternion)[[3, 0, 1, 2]]
@@ -138,7 +134,7 @@ class SelectPickingOrder(topic_tools.LazyTransport):
             return rgb, depth, ins
 
         T_pose2cam = None
-        if poses_msg.header.frame_id != 'map':
+        if poses_msg.header.frame_id != "map":
             raise ValueError('poses_msg.header.frame_id is not "map"')
         T_pose2cam = self._get_transform(
             poses_msg.header.frame_id,
@@ -154,9 +150,7 @@ class SelectPickingOrder(topic_tools.LazyTransport):
                 if pose.instance_id != instance_id:
                     continue
 
-            quaternion, translation = morefusion.ros.from_ros_pose(
-                pose.pose
-            )
+            quaternion, translation = morefusion.ros.from_ros_pose(pose.pose)
             if T_pose2cam is not None:
                 T_cad2pose = morefusion.functions.transformation_matrix(
                     quaternion, translation
@@ -200,7 +194,7 @@ class SelectPickingOrder(topic_tools.LazyTransport):
 
     def _callback(self, cam_msg):
         if self._poses_msg is None:
-            rospy.logwarn_throttle(10, 'self._poses_msg is not set, skipping')
+            rospy.logwarn_throttle(10, "self._poses_msg is not set, skipping")
             return
         poses_msg = copy.deepcopy(self._poses_msg)
 
@@ -212,14 +206,14 @@ class SelectPickingOrder(topic_tools.LazyTransport):
             ins_id_to_pose[pose.instance_id] = pose
             class_ids.append(pose.class_id)
         if self._target not in class_ids:
-            rospy.logwarn_throttle(10, 'target object is not yet found')
+            rospy.logwarn_throttle(10, "target object is not yet found")
             return
         del class_ids
 
         rgb_rend, _, ins_rend = self._render_object_pose_array(
             cam_msg, poses_msg
         )
-        rgb_rend_msg = bridge.cv2_to_imgmsg(rgb_rend, 'rgb8')
+        rgb_rend_msg = bridge.cv2_to_imgmsg(rgb_rend, "rgb8")
         rgb_rend_msg.header = cam_msg.header
         self._pub_rend.publish(rgb_rend_msg)
         del rgb_rend
@@ -261,7 +255,7 @@ class SelectPickingOrder(topic_tools.LazyTransport):
             id_i = (ins_id_i, cls_id_i, class_name_i)
             if cls_id_i == self._target:
                 target_node_id = id_i
-                graph.add_node(id_i, style='filled', fillcolor='red')
+                graph.add_node(id_i, style="filled", fillcolor="red")
             else:
                 graph.add_node(id_i)
 
@@ -272,7 +266,9 @@ class SelectPickingOrder(topic_tools.LazyTransport):
             for ins_id_j, count in zip(occluded_by, counts):
                 ratio = count / mask_whole.sum()
                 cls_id_j = ins_id_to_pose[ins_id_j].class_id
-                rospy.loginfo(f'{cls_id_i} is occluded by {cls_id_j} with occlusion ratio: {ratio}')  # NOQA
+                rospy.loginfo(
+                    f"{cls_id_i} is occluded by {cls_id_j} with occlusion ratio: {ratio}"  # NOQA
+                )
 
                 if ratio < 0.1:
                     continue
@@ -295,15 +291,15 @@ class SelectPickingOrder(topic_tools.LazyTransport):
         self._pub_poses_viz.publish(poses_viz_msg)
 
         img = nx_graph_to_image(graph)
-        img_msg = bridge.cv2_to_imgmsg(img, 'rgb8')
+        img_msg = bridge.cv2_to_imgmsg(img, "rgb8")
         img_msg.header = cam_msg.header
         self._pub_graph.publish(img_msg)
 
 
 def get_grasp_pose(rgb, pcd, mask):
-    y1, x1, y2, x2 = imgviz.instances.mask_to_bbox(
-        [mask]
-    )[0].round().astype(int)
+    y1, x1, y2, x2 = (
+        imgviz.instances.mask_to_bbox([mask])[0].round().astype(int)
+    )
 
     lbl = np.full(rgb.shape[:2], -1, dtype=np.int32)
     lbl[y1:y2, x1:x2] = skimage.segmentation.slic(
@@ -338,14 +334,14 @@ def get_grasp_pose(rgb, pcd, mask):
 def quaternion_from_two_vectors(v1, v2):
     v3 = np.cross(v1, v2)
     x, y, z = v3
-    w = np.sqrt(
-        np.linalg.norm(v1) ** 2 + np.linalg.norm(v2) ** 2
-    ) + np.dot(v1, v2)
+    w = np.sqrt(np.linalg.norm(v1) ** 2 + np.linalg.norm(v2) ** 2) + np.dot(
+        v1, v2
+    )
     quaternion = np.array([w, x, y, z], dtype=np.float64)
     return quaternion / np.linalg.norm(quaternion)
 
 
-if __name__ == '__main__':
-    rospy.init_node('select_picking_order')
+if __name__ == "__main__":
+    rospy.init_node("select_picking_order")
     SelectPickingOrder()
     rospy.spin()

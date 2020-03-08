@@ -24,13 +24,10 @@ def main():
 
     for symmetric in [False, True]:
         add = morefusion.functions.loss.average_distance(
-            points,
-            transform_true,
-            transform_pred[None],
-            symmetric=symmetric,
+            points, transform_true, transform_pred[None], symmetric=symmetric,
         )
-        print(f'symmetric={symmetric}, add={float(add.array[0])}')
+        print(f"symmetric={symmetric}, add={float(add.array[0])}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

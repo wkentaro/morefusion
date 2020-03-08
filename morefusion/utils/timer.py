@@ -12,8 +12,8 @@ def find_caller(frame: types.FrameType):
 
     # Now extend the function name with class name, if available.
     try:
-        class_name = frame.f_locals['self'].__class__.__name__
-        func_name = '%s.%s' % (class_name, func_name)
+        class_name = frame.f_locals["self"].__class__.__name__
+        func_name = "%s.%s" % (class_name, func_name)
     except KeyError:  # if the function is unbound, there is no self.
         pass
 
@@ -31,10 +31,10 @@ def timer(name: typing.Optional[str] = None) -> typing.Iterator:
     else:
         caller = find_caller(frame.f_back.f_back)
 
-    msg = '[INFO]'
+    msg = "[INFO]"
     if caller:
-        msg += f' [{caller}]'
+        msg += f" [{caller}]"
     if name:
-        msg += f' [{name}]'
-    msg += f' elapsed time: {time.time() - t0} [s]'
+        msg += f" [{name}]"
+    msg += f" elapsed time: {time.time() - t0} [s]"
     print(msg)

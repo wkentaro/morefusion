@@ -4,13 +4,8 @@ import trimesh.transformations as ttf
 
 
 class VoxelMapping(object):
-
     def __init__(
-        self,
-        origin=None,
-        pitch=None,
-        voxel_dim=None,
-        nchannel=None,
+        self, origin=None, pitch=None, voxel_dim=None, nchannel=None,
     ):
         self.origin = origin
         self.voxel_dim = voxel_dim
@@ -52,8 +47,7 @@ class VoxelMapping(object):
         )
         geom = geom.as_boxes()
         I, J, K = zip(*np.argwhere(self.matrix))
-        geom.visual.face_colors = \
-            self.values[I, J, K].repeat(12, axis=0)
+        geom.visual.face_colors = self.values[I, J, K].repeat(12, axis=0)
         return geom
 
     def as_bbox(self, edge=True, face_color=None, origin_color=(1.0, 0, 0)):

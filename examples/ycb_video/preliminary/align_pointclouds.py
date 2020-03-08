@@ -67,6 +67,7 @@ class MultiInstanceICPRegistration:
         self._pcd_depth = pcd_depth
 
         from icp import ICPRegistration
+
         if 1:
             registration = ICPRegistration(
                 pcd_depth, pcd_cad, self._Ts_cad2cam_pred[instance_id]
@@ -75,7 +76,7 @@ class MultiInstanceICPRegistration:
             registration = morefusion.contrib.ICPRegistration(
                 pcd_depth, pcd_cad, self._Ts_cad2cam_pred[instance_id]
             )
-        with chainer.using_config('debug', True):
+        with chainer.using_config("debug", True):
             for transform in registration.register_iterative(iteration=100):
                 self._Ts_cad2cam_pred[instance_id] = transform
                 yield
@@ -91,90 +92,84 @@ class MultiInstanceICPRegistration:
         T_cad2cam_pred = self._Ts_cad2cam_pred[instance_id]
 
         camera = trimesh.scene.Camera(
-            resolution=(640, 480),
-            fov=(60 * 0.7, 45 * 0.7),
+            resolution=(640, 480), fov=(60 * 0.7, 45 * 0.7),
         )
         camera_transform = morefusion.extra.trimesh.to_opengl_transform()
 
         scenes = {}
 
-        scenes['pcd'] = trimesh.Scene(
+        scenes["pcd"] = trimesh.Scene(
             camera=camera, camera_transform=camera_transform
         )
         nonnan = ~np.isnan(pcd).any(axis=2)
         geom = trimesh.PointCloud(pcd[nonnan], colors=rgb[nonnan])
-        scenes['pcd'].add_geometry(geom)
+        scenes["pcd"].add_geometry(geom)
 
-        scenes['instance_points'] = trimesh.Scene(
+        scenes["instance_points"] = trimesh.Scene(
             camera=camera, camera_transform=camera_transform
         )
         # points_source: points_from_depth
-        geom = trimesh.PointCloud(
-            vertices=self._pcd_depth, colors=(0, 1., 0)
-        )
-        scenes['instance_points'].add_geometry(geom, geom_name='points_source')
+        geom = trimesh.PointCloud(vertices=self._pcd_depth, colors=(0, 1.0, 0))
+        scenes["instance_points"].add_geometry(geom, geom_name="points_source")
         # points_target: points_from_cad
-        geom = trimesh.PointCloud(
-            vertices=self._pcd_cad, colors=(1., 0, 0)
-        )
-        scenes['instance_points'].add_geometry(
+        geom = trimesh.PointCloud(vertices=self._pcd_cad, colors=(1.0, 0, 0))
+        scenes["instance_points"].add_geometry(
             geom,
             transform=T_cad2cam_pred,
-            geom_name='points_target',
-            node_name='points_target',
+            geom_name="points_target",
+            node_name="points_target",
         )
 
-        scenes['instance_cad'] = trimesh.Scene(
+        scenes["instance_cad"] = trimesh.Scene(
             camera=camera, camera_transform=camera_transform
         )
         # cad_pred
-        scenes['instance_cad'].add_geometry(
+        scenes["instance_cad"].add_geometry(
             cad,
             transform=T_cad2cam_pred,
-            geom_name='cad_pred',
-            node_name='cad_pred',
+            geom_name="cad_pred",
+            node_name="cad_pred",
         )
         # cad_true
         cad_copy = cad.copy()
         cad_copy.visual.vertex_colors[:, 3] = 127
-        scenes['instance_cad'].add_geometry(
+        scenes["instance_cad"].add_geometry(
             cad_copy,
             transform=T_cad2cam_true,
-            geom_name='cad_true',
-            node_name='cad_true',
+            geom_name="cad_true",
+            node_name="cad_true",
         )
 
         # scene-level
-        scenes['scene_cad'] = trimesh.Scene(
+        scenes["scene_cad"] = trimesh.Scene(
             camera=camera, camera_transform=camera_transform
         )
-        scenes['scene_pcd'] = trimesh.Scene(
+        scenes["scene_pcd"] = trimesh.Scene(
             camera=camera, camera_transform=camera_transform
         )
         nonnan = ~np.isnan(pcd).any(axis=2)
         geom = trimesh.PointCloud(pcd[nonnan], colors=rgb[nonnan])
-        scenes['scene_pcd'].add_geometry(geom, geom_name='pcd')
+        scenes["scene_pcd"].add_geometry(geom, geom_name="pcd")
         for instance_id in self._instance_ids:
             if instance_id not in self._Ts_cad2cam_pred:
                 continue
             assert instance_id in self._cads
             T_cad2cam_pred = self._Ts_cad2cam_pred[instance_id]
-            for key in ['scene_cad', 'scene_pcd']:
+            for key in ["scene_cad", "scene_pcd"]:
                 scenes[key].add_geometry(
                     self._cads[instance_id],
                     transform=T_cad2cam_pred,
-                    node_name=f'cad_pred_{instance_id}',
-                    geom_name=f'cad_pred_{instance_id}',
+                    node_name=f"cad_pred_{instance_id}",
+                    geom_name=f"cad_pred_{instance_id}",
                 )
 
-        scenes['scene_label'] = trimesh.Scene(
+        scenes["scene_label"] = trimesh.Scene(
             camera=camera, camera_transform=camera_transform
         )
         geom = trimesh.PointCloud(
-            pcd[nonnan],
-            colors=self._instance_label_viz[nonnan],
+            pcd[nonnan], colors=self._instance_label_viz[nonnan],
         )
-        scenes['scene_label'].add_geometry(geom, geom_name='pcd')
+        scenes["scene_label"].add_geometry(geom, geom_name="pcd")
 
         return scenes
 
@@ -198,9 +193,9 @@ def refinement(
         Ts_cad2cam_pred=Ts_cad2cam_pred,
     )
 
-    coms = np.array([
-        np.nanmedian(pcd[instance_label == i], axis=0) for i in instance_ids
-    ])
+    coms = np.array(
+        [np.nanmedian(pcd[instance_label == i], axis=0) for i in instance_ids]
+    )
     instance_ids = np.array(instance_ids)[np.argsort(coms[:, 2])]
     instance_ids = iter(instance_ids)
 
@@ -214,27 +209,28 @@ def refinement(
             )
 
     morefusion.extra.trimesh.display_scenes(
-        scenes_ggroup(), height=360, width=480, tile=(2, 3))
+        scenes_ggroup(), height=360, width=480, tile=(2, 3)
+    )
 
     return registration
 
 
 def main():
-    dataset = morefusion.datasets.YCBVideoDataset('train')
+    dataset = morefusion.datasets.YCBVideoDataset("train")
 
     frame = dataset[1000]
 
-    class_ids = frame['meta']['cls_indexes']
+    class_ids = frame["meta"]["cls_indexes"]
     instance_ids = class_ids
-    depth = frame['depth']
-    K = frame['meta']['intrinsic_matrix']
-    rgb = frame['color']
+    depth = frame["depth"]
+    K = frame["meta"]["intrinsic_matrix"]
+    rgb = frame["color"]
     pcd = morefusion.geometry.pointcloud_from_depth(
         depth, fx=K[0, 0], fy=K[1, 1], cx=K[0, 2], cy=K[1, 2]
     )
-    instance_label = frame['label']
+    instance_label = frame["label"]
     Ts_cad2cam_true = np.tile(np.eye(4), (len(instance_ids), 1, 1))
-    Ts_cad2cam_true[:, :3, :4] = frame['meta']['poses'].transpose(2, 0, 1)
+    Ts_cad2cam_true[:, :3, :4] = frame["meta"]["poses"].transpose(2, 0, 1)
 
     Ts_cad2cam_pred = np.zeros_like(Ts_cad2cam_true)
     for i, ins_id in enumerate(instance_ids):
@@ -253,5 +249,5 @@ def main():
     )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -27,33 +27,33 @@ class SingleViewPoseEstimation3D(topic_tools.LazyTransport):
     _models = morefusion.datasets.YCBVideoModels()
 
     def __init__(self):
-        self._with_occupancy = rospy.get_param('~with_occupancy')
+        self._with_occupancy = rospy.get_param("~with_occupancy")
         if self._with_occupancy:
             pretrained_model = gdown.cached_download(
-                url='https://drive.google.com/uc?id=128okGgKDJ53PlxLXw7t8a3P9iw-5mcSn',  # NOQA
-                md5='48035dddba2c6f13c0859284a1008310',
+                url="https://drive.google.com/uc?id=128okGgKDJ53PlxLXw7t8a3P9iw-5mcSn",  # NOQA
+                md5="48035dddba2c6f13c0859284a1008310",
             )
             args_file = gdown.cached_download(
-                url='https://drive.google.com/uc?id=1VoybYvmkqQNiLeHCD2ybhJ6exJVJ72lN',  # NOQA
-                md5='854c4a69e63c3896c2d722a872a684ea',
+                url="https://drive.google.com/uc?id=1VoybYvmkqQNiLeHCD2ybhJ6exJVJ72lN",  # NOQA
+                md5="854c4a69e63c3896c2d722a872a684ea",
             )
         else:
             pretrained_model = gdown.cached_download(
-                url='https://drive.google.com/uc?id=1Dv03xveUV3p3oFvlx1zwX6pWK56y_b-K',  # NOQA
-                md5='94a988d4b9af9647f9e94a249212a40c',
+                url="https://drive.google.com/uc?id=1Dv03xveUV3p3oFvlx1zwX6pWK56y_b-K",  # NOQA
+                md5="94a988d4b9af9647f9e94a249212a40c",
             )
             args_file = gdown.cached_download(
-                url='https://drive.google.com/uc?id=1z3CSQoYeUfg4KOUgtce4hAKkPuyZ161r',  # NOQA
-                md5='67472da00c9687671b8e1af43b397071',
+                url="https://drive.google.com/uc?id=1z3CSQoYeUfg4KOUgtce4hAKkPuyZ161r",  # NOQA
+                md5="67472da00c9687671b8e1af43b397071",
             )
 
         with open(args_file) as f:
             args_data = json.load(f)
 
         self._model = contrib.models.Model(
-            n_fg_class=len(args_data['class_names'][1:]),
-            pretrained_resnet18=args_data['pretrained_resnet18'],
-            with_occupancy=args_data['with_occupancy'],
+            n_fg_class=len(args_data["class_names"][1:]),
+            pretrained_resnet18=args_data["pretrained_resnet18"],
+            with_occupancy=args_data["with_occupancy"],
             # loss=args_data['loss'],
             # loss_scale=args_data['loss_scale'],
         )
@@ -62,26 +62,26 @@ class SingleViewPoseEstimation3D(topic_tools.LazyTransport):
 
         super().__init__()
         self._pub_debug_rgbd = self.advertise(
-            '~output/debug/rgbd', Image, queue_size=1
+            "~output/debug/rgbd", Image, queue_size=1
         )
         self._pub_poses = self.advertise(
-            '~output', ObjectPoseArray, queue_size=1
+            "~output", ObjectPoseArray, queue_size=1
         )
         self._post_init()
 
     def subscribe(self):
-        sub_cam = message_filters.Subscriber('~input/camera_info', CameraInfo)
+        sub_cam = message_filters.Subscriber("~input/camera_info", CameraInfo)
         sub_rgb = message_filters.Subscriber(
-            '~input/rgb', Image, queue_size=1, buff_size=2 ** 24
+            "~input/rgb", Image, queue_size=1, buff_size=2 ** 24
         )
         sub_depth = message_filters.Subscriber(
-            '~input/depth', Image, queue_size=1, buff_size=2 ** 24
+            "~input/depth", Image, queue_size=1, buff_size=2 ** 24
         )
         sub_ins = message_filters.Subscriber(
-            '~input/label_ins', Image, queue_size=1, buff_size=2 ** 24
+            "~input/label_ins", Image, queue_size=1, buff_size=2 ** 24
         )
         sub_cls = message_filters.Subscriber(
-            '~input/class', ObjectClassArray, queue_size=1,
+            "~input/class", ObjectClassArray, queue_size=1,
         )
         self._subscribers = [
             sub_cam,
@@ -92,7 +92,7 @@ class SingleViewPoseEstimation3D(topic_tools.LazyTransport):
         ]
         if self._with_occupancy:
             sub_noentry = message_filters.Subscriber(
-                '~input/grids_noentry', VoxelGridArray, queue_size=1,
+                "~input/grids_noentry", VoxelGridArray, queue_size=1,
             )
             self._subscribers.append(sub_noentry)
         sync = message_filters.TimeSynchronizer(
@@ -108,7 +108,7 @@ class SingleViewPoseEstimation3D(topic_tools.LazyTransport):
         self, cam_msg, rgb_msg, depth_msg, ins_msg, cls_msg, noentry_msg=None
     ):
         bridge = cv_bridge.CvBridge()
-        rgb = bridge.imgmsg_to_cv2(rgb_msg, desired_encoding='rgb8')
+        rgb = bridge.imgmsg_to_cv2(rgb_msg, desired_encoding="rgb8")
         depth = bridge.imgmsg_to_cv2(depth_msg)
         if depth.dtype == np.uint16:
             depth = depth.astype(np.float32) / 1000
@@ -168,19 +168,16 @@ class SingleViewPoseEstimation3D(topic_tools.LazyTransport):
             pcd_ins = pcd[y1:y2, x1:x2].copy()
             pcd_ins[~mask[y1:y2, x1:x2]] = np.nan
             pcd_ins = imgviz.centerize(
-                pcd_ins, (256, 256), cval=np.nan, interpolation='nearest'
+                pcd_ins, (256, 256), cval=np.nan, interpolation="nearest"
             )
 
-            example = dict(
-                class_id=cls_id,
-                rgb=rgb_ins,
-                pcd=pcd_ins,
-            )
+            example = dict(class_id=cls_id, rgb=rgb_ins, pcd=pcd_ins,)
             if grids_noentry:
-                example['origin'] = grids_noentry[ins_id]['origin']
-                example['pitch'] = grids_noentry[ins_id]['pitch']
-                example['grid_nontarget_empty'] = \
-                    grids_noentry[ins_id]['matrix']
+                example["origin"] = grids_noentry[ins_id]["origin"]
+                example["pitch"] = grids_noentry[ins_id]["pitch"]
+                example["grid_nontarget_empty"] = grids_noentry[ins_id][
+                    "matrix"
+                ]
             examples.append(example)
             keep.append(i)
         if not examples:
@@ -192,17 +189,16 @@ class SingleViewPoseEstimation3D(topic_tools.LazyTransport):
         if self._pub_debug_rgbd.get_num_connections() > 0:
             debug_rgbd = [
                 imgviz.tile(
-                    [e['rgb'], imgviz.depth2rgb(e['pcd'][:, :, 2])],
-                    (1, 2)
+                    [e["rgb"], imgviz.depth2rgb(e["pcd"][:, :, 2])], (1, 2)
                 )
                 for e in examples
             ]
             debug_rgbd = imgviz.tile(debug_rgbd, border=(255, 255, 255))
-            debug_rgbd_msg = bridge.cv2_to_imgmsg(debug_rgbd, encoding='rgb8')
+            debug_rgbd_msg = bridge.cv2_to_imgmsg(debug_rgbd, encoding="rgb8")
             debug_rgbd_msg.header = rgb_msg.header
             self._pub_debug_rgbd.publish(debug_rgbd_msg)
 
-        with chainer.no_backprop_mode(), chainer.using_config('train', False):
+        with chainer.no_backprop_mode(), chainer.using_config("train", False):
             quaternion, translation, confidence = self._model.predict(**inputs)
         indices = confidence.array.argmax(axis=1)
         B = quaternion.shape[0]
@@ -213,7 +209,7 @@ class SingleViewPoseEstimation3D(topic_tools.LazyTransport):
         quaternion = chainer.cuda.to_cpu(quaternion.array)
         translation = chainer.cuda.to_cpu(translation.array)
 
-        '''
+        """
         transforms = morefusion.functions.transformation_matrix(
             quaternion, translation
         ).array
@@ -230,19 +226,19 @@ class SingleViewPoseEstimation3D(topic_tools.LazyTransport):
             quaternion[i] = ttf.quaternion_from_matrix(transform)
             translation[i] = ttf.translation_from_matrix(transform)
         del transforms
-        '''
+        """
 
         poses = ObjectPoseArray()
         poses.header = rgb_msg.header
         for i, (ins_id, example) in enumerate(zip(instance_ids, examples)):
-            '''
+            """
             cls_id = example['class_id']
             class_name = morefusion.datasets.ycb_video.class_names[cls_id]
             morefusion.ros.loginfo_green(
                 f'instance_id={ins_id}, class_id={cls_id}, '
                 f'class_name={class_name}, confidence={confidence[i].item()}'
             )
-            '''
+            """
 
             if confidence[i].item() < 0.9:
                 continue
@@ -256,12 +252,12 @@ class SingleViewPoseEstimation3D(topic_tools.LazyTransport):
             pose.pose.orientation.y = quaternion[i][2]
             pose.pose.orientation.z = quaternion[i][3]
             pose.instance_id = ins_id
-            pose.class_id = examples[i]['class_id']
+            pose.class_id = examples[i]["class_id"]
             poses.poses.append(pose)
         self._pub_poses.publish(poses)
 
 
-if __name__ == '__main__':
-    rospy.init_node('singleview_3d_pose_estimation')
+if __name__ == "__main__":
+    rospy.init_node("singleview_3d_pose_estimation")
     SingleViewPoseEstimation3D()
     rospy.spin()

@@ -16,9 +16,7 @@ class RGBDPoseEstimationDatasetBase(DatasetBase):
     _voxel_dim = 32
 
     def __init__(
-        self,
-        models,
-        class_ids=None,
+        self, models, class_ids=None,
     ):
         self._models = models
         if class_ids is not None:
@@ -55,20 +53,23 @@ class RGBDPoseEstimationDatasetBase(DatasetBase):
         dims = (self._voxel_dim,) * 3
         grid_full = np.zeros(dims, dtype=np.int32)
         for i, example in enumerate(examples):
-            T = tf.quaternion_matrix(example['quaternion_true'])
+            T = tf.quaternion_matrix(example["quaternion_true"])
             T = geometry_module.compose_transform(
-                R=T[:3, :3], t=example['translation_true']
+                R=T[:3, :3], t=example["translation_true"]
             )
-            vox = self._models.get_solid_voxel_grid(example['class_id'])
+            vox = self._models.get_solid_voxel_grid(example["class_id"])
             points = trimesh.transform_points(vox.points, T)
             indices = trimesh.voxel.ops.points_to_indices(
                 points, pitch=pitch, origin=origin
             )
             I, J, K = indices[:, 0], indices[:, 1], indices[:, 2]
             keep = (
-                (0 <= I) & (I < dims[0]) &
-                (0 <= J) & (J < dims[1]) &
-                (0 <= K) & (K < dims[2])
+                (0 <= I)
+                & (I < dims[0])
+                & (0 <= J)
+                & (J < dims[1])
+                & (0 <= K)
+                & (K < dims[2])
             )
             I, J, K = I[keep], J[keep], K[keep]
             grid_full[I, J, K] = i + 1  # starts from 1
@@ -77,13 +78,13 @@ class RGBDPoseEstimationDatasetBase(DatasetBase):
     def get_example(self, index):
         frame = self.get_frame(index)
 
-        instance_ids = frame['instance_ids']
-        class_ids = frame['class_ids']
-        rgb = frame['rgb']
-        depth = frame['depth']
-        instance_label = frame['instance_label']
-        K = frame['intrinsic_matrix']
-        Ts_cad2cam = frame['Ts_cad2cam']
+        instance_ids = frame["instance_ids"]
+        class_ids = frame["class_ids"]
+        rgb = frame["rgb"]
+        depth = frame["depth"]
+        instance_label = frame["instance_label"]
+        K = frame["intrinsic_matrix"]
+        Ts_cad2cam = frame["Ts_cad2cam"]
         pcd = geometry_module.pointcloud_from_depth(
             depth, fx=K[0, 0], fy=K[1, 1], cx=K[0, 2], cy=K[1, 2],
         )
@@ -96,8 +97,7 @@ class RGBDPoseEstimationDatasetBase(DatasetBase):
         )
 
         camera = trimesh.scene.Camera(
-            resolution=(rgb.shape[1], rgb.shape[0]),
-            focal=(K[0, 0], K[1, 1]),
+            resolution=(rgb.shape[1], rgb.shape[0]), focal=(K[0, 0], K[1, 1]),
         )
 
         examples = []
@@ -126,7 +126,7 @@ class RGBDPoseEstimationDatasetBase(DatasetBase):
                 pcd_ins,
                 (self._image_size, self._image_size),
                 cval=np.nan,
-                interpolation='nearest',
+                interpolation="nearest",
             )
 
             rgb_ins = rgb.copy()
@@ -144,7 +144,7 @@ class RGBDPoseEstimationDatasetBase(DatasetBase):
                 width=camera.resolution[0],
                 height=camera.resolution[1],
             )
-            visibility = 1. * mask.sum() / mask_rend.sum()
+            visibility = 1.0 * mask.sum() / mask_rend.sum()
 
             quaternion_true = tf.quaternion_from_matrix(T_cad2cam)
             translation_true = tf.translation_from_matrix(T_cad2cam)
@@ -178,21 +178,19 @@ class RGBDPoseEstimationDatasetBase(DatasetBase):
 
         n_examples = len(examples)
         for i_target, example in enumerate(examples):
-            assert example['class_id'] >= 1
+            assert example["class_id"] >= 1
 
             indices = np.arange(n_examples)
             indices_nontarget = indices[indices != i_target]
             examples_nontarget = [examples[i] for i in indices_nontarget]
 
-            pitch = example['pitch']
-            origin = example['origin']
-            grid_target_full = self._get_grid_full(
-                [example], pitch, origin
-            )
+            pitch = example["pitch"]
+            origin = example["origin"]
+            grid_target_full = self._get_grid_full([example], pitch, origin)
             grid_nontarget_full = self._get_grid_full(
                 examples_nontarget, pitch, origin
             )
-            example['grid_target_full'] = grid_target_full
-            example['grid_nontarget_full'] = grid_nontarget_full
+            example["grid_target_full"] = grid_target_full
+            example["grid_nontarget_full"] = grid_nontarget_full
 
         return examples

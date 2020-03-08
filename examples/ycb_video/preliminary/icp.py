@@ -11,7 +11,6 @@ import morefusion
 
 
 class NearestNeighborICP(chainer.Link):
-
     def __init__(self, quaternion_init=None, translation_init=None):
         super().__init__()
 
@@ -47,21 +46,13 @@ class NearestNeighborICP(chainer.Link):
         correspondence = correspondence[keep]
         source_match = source[correspondence]
 
-        loss = F.sum(
-            F.sum((source_match - target_match) ** 2, axis=1), axis=0
-        )
+        loss = F.sum(F.sum((source_match - target_match) ** 2, axis=1), axis=0)
         return loss
 
 
 class ICPRegistration:
-
     def __init__(
-        self,
-        points_depth,
-        points_cad,
-        transform_init=None,
-        alpha=0.1,
-        gpu=0,
+        self, points_depth, points_cad, transform_init=None, alpha=0.1, gpu=0,
     ):
         quaternion_init = tf.quaternion_from_matrix(transform_init)
         quaternion_init = quaternion_init.astype(np.float32)
@@ -92,10 +83,7 @@ class ICPRegistration:
 
         for i in range(iteration):
             link = self._optimizer.target
-            loss = link(
-                source=self._points_cad,
-                target=self._points_depth,
-            )
+            loss = link(source=self._points_cad, target=self._points_depth,)
             loss.backward()
             self._optimizer.update()
             link.cleargrads()
@@ -117,12 +105,12 @@ def algorithm():
     models = morefusion.datasets.YCBVideoModels()
     pcd_cad = models.get_pcd(class_id=instance_id)
 
-    dataset = morefusion.datasets.YCBVideoDataset('train')
+    dataset = morefusion.datasets.YCBVideoDataset("train")
     example = dataset.get_example(1000)
 
-    depth = example['depth']
-    instance_label = example['label']
-    K = example['meta']['intrinsic_matrix']
+    depth = example["depth"]
+    instance_label = example["label"]
+    K = example["meta"]["intrinsic_matrix"]
     pcd_depth = morefusion.geometry.pointcloud_from_depth(
         depth, fx=K[0, 0], fy=K[1, 1], cx=K[0, 2], cy=K[1, 2]
     )
@@ -148,20 +136,20 @@ def algorithm():
 
     for T_cad2cam in registration.register_iterative():
         scene = trimesh.Scene()
-        geom = trimesh.PointCloud(pcd_depth_target, colors=[1., 0, 0])
-        scene.add_geometry(geom, geom_name='a', node_name='a')
-        geom = trimesh.PointCloud(pcd_cad, colors=[0, 1., 0])
+        geom = trimesh.PointCloud(pcd_depth_target, colors=[1.0, 0, 0])
+        scene.add_geometry(geom, geom_name="a", node_name="a")
+        geom = trimesh.PointCloud(pcd_cad, colors=[0, 1.0, 0])
         scene.add_geometry(
-            geom, geom_name='b', node_name='b', transform=T_cad2cam
+            geom, geom_name="b", node_name="b", transform=T_cad2cam
         )
         scene.camera_transform = morefusion.extra.trimesh.to_opengl_transform()
         yield scene
 
 
 def main():
-    scenes = ({'icp': scene} for scene in algorithm())
+    scenes = ({"icp": scene} for scene in algorithm())
     morefusion.extra.trimesh.display_scenes(scenes)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

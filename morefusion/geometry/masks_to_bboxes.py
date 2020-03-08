@@ -18,7 +18,7 @@ def masks_to_bboxes(masks):
     assert masks.dtype == bool
 
     ndim = masks.ndim
-    assert ndim in [2, 3], 'masks must be 2 or 3 dimensional'
+    assert ndim in [2, 3], "masks must be 2 or 3 dimensional"
 
     if ndim == 2:
         masks = masks[None]

@@ -9,15 +9,11 @@ from ..base import DatasetBase
 
 
 class RGBDPoseEstimationDatasetReIndexedBase(DatasetBase):
-
     def __init__(
-        self,
-        split,
-        class_ids=None,
-        augmentation=False,
+        self, split, class_ids=None, augmentation=False,
     ):
         if not self.root_dir.exists():
-            raise IOError(f'{self.root_dir} does not exist. ')
+            raise IOError(f"{self.root_dir} does not exist. ")
 
         if class_ids is not None:
             class_ids = tuple(class_ids)
@@ -41,27 +37,33 @@ class RGBDPoseEstimationDatasetReIndexedBase(DatasetBase):
 
     @staticmethod
     def _augment_rgb(rgb):
-        augmenter = iaa.Sequential([
-            iaa.LinearContrast(alpha=(0.8, 1.2)),
-            iaa.WithColorspace(
-                to_colorspace='HSV',
-                from_colorspace='RGB',
-                children=iaa.Sequential([
-                    # SV
-                    iaa.WithChannels(
-                        (1, 2),
-                        iaa.Multiply(mul=(0.8, 1.2), per_channel=True),
+        augmenter = iaa.Sequential(
+            [
+                iaa.LinearContrast(alpha=(0.8, 1.2)),
+                iaa.WithColorspace(
+                    to_colorspace="HSV",
+                    from_colorspace="RGB",
+                    children=iaa.Sequential(
+                        [
+                            # SV
+                            iaa.WithChannels(
+                                (1, 2),
+                                iaa.Multiply(mul=(0.8, 1.2), per_channel=True),
+                            ),
+                            # H
+                            iaa.WithChannels(
+                                (0,),
+                                iaa.Multiply(
+                                    mul=(0.95, 1.05), per_channel=True
+                                ),
+                            ),
+                        ]
                     ),
-                    # H
-                    iaa.WithChannels(
-                        (0,),
-                        iaa.Multiply(mul=(0.95, 1.05), per_channel=True),
-                    ),
-                ]),
-            ),
-            iaa.GaussianBlur(sigma=(0, 1.0)),
-            iaa.KeepSizeByResize(children=iaa.Resize((0.25, 1.0))),
-        ])
+                ),
+                iaa.GaussianBlur(sigma=(0, 1.0)),
+                iaa.KeepSizeByResize(children=iaa.Resize((0.25, 1.0))),
+            ]
+        )
         return augmenter.augment_image(rgb)
 
     @staticmethod
@@ -114,9 +116,9 @@ class RGBDPoseEstimationDatasetReIndexedBase(DatasetBase):
                 color=1,
             )
             n_contours = random_state.choice(len(contours))
-            for contour_index in random_state.permutation(
-                len(contours)
-            )[:n_contours]:
+            for contour_index in random_state.permutation(len(contours))[
+                :n_contours
+            ]:
                 cv2.drawContours(
                     mask_contour,
                     contours,
@@ -136,7 +138,7 @@ class RGBDPoseEstimationDatasetReIndexedBase(DatasetBase):
         pcd = pcd[y1:y2, x1:x2]
         rgb = imgviz.centerize(rgb, (H, W))
         pcd = imgviz.centerize(
-            pcd, (H, W), cval=np.nan, interpolation='nearest'
+            pcd, (H, W), cval=np.nan, interpolation="nearest"
         )
         return rgb, pcd
 
@@ -152,12 +154,12 @@ class RGBDPoseEstimationDatasetReIndexedBase(DatasetBase):
 
     def get_example(self, index):
         id = self._ids[index]
-        npz_file = self.root_dir / f'{id}.npz'
+        npz_file = self.root_dir / f"{id}.npz"
         example = dict(np.load(npz_file))
-        if 'visibility' in example:
-            example.pop('visibility')
+        if "visibility" in example:
+            example.pop("visibility")
         if self._augmentation:
-            example['rgb'], example['pcd'] = self._augment_rgbd(
-                example['rgb'], example['pcd'],
+            example["rgb"], example["pcd"] = self._augment_rgbd(
+                example["rgb"], example["pcd"],
             )
         return example

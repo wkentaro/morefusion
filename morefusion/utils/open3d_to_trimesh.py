@@ -15,6 +15,6 @@ def open3d_to_trimesh(src):
             vertex_colors=vertex_colors,
         )
     else:
-        raise ValueError('Unsupported type of src: {}'.format(type(src)))
+        raise ValueError("Unsupported type of src: {}".format(type(src)))
 
     return dst

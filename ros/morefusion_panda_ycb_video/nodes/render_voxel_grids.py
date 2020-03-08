@@ -18,11 +18,10 @@ from voxel_grids_to_mesh_markers import grid_msg_to_mesh
 
 
 class RenderVoxelGrids:
-
     def __init__(self):
         super().__init__()
         self._srv = rospy.Service(
-            '~render', RenderVoxelGridArray, self._callback
+            "~render", RenderVoxelGridArray, self._callback
         )
 
     def _callback(self, request):
@@ -71,7 +70,7 @@ class RenderVoxelGrids:
 
             uniq_id_to_ins_id = {}
             for instance_id, mesh in meshes.items():
-                mesh_file = tmp_dir / f'{instance_id:04d}.obj'
+                mesh_file = tmp_dir / f"{instance_id:04d}.obj"
                 trimesh.exchange.export.export_mesh(mesh, mesh_file)
 
                 uniq_id = morefusion.extra.pybullet.add_model(
@@ -84,7 +83,7 @@ class RenderVoxelGrids:
             K = np.array(cam_msg.K).reshape(3, 3)
             camera = trimesh.scene.Camera(
                 resolution=(cam_msg.width, cam_msg.height),
-                focal=(K[0, 0], K[1, 1])
+                focal=(K[0, 0], K[1, 1]),
             )
             _, depth_rend, uniq = morefusion.extra.pybullet.render_camera(
                 np.eye(4),
@@ -98,7 +97,7 @@ class RenderVoxelGrids:
 
             for uniq_id, ins_id in uniq_id_to_ins_id.items():
                 ins[uniq == uniq_id] = ins_id
-            with np.errstate(invalid='ignore'):
+            with np.errstate(invalid="ignore"):
                 ins[(uniq != -1) & (depth_rend > (depth + 0.01))] = -2
 
         bridge = cv_bridge.CvBridge()
@@ -107,7 +106,7 @@ class RenderVoxelGrids:
         return RenderVoxelGridArrayResponse(ins_msg)
 
 
-if __name__ == '__main__':
-    rospy.init_node('render_voxel_grids')
+if __name__ == "__main__":
+    rospy.init_node("render_voxel_grids")
     RenderVoxelGrids()
     rospy.spin()

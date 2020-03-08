@@ -16,7 +16,6 @@ import topic_tools
 
 
 class LossObserver:
-
     def __init__(self):
         self._last = None
         self._deltas = queue.deque([], 10)
@@ -54,24 +53,21 @@ class CollisionBasedPoseRefinement(topic_tools.LazyTransport):
         self._sdf = {}
 
         super().__init__()
-        self._pub = self.advertise('~output', ObjectPoseArray, queue_size=1)
+        self._pub = self.advertise("~output", ObjectPoseArray, queue_size=1)
         self._pub_debug = self.advertise(
-            '~debug', ObjectPoseArray, queue_size=1
+            "~debug", ObjectPoseArray, queue_size=1
         )
         self._post_init()
 
     def subscribe(self):
         sub_pose = message_filters.Subscriber(
-            '~input/poses', ObjectPoseArray, queue_size=1
+            "~input/poses", ObjectPoseArray, queue_size=1
         )
         sub_grid = message_filters.Subscriber(
-            '~input/grids',
-            VoxelGridArray,
-            queue_size=1,
-            buff_size=2 ** 24,
+            "~input/grids", VoxelGridArray, queue_size=1, buff_size=2 ** 24,
         )
         sub_grid_noentry = message_filters.Subscriber(
-            '~input/grids_noentry',
+            "~input/grids_noentry",
             VoxelGridArray,
             queue_size=1,
             buff_size=2 ** 24,
@@ -90,8 +86,7 @@ class CollisionBasedPoseRefinement(topic_tools.LazyTransport):
     def _grid_msg_to_matrix(grid):
         pitch = grid.pitch
         origin = np.array(
-            [grid.origin.x, grid.origin.y, grid.origin.z],
-            dtype=np.float32,
+            [grid.origin.x, grid.origin.y, grid.origin.z], dtype=np.float32,
         )
         indices = np.array(grid.indices)
         k = indices % grid.dims.z
@@ -116,8 +111,7 @@ class CollisionBasedPoseRefinement(topic_tools.LazyTransport):
             return
 
         grids = {
-            g.instance_id: self._grid_msg_to_matrix(g)
-            for g in grids_msg.grids
+            g.instance_id: self._grid_msg_to_matrix(g) for g in grids_msg.grids
         }
         grids_noentry = {
             g.instance_id: self._grid_msg_to_matrix(g)
@@ -138,17 +132,23 @@ class CollisionBasedPoseRefinement(topic_tools.LazyTransport):
             assert (origin == origin_no).all()
             del pitch_no, origin_no
 
-            translation = np.array([
-                pose.pose.position.x,
-                pose.pose.position.y,
-                pose.pose.position.z,
-            ], dtype=np.float32)
-            quaternion = np.array([
-                pose.pose.orientation.w,
-                pose.pose.orientation.x,
-                pose.pose.orientation.y,
-                pose.pose.orientation.z,
-            ], dtype=np.float32)
+            translation = np.array(
+                [
+                    pose.pose.position.x,
+                    pose.pose.position.y,
+                    pose.pose.position.z,
+                ],
+                dtype=np.float32,
+            )
+            quaternion = np.array(
+                [
+                    pose.pose.orientation.w,
+                    pose.pose.orientation.x,
+                    pose.pose.orientation.y,
+                    pose.pose.orientation.z,
+                ],
+                dtype=np.float32,
+            )
             transform = morefusion.functions.transformation_matrix(
                 quaternion, translation
             ).array
@@ -162,7 +162,7 @@ class CollisionBasedPoseRefinement(topic_tools.LazyTransport):
             grid_nontarget_empty.append(cuda.to_gpu(grid_no))
             transforms.append(transform)
 
-            '''
+            """
             cuda.cupy.savez_compressed(f'{i:08d}.npz',
                 class_id=pose.class_id,
                 transform_init=transforms[-1],
@@ -172,7 +172,7 @@ class CollisionBasedPoseRefinement(topic_tools.LazyTransport):
                 grid_target=grid_target[-1],
                 grid_nontarget_empty=grid_nontarget_empty[-1],
             )
-            '''
+            """
         grid_target = cuda.cupy.stack(grid_target)
 
         link = morefusion.contrib.CollisionBasedPoseRefinementLink(transforms)
@@ -227,7 +227,7 @@ class CollisionBasedPoseRefinement(topic_tools.LazyTransport):
             self._pub.publish(poses_msg)
 
 
-if __name__ == '__main__':
-    rospy.init_node('collision_based_pose_refinement')
+if __name__ == "__main__":
+    rospy.init_node("collision_based_pose_refinement")
     CollisionBasedPoseRefinement()
     rospy.spin()

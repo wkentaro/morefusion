@@ -10,22 +10,22 @@ import contrib
 
 def get_scenes():
     dataset = contrib.datasets.YCBVideoDataset(
-        'train',
+        "train",
         class_ids=None,
-        augmentation={'rgb', 'depth'},
+        augmentation={"rgb", "depth"},
         return_occupancy_grids=True,
     )
-    print(f'dataset_size: {len(dataset)}')
+    print(f"dataset_size: {len(dataset)}")
 
     example = dataset.get_example(0)[0]
 
-    pitch = example['pitch']
-    origin = example['origin']
+    pitch = example["pitch"]
+    origin = example["origin"]
 
-    grid_target = example['grid_target']
-    grid_nontarget = example['grid_nontarget']
-    grid_empty = example['grid_empty']
-    grid_unknown = np.ones_like(example['grid_target'])
+    grid_target = example["grid_target"]
+    grid_nontarget = example["grid_nontarget"]
+    grid_empty = example["grid_empty"]
+    grid_unknown = np.ones_like(example["grid_target"])
     grid_unknown[grid_target > 0] = 0
     grid_unknown[grid_nontarget > 0] = 0
     grid_unknown[grid_empty > 0] = 0
@@ -40,32 +40,32 @@ def get_scenes():
 
     scenes = {}
 
-    scenes['occupied'] = trimesh.Scene(camera=camera)
+    scenes["occupied"] = trimesh.Scene(camera=camera)
     voxel = trimesh.voxel.Voxel(grid_target, pitch=pitch, origin=origin)
     geom = voxel.as_boxes(colors=(255, 0, 0))
-    scenes['occupied'].add_geometry(geom)
+    scenes["occupied"].add_geometry(geom)
     voxel = trimesh.voxel.Voxel(grid_nontarget, pitch=pitch, origin=origin)
     geom = voxel.as_boxes(colors=(0, 255, 0))
-    scenes['occupied'].add_geometry(geom)
+    scenes["occupied"].add_geometry(geom)
     geom = trimesh.path.creation.box_outline((32 * pitch,) * 3)
     geom.apply_translation(center)
-    scenes['occupied'].add_geometry(geom)
+    scenes["occupied"].add_geometry(geom)
 
-    scenes['empty'] = trimesh.Scene(camera=camera)
+    scenes["empty"] = trimesh.Scene(camera=camera)
     voxel = trimesh.voxel.Voxel(grid_empty, pitch=pitch, origin=origin)
     geom = voxel.as_boxes(colors=(127, 127, 127))
-    scenes['empty'].add_geometry(geom)
+    scenes["empty"].add_geometry(geom)
     geom = trimesh.path.creation.box_outline((32 * pitch,) * 3)
     geom.apply_translation(center)
-    scenes['empty'].add_geometry(geom)
+    scenes["empty"].add_geometry(geom)
 
-    scenes['unknown'] = trimesh.Scene(camera=camera)
+    scenes["unknown"] = trimesh.Scene(camera=camera)
     voxel = trimesh.voxel.Voxel(grid_unknown, pitch=pitch, origin=origin)
     geom = voxel.as_boxes(colors=(0, 0, 255))
-    scenes['unknown'].add_geometry(geom)
+    scenes["unknown"].add_geometry(geom)
     geom = trimesh.path.creation.box_outline((32 * pitch,) * 3)
     geom.apply_translation(center)
-    scenes['unknown'].add_geometry(geom)
+    scenes["unknown"].add_geometry(geom)
 
     return scenes
 
@@ -79,5 +79,5 @@ def main():
     )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

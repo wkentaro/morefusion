@@ -97,18 +97,22 @@ class MultiInstanceOccupancyRegistration:
         mask = instance_label == instance_id
         centroid = np.nanmean(pcd[mask], axis=0)
         origin = centroid - ((dim / 2 - 0.5) * pitch)
-        grid_target, grid_nontarget, grid_empty = \
-            self._mapping.get_target_grids(
-                target_id=instance_id,
-                dimensions=(dim, dim, dim),
-                pitch=pitch,
-                origin=origin,
-            )
+        (
+            grid_target,
+            grid_nontarget,
+            grid_empty,
+        ) = self._mapping.get_target_grids(
+            target_id=instance_id,
+            dimensions=(dim, dim, dim),
+            pitch=pitch,
+            origin=origin,
+        )
 
         #
         # points_source = models.get_pcd(class_id=class_id).astype(np.float32)
         points_source = models.get_solid_voxel_grid(
-            class_id=class_id).points.astype(np.float32)
+            class_id=class_id
+        ).points.astype(np.float32)
         points_source = morefusion.extra.open3d.voxel_down_sample(
             points_source, voxel_size=pitch
         )
@@ -157,14 +161,14 @@ class MultiInstanceOccupancyRegistration:
         voxel = trimesh.voxel.VoxelGrid(
             grid_target[0], ttf.scale_and_translate(pitch, origin)
         )
-        geom = voxel.as_boxes((1., 0, 0, 0.5))
-        scene.add_geometry(geom, geom_name='occupied_target')
+        geom = voxel.as_boxes((1.0, 0, 0, 0.5))
+        scene.add_geometry(geom, geom_name="occupied_target")
         voxel = trimesh.voxel.VoxelGrid(
             grid_target[1], ttf.scale_and_translate(pitch, origin),
         )
-        geom = voxel.as_boxes((0, 1., 0, 0.5))
-        scene.add_geometry(geom, geom_name='occupied_untarget')
-        scenes['instance_occupied'] = scene
+        geom = voxel.as_boxes((0, 1.0, 0, 0.5))
+        scene.add_geometry(geom, geom_name="occupied_untarget")
+        scenes["instance_occupied"] = scene
 
         # empty
         scene = trimesh.Scene()
@@ -172,8 +176,8 @@ class MultiInstanceOccupancyRegistration:
             grid_target[2], ttf.scale_and_translate(pitch, origin)
         )
         geom = voxel.as_boxes((0.5, 0.5, 0.5, 0.5))
-        scene.add_geometry(geom, geom_name='empty')
-        scenes['instance_empty'] = scene
+        scene.add_geometry(geom, geom_name="empty")
+        scenes["instance_empty"] = scene
 
         scene = trimesh.Scene()
         # cad_true
@@ -182,18 +186,18 @@ class MultiInstanceOccupancyRegistration:
         scene.add_geometry(
             cad_trans,
             transform=T_cad2cam_true,
-            geom_name='cad_true',
-            node_name='cad_true',
+            geom_name="cad_true",
+            node_name="cad_true",
         )
-        scenes['instance_cad'] = scene
+        scenes["instance_cad"] = scene
 
         # cad_pred
         for scene in scenes.values():
             scene.add_geometry(
                 cad,
                 transform=T_cad2cam_pred,
-                geom_name='cad_pred',
-                node_name='cad_pred',
+                geom_name="cad_pred",
+                node_name="cad_pred",
             )
 
         # bbox
@@ -202,35 +206,35 @@ class MultiInstanceOccupancyRegistration:
         geom = trimesh.path.creation.box_outline(aabb_max - aabb_min)
         geom.apply_translation((aabb_min + aabb_max) / 2)
         for scene in scenes.values():
-            scene.add_geometry(geom, geom_name='bbox')
+            scene.add_geometry(geom, geom_name="bbox")
 
         # ---------------------------------------------------------------------
 
         # scene_pcd
-        scenes['scene_pcd_only'] = trimesh.Scene()
-        scenes['scene_cad'] = trimesh.Scene()
-        scenes['scene_pcd'] = trimesh.Scene()
+        scenes["scene_pcd_only"] = trimesh.Scene()
+        scenes["scene_cad"] = trimesh.Scene()
+        scenes["scene_pcd"] = trimesh.Scene()
         nonnan = ~np.isnan(pcd).any(axis=2)
         geom = trimesh.PointCloud(vertices=pcd[nonnan], colors=rgb[nonnan])
-        scenes['scene_pcd_only'].add_geometry(geom, geom_name='pcd')
-        scenes['scene_pcd'].add_geometry(geom, geom_name='pcd')
+        scenes["scene_pcd_only"].add_geometry(geom, geom_name="pcd")
+        scenes["scene_pcd"].add_geometry(geom, geom_name="pcd")
         for instance_id in self._instance_ids:
             if instance_id not in self._cads:
                 continue
             cad = self._cads[instance_id]
             T_cad2cam_pred = self._Ts_cad2cam_pred[instance_id]
             if cad:
-                for key in ['scene_cad', 'scene_pcd']:
+                for key in ["scene_cad", "scene_pcd"]:
                     scenes[key].add_geometry(
                         cad,
                         transform=T_cad2cam_pred,
-                        geom_name=f'cad_pred_{instance_id}',
-                        node_name=f'cad_pred_{instance_id}',
+                        geom_name=f"cad_pred_{instance_id}",
+                        node_name=f"cad_pred_{instance_id}",
                     )
         # scene_occupancy
         colormap = imgviz.label_colormap()
-        scenes['scene_occupied'] = trimesh.Scene()
-        scenes['scene_empty'] = trimesh.Scene()
+        scenes["scene_occupied"] = trimesh.Scene()
+        scenes["scene_empty"] = trimesh.Scene()
         for instance_id in self._mapping.instance_ids:
             occupied, empty = self._mapping.get_target_pcds(instance_id)
             color = trimesh.visual.to_rgba(colormap[instance_id])
@@ -238,18 +242,17 @@ class MultiInstanceOccupancyRegistration:
             geom = trimesh.voxel.ops.multibox(
                 occupied, pitch=0.01, colors=color
             )
-            scenes['scene_occupied'].add_geometry(
-                geom, geom_name=f'occupied_{instance_id}'
+            scenes["scene_occupied"].add_geometry(
+                geom, geom_name=f"occupied_{instance_id}"
             )
             geom = trimesh.PointCloud(vertices=empty, colors=[0.5, 0.5, 0.5])
-            scenes['scene_empty'].add_geometry(
-                geom, geom_name=f'empty_{instance_id}'
+            scenes["scene_empty"].add_geometry(
+                geom, geom_name=f"empty_{instance_id}"
             )
 
         # set camera
         camera = trimesh.scene.Camera(
-            resolution=(640, 480),
-            fov=(60 * 0.7, 45 * 0.7),
+            resolution=(640, 480), fov=(60 * 0.7, 45 * 0.7),
         )
         camera_transform = morefusion.extra.trimesh.to_opengl_transform()
         for scene in scenes.values():
@@ -282,9 +285,9 @@ def refinement(
         for ins_id, points in points_occupied.items():
             registration._mapping.update(ins_id, points)
 
-    coms = np.array([
-        np.nanmedian(pcd[instance_label == i], axis=0) for i in instance_ids
-    ])
+    coms = np.array(
+        [np.nanmedian(pcd[instance_label == i], axis=0) for i in instance_ids]
+    )
     instance_ids = np.array(instance_ids)[np.argsort(coms[:, 2])]
     instance_ids = iter(instance_ids)
 
@@ -309,19 +312,19 @@ def refinement(
 
 
 def main():
-    dataset = morefusion.datasets.YCBVideoDataset('train')
+    dataset = morefusion.datasets.YCBVideoDataset("train")
     frame = dataset.get_example(1000)
 
     # scene-level data
-    instance_ids = class_ids = frame['meta']['cls_indexes']
+    instance_ids = class_ids = frame["meta"]["cls_indexes"]
     Ts_cad2cam_true = np.tile(np.eye(4), (len(instance_ids), 1, 1))
-    Ts_cad2cam_true[:, :3, :4] = frame['meta']['poses'].transpose(2, 0, 1)
-    K = frame['meta']['intrinsic_matrix']
-    rgb = frame['color']
+    Ts_cad2cam_true[:, :3, :4] = frame["meta"]["poses"].transpose(2, 0, 1)
+    K = frame["meta"]["intrinsic_matrix"]
+    rgb = frame["color"]
     pcd = morefusion.geometry.pointcloud_from_depth(
-        frame['depth'], fx=K[0, 0], fy=K[1, 1], cx=K[0, 2], cy=K[1, 2]
+        frame["depth"], fx=K[0, 0], fy=K[1, 1], cx=K[0, 2], cy=K[1, 2]
     )
-    instance_label = frame['label']
+    instance_label = frame["label"]
 
     refinement(
         instance_ids=instance_ids,
@@ -333,5 +336,5 @@ def main():
     )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -15,7 +15,6 @@ from topic_tools import LazyTransport
 
 
 class MaskRCNNInstanceSegmentationNode(LazyTransport):
-
     def __init__(self):
         super().__init__()
 
@@ -25,8 +24,8 @@ class MaskRCNNInstanceSegmentationNode(LazyTransport):
 
         # logs.20191003.bg_composite_false
         pretrained_model = gdown.cached_download(
-            url='https://drive.google.com/uc?id=1MS2OgvjYF6aPIDjDr_fU-IhPN700Cv4V',  # NOQA
-            md5='f169417a5bab67e8b48337b2a341e890',
+            url="https://drive.google.com/uc?id=1MS2OgvjYF6aPIDjDr_fU-IhPN700Cv4V",  # NOQA
+            md5="f169417a5bab67e8b48337b2a341e890",
         )
         self._model = MaskRCNNFPNResNet50(
             n_fg_class=len(self._class_names[1:]),
@@ -36,23 +35,28 @@ class MaskRCNNInstanceSegmentationNode(LazyTransport):
         self._model.to_gpu()
 
         self._pub_cls = self.advertise(
-            '~output/class', ObjectClassArray, queue_size=1
+            "~output/class", ObjectClassArray, queue_size=1
         )
         self._pub_ins = self.advertise(
-            '~output/label_ins', Image, queue_size=1
+            "~output/label_ins", Image, queue_size=1
         )
         self._post_init()  # FIXME
 
     def subscribe(self):
-        self._sub = rospy.Subscriber('~input', Image, callback=self.callback,
-                                     queue_size=1, buff_size=2 ** 24)
+        self._sub = rospy.Subscriber(
+            "~input",
+            Image,
+            callback=self.callback,
+            queue_size=1,
+            buff_size=2 ** 24,
+        )
 
     def unsubscribe(self):
         self._sub.unregister()
 
     def callback(self, imgmsg):
         bridge = cv_bridge.CvBridge()
-        rgb = bridge.imgmsg_to_cv2(imgmsg, desired_encoding='rgb8')
+        rgb = bridge.imgmsg_to_cv2(imgmsg, desired_encoding="rgb8")
 
         masks, labels, confs = self._model.predict(
             [rgb.astype(np.float32).transpose(2, 0, 1)]
@@ -109,20 +113,18 @@ class MaskRCNNInstanceSegmentationNode(LazyTransport):
         class_ids = class_ids[keep]
         confs = confs[keep]
 
-        cls_msg = ObjectClassArray(
-            header=imgmsg.header
-        )
+        cls_msg = ObjectClassArray(header=imgmsg.header)
         for ins_id, cls_id, conf in zip(instance_ids, class_ids, confs):
-            cls_msg.classes.append(ObjectClass(
-                instance_id=ins_id,
-                class_id=cls_id,
-                confidence=conf,
-            ))
+            cls_msg.classes.append(
+                ObjectClass(
+                    instance_id=ins_id, class_id=cls_id, confidence=conf,
+                )
+            )
 
         self._pub_cls.publish(cls_msg)
 
 
-if __name__ == '__main__':
-    rospy.init_node('mask_rcnn_instance_segmentation')
+if __name__ == "__main__":
+    rospy.init_node("mask_rcnn_instance_segmentation")
     MaskRCNNInstanceSegmentationNode()
     rospy.spin()

@@ -18,13 +18,13 @@ class VoxelGridsToMarkers(topic_tools.LazyTransport):
 
     def __init__(self):
         super().__init__()
-        self._show_bbox = rospy.get_param('~show_bbox', True)
-        self._pub = self.advertise('~output', MarkerArray, queue_size=1)
+        self._show_bbox = rospy.get_param("~show_bbox", True)
+        self._pub = self.advertise("~output", MarkerArray, queue_size=1)
         self._post_init()
 
     def subscribe(self):
         self._sub = rospy.Subscriber(
-            '~input',
+            "~input",
             VoxelGridArray,
             self._callback,
             queue_size=1,
@@ -38,9 +38,7 @@ class VoxelGridsToMarkers(topic_tools.LazyTransport):
         markers = MarkerArray()
 
         marker = Marker(
-            header=grids_msg.header,
-            id=-1,
-            action=Marker.DELETEALL
+            header=grids_msg.header, id=-1, action=Marker.DELETEALL
         )
         markers.markers.append(marker)
 
@@ -58,7 +56,7 @@ class VoxelGridsToMarkers(topic_tools.LazyTransport):
             dims = np.array([grid.dims.x, grid.dims.y, grid.dims.z])
 
             marker = Marker()
-            marker.ns = f'{instance_id}'
+            marker.ns = f"{instance_id}"
             marker.id = (instance_id + 1) * 2
             marker.header = grids_msg.header
             marker.action = Marker.ADD
@@ -67,9 +65,9 @@ class VoxelGridsToMarkers(topic_tools.LazyTransport):
             marker.scale.x = grid.pitch
             marker.scale.y = grid.pitch
             marker.scale.z = grid.pitch
-            marker.color.r = color[0] / 255.
-            marker.color.g = color[1] / 255.
-            marker.color.b = color[2] / 255.
+            marker.color.r = color[0] / 255.0
+            marker.color.g = color[1] / 255.0
+            marker.color.b = color[2] / 255.0
             marker.color.a = 1
             markers.markers.append(marker)
 
@@ -82,25 +80,26 @@ class VoxelGridsToMarkers(topic_tools.LazyTransport):
             bbox.apply_translation(center)
 
             marker = Marker()
-            marker.ns = f'{instance_id}'
+            marker.ns = f"{instance_id}"
             marker.id = (instance_id + 1) * 2 + 1
             marker.header = grids_msg.header
             marker.action = Marker.ADD
             marker.type = Marker.LINE_LIST
             marker.points = [
                 Point(*bbox.vertices[i])
-                for node in bbox.vertex_nodes for i in node
+                for node in bbox.vertex_nodes
+                for i in node
             ]
-            marker.color.r = color[0] / 255.
-            marker.color.g = color[1] / 255.
-            marker.color.b = color[2] / 255.
+            marker.color.r = color[0] / 255.0
+            marker.color.g = color[1] / 255.0
+            marker.color.b = color[2] / 255.0
             marker.color.a = 1
             marker.scale.x = 0.005
             markers.markers.append(marker)
         self._pub.publish(markers)
 
 
-if __name__ == '__main__':
-    rospy.init_node('voxel_grids_to_markers')
+if __name__ == "__main__":
+    rospy.init_node("voxel_grids_to_markers")
     VoxelGridsToMarkers()
     rospy.spin()

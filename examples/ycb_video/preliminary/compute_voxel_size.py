@@ -34,30 +34,32 @@ def get_data():
     data = []
     for class_id, bbox_diagonal in zip(class_ids, bbox_diagonals):
         class_name = models.class_names[class_id]
-        ycb_class_id = int(class_name.split('_')[0])
+        ycb_class_id = int(class_name.split("_")[0])
         ycb_video_class_id = class_id
-        voxel_size = bbox_diagonal / 32.
-        data.append((
-            ycb_class_id,
-            ycb_video_class_id,
-            class_name,
-            bbox_diagonal,
-            voxel_size,
-        ))
+        voxel_size = bbox_diagonal / 32.0
+        data.append(
+            (
+                ycb_class_id,
+                ycb_video_class_id,
+                class_name,
+                bbox_diagonal,
+                voxel_size,
+            )
+        )
 
     df = pandas.DataFrame(
         data=data,
         columns=[
-            'ycb_class_id',
-            'ycb_video_class_id',
-            'name',
-            'bbox_diagonal',
-            'voxel_size',
+            "ycb_class_id",
+            "ycb_video_class_id",
+            "name",
+            "bbox_diagonal",
+            "voxel_size",
         ],
     )
     print(df)
 
-    argsort = df['voxel_size'].argsort()[::-1]
+    argsort = df["voxel_size"].argsort()[::-1]
     df = df.iloc[argsort]
     top_images = [top_images[i] for i in argsort]
 
@@ -71,19 +73,19 @@ def main():
     axes = fig.subplots(3, 1)
 
     df.plot.bar(
-        x='name',
-        y='bbox_diagonal',
+        x="name",
+        y="bbox_diagonal",
         color=(0.1, 0.1, 0.1, 0.1),
-        edgecolor='red',
+        edgecolor="red",
         ax=axes[0],
     )
     axes[0].get_xaxis().set_visible(False)
 
     df.plot.bar(
-        x='name',
-        y='voxel_size',
+        x="name",
+        y="voxel_size",
         color=(0.1, 0.1, 0.1, 0.1),
-        edgecolor='blue',
+        edgecolor="blue",
         rot=45,
         ax=axes[1],
     )
@@ -93,10 +95,10 @@ def main():
     axes[2].get_xaxis().set_visible(False)
     axes[2].get_yaxis().set_visible(False)
 
-    plt.suptitle(f'BBox and Voxel size of YCB_Video_Models')
+    plt.suptitle(f"BBox and Voxel size of YCB_Video_Models")
 
     plt.show()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

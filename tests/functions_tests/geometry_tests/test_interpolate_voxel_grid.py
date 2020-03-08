@@ -7,14 +7,15 @@ from chainer.testing import attr
 from chainer.testing import condition
 import numpy as np
 
-from morefusion.functions.geometry.interpolate_voxel_grid \
-    import interpolate_voxel_grid
-from morefusion.functions.geometry.interpolate_voxel_grid \
-    import InterpolateVoxelGrid
+from morefusion.functions.geometry.interpolate_voxel_grid import (
+    interpolate_voxel_grid,  # NOQA
+)
+from morefusion.functions.geometry.interpolate_voxel_grid import (
+    InterpolateVoxelGrid,  # NOQA
+)
 
 
 class TestInterpolateVoxelGrid(unittest.TestCase):
-
     def setUp(self):
         batch_size = 3
         n_channel = 4
@@ -24,16 +25,14 @@ class TestInterpolateVoxelGrid(unittest.TestCase):
         self.voxelized = np.random.uniform(
             -1, 1, (batch_size, n_channel, dim, dim, dim)
         ).astype(np.float32)
-        self.points = np.random.uniform(
-            0, 31, (n_point, 3)
-        ).astype(np.float32)
+        self.points = np.random.uniform(0, 31, (n_point, 3)).astype(np.float32)
         self.batch_indices = np.random.randint(
             0, batch_size, size=self.points.shape[0], dtype=np.int32
         )
-        self.gy = np.random.uniform(
-            -1, 1, (n_point, n_channel)
-        ).astype(np.float32)
-        self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
+        self.gy = np.random.uniform(-1, 1, (n_point, n_channel)).astype(
+            np.float32
+        )
+        self.check_backward_options = {"atol": 5e-4, "rtol": 5e-3}
 
     def check_forward(self, voxelized_data, points_data, batch_indices_data):
         y = interpolate_voxel_grid(
@@ -90,10 +89,12 @@ class TestInterpolateVoxelGrid(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_backward_gpu(self):
-        self.check_backward(cuda.to_gpu(self.voxelized),
-                            cuda.to_gpu(self.points),
-                            cuda.to_gpu(self.batch_indices),
-                            cuda.to_gpu(self.gy))
+        self.check_backward(
+            cuda.to_gpu(self.voxelized),
+            cuda.to_gpu(self.points),
+            cuda.to_gpu(self.batch_indices),
+            cuda.to_gpu(self.gy),
+        )
 
 
 testing.run_module(__name__, __file__)

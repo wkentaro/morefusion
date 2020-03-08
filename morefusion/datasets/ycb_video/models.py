@@ -13,7 +13,7 @@ from .class_names import class_names as ycb_video_class_names
 
 class YCBVideoModels(ModelsBase):
 
-    _root_dir = utils_module.get_data_path('ycb_video/YCBVideoModels')
+    _root_dir = utils_module.get_data_path("ycb_video/YCBVideoModels")
 
     _bbox_diagonal_cache: typing.Dict[str, float] = {}
     _cad_cache: typing.Dict[str, trimesh.Trimesh] = {}
@@ -28,21 +28,21 @@ class YCBVideoModels(ModelsBase):
         return [self.class_names[class_id]]
 
     def get_cad_file_from_id(self, cad_id):
-        return self.root_dir / cad_id / 'textured_simple.obj'
+        return self.root_dir / cad_id / "textured_simple.obj"
 
     @classmethod
     def download(cls) -> None:
-        url: str = 'https://drive.google.com/uc?id=1gmcDD-5bkJfcMKLZb3zGgH_HUFbulQWu'  # NOQA
-        md5: str = 'd3efe74e77fe7d7ca216dde4b7d217fa'
+        url: str = "https://drive.google.com/uc?id=1gmcDD-5bkJfcMKLZb3zGgH_HUFbulQWu"  # NOQA
+        md5: str = "d3efe74e77fe7d7ca216dde4b7d217fa"
 
         def postprocess(file: str):
             gdown.extractall(file)
-            file_extracted = path.Path(file).parent / 'models'
+            file_extracted = path.Path(file).parent / "models"
             file_extracted.move(cls._root_dir)
 
         gdown.cached_download(
             url=url,
-            path=cls._root_dir + '.zip',
+            path=cls._root_dir + ".zip",
             md5=md5,
             postprocess=postprocess,
         )
@@ -53,11 +53,11 @@ class YCBVideoModels(ModelsBase):
 
     def get_cad_file(self, class_id):
         class_name = self.class_names[class_id]
-        return self.root_dir / class_name / 'textured_simple.obj'
+        return self.root_dir / class_name / "textured_simple.obj"
 
     def get_pcd_file(self, class_id):
         class_name = self.class_names[class_id]
-        return self.root_dir / class_name / 'points.xyz'
+        return self.root_dir / class_name / "points.xyz"
 
     def get_sdf(self, class_id):
         class_name = self.class_names[class_id]
@@ -68,13 +68,13 @@ class YCBVideoModels(ModelsBase):
 
     def _get_sdf_file(self, class_id):
         class_name = self.class_names[class_id]
-        return self._root_dir / class_name / 'sdf.npz'
+        return self._root_dir / class_name / "sdf.npz"
 
     def _get_sdf(self, class_id):
         sdf_file = self._get_sdf_file(class_id=class_id)
         if sdf_file.exists():
             data = np.load(sdf_file)
-            points, sdf = data['points'], data['sdf']
+            points, sdf = data["points"], data["sdf"]
         else:
             points = self.get_solid_voxel_grid(class_id=class_id).points
             pitch = self.get_voxel_pitch(32, class_id=class_id)
@@ -87,7 +87,7 @@ class YCBVideoModels(ModelsBase):
     def get_solid_voxel_grid(self, class_id):
         cad_file = self.get_cad_file(class_id=class_id)
         binvox_file = utils_module.get_binvox_file(cad_file)
-        with open(binvox_file, 'rb') as f:
+        with open(binvox_file, "rb") as f:
             vg = trimesh.exchange.binvox.load_binvox(f)
         return vg
 
@@ -118,4 +118,4 @@ class YCBVideoModels(ModelsBase):
 
     def get_voxel_pitch(self, dimension, class_id):
         bbox_diagonal = self.get_bbox_diagonal(class_id=class_id)
-        return 1. * bbox_diagonal / dimension
+        return 1.0 * bbox_diagonal / dimension

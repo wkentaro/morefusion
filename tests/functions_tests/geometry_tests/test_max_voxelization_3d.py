@@ -8,27 +8,26 @@ from chainer import testing
 from chainer.testing import attr
 from chainer.testing import condition
 
-from morefusion.functions.geometry.max_voxelization_3d \
-    import max_voxelization_3d
-from morefusion.functions.geometry.max_voxelization_3d \
-    import MaxVoxelization3D
+from morefusion.functions.geometry.max_voxelization_3d import (
+    max_voxelization_3d,  # NOQA
+)
+from morefusion.functions.geometry.max_voxelization_3d import MaxVoxelization3D
 
 
 class TestMaxVoxelization3D(unittest.TestCase):
-
     def setUp(self):
         voxel_dim = 32
         self.dimensions = (voxel_dim, voxel_dim, voxel_dim)
         self.channels = 4
 
         self.origin = numpy.array([-1, -1, -1], dtype=numpy.float32)
-        self.pitch = numpy.float32(2. / voxel_dim)
+        self.pitch = numpy.float32(2.0 / voxel_dim)
 
         self.batch_size = 3
         n_points = 128
-        self.points = numpy.random.uniform(
-            -1, 1, (n_points, 3)
-        ).astype(numpy.float32)
+        self.points = numpy.random.uniform(-1, 1, (n_points, 3)).astype(
+            numpy.float32
+        )
         self.values = numpy.random.uniform(
             -1, 1, (n_points, self.channels)
         ).astype(numpy.float32)
@@ -39,7 +38,7 @@ class TestMaxVoxelization3D(unittest.TestCase):
 
         shape = (self.batch_size, self.channels) + self.dimensions
         self.gy = numpy.random.uniform(-1, 1, shape).astype(numpy.float32)
-        self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
+        self.check_backward_options = {"atol": 5e-4, "rtol": 5e-3}
 
     def check_forward(
         self, values_data, points_data, batch_indices_data, intensities_data
@@ -110,7 +109,7 @@ class TestMaxVoxelization3D(unittest.TestCase):
         points_data,
         batch_indices_data,
         intensities_data,
-        y_grad
+        y_grad,
     ):
         gradient_check.check_backward(
             MaxVoxelization3D(

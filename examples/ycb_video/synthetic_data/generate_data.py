@@ -13,7 +13,7 @@ import morefusion
 
 def generate_a_video(out, random_state, connection_method=None):
     out.makedirs_p()
-    (out / 'models').mkdir_p()
+    (out / "models").mkdir_p()
 
     models = morefusion.datasets.YCBVideoModels()
 
@@ -40,11 +40,11 @@ def generate_a_video(out, random_state, connection_method=None):
 
     cad_files = {}
     for ins_id, data in generator._objects.items():
-        if 'cad_file' in data:
-            dst_file = out / f'models/{ins_id:08d}.obj'
-            print(f'Saved: {dst_file}')
-            shutil.copy(data['cad_file'], dst_file)
-            cad_files[ins_id] = f'models/{ins_id:08d}.obj'
+        if "cad_file" in data:
+            dst_file = out / f"models/{ins_id:08d}.obj"
+            print(f"Saved: {dst_file}")
+            shutil.copy(data["cad_file"], dst_file)
+            cad_files[ins_id] = f"models/{ins_id:08d}.obj"
 
     Ts_cam2world = generator.random_camera_trajectory(
         n_keypoints=5, n_points=15,
@@ -98,11 +98,11 @@ def generate_a_video(out, random_state, connection_method=None):
             instance_ids=instance_ids,
             class_ids=class_ids,
             cad_ids=cad_ids,
-            cad_files=[cad_files.get(i, '') for i in instance_ids],
+            cad_files=[cad_files.get(i, "") for i in instance_ids],
         )
 
-        npz_file = out / f'{index:08d}.npz'
-        print(f'==> Saved: {npz_file}')
+        npz_file = out / f"{index:08d}.npz"
+        print(f"==> Saved: {npz_file}")
         np.savez_compressed(npz_file, **data)
 
     morefusion.extra.pybullet.del_world()
@@ -112,7 +112,7 @@ def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument('--nogui', action='store_true', help='no gui')
+    parser.add_argument("--nogui", action="store_true", help="no gui")
     args = parser.parse_args()
 
     if args.nogui:
@@ -121,18 +121,18 @@ def main():
         connection_method = pybullet.GUI
 
     now = datetime.datetime.utcnow()
-    timestamp = now.strftime('%Y%m%d_%H%M%S.%f')
+    timestamp = now.strftime("%Y%m%d_%H%M%S.%f")
     root_dir = morefusion.utils.get_data_path(
-        f'wkentaro/morefusion/ycb_video/synthetic_data/{timestamp}'
+        f"wkentaro/morefusion/ycb_video/synthetic_data/{timestamp}"
     )
     root_dir = path.Path(root_dir)
 
     n_video = 1200
     for index in range(1, n_video + 1):
-        video_dir = root_dir / f'{index:08d}'
+        video_dir = root_dir / f"{index:08d}"
         random_state = np.random.RandomState(index)
         generate_a_video(video_dir, random_state, connection_method)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

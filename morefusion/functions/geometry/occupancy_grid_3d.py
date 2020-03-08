@@ -5,7 +5,6 @@ import numpy as np
 
 
 class OccupancyGrid3D(chainer.Function):
-
     def __init__(self, *, pitch, origin, dims):
         pitch = np.asarray(pitch, dtype=np.float32)
         origin = np.asarray(origin, dtype=np.float32)
@@ -22,7 +21,7 @@ class OccupancyGrid3D(chainer.Function):
     def check_type_forward(self, in_types):
         chainer.utils.type_check.expect(in_types.size() == 1)
 
-        points_type, = in_types
+        (points_type,) = in_types
         chainer.utils.type_check.expect(
             points_type.dtype == np.float32,
             points_type.ndim == 2,
@@ -32,7 +31,7 @@ class OccupancyGrid3D(chainer.Function):
     def forward(self, inputs):
         xp = cuda.get_array_module(*inputs)
 
-        points, = inputs
+        (points,) = inputs
         self._points_shape = points.shape
         dtype = points.dtype
 
@@ -61,21 +60,24 @@ class OccupancyGrid3D(chainer.Function):
         dtype = grad_d_IP.dtype
 
         pitch = xp.asarray(self.pitch, dtype=dtype)
-        grad_points_x = (- grad_d_IP / pitch).sum(axis=(0, 1, 2))
-        grad_points_y = (- grad_d_JP / pitch).sum(axis=(0, 1, 2))
-        grad_points_z = (- grad_d_KP / pitch).sum(axis=(0, 1, 2))
-        grad_points = xp.concatenate((
-            grad_points_x[:, None],
-            grad_points_y[:, None],
-            grad_points_z[:, None]
-        ), axis=1)
-        return grad_points,
+        grad_points_x = (-grad_d_IP / pitch).sum(axis=(0, 1, 2))
+        grad_points_y = (-grad_d_JP / pitch).sum(axis=(0, 1, 2))
+        grad_points_z = (-grad_d_KP / pitch).sum(axis=(0, 1, 2))
+        grad_points = xp.concatenate(
+            (
+                grad_points_x[:, None],
+                grad_points_y[:, None],
+                grad_points_z[:, None],
+            ),
+            axis=1,
+        )
+        return (grad_points,)
 
 
 def occupancy_grid_3d(points, *, pitch, origin, dims, threshold=1):
-    d_IP, d_JP, d_KP = OccupancyGrid3D(
-        pitch=pitch, origin=origin, dims=dims
-    )(points)
+    d_IP, d_JP, d_KP = OccupancyGrid3D(pitch=pitch, origin=origin, dims=dims)(
+        points
+    )
     d_IJKP = F.sqrt(d_IP ** 2 + d_JP ** 2 + d_KP ** 2)
     d_IJK = F.min(d_IJKP, axis=3)
     m_IJK = F.relu(threshold - d_IJK)
@@ -83,42 +85,31 @@ def occupancy_grid_3d(points, *, pitch, origin, dims, threshold=1):
     return m_IJK
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import chainer.gradient_check
 
     pitch = 1
     origin = (0, 0, 0)
     dims = (5, 5, 5)
-    points = np.array(
-        [[0, 0.05, 0.1], [3.9, 3.95, 4]],
-        dtype=np.float32
-    )
-    print(f'points:\n{points}')
+    points = np.array([[0, 0.05, 0.1], [3.9, 3.95, 4]], dtype=np.float32)
+    print(f"points:\n{points}")
     points = chainer.Variable(points)
-    m_pred = occupancy_grid_3d(
-        points,
-        pitch=pitch,
-        origin=origin,
-        dims=dims,
-    )
+    m_pred = occupancy_grid_3d(points, pitch=pitch, origin=origin, dims=dims,)
     m_true = np.zeros_like(m_pred.array)
     m_true[0, 0, 0] = 1
     m_true[4, 4, 4] = 1
-    print(f'm_pred:\n{m_pred.array}')
-    print(f'm_true:\n{m_true}')
+    print(f"m_pred:\n{m_pred.array}")
+    print(f"m_true:\n{m_true}")
 
     loss = chainer.functions.mean_squared_error(m_pred, m_true)
     loss.backward()
 
-    print(f'points.grad:\n{points.grad}')
+    print(f"points.grad:\n{points.grad}")
 
     def check_backward(points_data, grad_m):
         chainer.gradient_check.check_backward(
             lambda x: occupancy_grid_3d(
-                x,
-                pitch=pitch,
-                origin=origin,
-                dims=dims,
+                x, pitch=pitch, origin=origin, dims=dims,
             ),
             points_data,
             grad_m,

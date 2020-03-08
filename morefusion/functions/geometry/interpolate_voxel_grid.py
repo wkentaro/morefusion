@@ -3,7 +3,7 @@ from chainer.backends import cuda
 import numpy as np
 
 
-_GET_TRILINEAR_INTERP_KERNEL = '''
+_GET_TRILINEAR_INTERP_KERNEL = """
 __device__
 void _get_trilinear_interp_params(
     float ix, float iy, float iz, float weight[8], int ixyz[8][3])
@@ -56,7 +56,7 @@ void _get_trilinear_interp_params(
     ixyz[7][1] = iy_high;
     ixyz[7][2] = iz_high;
 }
-'''
+"""
 
 
 def _get_trilinear_interp_params(ix, iy, iz):
@@ -70,9 +70,9 @@ def _get_trilinear_interp_params(ix, iy, iz):
     lx = ix - ix_low
     ly = iy - iy_low
     lz = iz - iz_low
-    hx = 1. - lx
-    hy = 1. - ly
-    hz = 1. - lz
+    hx = 1.0 - lx
+    hy = 1.0 - ly
+    hz = 1.0 - lz
 
     weight = np.empty((8,), dtype=np.float32)
     weight[0] = hx * hy * hz  # w000
@@ -114,7 +114,6 @@ def _get_trilinear_interp_params(ix, iy, iz):
 
 
 class InterpolateVoxelGrid(chainer.Function):
-
     def check_type_forward(self, in_types):
         chainer.utils.type_check.expect(in_types.size() == 3)
 
@@ -143,10 +142,16 @@ class InterpolateVoxelGrid(chainer.Function):
             weight, ixyz = _get_trilinear_interp_params(ix, iy, iz)
             for j in range(8):
                 ix, iy, iz = ixyz[j]
-                if (ix >= 0 and ix < X and iy >= 0 and iy < Y and
-                        iz >= 0 and iz < Z):
+                if (
+                    ix >= 0
+                    and ix < X
+                    and iy >= 0
+                    and iy < Y
+                    and iz >= 0
+                    and iz < Z
+                ):
                     values[i] += weight[j] * voxelized[b, :, ix, iy, iz]
-        return values,
+        return (values,)
 
     def backward_cpu(self, x, gy):
         raise NotImplementedError
@@ -163,12 +168,12 @@ class InterpolateVoxelGrid(chainer.Function):
         shape = cuda.cupy.array(voxelized.shape, dtype=np.int32)
 
         cuda.elementwise(
-            '''
+            """
             raw float32 voxelized, raw float32 points,
             raw int32 batch_indices, raw int32 shape
-            ''',
-            'float32 values',
-            r'''
+            """,
+            "float32 values",
+            r"""
             int C = shape[1];
             int X = shape[2];
             int Y = shape[3];
@@ -201,28 +206,28 @@ class InterpolateVoxelGrid(chainer.Function):
                     atomicAdd(&values, weight[j] * voxelized[index]);
                 }
             }
-            ''',
-            'interpolate_voxel_grid_fwd',
+            """,
+            "interpolate_voxel_grid_fwd",
             preamble=_GET_TRILINEAR_INTERP_KERNEL,
         )(voxelized, points, batch_indices, shape, values)
 
-        return values,
+        return (values,)
 
     def backward_gpu(self, x, gy):
         points = x[1]
         batch_indices = x[2]
-        gvalues, = gy
+        (gvalues,) = gy
 
         gvoxelized = cuda.cupy.zeros(self._shape, dtype=np.float32)
         shape = cuda.cupy.array(self._shape, dtype=np.int32)
 
         cuda.elementwise(
-            '''
+            """
             float32 gvalues, raw float32 points,
             raw int32 batch_indices, raw int32 shape
-            ''',
-            'raw float32 gvoxelized',
-            r'''
+            """,
+            "raw float32 gvoxelized",
+            r"""
             int C = shape[1];
             int X = shape[2];
             int Y = shape[3];
@@ -255,8 +260,8 @@ class InterpolateVoxelGrid(chainer.Function):
                     atomicAdd(&gvoxelized[index], weight[j] * gvalues);
                 }
             }
-            ''',
-            'interpolate_voxel_grid_bwd',
+            """,
+            "interpolate_voxel_grid_bwd",
             preamble=_GET_TRILINEAR_INTERP_KERNEL,
         )(gvalues, points, batch_indices, shape, gvoxelized)
 
@@ -272,27 +277,27 @@ def main():
 
     import morefusion
 
-    dataset = morefusion.datasets.YCBVideoRGBDPoseEstimationDataset('train')
+    dataset = morefusion.datasets.YCBVideoRGBDPoseEstimationDataset("train")
     example = dataset[0][0]
 
-    center = np.nanmean(example['pcd'], axis=(0, 1))
+    center = np.nanmean(example["pcd"], axis=(0, 1))
     pitch = 0.0075
     dim = 32
     origin = center - (dim / 2.0 - 0.5) * pitch
 
     mapping = morefusion.geometry.VoxelMapping(origin, pitch, 32, 3)
-    mask = ~np.isnan(example['pcd']).any(axis=2)
-    mapping.add(example['pcd'][mask], example['rgb'][mask])
+    mask = ~np.isnan(example["pcd"]).any(axis=2)
+    mapping.add(example["pcd"][mask], example["rgb"][mask])
 
     points = np.array([(15.70, 15.75, 15.75)], dtype=np.float32)
 
     locs = np.arange(dim), np.arange(dim), np.arange(dim)
-    values = scipy.interpolate.RegularGridInterpolator(
-        locs, mapping.values
-    )(points)
+    values = scipy.interpolate.RegularGridInterpolator(locs, mapping.values)(
+        points
+    )
     print(points[0], values[0])
 
-    print('-' * 79)
+    print("-" * 79)
 
     voxelized = mapping.values.transpose(3, 0, 1, 2).astype(np.float32)
     values = InterpolateVoxelGrid()(voxelized, points).array
@@ -306,5 +311,5 @@ def main():
     print(points[0], values[0])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -11,19 +11,20 @@ from morefusion.functions.geometry.compose_transform import compose_transform
 
 
 class TestComposeTransform(unittest.TestCase):
-
     def setUp(self):
         batch_size = 5
-        self.Rs = np.asarray([
-            tf.random_rotation_matrix() for _ in range(batch_size)
-        ], dtype=np.float32)[:, :3, :3]
-        self.ts = np.asarray([
-            tf.random_vector((3,)) for _ in range(batch_size)
-        ], dtype=np.float32)
-        self.gTs = np.random.uniform(
-            -1, 1, (batch_size, 4, 4)
-        ).astype(np.float32)
-        self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
+        self.Rs = np.asarray(
+            [tf.random_rotation_matrix() for _ in range(batch_size)],
+            dtype=np.float32,
+        )[:, :3, :3]
+        self.ts = np.asarray(
+            [tf.random_vector((3,)) for _ in range(batch_size)],
+            dtype=np.float32,
+        )
+        self.gTs = np.random.uniform(-1, 1, (batch_size, 4, 4)).astype(
+            np.float32
+        )
+        self.check_backward_options = {"atol": 5e-4, "rtol": 5e-3}
 
     def check_forward(self, Rs, ts):
         Ts = compose_transform(Rs, ts)

@@ -10,25 +10,20 @@ from morefusion.functions.geometry.occupancy_grid_3d import occupancy_grid_3d
 
 
 class TestOccupancyGrid3D(unittest.TestCase):
-
     def setUp(self):
         self.pitch = 1
         self.origin = (0, 0, 0)
         self.dims = (5, 5, 5)
         self.points = np.array(
-            [[0, 0.05, 0.1], [3.9, 3.95, 4]],
-            dtype=np.float32
+            [[0, 0.05, 0.1], [3.9, 3.95, 4]], dtype=np.float32
         )
-        self.grad_matrix = np.random.uniform(
-            -1, 1, self.dims
-        ).astype(np.float32)
+        self.grad_matrix = np.random.uniform(-1, 1, self.dims).astype(
+            np.float32
+        )
 
     def check_forward(self, points_data):
         matrix = occupancy_grid_3d(
-            points_data,
-            pitch=self.pitch,
-            origin=self.origin,
-            dims=self.dims,
+            points_data, pitch=self.pitch, origin=self.origin, dims=self.dims,
         )
         nonzero = [
             [0, 0, 0],
@@ -53,10 +48,7 @@ class TestOccupancyGrid3D(unittest.TestCase):
     @condition.retry(3)
     def test_forward_cpu_gpu_equal(self):
         y_cpu = occupancy_grid_3d(
-            self.points,
-            pitch=self.pitch,
-            origin=self.origin,
-            dims=self.dims,
+            self.points, pitch=self.pitch, origin=self.origin, dims=self.dims,
         )
 
         y_gpu = occupancy_grid_3d(
@@ -71,10 +63,7 @@ class TestOccupancyGrid3D(unittest.TestCase):
     def check_backward(self, points_data, grad_matrix):
         chainer.gradient_check.check_backward(
             lambda x: occupancy_grid_3d(
-                x,
-                pitch=self.pitch,
-                origin=self.origin,
-                dims=self.dims,
+                x, pitch=self.pitch, origin=self.origin, dims=self.dims,
             ),
             points_data,
             grad_matrix,

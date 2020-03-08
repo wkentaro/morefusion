@@ -15,11 +15,7 @@ class Model(chainer.Chain):
     _n_point = 1000
 
     def __init__(
-        self,
-        *,
-        n_fg_class,
-        pretrained_resnet18=False,
-        with_count=False,
+        self, *, n_fg_class, pretrained_resnet18=False, with_count=False,
     ):
         super().__init__()
 
@@ -30,10 +26,12 @@ class Model(chainer.Chain):
             if pretrained_resnet18:
                 self.resnet_extractor = morefusion.models.ResNet18Extractor()
             else:
-                self.resnet_extractor = \
+                self.resnet_extractor = (
                     morefusion.models.dense_fusion.ResNet18()
-            self.pspnet_extractor = \
+                )
+            self.pspnet_extractor = (
                 morefusion.models.dense_fusion.PSPNetExtractor()
+            )
             self.voxel_extractor = VoxelFeatureExtractor(
                 self._n_point, with_count
             )
@@ -65,10 +63,7 @@ class Model(chainer.Chain):
         origin=None,
         grid_nontarget_empty=None,
     ):
-        values, points = self._extract(
-            rgb=rgb,
-            pcd=pcd,
-        )
+        values, points = self._extract(rgb=rgb, pcd=pcd,)
 
         pitch, origin, voxelized, count = self._voxelize(
             class_id=class_id,
@@ -79,14 +74,17 @@ class Model(chainer.Chain):
             grid_nontarget_empty=grid_nontarget_empty,
         )
 
-        quaternion_pred, translation_pred, confidence_pred = \
-            self._predict_from_voxelized(
-                class_id=class_id,
-                pitch=pitch,
-                origin=origin,
-                voxelized=voxelized,
-                count=count,
-            )
+        (
+            quaternion_pred,
+            translation_pred,
+            confidence_pred,
+        ) = self._predict_from_voxelized(
+            class_id=class_id,
+            pitch=pitch,
+            origin=origin,
+            voxelized=voxelized,
+            count=count,
+        )
 
         return quaternion_pred, translation_pred, confidence_pred
 
@@ -113,7 +111,7 @@ class Model(chainer.Chain):
             # h_rgb[i]: CHW
             # pcd[i]:   3HW
             values.append(h_rgb[i][:, mask[i]].transpose(1, 0))  # MC
-            points.append(pcd[i][:, mask[i]].transpose(1, 0))    # M3
+            points.append(pcd[i][:, mask[i]].transpose(1, 0))  # M3
 
         return values, points
 
@@ -145,16 +143,18 @@ class Model(chainer.Chain):
                 )
             if origin[i] is None:
                 center_i = morefusion.extra.cupy.median(points[i], axis=0)
-                origin[i] = center_i - pitch[i] * (self._voxel_dim / 2. - 0.5)
-            voxelized_i, count_i = \
-                morefusion.functions.average_voxelization_3d(
-                    values=values[i],
-                    points=points[i],
-                    origin=origin[i],
-                    pitch=pitch[i],
-                    dimensions=dimensions,
-                    return_counts=True,
-                )
+                origin[i] = center_i - pitch[i] * (self._voxel_dim / 2.0 - 0.5)
+            (
+                voxelized_i,
+                count_i,
+            ) = morefusion.functions.average_voxelization_3d(
+                values=values[i],
+                points=points[i],
+                origin=origin[i],
+                pitch=pitch[i],
+                dimensions=dimensions,
+                return_counts=True,
+            )
             voxelized.append(voxelized_i)
             count.append(count_i)
         pitch = xp.asarray(pitch, dtype=np.float32)
@@ -183,9 +183,8 @@ class Model(chainer.Chain):
         origin = origin.astype(np.float32)
 
         points = (
-            origin[:, :, None] +
-            points.astype(np.float32) *
-            pitch[:, None, None]
+            origin[:, :, None]
+            + points.astype(np.float32) * pitch[:, None, None]
         )
 
         h_rot = F.relu(self.conv1_rot(values))
@@ -214,7 +213,7 @@ class Model(chainer.Chain):
         quaternion = F.normalize(quaternion, axis=1)
         translation = points + translation * pitch[:, None, None]
 
-        quaternion = quaternion.transpose(0, 2, 1)    # B4M -> BM4
+        quaternion = quaternion.transpose(0, 2, 1)  # B4M -> BM4
         translation = translation.transpose(0, 2, 1)  # B3M -> BM3
 
         return quaternion, translation, confidence
@@ -297,14 +296,16 @@ class Model(chainer.Chain):
                     translate=translate,
                 )
                 add, add_s = add[0], add_s[0]
-                add_type = 'add' if translate else 'addr'
+                add_type = "add" if translate else "addr"
                 if chainer.config.train:
-                    summary.add({f'{add_type}': add, f'{add_type}_s': add_s})
+                    summary.add({f"{add_type}": add, f"{add_type}_s": add_s})
                 else:
-                    summary.add({
-                        f'{add_type}/{class_id_i:04d}/{i:04d}': add,
-                        f'{add_type}_s/{class_id_i:04d}/{i:04d}': add_s,
-                    })
+                    summary.add(
+                        {
+                            f"{add_type}/{class_id_i:04d}/{i:04d}": add,
+                            f"{add_type}_s/{class_id_i:04d}/{i:04d}": add_s,
+                        }
+                    )
         chainer.report(summary.compute_mean(), self)
 
     def loss(
@@ -337,8 +338,9 @@ class Model(chainer.Chain):
             T_cad2cam_true = F.repeat(T_cad2cam_true[None], n_point, axis=0)
 
             class_id_i = int(class_id[i])
-            is_symmetric = class_id_i in \
-                morefusion.datasets.ycb_video.class_ids_symmetric
+            is_symmetric = (
+                class_id_i in morefusion.datasets.ycb_video.class_ids_symmetric
+            )
             cad_pcd = self._models.get_pcd(class_id=class_id_i)
             cad_pcd = xp.asarray(cad_pcd, dtype=np.float32)
             add = morefusion.functions.average_distance_l1(
@@ -349,20 +351,19 @@ class Model(chainer.Chain):
             )
 
             loss_i = F.mean(
-                add * confidence_pred[i] -
-                self._lambda_confidence * F.log(confidence_pred[i])
+                add * confidence_pred[i]
+                - self._lambda_confidence * F.log(confidence_pred[i])
             )
             loss += loss_i
         loss /= B
 
-        values = {'loss': loss}
+        values = {"loss": loss}
         chainer.report(values, observer=self)
 
         return loss
 
 
 class VoxelFeatureExtractor(chainer.Chain):
-
     def __init__(self, n_point, with_count):
         self._n_point = n_point
         self._with_count = with_count
@@ -429,7 +430,7 @@ class VoxelFeatureExtractor(chainer.Chain):
             I, J, K = xp.nonzero(count[i])
             n_point = len(I)
             if n_point >= self._n_point:
-                keep = xp.random.permutation(n_point)[:self._n_point]
+                keep = xp.random.permutation(n_point)[: self._n_point]
             else:
                 keep = xp.r_[
                     xp.arange(n_point),
@@ -438,22 +439,27 @@ class VoxelFeatureExtractor(chainer.Chain):
             assert keep.shape == (self._n_point,)
             I, J, K = I[keep], J[keep], K[keep]
             # indices = xp.column_stack((I, J, K)).astype(np.float32)
-            values_i = F.concat([
-                h_conv1[i, :, I, J, K],
-                h_conv2[i, :, I // 2, J // 2, K // 2],
-                h_conv3[i, :, I // 4, J // 4, K // 4],
-                h_conv4[i, :, I // 8, J // 8, K // 8],
-                # morefusion.functions.interpolate_voxel_grid(
-                #     h_conv2[i], indices / 2.
-                # ),
-                # morefusion.functions.interpolate_voxel_grid(
-                #     h_conv3[i], indices / 4.
-                # ),
-                # morefusion.functions.interpolate_voxel_grid(
-                #     h_conv4[i], indices / 8.
-                # ),
-                F.repeat(h_conv5[i, :, 0, 0, 0][None], self._n_point, axis=0),
-            ], axis=1)
+            values_i = F.concat(
+                [
+                    h_conv1[i, :, I, J, K],
+                    h_conv2[i, :, I // 2, J // 2, K // 2],
+                    h_conv3[i, :, I // 4, J // 4, K // 4],
+                    h_conv4[i, :, I // 8, J // 8, K // 8],
+                    # morefusion.functions.interpolate_voxel_grid(
+                    #     h_conv2[i], indices / 2.
+                    # ),
+                    # morefusion.functions.interpolate_voxel_grid(
+                    #     h_conv3[i], indices / 4.
+                    # ),
+                    # morefusion.functions.interpolate_voxel_grid(
+                    #     h_conv4[i], indices / 8.
+                    # ),
+                    F.repeat(
+                        h_conv5[i, :, 0, 0, 0][None], self._n_point, axis=0
+                    ),
+                ],
+                axis=1,
+            )
             values.append(values_i)
             points.append(xp.column_stack((I, J, K)))
         values = F.stack(values)

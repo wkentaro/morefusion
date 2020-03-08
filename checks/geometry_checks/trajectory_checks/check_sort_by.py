@@ -13,9 +13,7 @@ n_points = 128
 # target
 aabb_min_target = (-0.2, -0.2, -0.2)
 aabb_max_target = (0.2, 0.2, 0.2)
-targets = np.random.uniform(
-    aabb_min_target, aabb_max_target, (n_keypoints, 3)
-)
+targets = np.random.uniform(aabb_min_target, aabb_max_target, (n_keypoints, 3))
 targets = morefusion.geometry.trajectory.sort(targets)
 targets = morefusion.geometry.trajectory.interpolate(
     targets, n_points=n_points
@@ -41,7 +39,7 @@ box = trimesh.path.creation.box_outline((2, 2, 2))
 scene.add_geometry(box)
 
 axis = trimesh.creation.axis(0.01)
-point = trimesh.creation.icosphere(radius=0.01, color=(1., 0, 0))
+point = trimesh.creation.icosphere(radius=0.01, color=(1.0, 0, 0))
 for eye, target in zip(eyes, targets):
     transform = tf.translation_matrix(eye)
     scene.add_geometry(axis, transform=transform)
@@ -52,4 +50,4 @@ for eye, target in zip(eyes, targets):
     ray = trimesh.load_path([eye, target])
     scene.add_geometry(ray)
 
-morefusion.extra.trimesh.display_scenes({'scene': scene})
+morefusion.extra.trimesh.display_scenes({"scene": scene})

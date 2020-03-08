@@ -8,7 +8,6 @@ import PIL.Image
 
 
 class InDataMutatingTransform(abc.ABC):
-
     @abc.abstractmethod
     def transform(self, in_data):
         raise NotImplementedError
@@ -27,7 +26,6 @@ class InDataMutatingTransform(abc.ABC):
 
 
 class AsType(InDataMutatingTransform):
-
     def __init__(self, indices, dtypes):
         assert len(indices) == len(dtypes)
         self._indices = indices
@@ -39,7 +37,6 @@ class AsType(InDataMutatingTransform):
 
 
 class HWC2CHW(InDataMutatingTransform):
-
     def __init__(self, indices):
         self._indices = indices
 
@@ -49,7 +46,6 @@ class HWC2CHW(InDataMutatingTransform):
 
 
 class Dict2Tuple:
-
     def __init__(self, keys):
         self._keys = keys
 
@@ -58,7 +54,6 @@ class Dict2Tuple:
 
 
 class ClassIds2FGClassIds:
-
     def __init__(self, indices):
         self._indices = indices
 
@@ -69,7 +64,6 @@ class ClassIds2FGClassIds:
 
 
 class Compose:
-
     def __init__(self, *transforms):
         self._transforms = transforms
 
@@ -80,7 +74,6 @@ class Compose:
 
 
 class Affine(InDataMutatingTransform):
-
     def __init__(self, rgb_indices, mask_indices, bbox_indices):
         self._rgb_indices = rgb_indices
         self._mask_indices = mask_indices
@@ -105,10 +98,13 @@ class Affine(InDataMutatingTransform):
             masks = np.array([augmenter.augment_image(m) for m in masks])
             in_data[index] = masks.astype(bool)
         for index in self._bbox_indices:
-            bbox_on_img = imgaug.BoundingBoxesOnImage([
-                imgaug.BoundingBox(x1, y1, x2, y2)
-                for y1, x1, y2, x2 in in_data[index]
-            ], shape)
+            bbox_on_img = imgaug.BoundingBoxesOnImage(
+                [
+                    imgaug.BoundingBox(x1, y1, x2, y2)
+                    for y1, x1, y2, x2 in in_data[index]
+                ],
+                shape,
+            )
             bbox_on_img = augmenter.augment_bounding_boxes(bbox_on_img)
             bboxes = []
             for bbox in bbox_on_img.bounding_boxes:
@@ -118,32 +114,37 @@ class Affine(InDataMutatingTransform):
 
 
 class RGBAugmentation(InDataMutatingTransform):
-
     def __init__(self, indices):
         self._indices = indices
 
     def transform(self, in_data):
-        augmenter = iaa.Sequential([
-            iaa.LinearContrast(alpha=(0.8, 1.2)),
-            iaa.WithColorspace(
-                to_colorspace='HSV',
-                from_colorspace='RGB',
-                children=iaa.Sequential([
-                    # SV
-                    iaa.WithChannels(
-                        (1, 2),
-                        iaa.Multiply(mul=(0.8, 1.2), per_channel=True),
+        augmenter = iaa.Sequential(
+            [
+                iaa.LinearContrast(alpha=(0.8, 1.2)),
+                iaa.WithColorspace(
+                    to_colorspace="HSV",
+                    from_colorspace="RGB",
+                    children=iaa.Sequential(
+                        [
+                            # SV
+                            iaa.WithChannels(
+                                (1, 2),
+                                iaa.Multiply(mul=(0.8, 1.2), per_channel=True),
+                            ),
+                            # H
+                            iaa.WithChannels(
+                                (0,),
+                                iaa.Multiply(
+                                    mul=(0.95, 1.05), per_channel=True
+                                ),
+                            ),
+                        ]
                     ),
-                    # H
-                    iaa.WithChannels(
-                        (0,),
-                        iaa.Multiply(mul=(0.95, 1.05), per_channel=True),
-                    ),
-                ]),
-            ),
-            iaa.GaussianBlur(sigma=(0, 1.0)),
-            iaa.KeepSizeByResize(children=iaa.Resize((0.25, 1.0))),
-        ])
+                ),
+                iaa.GaussianBlur(sigma=(0, 1.0)),
+                iaa.KeepSizeByResize(children=iaa.Resize((0.25, 1.0))),
+            ]
+        )
 
         augmenter = augmenter.to_deterministic()
         for index in self._indices:
@@ -151,7 +152,6 @@ class RGBAugmentation(InDataMutatingTransform):
 
 
 class MaskRCNNTransform(object):
-
     def __init__(self, min_size, max_size, mean):
         self.min_size = min_size
         self.max_size = max_size
@@ -162,11 +162,13 @@ class MaskRCNNTransform(object):
 
         # Scaling and mean subtraction
         img, scale = chainercv.links.model.fpn.misc.scale_img(
-            img, self.min_size, self.max_size)
+            img, self.min_size, self.max_size
+        )
         img -= self.mean
         bbox = bbox * scale
         mask = chainercv.transforms.resize(
             mask.astype(np.float32),
             img.shape[1:],
-            interpolation=PIL.Image.NEAREST).astype(np.bool)
+            interpolation=PIL.Image.NEAREST,
+        ).astype(np.bool)
         return img, bbox, label, mask

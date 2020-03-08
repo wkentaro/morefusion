@@ -2,10 +2,7 @@ from chainer.backends import cuda
 
 
 def points_from_angles(
-    distance,
-    elevation,
-    azimuth,
-    is_degree: bool = True,
+    distance, elevation, azimuth, is_degree: bool = True,
 ):
     xp = cuda.get_array_module(distance)
 
@@ -19,8 +16,10 @@ def points_from_angles(
     assert distance.shape == elevation.shape == azimuth.shape
     assert distance.ndim in (0, 1)
 
-    return xp.stack([
-        distance * xp.cos(elevation) * xp.sin(azimuth),
-        - distance * xp.cos(elevation) * xp.cos(azimuth),
-        distance * xp.sin(elevation),
-    ]).transpose()
+    return xp.stack(
+        [
+            distance * xp.cos(elevation) * xp.sin(azimuth),
+            -distance * xp.cos(elevation) * xp.cos(azimuth),
+            distance * xp.sin(elevation),
+        ]
+    ).transpose()

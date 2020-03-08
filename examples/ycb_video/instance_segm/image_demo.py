@@ -20,24 +20,21 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     root_dir = morefusion.utils.get_data_path(
-        'wkentaro/morefusion/ycb_video/real_data/20190613/1560417263794359922',
+        "wkentaro/morefusion/ycb_video/real_data/20190613/1560417263794359922",
     )
-    default_image = root_dir / 'image.png'
+    default_image = root_dir / "image.png"
     parser.add_argument(
-        '--image',
-        help='image file',
-        default=default_image,
+        "--image", help="image file", default=default_image,
     )
     parser.add_argument(
-        '--model',
-        help='model file',
+        "--model", help="model file",
     )
     args = parser.parse_args()
 
     if args.model is None:
         args.model = gdown.cached_download(
-            url='https://drive.google.com/uc?id=1Ge2S9JudxC5ODdsrjOy5XoW7l7Zcz65E',  # NOQA
-            md5='fc06b1292a7e99f9c1deb063accbf7ea',
+            url="https://drive.google.com/uc?id=1Ge2S9JudxC5ODdsrjOy5XoW7l7Zcz65E",  # NOQA
+            md5="fc06b1292a7e99f9c1deb063accbf7ea",
         )
 
     args.image = path.Path(args.image)
@@ -48,8 +45,7 @@ def main():
     # -------------------------------------------------------------------------
 
     mask_rcnn = chainercv.links.model.fpn.MaskRCNNFPNResNet50(
-        n_fg_class=21,
-        pretrained_model=args.model,
+        n_fg_class=21, pretrained_model=args.model,
     )
     mask_rcnn.to_gpu()
 
@@ -62,18 +58,15 @@ def main():
     class_ids = labels + 1
 
     # save detections
-    detections_file = args.image.parent / 'detections.npz'
+    detections_file = args.image.parent / "detections.npz"
     np.savez_compressed(
-        detections_file,
-        masks=masks,
-        class_ids=class_ids,
-        scores=scores,
+        detections_file, masks=masks, class_ids=class_ids, scores=scores,
     )
-    termcolor.cprint(f'==> Saved to {detections_file}', attrs={'bold': True})
+    termcolor.cprint(f"==> Saved to {detections_file}", attrs={"bold": True})
 
     # visualize detections
     captions = [
-        f'{c:02d}: {morefusion.datasets.ycb_video.class_names[c]}'
+        f"{c:02d}: {morefusion.datasets.ycb_video.class_names[c]}"
         for c in class_ids
     ]
     detections_viz = imgviz.instances2rgb(
@@ -85,15 +78,15 @@ def main():
         line_width=2,
     )
 
-    detections_viz_file = args.image.parent / 'detections_viz.png'
+    detections_viz_file = args.image.parent / "detections_viz.png"
     imgviz.io.imsave(detections_viz_file, detections_viz)
     termcolor.cprint(
-        f'==> Saved to {detections_viz_file}', attrs={'bold': True}
+        f"==> Saved to {detections_viz_file}", attrs={"bold": True}
     )
 
     imgviz.io.pyglet_imshow(detections_viz)
     imgviz.io.pyglet_run()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -3,7 +3,6 @@ from chainer.backends import cuda
 
 
 class ComposeTransform(chainer.Function):
-
     def check_type_forward(self, in_types):
         chainer.utils.type_check.expect(in_types.size() == 2)
 
@@ -26,10 +25,10 @@ class ComposeTransform(chainer.Function):
 
         T[:, :3, :3] = R
         T[:, :3, 3] = t
-        return T,
+        return (T,)
 
     def backward(self, inputs, gy):
-        gT, = gy
+        (gT,) = gy
         gR = gT[:, :3, :3]
         gt = gT[:, :3, 3]
         return gR, gt

@@ -29,10 +29,10 @@ class Model(chainer.Chain):
         self._centerize_pcd = centerize_pcd
 
         if loss is None:
-            loss = 'add/add_s'
+            loss = "add/add_s"
         assert loss in [
-            'add',
-            'add/add_s',
+            "add",
+            "add/add_s",
         ]
         self._loss = loss
 
@@ -41,10 +41,12 @@ class Model(chainer.Chain):
             if pretrained_resnet18:
                 self.resnet_extractor = morefusion.models.ResNet18Extractor()
             else:
-                self.resnet_extractor = \
+                self.resnet_extractor = (
                     morefusion.models.dense_fusion.ResNet18()
-            self.pspnet_extractor = \
+                )
+            self.pspnet_extractor = (
                 morefusion.models.dense_fusion.PSPNetExtractor()
+            )
             self.posenet_extractor = PoseNetExtractor()
 
             # conv1
@@ -89,7 +91,7 @@ class Model(chainer.Chain):
             else:
                 random_state = np.random.RandomState(1234)
             if n_point >= self._n_point:
-                keep = random_state.permutation(n_point)[:self._n_point]
+                keep = random_state.permutation(n_point)[: self._n_point]
             else:
                 keep = np.r_[
                     np.arange(n_point),
@@ -99,10 +101,10 @@ class Model(chainer.Chain):
             iy, ix = xp.where(mask[i])
             center = morefusion.extra.cupy.median(pcd[i, :, iy, ix], axis=0)
             iy, ix = iy[keep], ix[keep]
-            h_rgb_i = h_rgb[i, :, iy, ix]      # CHW -> MC, M = self._n_point
-            pcd_i = pcd[i, :, iy, ix]          # CHW -> MC
+            h_rgb_i = h_rgb[i, :, iy, ix]  # CHW -> MC, M = self._n_point
+            pcd_i = pcd[i, :, iy, ix]  # CHW -> MC
             h_rgb_i = h_rgb_i.transpose(1, 0)  # MC -> CM
-            pcd_i = pcd_i.transpose(1, 0)      # MC -> CM
+            pcd_i = pcd_i.transpose(1, 0)  # MC -> CM
             h_rgb_masked.append(h_rgb_i[None])
             pcd_masked.append(pcd_i[None])
             centers.append(center[None])
@@ -147,19 +149,13 @@ class Model(chainer.Chain):
         conf = cls_conf[xp.arange(B), fg_class_id]
 
         rot = F.normalize(rot, axis=1)
-        rot = rot.transpose(0, 2, 1)    # B4M -> BM4
+        rot = rot.transpose(0, 2, 1)  # B4M -> BM4
         trans = trans.transpose(0, 2, 1)  # B3M -> BM3
 
         return rot, trans, conf
 
     def __call__(
-        self,
-        *,
-        class_id,
-        rgb,
-        pcd,
-        quaternion_true,
-        translation_true,
+        self, *, class_id, rgb, pcd, quaternion_true, translation_true,
     ):
         B = class_id.shape[0]
         xp = self.xp
@@ -220,23 +216,27 @@ class Model(chainer.Chain):
                 transform2=[T_cad2cam_pred[i]],
             )
             add, add_s = add[0], add_s[0]
-            is_symmetric = class_id_i in \
-                morefusion.datasets.ycb_video.class_ids_symmetric
+            is_symmetric = (
+                class_id_i in morefusion.datasets.ycb_video.class_ids_symmetric
+            )
             add_or_add_s = add_s if is_symmetric else add
             if chainer.config.train:
-                summary.add({
-                    f'add': add,
-                    f'add_s': add_s,
-                    f'add_or_add_s': add_or_add_s,
-                })
+                summary.add(
+                    {
+                        f"add": add,
+                        f"add_s": add_s,
+                        f"add_or_add_s": add_or_add_s,
+                    }
+                )
             else:
                 instance_id_i = uuid.uuid1()
-                summary.add({
-                    f'add/{class_id_i:04d}/{instance_id_i}': add,
-                    f'add_s/{class_id_i:04d}/{instance_id_i}': add_s,
-                    f'add_or_add_s/{class_id_i:04d}/{instance_id_i}':
-                        add_or_add_s,
-                })
+                summary.add(
+                    {
+                        f"add/{class_id_i:04d}/{instance_id_i}": add,
+                        f"add_s/{class_id_i:04d}/{instance_id_i}": add_s,
+                        f"add_or_add_s/{class_id_i:04d}/{instance_id_i}": add_or_add_s,  # NOQA
+                    }
+                )
         chainer.report(summary.compute_mean(), self)
 
     def loss(
@@ -270,12 +270,13 @@ class Model(chainer.Chain):
             cad_pcd = cad_pcd[np.random.permutation(cad_pcd.shape[0])[:500]]
             cad_pcd = xp.asarray(cad_pcd, dtype=np.float32)
 
-            is_symmetric = class_id_i in \
-                morefusion.datasets.ycb_video.class_ids_symmetric
-            if self._loss in ['add']:
+            is_symmetric = (
+                class_id_i in morefusion.datasets.ycb_video.class_ids_symmetric
+            )
+            if self._loss in ["add"]:
                 is_symmetric = False
             else:
-                assert self._loss in ['add/add_s']
+                assert self._loss in ["add/add_s"]
             add = morefusion.functions.average_distance(
                 cad_pcd,
                 T_cad2cam_true,
@@ -286,13 +287,13 @@ class Model(chainer.Chain):
 
             keep = confidence_pred[i].array > 0
             loss_i = F.mean(
-                add[keep] * confidence_pred[i][keep] -
-                self._lambda_confidence * F.log(confidence_pred[i][keep])
+                add[keep] * confidence_pred[i][keep]
+                - self._lambda_confidence * F.log(confidence_pred[i][keep])
             )
             loss += loss_i
         loss /= B
 
-        values = {'loss': loss}
+        values = {"loss": loss}
         chainer.report(values, observer=self)
 
         return loss
@@ -300,7 +301,6 @@ class Model(chainer.Chain):
 
 # https://github.com/knorth55/chainer-dense-fusion/blob/master/chainer_dense_fusion/links/model/posenet.py  # NOQA
 class PoseNetExtractor(chainer.Chain):
-
     def __init__(self):
         super().__init__()
         with self.init_scope():

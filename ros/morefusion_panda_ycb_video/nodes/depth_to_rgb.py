@@ -14,23 +14,20 @@ import topic_tools
 
 
 class DepthToNormalNode(topic_tools.LazyTransport):
-
     def __init__(self):
         super().__init__()
         self._pub_normal = self.advertise(
-            '~output/normal', Image, queue_size=1
+            "~output/normal", Image, queue_size=1
         )
-        self._pub_jet = self.advertise(
-            '~output/jet', Image, queue_size=1
-        )
+        self._pub_jet = self.advertise("~output/jet", Image, queue_size=1)
         self._post_init()
 
     def subscribe(self):
         sub_cam = message_filters.Subscriber(
-            '~input/camera_info', CameraInfo, queue_size=1
+            "~input/camera_info", CameraInfo, queue_size=1
         )
         sub_depth = message_filters.Subscriber(
-            '~input/depth', Image, queue_size=1
+            "~input/depth", Image, queue_size=1
         )
         self._subscribers = [sub_cam, sub_depth]
         sync = message_filters.TimeSynchronizer(
@@ -58,7 +55,7 @@ class DepthToNormalNode(topic_tools.LazyTransport):
             )
             normal = morefusion.geometry.estimate_pointcloud_normals(points)
             normal = np.uint8((normal + 1) / 2 * 255)
-            out_msg = bridge.cv2_to_imgmsg(normal, 'rgb8')
+            out_msg = bridge.cv2_to_imgmsg(normal, "rgb8")
             out_msg.header = cam_msg.header
             self._pub_normal.publish(out_msg)
 
@@ -71,12 +68,12 @@ class DepthToNormalNode(topic_tools.LazyTransport):
             jet = imgviz.depth2rgb(
                 depth, min_value=min_value, max_value=max_value
             )
-            out_msg = bridge.cv2_to_imgmsg(jet, 'rgb8')
+            out_msg = bridge.cv2_to_imgmsg(jet, "rgb8")
             out_msg.header = cam_msg.header
             self._pub_jet.publish(out_msg)
 
 
-if __name__ == '__main__':
-    rospy.init_node('depth_to_normal')
+if __name__ == "__main__":
+    rospy.init_node("depth_to_normal")
     DepthToNormalNode()
     rospy.spin()

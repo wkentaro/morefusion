@@ -34,16 +34,16 @@ def main():
         scene = trimesh.Scene()
 
         points_true = tf.transform_points(points, transform_true)
-        colors = np.full((points_true.shape[0], 3), [1., 0, 0])
+        colors = np.full((points_true.shape[0], 3), [1.0, 0, 0])
         geom = trimesh.PointCloud(vertices=points_true, color=colors)
         scene.add_geometry(geom)
 
         points_pred = tf.transform_points(points, transform_pred)
-        colors = np.full((points_true.shape[0], 3), [0, 0, 1.])
+        colors = np.full((points_true.shape[0], 3), [0, 0, 1.0])
         geom = trimesh.PointCloud(vertices=points_pred, color=colors)
         scene.add_geometry(geom)
 
-        scenes[f'use_translation: {use_translation}, add: {add}'] = scene
+        scenes[f"use_translation: {use_translation}, add: {add}"] = scene
         if scenes:
             camera_transform = list(scenes.values())[0].camera_transform
             scene.camera_transform = camera_transform
@@ -51,5 +51,5 @@ def main():
     morefusion.extra.trimesh.display_scenes(scenes)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

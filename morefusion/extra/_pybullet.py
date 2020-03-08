@@ -18,7 +18,7 @@ def init_world(connection_method=None) -> None:
     pybullet.connect(connection_method)
     pybullet.setAdditionalSearchPath(pybullet_data.getDataPath())
 
-    pybullet.loadURDF('plane.urdf')
+    pybullet.loadURDF("plane.urdf")
     pybullet.setGravity(0, 0, -9.8)
 
 
@@ -31,8 +31,9 @@ def del_world() -> None:
     unique_ids = []
 
 
-def get_debug_visualizer_image(
-) -> typing.Tuple[np.ndarray, np.ndarray, np.ndarray]:
+def get_debug_visualizer_image() -> typing.Tuple[
+    np.ndarray, np.ndarray, np.ndarray
+]:
     import pybullet
 
     width, height, *_ = pybullet.getDebugVisualizerCamera()
@@ -49,8 +50,9 @@ def add_model(
     collision_file: typing.Optional[str] = None,
     position: typing.Optional[typing.Sequence] = None,
     orientation: typing.Optional[typing.Sequence] = None,
-    mesh_scale:
-        typing.Optional[typing.Union[int, float, typing.Sequence]] = None,
+    mesh_scale: typing.Optional[
+        typing.Union[int, float, typing.Sequence]
+    ] = None,
     register: bool = True,
     base_mass=1,
 ) -> int:
@@ -100,12 +102,12 @@ def shape_id_to_str(shape_id: int) -> str:
     import pybullet
 
     id_to_str = {
-        pybullet.GEOM_BOX: 'GEOM_BOX',
-        pybullet.GEOM_CAPSULE: 'GEOM_CAPSULE',
-        pybullet.GEOM_CYLINDER: 'GEOM_CYLINDER',
-        pybullet.GEOM_MESH: 'GEOM_MESH',
-        pybullet.GEOM_PLANE: 'GEOM_PLANE',
-        pybullet.GEOM_SPHERE: 'GEOM_SPHERE',
+        pybullet.GEOM_BOX: "GEOM_BOX",
+        pybullet.GEOM_CAPSULE: "GEOM_CAPSULE",
+        pybullet.GEOM_CYLINDER: "GEOM_CYLINDER",
+        pybullet.GEOM_MESH: "GEOM_MESH",
+        pybullet.GEOM_PLANE: "GEOM_PLANE",
+        pybullet.GEOM_SPHERE: "GEOM_SPHERE",
     }
     return id_to_str[shape_id]
 
@@ -116,12 +118,13 @@ def get_trimesh_scene(axis: bool = False, bbox: bool = False) -> trimesh.Scene:
 
     scene = trimesh.Scene()
     for unique_id in unique_ids:
-        _, _, shape_id, _, mesh_file, *_ = \
-            pybullet.getVisualShapeData(unique_id)[0]
+        _, _, shape_id, _, mesh_file, *_ = pybullet.getVisualShapeData(
+            unique_id
+        )[0]
         mesh_file = mesh_file.decode()
         if pybullet.GEOM_MESH != shape_id:
             raise ValueError(
-                f'Unsupported shape_id: {shape_id_to_str(shape_id)}'
+                f"Unsupported shape_id: {shape_id_to_str(shape_id)}"
             )
 
         pos, ori = pybullet.getBasePositionAndOrientation(unique_id)
@@ -132,9 +135,7 @@ def get_trimesh_scene(axis: bool = False, bbox: bool = False) -> trimesh.Scene:
 
         mesh = trimesh.load_mesh(mesh_file)
         scene.add_geometry(
-            mesh,
-            node_name=str(unique_id),
-            transform=transform,
+            mesh, node_name=str(unique_id), transform=transform,
         )
 
         if bbox:
@@ -146,8 +147,7 @@ def get_trimesh_scene(axis: bool = False, bbox: bool = False) -> trimesh.Scene:
         if axis:
             origin_size = np.max(mesh.bounding_box.extents) * 0.05
             scene.add_geometry(
-                trimesh.creation.axis(origin_size),
-                transform=transform,
+                trimesh.creation.axis(origin_size), transform=transform,
             )
     return scene
 
@@ -176,8 +176,7 @@ def aabb_contained_ratio(aabb1, aabb2) -> float:
         return np.prod(aabb_extents)
 
     volume_intersect = get_volume(
-        np.maximum(aabb1_min, aabb2_min),
-        np.minimum(aabb1_max, aabb2_max),
+        np.maximum(aabb1_min, aabb2_min), np.minimum(aabb1_max, aabb2_max),
     )
     volume2 = get_volume(aabb2_min, aabb2_max)
     # volume1 = get_volume(aabb1_min, aabb1_max)
@@ -221,7 +220,7 @@ def get_camera_image(view_matrix, fovy, height, width):
     far = 1000
     near = 0.01
     projection_matrix = pybullet.computeProjectionMatrixFOV(
-        fov=fovy, aspect=1. * width / height, farVal=far, nearVal=near
+        fov=fovy, aspect=1.0 * width / height, farVal=far, nearVal=near
     )
     _, _, rgba, depth, segm = pybullet.getCameraImage(
         width=width,
@@ -244,10 +243,7 @@ def render_camera(T_cam2world, fovy, height, width):
     view_matrix[:, 2] *= -1
     view_matrix = view_matrix.flatten()
     rgb, depth, segm = get_camera_image(
-        view_matrix=view_matrix,
-        fovy=fovy,
-        height=height,
-        width=width,
+        view_matrix=view_matrix, fovy=fovy, height=height, width=width,
     )
     return rgb, depth, segm
 
