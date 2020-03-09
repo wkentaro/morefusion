@@ -144,7 +144,8 @@ class RGBDPoseEstimationDatasetBase(DatasetBase):
                 width=camera.resolution[0],
                 height=camera.resolution[1],
             )
-            visibility = 1.0 * mask.sum() / mask_rend.sum()
+            with np.errstate(invalid="ignore"):
+                visibility = 1.0 * mask.sum() / mask_rend.sum()
 
             quaternion_true = tf.quaternion_from_matrix(T_cad2cam)
             translation_true = tf.translation_from_matrix(T_cad2cam)
