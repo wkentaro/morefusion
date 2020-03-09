@@ -11,7 +11,7 @@ class YCBVideoRGBDPoseEstimationDatasetReIndexed(
     RGBDPoseEstimationDatasetReIndexedBase
 ):
 
-    _root_dir = YCBVideoDataset._root_dir + ".reindexed"
+    _root_dir = YCBVideoDataset._root_dir + ".reindexed.v2"
 
     def _get_ids(self):
         assert self.split in ["train", "trainreal", "syn", "val"]
