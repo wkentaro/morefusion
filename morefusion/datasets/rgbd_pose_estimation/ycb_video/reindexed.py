@@ -17,9 +17,9 @@ class YCBVideoRGBDPoseEstimationDatasetReIndexed(
         assert self.split in ["train", "trainreal", "syn", "val"]
 
         image_id_to_instance_ids = collections.defaultdict(list)
-        with open(self.root_dir / "id_to_class_id.json") as f:
-            instance_id_to_class_id = json.load(f)
-            for instance_id, class_id in instance_id_to_class_id.items():
+        with open(self.root_dir / "meta.json") as f:
+            meta = json.load(f)
+            for instance_id in meta:
                 image_id = osp.dirname(instance_id)
                 image_id_to_instance_ids[image_id].append(instance_id)
         image_id_to_instance_ids = dict(image_id_to_instance_ids)
@@ -46,7 +46,7 @@ class YCBVideoRGBDPoseEstimationDatasetReIndexed(
         for image_id in image_ids:
             instance_ids = image_id_to_instance_ids[image_id]
             for instance_id in instance_ids:
-                class_id = instance_id_to_class_id[instance_id]
+                class_id = meta[instance_id]["class_id"]
                 if self._class_ids and class_id not in self._class_ids:
                     continue
                 ids.append(instance_id)
