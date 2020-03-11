@@ -1,6 +1,7 @@
 <launch>
 
   <include file="$(find morefusion_panda_ycb_video)/launch/rosbag_play_rs_rgbd.launch">
+    <arg name="BAG_ID" value="static.desk.topdown" />
   </include>
 
   <include file="$(find morefusion_panda_ycb_video)/launch/visualize_rs_rgbd.launch">
