@@ -26,7 +26,7 @@ def timer(name: typing.Optional[str] = None) -> typing.Iterator:
     yield
 
     frame = inspect.currentframe()
-    if frame is None:
+    if frame is None or frame.f_back is None or frame.f_back.f_back is None:
         caller = None
     else:
         caller = find_caller(frame.f_back.f_back)
