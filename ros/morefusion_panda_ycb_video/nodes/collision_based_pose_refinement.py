@@ -175,7 +175,7 @@ class CollisionBasedPoseRefinement(topic_tools.LazyTransport):
             """
         grid_target = cuda.cupy.stack(grid_target)
 
-        link = morefusion.contrib.CollisionBasedPoseRefinementLink(transforms)
+        link = morefusion.contrib.IterativeCollisionCheckLink(transforms)
         link.to_gpu()
         optimizer = chainer.optimizers.Adam(alpha=0.01)
         optimizer.setup(link)

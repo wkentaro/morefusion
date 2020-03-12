@@ -219,7 +219,7 @@ def iterative_closest_point(examples, batch, transform, n_iteration=100):
 
 def iterative_collision_check(examples, batch, transform):
     # refine with occupancy
-    link = morefusion.contrib.CollisionBasedPoseRefinementLink(transform,)
+    link = morefusion.contrib.IterativeCollisionCheckLink(transform)
     link.to_gpu()
     optimizer = chainer.optimizers.Adam(alpha=0.01)
     optimizer.setup(link)

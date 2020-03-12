@@ -6,7 +6,7 @@ import trimesh.transformations as ttf
 from .. import functions as functions_module
 
 
-class CollisionBasedPoseRefinementLink(chainer.Link):
+class IterativeCollisionCheckLink(chainer.Link):
     def __init__(self, transform, voxel_dim=32, voxel_threshold=2):
         super().__init__()
 
