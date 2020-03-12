@@ -7,11 +7,14 @@ from .. import functions as functions_module
 
 
 class IterativeCollisionCheckLink(chainer.Link):
-    def __init__(self, transform, voxel_dim=32, voxel_threshold=2):
+    def __init__(
+        self, transform, voxel_dim=32, voxel_threshold=2, sdf_offset=0
+    ):
         super().__init__()
 
         self._voxel_dim = voxel_dim
         self._voxel_threshold = voxel_threshold
+        self._sdf_offset = sdf_offset
 
         quaternion = []
         translation = []
@@ -53,6 +56,7 @@ class IterativeCollisionCheckLink(chainer.Link):
                 origin=origin[i],
                 dims=(self._voxel_dim,) * 3,
                 threshold=self._voxel_threshold,
+                sdf_offset=self._sdf_offset,
             )
             grid_uniform.append(grid_uniform_i)
             grid_surface.append(grid_surface_i)

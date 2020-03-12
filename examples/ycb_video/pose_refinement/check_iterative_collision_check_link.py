@@ -40,7 +40,9 @@ def get_scenes():
     grid_target = cuda.cupy.asarray(grid_target)
     grid_nontarget_empty = cuda.cupy.asarray(grid_nontarget_empty)
 
-    link = morefusion.contrib.IterativeCollisionCheckLink(transform)
+    link = morefusion.contrib.IterativeCollisionCheckLink(
+        transform, sdf_offset=0.01
+    )
     link.to_gpu()
     optimizer = chainer.optimizers.Adam(alpha=0.01)
     optimizer.setup(link)

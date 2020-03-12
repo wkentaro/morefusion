@@ -179,7 +179,7 @@ def truncated_distance_function(
 
 
 def pseudo_occupancy_voxelization(
-    points, sdf, *, pitch, origin, dims, threshold=1,
+    points, sdf, *, pitch, origin, dims, threshold=1, sdf_offset=0
 ):
     truncation = threshold * pitch
     tdf, indices = truncated_distance_function(
@@ -198,6 +198,7 @@ def pseudo_occupancy_voxelization(
     weight_inside = xp.full_like(tdf.array, -1)
     mask = indices != -1
     weight_inside[mask] = sdf[indices[mask]]
+    weight_inside += sdf_offset
     mask = weight_inside < 0
     weight_inside[mask] = 0
     weight_inside = weight_inside / weight_inside.max()
