@@ -3,15 +3,18 @@
 import chainer
 from chainer.backends import cuda
 import numpy as np
-import trimesh
 
 import morefusion
+
+import visualize_data
 
 
 def get_scenes():
     instances = []
     for instance_id in range(3):
         instances.append(np.load(f"data/{instance_id:08d}.npz"))
+
+    scenes = visualize_data.main()
 
     models = morefusion.datasets.YCBVideoModels()
 
@@ -39,22 +42,18 @@ def get_scenes():
     for link in links:
         link.translation.update_rule.hyperparam.alpha *= 0.1
 
-    scenes = {"scene": trimesh.Scene()}
     for i in range(200):
         for j, instance in enumerate(instances):
             cad = models.get_cad(instance["class_id"])
             if hasattr(cad.visual, "to_color"):
                 cad.visual = cad.visual.to_color()
             transform = cuda.to_cpu(links[j].T.array)
-            scenes["scene"].add_geometry(
+            scenes["cad"].add_geometry(
                 cad,
                 node_name=str(j),
                 geom_name=str(instance["class_id"]),
                 transform=transform,
             )
-        scenes[
-            "scene"
-        ].camera_transform = morefusion.extra.trimesh.to_opengl_transform()
         yield scenes
 
         loss = 0

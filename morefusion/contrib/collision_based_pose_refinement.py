@@ -85,10 +85,11 @@ class CollisionBasedPoseRefinementLink(chainer.Link):
         grid_nontarget_empty = F.stack(grid_nontarget_empty)
 
         reward = F.sum(grid_surface * grid_target) / F.sum(grid_target)
-        penalty = F.sum(grid_uniform * grid_nontarget_empty) / F.sum(
-            grid_uniform
+        # penalty = F.sum(grid_uniform * grid_nontarget_empty) / F.sum(
+        #     grid_uniform
+        # )
+        penalty = F.sum(grid_inside * grid_nontarget_empty) / F.sum(
+            grid_inside
         )
-        # penalty = F.sum(grid_inside * grid_nontarget_empty) / \
-        #     F.sum(grid_inside)
         loss = penalty - reward
         return loss

@@ -1,19 +1,20 @@
 #!/usr/bin/env python
 
-import time
-
 import chainer
 from chainer.backends import cuda
 import numpy as np
-import trimesh
 
 import morefusion
+
+import visualize_data
 
 
 def get_scenes():
     instances = []
     for instance_id in range(3):
         instances.append(np.load(f"data/{instance_id:08d}.npz"))
+
+    scenes = visualize_data.main()
 
     models = morefusion.datasets.YCBVideoModels()
 
@@ -46,8 +47,6 @@ def get_scenes():
     optimizer.setup(link)
     link.translation.update_rule.hyperparam.alpha *= 0.1
 
-    t_start = time.time()
-    scenes = {"scene": trimesh.Scene()}
     for i in range(200):
         transform = morefusion.functions.transformation_matrix(
             link.quaternion, link.translation
@@ -57,15 +56,12 @@ def get_scenes():
             cad = models.get_cad(instance["class_id"])
             if hasattr(cad.visual, "to_color"):
                 cad.visual = cad.visual.to_color()
-            scenes["scene"].add_geometry(
+            scenes["cad"].add_geometry(
                 cad,
                 node_name=str(j),
                 geom_name=str(instance["class_id"]),
                 transform=transform[j],
             )
-        scenes[
-            "scene"
-        ].camera_transform = morefusion.extra.trimesh.to_opengl_transform()
         yield scenes
 
         loss = link(
@@ -75,15 +71,10 @@ def get_scenes():
         optimizer.update()
         link.zerograds()
 
-        print(i, time.time() - t_start)
-        # print(i)
-        # print(link.quaternion, link.quaternion.dtype)
-        # print(link.translation, link.translation.dtype)
-
 
 def main():
     scenes = get_scenes()
-    morefusion.extra.trimesh.display_scenes(scenes)
+    morefusion.extra.trimesh.display_scenes(scenes, tile=(2, 2))
 
 
 if __name__ == "__main__":
