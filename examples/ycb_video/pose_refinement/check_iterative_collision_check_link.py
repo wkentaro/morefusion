@@ -14,8 +14,7 @@ from visualize_data import visualize_data
 def get_scenes():
     data = contrib.get_data()
 
-    scenes = visualize_data(data)
-    yield from contrib.move_camera_auto(scenes)
+    scenes = visualize_data()
 
     models = morefusion.datasets.YCBVideoModels()
 
@@ -65,7 +64,7 @@ def get_scenes():
                 geom_name=str(instance["id"]),
                 transform=transform[j],
             )
-        yield scenes
+        yield {"icc": scenes["cad"]}
 
         loss = link(
             points, sdf, pitch, origin, grid_target, grid_nontarget_empty
@@ -73,8 +72,6 @@ def get_scenes():
         loss.backward()
         optimizer.update()
         link.zerograds()
-
-    yield from contrib.move_camera_auto(scenes)
 
 
 def main():

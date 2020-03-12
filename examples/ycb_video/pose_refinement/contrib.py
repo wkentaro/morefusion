@@ -61,27 +61,31 @@ def get_data():
     return data
 
 
-def move_camera_auto(scenes):
+def move_camera_auto(scenes, motion_id):
 
-    transforms = [
-        np.array(
+    transforms = np.array(
+        [
             [
                 [0.65291082, -0.10677561, 0.74987094, -0.42925002],
                 [0.75528109, 0.166384, -0.63392968, 0.3910296],
                 [-0.0570783, 0.98026289, 0.18927951, 0.48834561],
                 [0.0, 0.0, 0.0, 1.0],
-            ]
-        ),
-        np.array(
+            ],
             [
                 [0.99762283, 0.04747429, -0.04994869, 0.04963055],
                 [-0.04687166, -0.06385564, -0.99685781, 0.5102746],
                 [-0.05051463, 0.9968293, -0.06147865, 0.63364497],
                 [0.0, 0.0, 0.0, 1.0],
-            ]
-        ),
-        np.eye(4),
-    ]
+            ],
+            np.eye(4),
+        ]
+    )
+    if motion_id == 0:
+        transforms = transforms[[0]]
+    elif motion_id == 1:
+        transforms = transforms[[1, 2, 0]]
+    else:
+        raise ValueError
 
     transform_prev = morefusion.extra.trimesh.from_opengl_transform(
         list(scenes.values())[0].camera_transform

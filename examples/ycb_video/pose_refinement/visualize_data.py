@@ -10,7 +10,9 @@ import morefusion
 import contrib
 
 
-def visualize_data(data):
+def visualize_data():
+    data = contrib.get_data()
+
     models = morefusion.datasets.YCBVideoModels()
 
     colormap = imgviz.label_colormap()
@@ -62,9 +64,14 @@ def visualize_data(data):
         ).as_boxes(colors=colormap[instance["id"] + 1])
         scenes["grid_target"].add_geometry(geom)
 
-        geom = trimesh.voxel.VoxelGrid(
-            grid_nontarget_empty, transform=transform_vg
-        ).as_boxes(colors=colormap[instance["id"] + 1])
+        points = np.argwhere(grid_nontarget_empty)
+        points = points * instance["pitch"] + instance["origin"]
+        geom = trimesh.PointCloud(
+            vertices=points, colors=colormap[instance["id"] + 1]
+        )
+        # geom = trimesh.voxel.VoxelGrid(
+        #     grid_nontarget_empty, transform=transform_vg
+        # ).as_boxes(colors=colormap[instance["id"] + 1])
         scenes["grid_nontarget_empty"].add_geometry(geom)
 
     camera_transform = morefusion.extra.trimesh.to_opengl_transform()
