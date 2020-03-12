@@ -3,6 +3,7 @@
 import chainer
 from chainer.backends import cuda
 import numpy as np
+import tqdm
 
 import morefusion
 
@@ -41,7 +42,7 @@ def get_scenes():
     for link in links:
         link.translation.update_rule.hyperparam.alpha *= 0.1
 
-    for i in range(200):
+    for i in tqdm.trange(200):
         for j, instance in enumerate(data["instances"]):
             cad = models.get_cad(instance["class_id"])
             if hasattr(cad.visual, "to_color"):

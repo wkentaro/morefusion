@@ -3,6 +3,7 @@
 import chainer
 from chainer.backends import cuda
 import numpy as np
+import tqdm
 
 import morefusion
 
@@ -48,7 +49,7 @@ def get_scenes():
     optimizer.setup(link)
     link.translation.update_rule.hyperparam.alpha *= 0.1
 
-    for i in range(200):
+    for i in tqdm.trange(200):
         transform = morefusion.functions.transformation_matrix(
             link.quaternion, link.translation
         )
@@ -59,8 +60,8 @@ def get_scenes():
                 cad.visual = cad.visual.to_color()
             scenes["cad"].add_geometry(
                 cad,
-                node_name=str(j),
-                geom_name=str(instance["class_id"]),
+                node_name=str(instance["id"]),
+                geom_name=str(instance["id"]),
                 transform=transform[j],
             )
         yield scenes
