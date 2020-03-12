@@ -15,10 +15,10 @@ def visualize_data(data):
 
     colormap = imgviz.label_colormap()
     scenes = {
-        "cad": trimesh.Scene(),
+        "pcd": trimesh.Scene(),
         "grid_target": trimesh.Scene(),
         "grid_nontarget_empty": trimesh.Scene(),
-        "pcd": trimesh.Scene(),
+        "cad": trimesh.Scene(),
     }
 
     rgb = data["rgb"]
@@ -30,6 +30,7 @@ def visualize_data(data):
     nonnan = ~np.isnan(depth)
     geom = trimesh.PointCloud(vertices=pcd[nonnan], colors=rgb[nonnan])
     scenes["pcd"].add_geometry(geom)
+    scenes["cad"].add_geometry(geom)
 
     T_world2cam = None
     for instance in data["instances"]:

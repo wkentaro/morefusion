@@ -15,6 +15,7 @@ def get_scenes():
     data = contrib.get_data()
 
     scenes = visualize_data(data)
+    yield from contrib.move_camera_auto(scenes)
 
     models = morefusion.datasets.YCBVideoModels()
 
@@ -42,7 +43,7 @@ def get_scenes():
     for link in links:
         link.translation.update_rule.hyperparam.alpha *= 0.1
 
-    for i in tqdm.trange(200):
+    for i in tqdm.trange(50):
         for j, instance in enumerate(data["instances"]):
             cad = models.get_cad(instance["class_id"])
             if hasattr(cad.visual, "to_color"):
@@ -63,6 +64,8 @@ def get_scenes():
         loss.backward()
         optimizer.update()
         optimizer.target.zerograds()
+
+    yield from contrib.move_camera_auto(scenes)
 
 
 def main():

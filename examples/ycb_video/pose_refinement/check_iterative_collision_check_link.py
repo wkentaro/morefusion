@@ -15,6 +15,7 @@ def get_scenes():
     data = contrib.get_data()
 
     scenes = visualize_data(data)
+    yield from contrib.move_camera_auto(scenes)
 
     models = morefusion.datasets.YCBVideoModels()
 
@@ -49,7 +50,7 @@ def get_scenes():
     optimizer.setup(link)
     link.translation.update_rule.hyperparam.alpha *= 0.1
 
-    for i in tqdm.trange(200):
+    for i in tqdm.trange(50):
         transform = morefusion.functions.transformation_matrix(
             link.quaternion, link.translation
         )
@@ -73,10 +74,12 @@ def get_scenes():
         optimizer.update()
         link.zerograds()
 
+    yield from contrib.move_camera_auto(scenes)
+
 
 def main():
     scenes = get_scenes()
-    morefusion.extra.trimesh.display_scenes(scenes, tile=(2, 2))
+    morefusion.extra.trimesh.display_scenes(scenes)
 
 
 if __name__ == "__main__":

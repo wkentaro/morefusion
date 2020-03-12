@@ -5,7 +5,10 @@ import imgviz
 import numpy as np
 import path
 import trimesh
+import trimesh.transformations as ttf
 import yaml
+
+import morefusion
 
 
 here = path.Path(__file__).abspath().parent
@@ -46,4 +49,62 @@ def get_data():
         camera_info = yaml.safe_load(f)
     data["intrinsic_matrix"] = np.array(camera_info["K"]).reshape(3, 3)
 
+    data["T_cinematic2world"] = np.array(
+        [
+            [0.65291082, -0.10677561, 0.74987094, -0.42925002],
+            [0.75528109, 0.166384, -0.63392968, 0.3910296],
+            [-0.0570783, 0.98026289, 0.18927951, 0.48834561],
+            [0.0, 0.0, 0.0, 1.0],
+        ]
+    )
+
     return data
+
+
+def move_camera_auto(scenes):
+
+    transforms = [
+        np.array(
+            [
+                [0.65291082, -0.10677561, 0.74987094, -0.42925002],
+                [0.75528109, 0.166384, -0.63392968, 0.3910296],
+                [-0.0570783, 0.98026289, 0.18927951, 0.48834561],
+                [0.0, 0.0, 0.0, 1.0],
+            ]
+        ),
+        np.array(
+            [
+                [0.99762283, 0.04747429, -0.04994869, 0.04963055],
+                [-0.04687166, -0.06385564, -0.99685781, 0.5102746],
+                [-0.05051463, 0.9968293, -0.06147865, 0.63364497],
+                [0.0, 0.0, 0.0, 1.0],
+            ]
+        ),
+        np.eye(4),
+    ]
+
+    transform_prev = morefusion.extra.trimesh.from_opengl_transform(
+        list(scenes.values())[0].camera_transform
+    )
+    for transform_next in transforms:
+        point_prev = np.r_[
+            ttf.translation_from_matrix(transform_prev),
+            ttf.euler_from_matrix(transform_prev),
+        ]
+        point_next = np.r_[
+            ttf.translation_from_matrix(transform_next),
+            ttf.euler_from_matrix(transform_next),
+        ]
+
+        for w in np.linspace(0, 1, 50):
+            point = point_prev + w * (point_next - point_prev)
+            transform = ttf.translation_matrix(point[:3]) @ ttf.euler_matrix(
+                *point[3:]
+            )
+            for scene in scenes.values():
+                scene.camera_transform[
+                    ...
+                ] = morefusion.extra.trimesh.to_opengl_transform(transform)
+            yield scenes
+
+        transform_prev = transform_next
