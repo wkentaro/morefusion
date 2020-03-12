@@ -7,6 +7,7 @@ import trimesh
 import trimesh.transformations as tf
 
 from .._pyglet import numpy_to_image
+from .utils import from_opengl_transform
 
 
 def _get_tile_shape(num, hw_ratio=1):
@@ -114,6 +115,17 @@ Usage:
                     return
             else:
                 window.next = True
+        elif symbol == pyglet.window.key.C:
+            camera_transform_ids = set()
+            for key, widget in widgets.items():
+                if isinstance(widget, trimesh.viewer.SceneWidget):
+                    camera_transform_id = id(widget.scene.camera_transform)
+                    if camera_transform_id in camera_transform_ids:
+                        continue
+                    camera_transform_ids.add(camera_transform_id)
+                    print(f"{key}:")
+                    camera_transform = widget.scene.camera_transform
+                    print(repr(from_opengl_transform(camera_transform)))
         elif symbol == pyglet.window.key.R:
             # rotate camera
             window.rotate = not window.rotate  # 0/1
@@ -157,8 +169,12 @@ Usage:
                         else:
                             widget.scene.geometry.update(scene.geometry)
                             widget.scene.graph.load(scene.graph.to_edgelist())
-                        widget.scene.camera_transform = scene.camera_transform
-                        widget.view["ball"]._n_pose = scene.camera_transform
+                        widget.scene.camera_transform[
+                            ...
+                        ] = scene.camera_transform
+                        widget.view[
+                            "ball"
+                        ]._n_pose = widget.scene.camera_transform
                         widget._draw()
                     elif isinstance(widget, glooey.Image):
                         widget.set_image(numpy_to_image(scene))
