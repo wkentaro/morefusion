@@ -6,22 +6,21 @@ import numpy as np
 
 import morefusion
 
-import visualize_data
+import contrib
+from visualize_data import visualize_data
 
 
 def get_scenes():
-    instances = []
-    for instance_id in range(3):
-        instances.append(np.load(f"data/{instance_id:08d}.npz"))
+    data = contrib.get_data()
 
-    scenes = visualize_data.main()
+    scenes = visualize_data(data)
 
     models = morefusion.datasets.YCBVideoModels()
 
     links = []
     pcds_cad = []
     pcds_depth = []
-    for instance in instances:
+    for instance in data["instances"]:
         transform = instance["transform_init"].astype(np.float32)
         link = morefusion.contrib.IterativeClosestPointLink(transform)
         link.to_gpu()
@@ -43,15 +42,15 @@ def get_scenes():
         link.translation.update_rule.hyperparam.alpha *= 0.1
 
     for i in range(200):
-        for j, instance in enumerate(instances):
+        for j, instance in enumerate(data["instances"]):
             cad = models.get_cad(instance["class_id"])
             if hasattr(cad.visual, "to_color"):
                 cad.visual = cad.visual.to_color()
             transform = cuda.to_cpu(links[j].T.array)
             scenes["cad"].add_geometry(
                 cad,
-                node_name=str(j),
-                geom_name=str(instance["class_id"]),
+                node_name=str(instance["id"]),
+                geom_name=str(instance["id"]),
                 transform=transform,
             )
         yield scenes

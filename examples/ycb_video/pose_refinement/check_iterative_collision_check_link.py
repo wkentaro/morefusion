@@ -6,15 +6,14 @@ import numpy as np
 
 import morefusion
 
-import visualize_data
+import contrib
+from visualize_data import visualize_data
 
 
 def get_scenes():
-    instances = []
-    for instance_id in range(3):
-        instances.append(np.load(f"data/{instance_id:08d}.npz"))
+    data = contrib.get_data()
 
-    scenes = visualize_data.main()
+    scenes = visualize_data(data)
 
     models = morefusion.datasets.YCBVideoModels()
 
@@ -25,7 +24,7 @@ def get_scenes():
     origin = []
     grid_target = []
     grid_nontarget_empty = []
-    for instance in instances:
+    for instance in data["instances"]:
         transform.append(instance["transform_init"].astype(np.float32))
         points_i, sdf_i = models.get_sdf(class_id=instance["class_id"])
         points.append(cuda.to_gpu(points_i).astype(np.float32))
@@ -52,7 +51,7 @@ def get_scenes():
             link.quaternion, link.translation
         )
         transform = cuda.to_cpu(transform.array)
-        for j, instance in enumerate(instances):
+        for j, instance in enumerate(data["instances"]):
             cad = models.get_cad(instance["class_id"])
             if hasattr(cad.visual, "to_color"):
                 cad.visual = cad.visual.to_color()
