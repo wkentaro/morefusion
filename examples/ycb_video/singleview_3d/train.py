@@ -205,6 +205,7 @@ def main():
         choices=[
             "add/add_s",
             "add/add_s+occupancy",
+            "add->add_s|1",
             "add->add/add_s|1",
             "add->add/add_s|1+occupancy",
         ],
@@ -319,7 +320,7 @@ def main():
     args.class_names = morefusion.datasets.ycb_video.class_names.tolist()
 
     loss = args.loss
-    if loss == "add->add/add_s|1":
+    if loss in ["add->add_s|1", "add->add/add_s|1"]:
         loss = "add"
     elif loss == "add->add/add_s|1+occupancy":
         loss = "add+occupancy"
@@ -392,6 +393,11 @@ def main():
                 assert target._loss == "add"
             else:
                 target._loss = "add/add_s"
+        elif args.loss == "add->add_s|1":
+            if updater.epoch_detail < 1:
+                assert target._loss == "add"
+            else:
+                target._loss = "add_s"
         elif args.loss == "add->add/add_s|1+occupancy":
             if updater.epoch_detail < 1:
                 assert target._loss == "add+occupancy"

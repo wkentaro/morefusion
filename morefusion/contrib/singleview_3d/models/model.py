@@ -426,6 +426,8 @@ class Model(chainer.Chain):
             )
             if self._loss in ["add", "add+occupancy"]:
                 is_symmetric = False
+            elif self._loss in ["add_s"]:
+                is_symmetric = True
             else:
                 assert self._loss in ["add/add_s", "add/add_s+occupancy"]
             add = morefusion.functions.average_distance(
