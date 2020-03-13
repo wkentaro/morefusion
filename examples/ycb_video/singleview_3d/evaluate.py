@@ -25,10 +25,10 @@ def main():
     args = parser.parse_args()
 
     args.log_dir = path.Path(
-        "./data.gdrive/logs.20191008.all_data/20191014_092021.638983636"
+        "./a.data/logs.20191008.all_data/20191014_092021.638983636"
     )  # NOQA
 
-    with open(args.log_dir / "args") as f:
+    with open(args.log_dir / "args.json") as f:
         args_dict = json.load(f)
 
     model = singleview_3d.models.Model(
