@@ -61,9 +61,6 @@ def main():
 
     data = []
     for index in tqdm.trange(len(dataset)):
-        if (index + 1) % 5 != 0:
-            continue
-
         examples = dataset.get_example(index)
 
         batch = chainer.dataset.concat_examples(examples, device=0)
@@ -134,6 +131,7 @@ def main():
                 }
             )
 
+        """
         transform_icp = iterative_closest_point(examples, batch, transform)
 
         for i in range(len(examples)):
@@ -218,10 +216,10 @@ def main():
                     "method": "morefusion+icc+icp",
                 }
             )
+        """
 
-        if (index + 1) % 15 == 0:
-            df = pandas.DataFrame(data)
-            df.to_csv(f"data.{index:08d}.csv")
+    df = pandas.DataFrame(data)
+    df.to_csv(f"data.{index:08d}.csv")
 
 
 def iterative_closest_point(examples, batch, transform, n_iteration=100):
