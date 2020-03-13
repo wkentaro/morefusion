@@ -11,7 +11,8 @@ include:
 - note
 - pretrained_resnet18
 - resume
-- validation/main/<2cm/add_or_add_s \(max\)
+# - validation/main/<2cm/add_or_add_s \(max\)
+- validation/main/auc/add_or_add_s \(max\)
 - validation/main/auc/add_s \(max\)
 params_basename: args.json
 log_basename: log.json
