@@ -19,7 +19,7 @@ class LogTensorboardReport(extension.Extension):
         keys=None,
         trigger=(1, "epoch"),
         postprocess=None,
-        log_name="log",
+        log_name="log.json",
     ):
         self._writer = writer
         self._keys = keys

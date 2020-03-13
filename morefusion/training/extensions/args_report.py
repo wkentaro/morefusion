@@ -8,7 +8,7 @@ class ArgsReport(training.Extension):
 
     priority = training.extension.PRIORITY_WRITER
 
-    def __init__(self, args, file_name="args"):
+    def __init__(self, args, file_name="args.json"):
         if not isinstance(args, dict):
             args = args.__dict__
 
