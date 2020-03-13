@@ -52,6 +52,8 @@ def main():
         grid_target = example.pop("grid_target") > 0.5
         grid_nontarget = example.pop("grid_nontarget") > 0.5
         grid_empty = example.pop("grid_empty") > 0.5
+        grid_nontarget = grid_nontarget ^ grid_target
+        grid_empty = grid_empty ^ grid_target
         grid_nontarget_empty = grid_nontarget | grid_empty
         example["grid_target"] = grid_target
         example["grid_nontarget_empty"] = grid_nontarget_empty
@@ -61,12 +63,6 @@ def main():
 
     data = []
     for index in tqdm.trange(len(dataset)):
-        instance_id = dataset._dataset.ids[index]
-        frame_id = int(instance_id.split("/")[1])
-        # frame_id must be [4, 9, 14, ...]
-        if (frame_id + 1) % 5 != 0:
-            continue
-
         examples = [dataset.get_example(index)]
 
         batch = chainer.dataset.concat_examples(examples, device=0)
