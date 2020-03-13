@@ -48,16 +48,32 @@ def main():
         split="val", class_ids=args_dict["class_ids"], version=1,
     )
 
-    def transform(example):
-        grid_target = example.pop("grid_target") > 0.5
-        grid_nontarget = example.pop("grid_nontarget") > 0.5
-        grid_empty = example.pop("grid_empty") > 0.5
+    def transform(in_data):
+        grid_target = in_data.pop("grid_target") > 0.5
+        grid_nontarget = in_data.pop("grid_nontarget") > 0.5
+        grid_empty = in_data.pop("grid_empty") > 0.5
         grid_nontarget = grid_nontarget ^ grid_target
         grid_empty = grid_empty ^ grid_target
-        grid_nontarget_empty = grid_nontarget | grid_empty
-        example["grid_target"] = grid_target
-        example["grid_nontarget_empty"] = grid_nontarget_empty
-        return example
+
+        grid_target_full = in_data.pop("grid_target_full")
+        assert np.isin(grid_target_full, [0, 1]).all()
+        grid_target_full = grid_target_full.astype(bool)
+
+        grid_nontarget_full = in_data.pop("grid_nontarget_full")
+        nontarget_ids = np.unique(grid_nontarget_full)
+        nontarget_ids = nontarget_ids[nontarget_ids > 0]
+        if len(nontarget_ids) > 0:
+            grid_nontarget_full = np.isin(grid_nontarget_full, nontarget_ids)
+        else:
+            grid_nontarget_full = np.zeros_like(grid_target)
+        grid_nontarget_full = grid_nontarget_full ^ grid_target_full
+
+        # grid_nontarget_empty = grid_nontarget_full | grid_empty
+        grid_nontarget_empty = ~grid_target_full
+
+        in_data["grid_target"] = grid_target
+        in_data["grid_nontarget_empty"] = grid_nontarget_empty
+        return in_data
 
     dataset = chainer.datasets.TransformDataset(dataset, transform)
 
