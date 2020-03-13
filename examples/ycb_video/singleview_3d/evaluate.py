@@ -22,6 +22,7 @@ def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
+    parser.add_argument("csv_file", help="csv filename for output")
     args = parser.parse_args()
 
     args.log_dir = path.Path(
@@ -43,25 +44,24 @@ def main():
     )
     model.to_gpu(0)
 
-    dataset = morefusion.datasets.MySyntheticYCB20190916RGBDPoseEstimationDataset(  # NOQA
-        split="val", class_ids=args_dict["class_ids"],
+    dataset = morefusion.datasets.MySyntheticYCB20190916RGBDPoseEstimationDatasetReIndexed(  # NOQA
+        split="val", class_ids=args_dict["class_ids"], version=1,
     )
 
-    def transform(examples):
-        for example in examples:
-            grid_target = example.pop("grid_target") > 0.5
-            grid_nontarget = example.pop("grid_nontarget") > 0.5
-            grid_empty = example.pop("grid_empty") > 0.5
-            grid_nontarget_empty = grid_nontarget | grid_empty
-            example["grid_target"] = grid_target
-            example["grid_nontarget_empty"] = grid_nontarget_empty
-        return examples
+    def transform(example):
+        grid_target = example.pop("grid_target") > 0.5
+        grid_nontarget = example.pop("grid_nontarget") > 0.5
+        grid_empty = example.pop("grid_empty") > 0.5
+        grid_nontarget_empty = grid_nontarget | grid_empty
+        example["grid_target"] = grid_target
+        example["grid_nontarget_empty"] = grid_nontarget_empty
+        return example
 
     dataset = chainer.datasets.TransformDataset(dataset, transform)
 
     data = []
     for index in tqdm.trange(len(dataset)):
-        examples = dataset.get_example(index)
+        examples = [dataset.get_example(index)]
 
         batch = chainer.dataset.concat_examples(examples, device=0)
         with chainer.no_backprop_mode(), chainer.using_config("train", False):
@@ -126,7 +126,7 @@ def main():
                     "class_id": examples[i]["class_id"],
                     "add_or_add_s": add_or_add_s,
                     "add_s": add_s,
-                    "visibility": examples[i]["visibility"],
+                    # "visibility": examples[i]["visibility"],
                     "method": "morefusion",
                 }
             )
@@ -219,7 +219,7 @@ def main():
         """
 
     df = pandas.DataFrame(data)
-    df.to_csv(f"data.{index:08d}.csv")
+    df.to_csv(args.csv_file)
 
 
 def iterative_closest_point(examples, batch, transform, n_iteration=100):
