@@ -61,6 +61,12 @@ def main():
 
     data = []
     for index in tqdm.trange(len(dataset)):
+        instance_id = dataset._dataset.ids[index]
+        frame_id = int(instance_id.split("/")[1])
+        # frame_id must be [4, 9, 14, ...]
+        if (frame_id + 1) % 5 != 0:
+            continue
+
         examples = [dataset.get_example(index)]
 
         batch = chainer.dataset.concat_examples(examples, device=0)
