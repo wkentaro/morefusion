@@ -83,7 +83,7 @@ def move_camera_auto(scenes, motion_id):
     if motion_id == 0:
         transforms = transforms[[0]]
     elif motion_id == 1:
-        transforms = transforms[[1, 2, 0]]
+        transforms = transforms[[1, 2]]
     else:
         raise ValueError
 

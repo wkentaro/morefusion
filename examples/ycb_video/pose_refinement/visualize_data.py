@@ -32,7 +32,7 @@ def visualize_data():
     nonnan = ~np.isnan(depth)
     geom = trimesh.PointCloud(vertices=pcd[nonnan], colors=rgb[nonnan])
     scenes["pcd"].add_geometry(geom)
-    scenes["cad"].add_geometry(geom)
+    # scenes["cad"].add_geometry(geom)
 
     T_world2cam = None
     for instance in data["instances"]:
@@ -45,9 +45,15 @@ def visualize_data():
         grid_nontarget_empty = instance["grid_nontarget_empty_noground"]
 
         cad = models.get_cad(class_id=class_id)
-        if hasattr(cad.visual, "to_color"):
-            cad.visual = cad.visual.to_color()
+        # if hasattr(cad.visual, "to_color"):
+        #     cad.visual = cad.visual.to_color()
 
+        scenes["pcd"].add_geometry(
+            cad,
+            node_name=str(instance["id"]),
+            geom_name=str(instance["id"]),
+            transform=transform,
+        )
         scenes["cad"].add_geometry(
             cad,
             node_name=str(instance["id"]),
@@ -59,16 +65,23 @@ def visualize_data():
             scale=instance["pitch"], translate=instance["origin"]
         )
 
+        if instance["id"] == 0:
+            color_id = 3
+        elif instance["id"] == 1:
+            color_id = 1
+        elif instance["id"] == 2:
+            color_id = 4
+        else:
+            raise ValueError
+
         geom = trimesh.voxel.VoxelGrid(
             grid_target, transform=transform_vg
-        ).as_boxes(colors=colormap[instance["id"] + 1])
+        ).as_boxes(colors=colormap[color_id])
         scenes["grid_target"].add_geometry(geom)
 
         points = np.argwhere(grid_nontarget_empty)
         points = points * instance["pitch"] + instance["origin"]
-        geom = trimesh.PointCloud(
-            vertices=points, colors=colormap[instance["id"] + 1]
-        )
+        geom = trimesh.PointCloud(vertices=points, colors=colormap[color_id])
         # geom = trimesh.voxel.VoxelGrid(
         #     grid_nontarget_empty, transform=transform_vg
         # ).as_boxes(colors=colormap[instance["id"] + 1])
@@ -76,12 +89,12 @@ def visualize_data():
 
     camera_transform = morefusion.extra.trimesh.to_opengl_transform()
     for scene in scenes.values():
-        scene.add_geometry(contrib.grid(scale=0.1), transform=T_world2cam)
+        # scene.add_geometry(contrib.grid(scale=0.1), transform=T_world2cam)
         scene.camera_transform = camera_transform
 
     return scenes
 
 
 if __name__ == "__main__":
-    scenes = visualize_data(contrib.get_data())
+    scenes = visualize_data()
     morefusion.extra.trimesh.display_scenes(scenes)

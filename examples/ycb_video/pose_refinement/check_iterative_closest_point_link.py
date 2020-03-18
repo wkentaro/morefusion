@@ -42,18 +42,23 @@ def get_scenes():
     for link in links:
         link.translation.update_rule.hyperparam.alpha *= 0.1
 
-    for i in tqdm.trange(50):
+    for i in tqdm.trange(100):
         for j, instance in enumerate(data["instances"]):
-            cad = models.get_cad(instance["class_id"])
-            if hasattr(cad.visual, "to_color"):
-                cad.visual = cad.visual.to_color()
+            # cad = models.get_cad(instance["class_id"])
+            # if hasattr(cad.visual, "to_color"):
+            #     cad.visual = cad.visual.to_color()
             transform = cuda.to_cpu(links[j].T.array)
-            scenes["cad"].add_geometry(
-                cad,
-                node_name=str(instance["id"]),
-                geom_name=str(instance["id"]),
-                transform=transform,
+            scenes["cad"].graph.update(
+                frame_to=str(instance["id"]),
+                frame_from="world",
+                matrix=transform,
             )
+            # scenes["cad"].add_geometry(
+            #     cad,
+            #     node_name=str(instance["id"]),
+            #     geom_name=str(instance["id"]),
+            #     transform=transform,
+            # )
         yield {"icp": scenes["cad"]}
 
         loss = 0

@@ -42,28 +42,33 @@ def get_scenes():
     grid_nontarget_empty = cuda.cupy.asarray(grid_nontarget_empty)
 
     link = morefusion.contrib.IterativeCollisionCheckLink(
-        transform, sdf_offset=0.01
+        transform, sdf_offset=0.02
     )
     link.to_gpu()
     optimizer = chainer.optimizers.Adam(alpha=0.01)
     optimizer.setup(link)
     link.translation.update_rule.hyperparam.alpha *= 0.1
 
-    for i in tqdm.trange(50):
+    for i in tqdm.trange(100):
         transform = morefusion.functions.transformation_matrix(
             link.quaternion, link.translation
         )
         transform = cuda.to_cpu(transform.array)
         for j, instance in enumerate(data["instances"]):
-            cad = models.get_cad(instance["class_id"])
-            if hasattr(cad.visual, "to_color"):
-                cad.visual = cad.visual.to_color()
-            scenes["cad"].add_geometry(
-                cad,
-                node_name=str(instance["id"]),
-                geom_name=str(instance["id"]),
-                transform=transform[j],
+            # cad = models.get_cad(instance["class_id"])
+            # if hasattr(cad.visual, "to_color"):
+            #     cad.visual = cad.visual.to_color()
+            scenes["cad"].graph.update(
+                frame_to=str(instance["id"]),
+                frame_from="world",
+                matrix=transform[j],
             )
+            # scenes["cad"].add_geometry(
+            #     cad,
+            #     node_name=str(instance["id"]),
+            #     geom_name=str(instance["id"]),
+            #     transform=transform[j],
+            # )
         yield {"icc": scenes["cad"]}
 
         loss = link(

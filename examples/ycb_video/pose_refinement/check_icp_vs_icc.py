@@ -11,6 +11,8 @@ from visualize_data import visualize_data
 
 def get_scenes():
     scenes = visualize_data()
+    # scenes.pop("grid_target")
+    scenes.pop("grid_nontarget_empty")
     scenes.pop("cad")
 
     scenes_icp = check_iterative_closest_point_link.get_scenes()
@@ -27,4 +29,4 @@ def get_scenes():
 
 if __name__ == "__main__":
     scenes = get_scenes()
-    morefusion.extra.trimesh.display_scenes(scenes, tile=(2, 3))
+    morefusion.extra.trimesh.display_scenes(scenes, tile=(2, 2))
