@@ -68,20 +68,6 @@ rosrun franka_control_custom create_udev_rules.sh
 
 ## Usage
 
-### Dynamic Scene
-
-```bash
-roslaunch morefusion_panda_ycb_video rs_rgbd.robot.launch
-roslaunch morefusion_panda_ycb_video rviz_dynamic.robot.launch
-roslaunch morefusion_panda_ycb_video setup_dynamic.robot.launch
-```
-
-<div>
-  <img src="https://drive.google.com/uc?id=1sTRNlsTK2jp5oGUk7EPA4_lwrDnIdyW5" width="40%" />
-  <br/>
-  <i>Figure 1. Dynamic Scene Reconstruction with the Human Hand-mounted Camera.</i>
-</div>
-
 ### Static Scene
 
 ```bash
@@ -92,9 +78,9 @@ roslaunch morefusion_panda_ycb_video setup_static.desk.launch
 ```
 
 <div>
-  <img src="https://drive.google.com/uc?id=1s9gQguthVAQTacO6PaGQw4kOQrdlucri" width="40%" />
+  <img src=".readme/reconstruction_static_desk.gif" width="40%" />
   <br/>
-  <i>Figure 2. Static Scene Reconstruction with the Human Hand-mounted Camera.</i>
+  <i>Figure 1. Static Scene Reconstruction with the Human Hand-mounted Camera.</i>
 </div>
 
 ```bash
@@ -105,9 +91,27 @@ roslaunch morefusion_panda_ycb_video setup_static.robot.launch
 ```
 
 <div>
-  <img src="https://drive.google.com/uc?id=1BbjWZPTZhoqbsH4OlzIghOO0VZhG69mK" width="40%" />
+  <img src=".readme/reconstruction_static_robot.gif" width="40%" />
   <br/>
-  <i>Figure 3. Static Scene Reconstruction with the Robotic Hand-mounted Camera.</i>
+  <i>Figure 2. Static Scene Reconstruction with the Robotic Hand-mounted Camera.</i>
+</div>
+
+### Dynamic Scene
+
+```bash
+roslaunch morefusion_panda_ycb_video rs_rgbd.launch
+roslaunch morefusion_panda_ycb_video rviz_dynamic.desk.launch
+roslaunch morefusion_panda_ycb_video setup_dynamic.desk.launch
+
+roslaunch morefusion_panda_ycb_video rs_rgbd.robot.launch
+roslaunch morefusion_panda_ycb_video rviz_dynamic.robot.launch
+roslaunch morefusion_panda_ycb_video setup_dynamic.robot.launch
+```
+
+<div>
+  <img src=".readme/reconstruction_dynamic_desk.gif" width="40%" />
+  <br/>
+  <i>Figure 3. Dynamic Scene Reconstruction with the Human Hand-mounted Camera.</i>
 </div>
 
 ### Robotic Pick-and-Place
@@ -128,9 +132,9 @@ robot-node  $ rosrun morefusion_panda_ycb_video robot_demo_node.py
 ```
 
 <div>
-  <img src="https://drive.google.com/uc?id=1GOb7jS8KRu_7T3c7CwLn3zDo2GVWvFuE" width="30%" />
-  <img src="https://drive.google.com/uc?id=1a_7vv-jhBO4Sf3cNIFHwwIVU6sBsgyZy" width="30%" />
-  <img src="https://drive.google.com/uc?id=1dCbxZ120RW9RjvYTSwTtJ2Y_tEDlt5cb" width="30%" />
+  <img src=".readme/pick_and_place_001.gif" width="30%" />
+  <img src=".readme/pick_and_place_002.gif" width="30%" />
+  <img src=".readme/pick_and_place_003.gif" width="30%" />
   <br/>
   <i>Figure 4. Targetted Object Pick-and-Place. (a) Scanning the Scene; (b) Removing Distractor Objects; (c) Picking Target Object.</i>
 </div>
