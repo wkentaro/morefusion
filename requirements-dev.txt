@@ -7,3 +7,5 @@ mypy
 pre-commit
 pycd
 pytest
+tensorboardX<1.7
+tensorflow==1.13.1
