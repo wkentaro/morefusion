@@ -41,9 +41,9 @@
 </div>
 
 MoreFusion is an object-level reconstruction system that builds a map with
-set of known-shaped objects, exploiting volumetric reconstruction of detected
+known-shaped objects, exploiting volumetric reconstruction of detected
 objects in a real-time, incremental scene reconstruction senario. The key
-component of this system is:
+components are:
 - **Occupancy-based volumetric reconstruction** of detected objects for model
   alignment in the later stage;
 - **Volumetric pose prediction** that exploits volumetric reconstruction and
@@ -55,15 +55,12 @@ component of this system is:
 
 <div>
   <a href="https://youtu.be/6oLUhuZL4ko?t=19">
-    <img src="https://github.com/wkentaro/morefusion/raw/gh-pages/assets/img/reconstruction1.gif"
-    width="33%"/>
+    <img src="https://github.com/wkentaro/morefusion/raw/gh-pages/assets/img/reconstruction1.gif" width="33%"/>
   </a>
   <a href="https://youtu.be/6oLUhuZL4ko?t=65">
-    <img src="https://github.com/wkentaro/morefusion/raw/gh-pages/assets/img/reconstruction2.gif"
-    width="33%"/>
+    <img src="https://github.com/wkentaro/morefusion/raw/gh-pages/assets/img/reconstruction2.gif" width="33%"/>
   </a>
-  <img src="https://github.com/wkentaro/morefusion/raw/gh-pages/assets/img/demonstration1.gif"
-  width="33%"/>
+  <img src="https://github.com/wkentaro/morefusion/raw/gh-pages/assets/img/demonstration1.gif" width="33%"/>
 </div>
 
 ## Installation
@@ -72,11 +69,9 @@ There're several options for installation:
 
 - [Python project only](#python-project-only): Python framework for pose
   estimation (e.g., training, inference, refinement).
-- [ROS project for camera
-  demonstration](#ros-project-for-camera-demonstration): ROS framework for
+- [ROS project for camera demonstration](#ros-project-for-camera-demonstration): ROS framework for
   object-level mapping with live cameras.
-- [ROS project for robotic
-  demonstration](#ros-project-for-robotic-demonstration): ROS framework for
+- [ROS project for robotic demonstration](#ros-project-for-robotic-demonstration): ROS framework for
   robotic demonstration with object-level mapping.
 
 ### Python project only
@@ -133,7 +128,52 @@ rosrun franka_control_custom create_udev_rules.sh
 
 ## Usage
 
-### ROS demonstration
+### Training & Inference
+
+Pre-trained models are provided in the demos as following, so this process is
+optional to run the [demos](#full-demonstration).
+- [Pre-trained instance segmentation model](https://github.com/wkentaro/morefusion/blob/a2b9eb012fa3e67c86f81c6db872f5728699f0b9/ros/morefusion_panda_ycb_video/nodes/mask_rcnn_instance_segmentation.py#L25-L29)
+- [Pre-trained 6D pose prediction model](https://github.com/wkentaro/morefusion/blob/a2b9eb012fa3e67c86f81c6db872f5728699f0b9/ros/morefusion_panda_ycb_video/nodes/singleview_3d_pose_estimation.py#L31-L48)
+
+#### Instance Segmentation
+
+```bash
+cd examples/ycb_video/instance_segm
+./download_dataset.py
+mpirun -n 4 python train_multi.py  # 4-gpu training
+./image_demo.py --model logs/XXX/XXX.npz
+```
+
+#### 6D pose prediction
+
+```bash
+# baseline model (point-cloud-based)
+cd examples/ycb_video/singleview_pcd
+./download_dataset.py
+./train.py --gpu 0 --centerize-pcd --pretrained-resnet18  # 1-gpu
+mpirun -n 4 ./train.py --multi-node --centerize-pcd --pretrained-resnet18  # 4-gpu
+
+# volumetric prediction model (3D-CNN-based)
+cd examples/ycb_video/singleview_3d
+./download_dataset.py
+./train.py --gpu 0 --centerize-pcd --pretrained-resnet18 --with-occupancy  # 1-gpu
+mpirun -n 4 ./train.py --multi-node --pretrained-resnet18 --with-occupancy  # 4-gpu
+mpirun -n 4 ./train.py --multi-node --pretrained-resnet18  # w/o occupancy
+
+# inference
+./download_pretrained_model.py  # for downloading pretrained model
+./demo.py logs/XXX/XXX.npz
+./evaluate.py logs/XXX
+```
+
+### Joint pose refinement
+
+```bash
+cd examples/ycb_video/pose_refinement
+./check_icp_vs_icc.py  # press [s] to start
+```
+
+### Camera demonstration
 
 #### Static Scene
 
@@ -180,6 +220,8 @@ roslaunch morefusion_panda_ycb_video setup_dynamic.robot.launch
   <br/>
   <i>Figure 3. Dynamic Scene Reconstruction with the Human Hand-mounted Camera.</i>
 </div>
+
+### Robotic Demonstration
 
 #### Robotic Pick-and-Place
 
