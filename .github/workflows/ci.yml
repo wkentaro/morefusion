@@ -1,0 +1,36 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  build:
+
+    runs-on: ubuntu-16.04
+
+    steps:
+    - uses: actions/checkout@v1
+
+    - uses: actions/cache@v1
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Lint
+      run: |
+        make lint
+
+    - name: Install
+      run: |
+        make install
+
+    - name: Test
+      env:
+        CI: true
+      run: |
+        make test
