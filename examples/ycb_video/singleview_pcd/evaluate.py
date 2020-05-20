@@ -23,11 +23,12 @@ def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
+    parser.add_argument("log_dir", type=path.Path, help="log dir")
     args = parser.parse_args()
 
-    args.log_dir = path.Path(
-        "./data.gdrive/logs.20191008.all_data/20191014_092228.858011713"
-    )
+    # args.log_dir = path.Path(
+    #     "./data.gdrive/logs.20191008.all_data/20191014_092228.858011713"
+    # )
 
     with open(args.log_dir / "args") as f:
         args_dict = json.load(f)

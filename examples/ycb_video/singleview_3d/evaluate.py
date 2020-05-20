@@ -22,12 +22,12 @@ def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument("csv_file", help="csv filename for output")
+    parser.add_argument("log_dir", type=path.Path, help="log dir")
     args = parser.parse_args()
 
-    args.log_dir = path.Path(
-        "./a.data/logs.20191008.all_data/20191014_092021.638983636"
-    )  # NOQA
+    # args.log_dir = path.Path(
+    #     "./a.data/logs.20191008.all_data/20191014_092021.638983636"
+    # )  # NOQA
 
     with open(args.log_dir / "args.json") as f:
         args_dict = json.load(f)
@@ -237,7 +237,7 @@ def main():
         """
 
     df = pandas.DataFrame(data)
-    df.to_csv(args.csv_file)
+    df.to_csv(args.log_dir / "evaluate.csv")
 
 
 def iterative_closest_point(examples, batch, transform, n_iteration=100):
