@@ -30,7 +30,7 @@ def main():
     #     "./data.gdrive/logs.20191008.all_data/20191014_092228.858011713"
     # )
 
-    with open(args.log_dir / "args") as f:
+    with open(args.log_dir / "args.json") as f:
         args_dict = json.load(f)
 
     model = contrib.models.Model(
