@@ -1,3 +1,4 @@
+import gdown
 import imgviz
 import numpy as np
 import trimesh.transformations as tf
@@ -15,6 +16,17 @@ class MyRealRGBDPoseEstimationDataset(RGBDPoseEstimationDatasetBase):
             models=YCBVideoModels(), class_ids=class_ids,
         )
         self._ids = self._get_ids()
+
+        if not self.root_dir.exists():
+            self.download()
+
+    def download(self):
+        return gdown.cached_download(
+            url="https://drive.google.com/uc?id=1llWN7MOLzJZnaRDD4XGSmRWAFBtP3P9z",  # NOQA
+            path=self.root_dir + ".zip",
+            md5="a773bb947377811b2b66ab9bc17f4d8d",
+            postprocess=gdown.extractall,
+        )
 
     def _get_ids(self):
         ids = self.root_dir.dirs()

@@ -1,4 +1,5 @@
 import collections
+import gdown
 import json
 import os.path as osp
 
@@ -24,6 +25,17 @@ class MySyntheticYCB20190916RGBDPoseEstimationDatasetReIndexed(
         )  # NOQA
         super().__init__(
             split=split, class_ids=class_ids, augmentation=augmentation,
+        )
+
+        if not self.root_dir.exists():
+            self.download()
+
+    def download(self):
+        return gdown.cached_download(
+            url="https://drive.google.com/uc?id=1WAkPFoqnlzbg_TbGTXLL0MvS86dJqeAO",  # NOQA
+            path=self.root_dir + ".zip",
+            md5="06d100e66c92232ca2b02d2100249c5a",
+            postprocess=gdown.extractall,
         )
 
     def _get_ids(self):

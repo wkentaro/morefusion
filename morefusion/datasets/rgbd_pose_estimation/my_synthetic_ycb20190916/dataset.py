@@ -1,3 +1,5 @@
+import gdown
+
 from .... import utils as utils_module
 from ..my_synthetic import MySyntheticRGBDPoseEstimationDataset
 
@@ -21,6 +23,9 @@ class MySyntheticYCB20190916RGBDPoseEstimationDataset(
             root_dir=root_dir, class_ids=class_ids,
         )
 
+        if not self.root_dir.exists():
+            self.download()
+
         assert split in ["train", "val"]
         if split == "train":
             self._ids = [i for i in self._ids if int(i.split("/")[0]) <= 1000]
@@ -29,3 +34,11 @@ class MySyntheticYCB20190916RGBDPoseEstimationDataset(
             assert split == "val"
             self._ids = [i for i in self._ids if int(i.split("/")[0]) > 1000]
             assert len(self._ids) == 3000
+
+    def download(self):
+        return gdown.cached_download(
+            url="https://drive.google.com/uc?id=1mwa1gQy8ibuc3Gc-6lgvt64VFmH5CW4q",  # NOQA
+            path=self.root_dir + ".zip",
+            md5="13f12f4c00ce4976217635632363c19a",
+            postprocess=gdown.extractall,
+        )
