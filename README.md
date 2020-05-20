@@ -7,21 +7,85 @@
 </h3>
 
 <div align="center">
-  <a href="https://travis-ci.com/wkentaro/morefusion">
-    <img src="https://travis-ci.com/wkentaro/morefusion.svg?token=zM5rExyvuRoJThsnqHAF&branch=master">
-  </a>
+  <a href="https://wkentaro.com">Kentaro Wada</a>,
+  Edgar Sucar,
+  <a href="https://stepjam.github.io/">Stephen James</a>,
+  Daniel Lenton,
+  <a href="https://www.doc.ic.ac.uk/~ajd/">Andrew J. Davison</a>
+  <br/>
+  <a href="https://www.imperial.ac.uk/dyson-robotics-lab/">
+    Dyson Robotics Laboratory
+  </a>,
+  <a href="https://www.imperial.ac.uk/">Imperial College London</a>
+  <br/>
+  IEEE Conference on Computer Vision and Pattern Recognition (CVPR), 2020
 </div>
 
+<p></p>
+
+<div align="center">
+  <a href="#installation"><b>Installation</b></a> |
+  <a href="#usage"><b>Usage</b></a> |
+  <a href="https://arxiv.org/abs/2004.04336"><b>Paper</b></a> |
+  <a href="https://www.youtube.com/watch?v=6oLUhuZL4ko"><b>Video</b></a> |
+  <a href="https://morefusion.wkentaro.com"><b>Website</b></a>
+</div>
+
+<p></p>
+
+<div align="center">
+  <img src="https://morefusion.wkentaro.com/assets/img/intro/scene.jpg"
+  width="33%">
+  <img src="https://morefusion.wkentaro.com/assets/img/intro/pose.jpg"
+  width="31%">
+</div>
+
+MoreFusion is an object-level reconstruction system that builds a map with
+set of known-shaped objects, exploiting volumetric reconstruction of detected
+objects in a real-time, incremental scene reconstruction senario. The key
+component of this system is:
+- **Occupancy-based volumetric reconstruction** of detected objects for model
+  alignment in the later stage;
+- **Volumetric pose prediction** that exploits volumetric reconstruction and
+  CNN feature extraction from the image observation;
+- **Joint pose refinement of objects** based on geometric consistency
+  among objects and impenetrable space.
+
+##
+
+<div>
+  <a href="https://youtu.be/6oLUhuZL4ko?t=19">
+    <img src="https://github.com/wkentaro/morefusion/raw/gh-pages/assets/img/reconstruction1.gif"
+    width="33%"/>
+  </a>
+  <a href="https://youtu.be/6oLUhuZL4ko?t=65">
+    <img src="https://github.com/wkentaro/morefusion/raw/gh-pages/assets/img/reconstruction2.gif"
+    width="33%"/>
+  </a>
+  <img src="https://github.com/wkentaro/morefusion/raw/gh-pages/assets/img/demonstration1.gif"
+  width="33%"/>
+</div>
 
 ## Installation
 
-### Python Project
+There're several options for installation:
+
+- [Python project only](#python-project-only): Python framework for pose
+  estimation (e.g., training, inference, refinement).
+- [ROS project for camera
+  demonstration](#ros-project-for-camera-demonstration): ROS framework for
+  object-level mapping with live cameras.
+- [ROS project for robotic
+  demonstration](#ros-project-for-robotic-demonstration): ROS framework for
+  robotic demonstration with object-level mapping.
+
+### Python project only
 
 ```bash
 make install
 ```
 
-### ROS Project
+### ROS project for camera demonstration
 
 ```bash
 mkdir -p ~/ros_morefusion/src
@@ -40,14 +104,15 @@ ln -s src/ros/*.sh .
 source .autoenv.zsh
 ```
 
-### ROS Project for Robotic Demonstrations
+### ROS project for robotic demonstration
 
 - `robot-agent`: A computer for visual processing.
 - `robot-node`: A computer with real-time OS for Panda robot.
 
 #### @robot-agent
 
-See <a href="#ros-project">above instruction</a>.
+Same as above instruction:
+<a href="#ros-project-for-camera-demonstration">ROS project for camera demonstration</a>.
 
 #### @robot-node
 
@@ -68,7 +133,9 @@ rosrun franka_control_custom create_udev_rules.sh
 
 ## Usage
 
-### Static Scene
+### ROS demonstration
+
+#### Static Scene
 
 ```bash
 # using orb-slam2 for camera tracking
@@ -96,7 +163,7 @@ roslaunch morefusion_panda_ycb_video setup_static.robot.launch
   <i>Figure 2. Static Scene Reconstruction with the Robotic Hand-mounted Camera.</i>
 </div>
 
-### Dynamic Scene
+#### Dynamic Scene
 
 ```bash
 roslaunch morefusion_panda_ycb_video rs_rgbd.launch
@@ -114,7 +181,7 @@ roslaunch morefusion_panda_ycb_video setup_dynamic.robot.launch
   <i>Figure 3. Dynamic Scene Reconstruction with the Human Hand-mounted Camera.</i>
 </div>
 
-### Robotic Pick-and-Place
+#### Robotic Pick-and-Place
 
 ```bash
 robot-agent $ sudo ntpdate 0.uk.pool.ntp.org  # for time synchronization
@@ -138,3 +205,17 @@ robot-node  $ rosrun morefusion_panda_ycb_video robot_demo_node.py
   <br/>
   <i>Figure 4. Targetted Object Pick-and-Place. (a) Scanning the Scene; (b) Removing Distractor Objects; (c) Picking Target Object.</i>
 </div>
+
+
+## Citation
+
+If you find MoreFusion useful, please consider citing the paper as:
+
+```
+@inproceedings{Wada:etal:CVPR2020,
+  title={{MoreFusion}: Multi-object Reasoning for {6D} Pose Estimation from Volumetric Fusion},
+  author={Kentaro Wada and Edgar Sucar and Stephen James and Daniel Lenton and Andrew J. Davison},
+  booktitle={Proceedings of the {IEEE} Conference on Computer Vision and Pattern Recognition ({CVPR})},
+  year={2020},
+}
+```
