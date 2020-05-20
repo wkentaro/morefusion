@@ -8,8 +8,8 @@ import morefusion
 
 from common import Inference
 
-sys.path.insert(0, "../preliminary")  # NOQA
-from align_pointclouds import refinement
+sys.path.insert(0, "../preliminary")
+from align_pointclouds import refinement  # NOQA
 
 
 models = morefusion.datasets.YCBVideoModels()

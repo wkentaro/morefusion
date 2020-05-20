@@ -95,7 +95,7 @@ def main():
     axes[2].get_xaxis().set_visible(False)
     axes[2].get_yaxis().set_visible(False)
 
-    plt.suptitle(f"BBox and Voxel size of YCB_Video_Models")
+    plt.suptitle("BBox and Voxel size of YCB_Video_Models")
 
     plt.show()
 

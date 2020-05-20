@@ -2,8 +2,8 @@ import numpy as np
 
 from ... import geometry as geometry_module
 from ..rgbd_pose_estimation import (
-    MySyntheticYCB20190916RGBDPoseEstimationDataset,
-)  # NOQA
+    MySyntheticYCB20190916RGBDPoseEstimationDataset,  # NOQA
+)
 from .voc_background_composite import VOCBackgroundComposite
 
 

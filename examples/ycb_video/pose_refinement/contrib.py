@@ -45,7 +45,7 @@ def get_data():
     depth = depth.astype(np.float32) / 1000
     data["depth"] = depth
 
-    with open(f"data/camera_info.yaml") as f:
+    with open("data/camera_info.yaml") as f:
         camera_info = yaml.safe_load(f)
     data["intrinsic_matrix"] = np.array(camera_info["K"]).reshape(3, 3)
 

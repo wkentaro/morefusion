@@ -361,11 +361,7 @@ class Model(chainer.Chain):
             add_or_add_s = add_s if is_symmetric else add
             if chainer.config.train:
                 summary.add(
-                    {
-                        f"add": add,
-                        f"add_s": add_s,
-                        f"add_or_add_s": add_or_add_s,
-                    }
+                    {"add": add, "add_s": add_s, "add_or_add_s": add_or_add_s}
                 )
             else:
                 instance_id_i = uuid.uuid1()
