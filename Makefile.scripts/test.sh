@@ -11,6 +11,7 @@ source .anaconda3/bin/activate
 
 pip install -U pytest
 
+CI=${CI:-false}
 if [ "$CI" == "true" ]; then
   pytest -v tests -m 'not gpu and not heavy'
 else
