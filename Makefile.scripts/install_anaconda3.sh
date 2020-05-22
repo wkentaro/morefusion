@@ -5,5 +5,5 @@ ROOT=$HERE/..
 
 if [ ! -d $ROOT/.anaconda3 ]; then
   cd $ROOT
-  curl -L https://github.com/wkentaro/dotfiles/raw/master/local/bin/install_anaconda3.sh | bash -s .
+  curl -L https://raw.githubusercontent.com/wkentaro/dotfiles/master/local/bin/install_anaconda3.sh | bash -s .
 fi
