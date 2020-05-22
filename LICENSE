@@ -218,10 +218,9 @@ SCHEDULE 1
 
 The Software
 
-DeepFactors is a real-time dense visual SLAM system capable of capturing
-comprehensive dense keyframe maps of room scale environments explored using an
-RGB camera. It is based on the techniques described in the following
-publication:
+MoreFusion is an object-level reconstruction system that builds a map with known-shaped objects,
+exploiting volumetric reconstruction of detected objects in a real-time, incremental scene
+reconstruction senario. It is based on the techniques described in the following publication:
 
     • Kentaro Wada, Edgar Sucar, Stephen James, Daniel Lenton, Andrew J. Davison.
 MoreFusion: Multi-object Reasoning for 6D Pose Estimation from Volumetric Fusion,
