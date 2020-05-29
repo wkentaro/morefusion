@@ -36,9 +36,12 @@ class MySyntheticYCB20190916RGBDPoseEstimationDataset(
             assert len(self._ids) == 3000
 
     def download(self):
-        return gdown.cached_download(
-            url="https://drive.google.com/uc?id=1mwa1gQy8ibuc3Gc-6lgvt64VFmH5CW4q",  # NOQA
-            path=self.root_dir + ".zip",
-            md5="13f12f4c00ce4976217635632363c19a",
-            postprocess=gdown.extractall,
-        )
+        if self.root_dir.endswith("v2"):
+            return gdown.cached_download(
+                url="https://drive.google.com/uc?id=1mwa1gQy8ibuc3Gc-6lgvt64VFmH5CW4q",  # NOQA
+                path=self.root_dir + ".zip",
+                md5="13f12f4c00ce4976217635632363c19a",
+                postprocess=gdown.extractall,
+            )
+        else:
+            raise NotImplementedError
