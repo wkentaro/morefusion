@@ -2,7 +2,6 @@ import typing
 
 import gdown
 import numpy as np
-import path
 import trimesh
 
 from ... import extra as extra_module
@@ -13,7 +12,7 @@ from .class_names import class_names as ycb_video_class_names
 
 class YCBVideoModels(ModelsBase):
 
-    _root_dir = utils_module.get_data_path("ycb_video/YCBVideoModels")
+    _root_dir = utils_module.get_data_path("ycb_video/YCB_Video_Models")
 
     _bbox_diagonal_cache: typing.Dict[str, float] = {}
     _cad_cache: typing.Dict[str, trimesh.Trimesh] = {}
@@ -32,19 +31,14 @@ class YCBVideoModels(ModelsBase):
 
     @classmethod
     def download(cls) -> None:
-        url: str = "https://drive.google.com/uc?id=1gmcDD-5bkJfcMKLZb3zGgH_HUFbulQWu"  # NOQA
-        md5: str = "d3efe74e77fe7d7ca216dde4b7d217fa"
-
-        def postprocess(file: str):
-            gdown.extractall(file)
-            file_extracted = path.Path(file).parent / "models"
-            file_extracted.move(cls._root_dir)
+        url: str = "https://drive.google.com/uc?id=1PKEJ8SVIVLukvmeIBexp6_XmJetHoOf2"  # NOQA
+        md5: str = "540c37435e4a16546850a83690b2db9b"
 
         gdown.cached_download(
             url=url,
             path=cls._root_dir + ".zip",
             md5=md5,
-            postprocess=postprocess,
+            postprocess=gdown.extractall,
         )
 
     def __init__(self):
