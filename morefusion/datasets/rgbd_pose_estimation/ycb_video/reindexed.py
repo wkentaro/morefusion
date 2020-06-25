@@ -2,6 +2,8 @@ import collections
 import json
 import os.path as osp
 
+import gdown
+
 from ...ycb_video import YCBVideoDataset
 from ...ycb_video import YCBVideoSyntheticDataset
 from ..reindexed import RGBDPoseEstimationDatasetReIndexedBase
@@ -12,6 +14,18 @@ class YCBVideoRGBDPoseEstimationDatasetReIndexed(
 ):
 
     _root_dir = YCBVideoDataset._root_dir + ".reindexed.v2"
+
+    def __init__(self, *args, **kwargs):
+        if not self.root_dir.exists():
+            self.download()
+        super().__init__(*args, **kwargs)
+
+    def download(self):
+        gdown.cached_download(
+            url="https://drive.google.com/uc?id=1l0ki7dX1WxcmV5Tfm41FPW-yk-wKUfne",  # NOQA
+            path=self.root_dir + ".zip",
+            postprocess=gdown.extractall,
+        )
 
     def _get_ids(self):
         assert self.split in ["train", "trainreal", "syn", "val"]
