@@ -57,13 +57,13 @@ def _estimate_pointcloud_normals_organized(points):
     points1 = points[i1, j1]
 
     lookup = lookups[k]
-    i2 = i1[None, :, :] + lookup[0][:, None, None]
-    j2 = j1[None, :, :] + lookup[1][:, None, None]
+    i2 = i1[None, :, :] + lookup[:, 0, None, None]
+    j2 = j1[None, :, :] + lookup[:, 1, None, None]
     points2 = points[i2, j2]
 
     lookup = lookups[(k + 2) % 8]
-    i3 = i1[None, :, :] + lookup[0][:, None, None]
-    j3 = j1[None, :, :] + lookup[1][:, None, None]
+    i3 = i1[None, :, :] + lookup[:, 0, None, None]
+    j3 = j1[None, :, :] + lookup[:, 1, None, None]
     points3 = points[i3, j3]
 
     diff = np.linalg.norm(points2 - points1, axis=3) + np.linalg.norm(
