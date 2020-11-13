@@ -8,4 +8,4 @@ pre-commit
 pycd
 pytest
 tensorboardX<1.7
-tensorflow==1.15.2
+tensorflow==2.3.1
