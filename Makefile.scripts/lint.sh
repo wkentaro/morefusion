@@ -9,7 +9,7 @@ cd $ROOT
 source .anaconda3/bin/activate
 
 echo_bold "==> Installing black, hacking and mypy"
-pip_install -U black hacking mypy
+pip_install -U "black==19.10b0" hacking mypy
 
 echo_bold "==> Linting with black"
 black --check .
