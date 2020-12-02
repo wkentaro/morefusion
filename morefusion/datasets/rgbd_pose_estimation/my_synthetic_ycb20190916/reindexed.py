@@ -32,9 +32,9 @@ class MySyntheticYCB20190916RGBDPoseEstimationDatasetReIndexed(
 
     def download(self):
         return gdown.cached_download(
-            url="https://drive.google.com/uc?id=1WAkPFoqnlzbg_TbGTXLL0MvS86dJqeAO",  # NOQA
+            url="https://drive.google.com/uc?id=1StTkkkKtgVffo8vCr-gW7tFvfi_FzlHX",  # NOQA
             path=self.root_dir + ".zip",
-            md5="06d100e66c92232ca2b02d2100249c5a",
+            md5="2bfabf02a78dad6e2d3a0be8f6b526de",
             postprocess=gdown.extractall,
         )
 
