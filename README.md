@@ -123,7 +123,7 @@ ln -s src/ros/*.sh .
 ./catkin_build.robot_node.sh
 source devel/setup.bash
 
-rosrun franka_control_custom create_udev_rules.sh
+rosrun morefusion_panda create_udev_rules.sh
 ```
 
 ## Usage
