@@ -8,12 +8,9 @@ def trimesh_to_open3d(src):
         dst = open3d.TriangleMesh()
         dst.vertices = open3d.Vector3dVector(src.vertices)
         dst.triangles = open3d.Vector3iVector(src.faces)
-
-        vertex_colors = np.zeros((len(src.vertices), 3), dtype=float)
-        for face, face_color in zip(src.faces, src.visual.face_colors):
-            vertex_colors[face] += face_color[:3] / 255.0  # uint8 -> float
-        indices, counts = np.unique(src.faces.flatten(), return_counts=True)
-        vertex_colors[indices] /= counts[:, None]
+        vertex_colors = (
+            src.visual.vertex_colors[:, :3].astype(np.float32) / 255
+        )
         dst.vertex_colors = open3d.Vector3dVector(vertex_colors)
         dst.compute_vertex_normals()
     elif isinstance(src, trimesh.PointCloud):
