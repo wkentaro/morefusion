@@ -156,7 +156,7 @@ mpirun -n 4 ./train.py --multi-node --centerize-pcd --pretrained-resnet18  # 4-g
 # volumetric prediction model (3D-CNN-based)
 cd examples/ycb_video/singleview_3d
 ./download_dataset.py
-./train.py --gpu 0 --centerize-pcd --pretrained-resnet18 --with-occupancy  # 1-gpu
+./train.py --gpu 0 --pretrained-resnet18 --with-occupancy  # 1-gpu
 mpirun -n 4 ./train.py --multi-node --pretrained-resnet18 --with-occupancy  # 4-gpu
 mpirun -n 4 ./train.py --multi-node --pretrained-resnet18  # w/o occupancy
 
