@@ -74,6 +74,9 @@ There're several options for installation:
 - [ROS project for robotic demonstration](#ros-project-for-robotic-demonstration): ROS framework for
   robotic demonstration with object-level mapping.
 
+NOTE: We have developed this project on Ubuntu 16.04 (and ROS Kinetic, CUDA 10.1),
+so several code changes may be needed to adapt to other OS (and ROS, CUDA versions).
+
 ### Python project only
 
 ```bash
