@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(morefusion_panda_ycb_video)
 
-add_compile_options(-std=c++11)
-
 find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   dynamic_reconfigure
@@ -18,6 +16,14 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 find_package(PCL REQUIRED io)
+
+if(${PCL_VERSION} VERSION_EQUAL 1.9)
+  set(CMAKE_CXX_STANDARD 14)
+else()
+  set(CMAKE_CXX_STANDARD 11)
+endif()
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 
 find_package(octomap REQUIRED)
 add_definitions(-DOCTOMAP_NODEBUGOUT)
