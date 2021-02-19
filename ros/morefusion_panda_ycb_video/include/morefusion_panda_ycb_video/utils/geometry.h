@@ -48,7 +48,7 @@ bool is_detected_mask_too_small(const cv::Mat& mask2) {
   mask2.copyTo(mask2_denoised);
   for (size_t i = 0; i < contours.size(); i++) {
     if (cv::contourArea(contours[i]) < (20 * 20)) {
-      cv::drawContours(mask2_denoised, contours, i, /*color=*/0, /*thickness=*/CV_FILLED);
+      cv::drawContours(mask2_denoised, contours, i, /*color=*/0, /*thickness=*/cv::FILLED);
     }
   }
   std::tuple<int, int, int, int> bbox2 = morefusion_panda_ycb_video::utils::mask_to_bbox(
@@ -91,7 +91,7 @@ void track_instance_id(
     cv::Point(reference.cols * 0.1, reference.rows * 0.1),
     cv::Point(reference.cols * 0.9, reference.rows * 0.9),
     /*color=*/255,
-    /*thickness=*/CV_FILLED);
+    /*thickness=*/cv::FILLED);
   cv::Mat mask_edge;
   cv::bitwise_not(mask_nonedge, mask_edge);
 
@@ -228,7 +228,7 @@ void track_instance_id(
       mask, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
     for (size_t j = 0; j < contours.size(); j++) {
       if (cv::contourArea(contours[j]) < (20 * 20)) {
-        cv::drawContours(*target, contours, j, /*color=*/-2, /*thickness=*/CV_FILLED);
+        cv::drawContours(*target, contours, j, /*color=*/-2, /*thickness=*/cv::FILLED);
       } else {
         cv::drawContours(*target, contours, j, /*color=*/-2, /*thickness=*/10);
       }
@@ -255,7 +255,7 @@ void track_instance_id(
       mask, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
     for (size_t j = 0; j < contours.size(); j++) {
       if (cv::contourArea(contours[j]) < (20 * 20)) {
-        cv::drawContours(reference, contours, j, /*color=*/-2, /*thickness=*/CV_FILLED);
+        cv::drawContours(reference, contours, j, /*color=*/-2, /*thickness=*/cv::FILLED);
       } else {
         cv::drawContours(reference, contours, j, /*color=*/-2, /*thickness=*/10);
       }
