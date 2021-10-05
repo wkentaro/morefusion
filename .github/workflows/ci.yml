@@ -14,16 +14,16 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Lint
-      run: |
-        make lint
+    # - name: Lint
+    #   run: |
+    #     make lint
 
     - name: Install
       run: |
         make install
 
-    - name: Test
-      env:
-        CI: true
-      run: |
-        make test
+    # - name: Test
+    #   env:
+    #     CI: true
+    #   run: |
+    #     make test
