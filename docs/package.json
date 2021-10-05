@@ -1,0 +1,24 @@
+{
+  "name": "morefusion",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "private": true,
+  "author": "",
+  "license": "ISC",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wkentaro/morefusion.git"
+  },
+  "bugs": {
+    "url": "https://github.com/wkentaro/morefusion/issues"
+  },
+  "homepage": "https://github.com/wkentaro/morefusion#readme",
+  "dependencies": {
+    "jquery": "^3.4.1",
+    "three": "^0.115.0"
+  }
+}

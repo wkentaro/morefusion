@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>MoreFusion: Multi-object Reasoning for 6D Pose Estimation from Volumetric Fusion</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link rel="stylesheet" href="assets/css/main.css">
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-42819052-8"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'UA-42819052-8');
+    </script>
+
+    <meta property="og:url"           content="https://morefusion.wkentaro.com/" />
+    <meta property="og:type"          content="website" />
+    <meta property="og:title"         content="MoreFusion: Multi-object Reasoning for 6D Pose Estimation from Volumetric Fusion" />
+    <meta property="og:description"   content="Robots and other smart devices need efficient object-based scene representations from their on-board vision systems to reason about contact, physics and occlusion. Recognized precise object models will play an important role alongside non-parametric reconstructions of unrecognized structures.  In this paper, we present a system, <u>MoreFusion</u>, which can estimate the accurate poses of multiple known objects in contact and occlusion from real-time, embodied multi-view vision.  Our approach makes 3D object pose proposals from single RGB-D views, accumulates pose estimates and non-parametric occupancy information from multiple views as the camera moves, and performs joint optimization to estimate consistent, non-intersecting poses for multiple objects in contact." />
+    <meta property="og:image" content="https://morefusion.wkentaro.com/assets/img/intro/scene.jpg" />
+  </head>
+  <body>
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-lg-8 offset-lg-2 col-md-12">
+
+          <div class="text-center">
+            <h1 class="mt-5"><i>More</i><b>Fusion</b></h1>
+            <h4 class="mt-4">Multi-object Reasoning for 6D Pose Estimation from Volumetric Fusion</h4>
+            <ul class="list-inline mt-4">
+              <li class="list-inline-item"><a href="https://wkentaro.com" target="_blank">Kentaro Wada</a></li>
+              <li class="list-inline-item ml-4">Edgar Sucar</li>
+              <li class="list-inline-item ml-4"><a href="https://stepjam.github.io" target="_blank">Stephen James</a></li>
+              <li class="list-inline-item ml-4">Daniel Lenton</li>
+              <li class="list-inline-item ml-4"><a href="https://www.doc.ic.ac.uk/~ajd/" target="_blank">Andrew J. Davison</a></li>
+              <li class="mt-2">
+                <a href="https://www.imperial.ac.uk/dyson-robotics-lab/" target="_blank">Dyson Robotic Laboratory</a>,
+                <a href="https://www.imperial.ac.uk/" target="_blank" class="ml-2">Imperial College London</a>
+              </li>
+            </ul>
+            <ul class="list-inline mt-4">
+              <li class="list-inline-item">
+                <a href="https://arxiv.org/abs/2004.04336" target="_blank">Paper</a>
+              </li>
+              <li class="list-inline-item ml-4">
+                <a href="https://github.com/wkentaro/morefusion" target="_blank">Code</a>
+              </li>
+              <li class="list-inline-item ml-4"><a href="https://www.youtube.com/watch?v=6oLUhuZL4ko" target="_blank">Video</a></li>
+              <li class="list-inline-item ml-4"><a href="https://drive.google.com/uc?id=190f3V5IEN9yvWdsMeZyQZHev2gwOLT88" target="_blank">Poster</a></li>
+            </ul>
+          </div>
+
+          <div class="row mt-4">
+            <div class="col-lg-7 offset-lg-1 col-md-7">
+              <p class="lead">
+                Robots and other smart devices need efficient object-based scene
+                representations from their on-board vision systems to reason about
+                contact, physics and occlusion. Recognized precise object models
+                will play an important role alongside non-parametric
+                reconstructions of unrecognized structures.
+              </p>
+              <p class="lead">
+                In this paper, we present a system,
+                <u>MoreFusion</u>,
+                which can estimate the accurate poses of multiple known objects in
+                contact and occlusion from real-time, embodied multi-view vision.
+                Our approach makes 3D object pose proposals from single RGB-D
+                views, accumulates pose estimates and non-parametric occupancy
+                information from multiple views as the camera moves, and performs
+                joint optimization to estimate consistent, non-intersecting poses
+                for multiple objects in contact.
+              </p>
+            </div>
+            <div class="col-lg-3 col-md-5 text-center">
+              <img src="assets/img/intro/scene.jpg" class="img-fluid" width="90%">
+              <img src="assets/img/intro/pose.jpg" class="img-fluid mt-1" width="90%">
+            </div>
+          </div>
+
+          <div class="col-lg-10 offset-lg-1"><hr class="mt-4 mb-4"></div>
+          <div class="col-lg-10 offset-lg-1">
+            <h4 id="video">Overview Video (with audio)</h4>
+            <div align="center" class="row mt-4">
+              <div class="col-lg-8 offset-lg-2">
+                <div class="video-container">
+                  <iframe width="1920" height="1080" src="https://www.youtube.com/embed/6oLUhuZL4ko" frameborder="0" allowfullscreen>
+                  </iframe>
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-10 offset-lg-1"><hr class="mt-4 mb-4"></div>
+          <div class="col-lg-10 offset-lg-1">
+            <h4 id="pipeline">Pipeline</h4>
+            <p>
+              We present a pipeline that achieves state-of-the-art results for 6D pose estimation of known objects, which
+              (a) reconstructs a scene with volumetric fusion;
+              (b) predicts object pose utilizing the volumetric reconstruction;
+              (c) refines the predicted pose respecting surrounding geometry and pose predictions;
+              (d) validates plural pose hypothesis to find a highly confident pose estimate.
+            </p>
+            <img src="assets/img/system.png" class="img-fluid">
+          </div>
+
+          <div class="col-lg-10 offset-lg-1"><hr class="mt-4 mb-4"></div>
+          <div class="col-lg-10 offset-lg-1">
+            <h4 id="surrounding-spatial-information">Surrounding Spatial Information</h4>
+            <p>
+              Each target object for pose prediction carries its own
+              volumetric occupancy grid. The voxels that make up this grid can be
+              in one of the following states: b) Space occupied by the object
+              itself from the target object reconstruction; c) Space
+              occupied by other objects; d) Free space identified by depth
+              measurement. e) Unknown space unobserved by mapping
+              because of occlusion and sensor range limit.
+            </p>
+            <div class="row">
+              <div class="col-4 col-md-2 offset-md-1 col-lg-2 offset-lg-1 text-center">
+                <img src="assets/img/surrounding_information/scene.png" class="img-fluid">
+                <p>(a) Scene</p>
+              </div>
+              <div class="col-4 col-md-2 col-lg-2 text-center">
+                <img src="assets/img/surrounding_information/grid_self.png" class="img-fluid">
+                <p>(b) Grid (self)</p>
+              </div>
+              <div class="col-4 col-md-2 col-lg-2 text-center">
+                <img src="assets/img/surrounding_information/grid_other.png" class="img-fluid">
+                <p>(c) Grid (other)</p>
+              </div>
+              <div class="col-4 col-md-2 col-lg-2 text-center">
+                <img src="assets/img/surrounding_information/grid_free.png" class="img-fluid">
+                <p>(d) Grid (free)</p>
+              </div>
+              <div class="col-4 col-md-2 col-lg-2 text-center">
+                <img src="assets/img/surrounding_information/grid_unknown.png" class="img-fluid">
+                <p>(e) Grid (unknown)</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-10 offset-lg-1"><hr class="mt-4 mb-4"></div>
+          <div class="col-lg-10 offset-lg-1">
+            <h4 id="pose-prediction-results">Pose Prediction Results</h4>
+            <p>
+              Our proposed model (MoreFusion) performs consistent pose prediction
+              with surroundings, where the baseline (DenseFusion∗) and the
+              variant without occupancy information
+              (Morefusion<small>−occ</small>) fails.
+            </p>
+            <div class="table-responsive">
+              <table class="table">
+                <tr class="d-flex text-center">
+                  <th class="col-md-2 offset-md-1">Scene</th>
+                  <th class="col-md-2">DenseFusion*</th>
+                  <th class="col-md-2">MoreFusion<small>-occ</small></th>
+                  <th class="col-md-2">MoreFusion</th>
+                  <th class="col-md-2">Ground Truth</th>
+                </tr>
+                <tr class="d-flex text-center">
+                  <td class="col-md-2 offset-md-1"><img class="img-fluid" src="assets/img/pose_prediction/w_occ_rgb.jpg"></td>
+                  <td class="col-md-2"><img class="img-fluid" src="assets/img/pose_prediction/pcd_res.jpg"></td>
+                  <td class="col-md-2"><img class="img-fluid" src="assets/img/pose_prediction/wo_occ_res.jpg"></td>
+                  <td class="col-md-2"><img class="img-fluid" src="assets/img/pose_prediction/w_occ_res.jpg"></td>
+                  <td class="col-md-2"><img class="img-fluid" src="assets/img/pose_prediction/w_occ_gt.jpg"></td>
+                </tr>
+              </table>
+            </div>
+            <div class="row mt-4">
+              <div class="col-md-6">
+                <p>
+                  We evaluated the pose prediction in different datasets (YCB-Video, Cluttered-YCB),
+                  and the result shows that the proposed model consistently gives better pose estimate
+                  than the existing method.
+                </p>
+                <div class="table-responsive">
+                  <table class="table table-bordered text-center">
+                    <tr><th>Model</th><th>Dataset</th><th>ADD(-S)</th><th>ADD-S</th></tr>
+                    <tr><th>DenseFusion*</th><th rowspan="2" style="vertical-align: middle;">YCB-Video</th><td>88.4</td><td>94.9</td></tr>
+                    <tr><th>MoreFusion</th><td><u>91.0</u></td><td><u>95.7</u></td></tr>
+                    <tr><th>DenseFusion*</th><th rowspan="2" style="vertical-align: middle;">Cluttered YCB</th><td>81.7</td><td>91.7</td></tr>
+                    <tr><th>MoreFusion</th><td><u>83.4</u></td><td><u>92.3</u></td></tr>
+                  </table>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <p>
+                  As more and more occupancy information is available:
+                  MF<small>-occ</small> (no occupancy) &lt; MF &lt; MF<small>+target-</small> (full grid of nontarget),
+                  MF<small>+target- +bg</small> (full grid of background objects),
+                  the model gives better pose estimate.
+                </p>
+                <div class="table-responsive">
+                  <table class="table table-bordered text-center">
+                    <tr><th>Model</th><th>ADD(-S)</th><th>ADD-S</th></tr>
+                    <tr><th>MF<small>-occ</small></th><td>82.5</td><td>91.7</td></tr>
+                    <tr><th>MoreFusion (MF)</th><td>83.4</td><td>92.3</td></tr>
+                    <tr><th>MF<small>+target-</small></th><td>84.7</td><td>93.3</td></tr>
+                    <tr><th>MF<small>+target- +bg</small></th><td>85.5</td><td>93.8</td></tr>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-10 offset-lg-1"><hr class="mt-4 mb-4"></div>
+          <div class="col-lg-10 offset-lg-1">
+            <h4 id="pose-refinement-results">Pose Refinement Results</h4>
+            <p>
+              The proposed collision-based pose refinement, Iterative Collision Check (ICC),
+              gives better convergence minimizing the intersections among objects,
+              as well as aligning the model surface to the depth observation.
+              For detailed refinement (right figure), it is better to combine ICC with Iterative Closest Point (ICP),
+              to initially align model with ICC in volumetric resolution and then to refine the detail
+              in point space with ICP.
+            </p>
+            <div class="row">
+              <div class="col-md-6">
+                <a href="https://youtu.be/6oLUhuZL4ko?t=95" target="_blank">
+                  <img src="assets/img/pose_refinement.gif" class="img-fluid">
+                </a>
+              </div>
+              <div class="col-md-6">
+                <img src="assets/img/refine.png" class="img-fluid">
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-10 offset-lg-1"><hr class="mt-4 mb-4"></div>
+          <div class="col-lg-10 offset-lg-1">
+            <h4 id="scene-reconstruction">Scene Reconstruction</h4>
+            <div class="row">
+              <div class="col-md-6">
+                <h6>Robotic Top-down Camera Sequence</h6>
+                <div class="mb-2">
+                  <a href="https://youtu.be/6oLUhuZL4ko?t=19" target="_blank">
+                    <img src="assets/img/reconstruction1.gif" class="img-fluid">
+                  </a>
+                </div>
+                <div id="reconstruction-robotic-top-down"></div>
+                <div class="mt-0">
+                  <button class="pt-0 btn btn-link btn-sm" onclick="robotic_top_down.resetCamera();">Reset</button>
+                  <button class="pt-0 btn btn-link btn-sm" onclick="robotic_top_down.toggleRotateCamera();">Rotate/Stop</button>
+                  <button class="pt-0 btn btn-link btn-sm" onclick="robotic_top_down.fullScreen();">Fullscreen</button>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <h6>Table-top Side-view Camera Sequence</h6>
+                <div class="mb-2">
+                  <a href="https://youtu.be/6oLUhuZL4ko?t=65" target="_blank">
+                    <img src="assets/img/reconstruction2.gif" class="img-fluid">
+                  </a>
+                </div>
+                <div id="reconstruction-table-top-side"></div>
+                <div class="mt-0">
+                  <button class="pt-0 btn btn-link btn-sm" onclick="table_top_side.resetCamera();">Reset</button>
+                  <button class="pt-0 btn btn-link btn-sm" onclick="table_top_side.toggleRotateCamera();">Rotate/Stop</button>
+                  <button class="pt-0 btn btn-link btn-sm" onclick="table_top_side.fullScreen();">Fullscreen</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-10 offset-lg-1"><hr class="mt-4 mb-4"></div>
+          <div class="col-lg-10 offset-lg-1">
+            <h4 id="robotic-pick-and-place">Robotic Pick-and-Place</h4>
+            <div class="row">
+              <div class="col-md-6">
+                <h6>Pick the Target Object (Red Box) from a Pile</h6>
+                <a href="https://youtu.be/6oLUhuZL4ko?t=115" target="_blank">
+                  <img src="assets/img/demonstration1.gif" class="img-fluid">
+                </a>
+              </div>
+              <div class="col-md-6">
+                <h6>More Examples...</h6>
+                <a href="https://youtu.be/6oLUhuZL4ko?t=177" target="_blank">
+                  <img src="assets/img/demonstration2.gif" class="img-fluid">
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-10 offset-lg-1"><hr class="mt-4 mb-4"></div>
+          <div class="col-lg-10 offset-lg-1">
+            <h4 id="video">Paper</h4>
+            <a href="https://arxiv.org/abs/2004.04336" target="_blank">
+              <img src="assets/img/paper.jpg" class="img-fluid">
+            </a>
+          </div>
+
+          <div class="col-lg-10 offset-lg-1"><hr class="mt-4 mb-4"></div>
+          <div class="col-lg-10 offset-lg-1">
+            <h4 id="bibtex">Bibtex</h4>
+            <pre>
+  @inproceedings{Wada:etal:CVPR2020,
+    title={{MoreFusion}: Multi-object Reasoning for {6D} Pose Estimation from Volumetric Fusion},
+    author={Kentaro Wada and Edgar Sucar and Stephen James and Daniel Lenton and Andrew J. Davison},
+    booktitle={Proceedings of the {IEEE} Conference on Computer Vision and Pattern Recognition ({CVPR})},
+    year={2020},
+  }
+            </pre>
+          </div>
+
+          <div class="col-lg-10 offset-lg-1"><hr class="mt-4 mb-4"></div>
+          <div class="col-lg-10 offset-lg-1 mb-5">
+            <h4 id="contact">Contact</h4>
+            <p>
+              If you have any questions, please feel free to contact
+              <a href="https://wkentaro.com" target="_blank">Kentaro Wada</a>.
+            </p>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="assets/js/THREEx.FullScreen.js"></script>
+    <script src="assets/reconstruction/table-top-side/bundle.js" type="text/javascript"></script>
+    <script src="assets/reconstruction/robotic-top-down/bundle.js" type="text/javascript"></script>
+  </body>
+</html>
