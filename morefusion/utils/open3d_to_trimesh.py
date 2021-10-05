@@ -4,7 +4,7 @@ import trimesh
 
 
 def open3d_to_trimesh(src):
-    if isinstance(src, open3d.TriangleMesh):
+    if isinstance(src, open3d.geometry.TriangleMesh):
         vertex_colors = None
         if src.has_vertex_colors:
             vertex_colors = np.asarray(src.vertex_colors)

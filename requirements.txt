@@ -9,7 +9,7 @@ imgviz[all]>=0.10.0
 logboard>=0.3.0
 networkx
 octomap-python>=1.8.0.post12
-open3d-python
+open3d>=0.13.0
 opencv-python
 pandas
 path.py

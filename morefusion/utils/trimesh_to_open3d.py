@@ -5,23 +5,23 @@ import trimesh
 
 def trimesh_to_open3d(src):
     if isinstance(src, trimesh.Trimesh):
-        dst = open3d.TriangleMesh()
-        dst.vertices = open3d.Vector3dVector(src.vertices)
-        dst.triangles = open3d.Vector3iVector(src.faces)
+        dst = open3d.geometry.TriangleMesh()
+        dst.vertices = open3d.utility.Vector3dVector(src.vertices)
+        dst.triangles = open3d.utility.Vector3iVector(src.faces)
         vertex_colors = (
             src.visual.vertex_colors[:, :3].astype(np.float32) / 255
         )
-        dst.vertex_colors = open3d.Vector3dVector(vertex_colors)
+        dst.vertex_colors = open3d.utility.Vector3dVector(vertex_colors)
         dst.compute_vertex_normals()
     elif isinstance(src, trimesh.PointCloud):
-        dst = open3d.PointCloud()
-        dst.points = open3d.Vector3dVector(src.vertices)
+        dst = open3d.geometry.PointCloud()
+        dst.points = open3d.utility.Vector3dVector(src.vertices)
         if src.colors:
             colors = src.colors
             colors = (colors[:, :3] / 255.0).astype(float)
-            dst.colors = open3d.Vector3dVector(colors)
+            dst.colors = open3d.utility.Vector3dVector(colors)
     elif isinstance(src, trimesh.scene.Camera):
-        dst = open3d.PinholeCameraIntrinsic(
+        dst = open3d.camera.PinholeCameraIntrinsic(
             width=src.resolution[0],
             height=src.resolution[1],
             fx=src.K[0, 0],
@@ -36,9 +36,9 @@ def trimesh_to_open3d(src):
                 lines.append((i, j))
         lines = np.vstack(lines)
         points = src.vertices
-        dst = open3d.LineSet()
-        dst.lines = open3d.Vector2iVector(lines)
-        dst.points = open3d.Vector3dVector(points)
+        dst = open3d.geometry.LineSet()
+        dst.lines = open3d.utility.Vector2iVector(lines)
+        dst.points = open3d.utility.Vector3dVector(points)
     elif isinstance(src, list):
         dst = [trimesh_to_open3d(x) for x in src]
     else:
