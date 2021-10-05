@@ -22,8 +22,8 @@ jobs:
       run: |
         make install
 
-    # - name: Test
-    #   env:
-    #     CI: true
-    #   run: |
-    #     make test
+    - name: Test
+      env:
+        CI: true
+      run: |
+        make test
