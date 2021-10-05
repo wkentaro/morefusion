@@ -27,6 +27,9 @@ class SingleViewPoseEstimation3D(topic_tools.LazyTransport):
     _models = morefusion.datasets.YCBVideoModels()
 
     def __init__(self):
+        self._confidence_threshold = rospy.get_param(
+            "~confidence_threshold", 0.9
+        )
         self._with_occupancy = rospy.get_param("~with_occupancy")
         if self._with_occupancy:
             pretrained_model = gdown.cached_download(
@@ -214,6 +217,8 @@ class SingleViewPoseEstimation3D(topic_tools.LazyTransport):
             quaternion, translation
         ).array
         for i in range(B):
+            if confidence[i] < self._confidence_threshold:
+                continue
             pcd_cad = self._models.get_pcd(examples[i]['class_id'])
             pcd_depth = examples[i]['pcd']
             pcd_depth = pcd_depth[~np.isnan(pcd_depth).any(axis=2)]
@@ -231,18 +236,8 @@ class SingleViewPoseEstimation3D(topic_tools.LazyTransport):
         poses = ObjectPoseArray()
         poses.header = rgb_msg.header
         for i, (ins_id, example) in enumerate(zip(instance_ids, examples)):
-            """
-            cls_id = example['class_id']
-            class_name = morefusion.datasets.ycb_video.class_names[cls_id]
-            morefusion.ros.loginfo_green(
-                f'instance_id={ins_id}, class_id={cls_id}, '
-                f'class_name={class_name}, confidence={confidence[i].item()}'
-            )
-            """
-
-            if confidence[i].item() < 0.9:
+            if confidence[i] < self._confidence_threshold:
                 continue
-
             pose = ObjectPose()
             pose.pose.position.x = translation[i][0]
             pose.pose.position.y = translation[i][1]
