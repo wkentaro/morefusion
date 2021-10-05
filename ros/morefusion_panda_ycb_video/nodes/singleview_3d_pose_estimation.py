@@ -27,6 +27,7 @@ class SingleViewPoseEstimation3D(topic_tools.LazyTransport):
     _models = morefusion.datasets.YCBVideoModels()
 
     def __init__(self):
+        self._icp = rospy.get_param("~icp", False)
         self._confidence_threshold = rospy.get_param(
             "~confidence_threshold", 0.9
         )
@@ -212,26 +213,25 @@ class SingleViewPoseEstimation3D(topic_tools.LazyTransport):
         quaternion = chainer.cuda.to_cpu(quaternion.array)
         translation = chainer.cuda.to_cpu(translation.array)
 
-        """
-        transforms = morefusion.functions.transformation_matrix(
-            quaternion, translation
-        ).array
-        for i in range(B):
-            if confidence[i] < self._confidence_threshold:
-                continue
-            pcd_cad = self._models.get_pcd(examples[i]['class_id'])
-            pcd_depth = examples[i]['pcd']
-            pcd_depth = pcd_depth[~np.isnan(pcd_depth).any(axis=2)]
-            icp = morefusion.contrib.ICPRegistration(
-                pcd_depth=pcd_depth,
-                pcd_cad=pcd_cad,
-                transform_init=transforms[i],
-            )
-            transform = icp.register()
-            quaternion[i] = ttf.quaternion_from_matrix(transform)
-            translation[i] = ttf.translation_from_matrix(transform)
-        del transforms
-        """
+        if self._icp:
+            transforms = morefusion.functions.transformation_matrix(
+                quaternion, translation
+            ).array
+            for i in range(B):
+                if confidence[i] < self._confidence_threshold:
+                    continue
+                pcd_cad = self._models.get_pcd(examples[i]['class_id'])
+                pcd_depth = examples[i]['pcd']
+                pcd_depth = pcd_depth[~np.isnan(pcd_depth).any(axis=2)]
+                icp = morefusion.contrib.ICPRegistration(
+                    pcd_depth=pcd_depth,
+                    pcd_cad=pcd_cad,
+                    transform_init=transforms[i],
+                )
+                transform = icp.register()
+                quaternion[i] = ttf.quaternion_from_matrix(transform)
+                translation[i] = ttf.translation_from_matrix(transform)
+            del transforms
 
         poses = ObjectPoseArray()
         poses.header = rgb_msg.header
