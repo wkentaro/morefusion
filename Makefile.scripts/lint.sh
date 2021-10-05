@@ -8,14 +8,14 @@ cd $ROOT
 
 source .anaconda3/bin/activate
 
-echo_bold "==> Installing black, hacking and mypy"
-pip_install -U "black==19.10b0" hacking mypy
-
+pip_install black==19.10b0
 echo_bold "==> Linting with black"
 black --check .
 
+pip install -U hacking
 echo_bold "==> Linting with flake8"
 flake8 .
 
+pip install -U mypy types-termcolor types-six types-PyYAML types-frozendict
 echo_bold "==> Linting with mypy"
 mypy --package morefusion --ignore-missing-imports

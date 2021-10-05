@@ -66,8 +66,8 @@ if __name__ == "__main__":
     pitch = 1
     origin = 0
     dimension = 5
-    points = np.array([0.05, 3.9], dtype=np.float32)
-    points = chainer.Variable(points)
+    points_array = np.array([0.05, 3.9], dtype=np.float32)
+    points = chainer.Variable(points_array)
     m_pred = occupancy_grid_1d(
         points, pitch=pitch, origin=origin, dimension=dimension,
     )

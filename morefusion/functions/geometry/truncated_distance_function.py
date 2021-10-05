@@ -222,10 +222,12 @@ if __name__ == "__main__":
     pitch = 0.5
     origin = (0, 0, 0)
     dims = (5, 5, 5)
-    points = np.array([[0.5, 0.5, 0.5], [1.48, 1.48, 1.48]], dtype=np.float32)
-    points = cuda.to_gpu(points)
-    print(f"points:\n{points}")
-    points = chainer.Variable(points)
+    points_array = np.array(
+        [[0.5, 0.5, 0.5], [1.48, 1.48, 1.48]], dtype=np.float32
+    )
+    points_array = cuda.to_gpu(points_array)
+    print(f"points_array:\n{points_array}")
+    points = chainer.Variable(points_array)
     truncation = 1.2
     m_pred = truncated_distance_function(
         points, pitch=pitch, origin=origin, dims=dims, truncation=truncation,
