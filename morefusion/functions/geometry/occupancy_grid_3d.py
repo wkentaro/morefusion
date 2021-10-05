@@ -91,9 +91,9 @@ if __name__ == "__main__":
     pitch = 1
     origin = (0, 0, 0)
     dims = (5, 5, 5)
-    points = np.array([[0, 0.05, 0.1], [3.9, 3.95, 4]], dtype=np.float32)
-    print(f"points:\n{points}")
-    points = chainer.Variable(points)
+    points_array = np.array([[0, 0.05, 0.1], [3.9, 3.95, 4]], dtype=np.float32)
+    print(f"points_array:\n{points_array}")
+    points = chainer.Variable(points_array)
     m_pred = occupancy_grid_3d(points, pitch=pitch, origin=origin, dims=dims,)
     m_true = np.zeros_like(m_pred.array)
     m_true[0, 0, 0] = 1

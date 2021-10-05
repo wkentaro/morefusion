@@ -81,9 +81,9 @@ if __name__ == "__main__":
     pitch = 1
     origin = (0, 0)
     dimension = (5, 5)
-    points = np.array([[0.01, 0.05], [3.99, 3.9]], dtype=np.float32)
-    print(f"points:\n{points}")
-    points = chainer.Variable(points)
+    points_array = np.array([[0.01, 0.05], [3.99, 3.9]], dtype=np.float32)
+    print(f"points_array:\n{points_array}")
+    points = chainer.Variable(points_array)
     m_pred = occupancy_grid_2d(
         points, pitch=pitch, origin=origin, dimension=dimension,
     )
