@@ -15,11 +15,12 @@ def _estimate_pointcloud_normals_unorganized(points):
     assert points.shape[1] == 3
 
     nonnan = ~np.isnan(points).any(axis=1)
-    points_open3d = open3d.PointCloud()
-    points_open3d.points = open3d.Vector3dVector(points[nonnan])
-    open3d.estimate_normals(
-        points_open3d,
-        search_param=open3d.KDTreeSearchParamHybrid(radius=0.1, max_nn=30),
+    points_open3d = open3d.geometry.PointCloud()
+    points_open3d.points = open3d.utility.Vector3dVector(points[nonnan])
+    points_open3d.estimate_normals(
+        search_param=open3d.geometry.KDTreeSearchParamHybrid(
+            radius=0.1, max_nn=30
+        ),
     )
     return np.asarray(points_open3d.normals)
 

@@ -13,14 +13,14 @@ class ICPRegistration:
         self._transform = transform_init
 
     def _prepare(self, voxel_size):
-        source = open3d.PointCloud()
-        source.points = open3d.Vector3dVector(self._pcd_depth)
+        source = open3d.geometry.PointCloud()
+        source.points = open3d.utility.Vector3dVector(self._pcd_depth)
 
-        target = open3d.PointCloud()
-        target.points = open3d.Vector3dVector(self._pcd_cad)
+        target = open3d.geometry.PointCloud()
+        target.points = open3d.utility.Vector3dVector(self._pcd_cad)
 
-        source = open3d.voxel_down_sample(source, voxel_size=voxel_size)
-        target = open3d.voxel_down_sample(target, voxel_size=voxel_size)
+        source = source.voxel_down_sample(voxel_size=voxel_size)
+        target = target.voxel_down_sample(voxel_size=voxel_size)
 
         return source, target
 
@@ -29,13 +29,17 @@ class ICPRegistration:
         voxel_size = 0.01 if voxel_size is None else voxel_size
 
         source, target = self._prepare(voxel_size=voxel_size)
-        result = open3d.registration_icp(
+        result = open3d.pipelines.registration.registration_icp(
             source,  # points_from_depth
             target,  # points_from_cad
             2 * voxel_size,
             tf.inverse_matrix(self._transform),
-            open3d.TransformationEstimationPointToPoint(False),
-            open3d.ICPConvergenceCriteria(max_iteration=iteration),
+            open3d.pipelines.registration.TransformationEstimationPointToPoint(
+                False
+            ),
+            open3d.pipelines.registration.ICPConvergenceCriteria(
+                max_iteration=iteration
+            ),
         )
         return tf.inverse_matrix(result.transformation)
 
@@ -47,13 +51,17 @@ class ICPRegistration:
 
         source, target = self._prepare(voxel_size=voxel_size)
         for i in range(iteration):
-            result = open3d.registration_icp(
+            result = open3d.pipelines.registration.registration_icp(
                 source,  # points_from_depth
                 target,  # points_from_cad
                 2 * voxel_size,
                 tf.inverse_matrix(self._transform),
-                open3d.TransformationEstimationPointToPoint(False),
-                open3d.ICPConvergenceCriteria(max_iteration=1),
+                open3d.pipelines.registration.TransformationEstimationPointToPoint(  # NOQA
+                    False
+                ),
+                open3d.pipelines.registration.ICPConvergenceCriteria(
+                    max_iteration=1
+                ),
             )
             print(
                 f"[{i:08d}] fitness={result.fitness:.2g} "

@@ -6,9 +6,9 @@ import scipy.cluster.hierarchy
 
 
 def voxel_down_sample(points: np.ndarray, voxel_size: float) -> np.ndarray:
-    pcd = open3d.PointCloud()
-    pcd.points = open3d.Vector3dVector(points)
-    pcd = open3d.voxel_down_sample(pcd, voxel_size=voxel_size)
+    pcd = open3d.geometry.PointCloud()
+    pcd.points = open3d.utility.Vector3dVector(points)
+    pcd = pcd.voxel_down_sample(voxel_size=voxel_size)
     dst_points = np.asarray(pcd.points)
     return dst_points
 
