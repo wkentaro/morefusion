@@ -1,18 +1,19 @@
 #!/usr/bin/env python
-# flake8: noqa
 
 import collections
+from distutils.version import StrictVersion
+import pkg_resources
 import sys
-import cv2
+from threading import Lock
+
 import cv_bridge
-import jsk_recognition_utils
 from jsk_topic_tools import ConnectionBasedTransport
 import message_filters
 import rospy
 from sensor_msgs.msg import Image
-import pkg_resources
-from distutils.version import StrictVersion
-from threading import Lock
+
+import cv2
+import imgviz
 
 
 def draw_text_box(
@@ -64,7 +65,6 @@ class TileImages(ConnectionBasedTransport):
             if (self._shape[0] * self._shape[1]) < len(self.input_topics):
                 rospy.logerr("Tile size must be larger than # of input topics")
                 sys.exit(1)
-        self.cache_img = None
         self.draw_topic_name = rospy.get_param("~draw_topic_name", False)
         self.approximate_sync = rospy.get_param("~approximate_sync", True)
         self.no_sync = rospy.get_param("~no_sync", False)
@@ -78,7 +78,8 @@ class TileImages(ConnectionBasedTransport):
             and self.approximate_sync
         ):
             rospy.logerr(
-                "hydro message_filters does not support approximate sync. Force to set ~approximate_sync=false"
+                "hydro message_filters does not support approximate sync. "
+                "Force to set ~approximate_sync=false"
             )
             self.approximate_sync = False
         self.pub_img = self.advertise("~output", Image, queue_size=1)
@@ -142,24 +143,7 @@ class TileImages(ConnectionBasedTransport):
     def _append_images(self, imgs):
         if not imgs:
             return
-        # convert tile shape: (Y, X) -> (X, Y)
-        # if None, shape is automatically decided to be square AMAP.
-        shape_xy = self._shape[::-1] if self._shape else None
-        if self.cache_img is None:
-            out_bgr = jsk_recognition_utils.get_tile_image(
-                imgs, tile_shape=shape_xy
-            )
-            self.cache_img = out_bgr
-        else:
-            try:
-                out_bgr = jsk_recognition_utils.get_tile_image(
-                    imgs, tile_shape=shape_xy, result_img=self.cache_img
-                )
-            except ValueError:  # cache miss
-                out_bgr = jsk_recognition_utils.get_tile_image(
-                    imgs, tile_shape=shape_xy
-                )
-                self.cache_img = out_bgr
+        out_bgr = imgviz.tile(imgs, shape=self._shape)
         bridge = cv_bridge.CvBridge()
         imgmsg = bridge.cv2_to_imgmsg(out_bgr, encoding="bgr8")
         self.pub_img.publish(imgmsg)
