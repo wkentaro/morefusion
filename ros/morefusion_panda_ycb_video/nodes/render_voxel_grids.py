@@ -75,7 +75,6 @@ class RenderVoxelGrids:
 
                 uniq_id = morefusion.extra.pybullet.add_model(
                     visual_file=mesh_file,
-                    collision_file=mesh_file,
                     register=False,
                 )
                 uniq_id_to_ins_id[uniq_id] = instance_id

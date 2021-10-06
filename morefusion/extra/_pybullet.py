@@ -58,11 +58,6 @@ def add_model(
 ) -> int:
     import pybullet
 
-    visual_file = str(visual_file)
-    if collision_file is None:
-        collision_file = visual_file
-    collision_file = str(collision_file)
-
     if position is None:
         position = [0, 0, 0]
     if orientation is None:
@@ -78,12 +73,15 @@ def add_model(
         visualFramePosition=(0, 0, 0),
         meshScale=mesh_scale,
     )
-    collision_shape_id = pybullet.createCollisionShape(
-        shapeType=pybullet.GEOM_MESH,
-        fileName=collision_file,
-        collisionFramePosition=(0, 0, 0),
-        meshScale=mesh_scale,
-    )
+    if collision_file is not None:
+        collision_shape_id = pybullet.createCollisionShape(
+            shapeType=pybullet.GEOM_MESH,
+            fileName=collision_file,
+            collisionFramePosition=(0, 0, 0),
+            meshScale=mesh_scale,
+        )
+    else:
+        collision_shape_id = -1
     unique_id = pybullet.createMultiBody(
         baseMass=base_mass,
         baseInertialFramePosition=(0, 0, 0),
@@ -227,6 +225,7 @@ def get_camera_image(view_matrix, fovy, height, width):
         height=height,
         viewMatrix=view_matrix,
         projectionMatrix=projection_matrix,
+        renderer=pybullet.ER_BULLET_HARDWARE_OPENGL,
     )
     rgb = rgba[:, :, :3]
     depth = np.asarray(depth, dtype=np.float32).reshape(height, width)
