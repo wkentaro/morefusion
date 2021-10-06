@@ -6,6 +6,7 @@ import chainer
 import gdown
 import imgviz
 import numpy as np
+import trimesh.transformations as ttf
 
 import morefusion
 import morefusion.contrib.singleview_3d as contrib
