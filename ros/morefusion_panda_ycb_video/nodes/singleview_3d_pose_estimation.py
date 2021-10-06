@@ -221,8 +221,8 @@ class SingleViewPoseEstimation3D(topic_tools.LazyTransport):
             for i in range(B):
                 if confidence[i] < self._confidence_threshold:
                     continue
-                pcd_cad = self._models.get_pcd(examples[i]['class_id'])
-                pcd_depth = examples[i]['pcd']
+                pcd_cad = self._models.get_pcd(examples[i]["class_id"])
+                pcd_depth = examples[i]["pcd"]
                 pcd_depth = pcd_depth[~np.isnan(pcd_depth).any(axis=2)]
                 icp = morefusion.contrib.ICPRegistration(
                     pcd_depth=pcd_depth,
