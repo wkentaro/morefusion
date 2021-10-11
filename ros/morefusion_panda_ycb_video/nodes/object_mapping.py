@@ -19,14 +19,14 @@ import tf
 
 class Object:
 
-    _n_votes = 3
     _add_threshold = 0.02
     _adds_threshold = 0.01
 
-    def __init__(self, class_id, pcd, is_symmetric):
+    def __init__(self, class_id, pcd, is_symmetric, n_votes=3):
         self.class_id = class_id
         self._pcd = pcd
         self._is_symmetric = is_symmetric
+        self._n_votes = n_votes
 
         self._poses = queue.deque([], 6)
         self.is_spawned = False
@@ -86,6 +86,7 @@ class ObjectMapping:
     _models = morefusion.datasets.YCBVideoModels()
 
     def __init__(self):
+        self._n_votes = rospy.get_param("~n_votes", 3)
         self._objects = {}  # instance_id: Object()
         self._instance_ids_removed = set()
         self._base_frame = rospy.get_param("~frame_id", "map")
@@ -193,6 +194,7 @@ class ObjectMapping:
                     pcd=self._models.get_pcd(class_id),
                     is_symmetric=class_id
                     in morefusion.datasets.ycb_video.class_ids_symmetric,
+                    n_votes=self._n_votes,
                 )
                 self._objects[instance_id].append_pose(T_cad2base)
 
