@@ -1,5 +1,12 @@
-/*.egg-info/
-/.mypy_cache/
+/examples/**/logs/
+
 /src/
 
-logs/
+/ros/.catkin_tools/
+/ros/build/
+/ros/devel/
+/ros/logs/
+/ros/src/*
+!/ros/src/.rosinstall
+!/ros/src/morefusion_panda
+!/ros/src/morefusion_panda_ycb_video
