@@ -1,4 +1,8 @@
 - git:
+    local-name: orb_slam_2_ros
+    uri: https://github.com/appliedAI-Initiative/orb_slam_2_ros.git
+    version: 94ed988
+- git:
     local-name: realsense-ros
     uri: https://github.com/IntelRealSense/realsense-ros.git
     version: 2.2.3
