@@ -5,6 +5,7 @@
 
 #include <pcl/point_types.h>
 #include <pcl/conversions.h>
+#include <pcl/common/common.h>
 #include <pcl_ros/transforms.h>
 #include <pcl/sample_consensus/method_types.h>
 #include <pcl/sample_consensus/model_types.h>
@@ -103,6 +104,12 @@ class OctomapServer {
     const PCLPointCloud& pc,
     const cv::Mat& label_ins,
     const std::map<int, unsigned>& instance_id_to_class_id);
+  virtual void render(
+    const sensor_msgs::CameraInfoConstPtr& camera_info_msg,
+    const tf::Point& sensorOrigin,
+    const PCLPointCloud& pc,
+    cv::Mat& label_ins_rend,
+    const Eigen::Matrix4f sensorToWorld);
 
   /**
   * @brief Find speckle nodes (single occupied voxels with no neighbors). Only works on lowest resolution!
