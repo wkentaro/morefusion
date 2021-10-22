@@ -21,7 +21,7 @@ OctomapServer::OctomapServer() {
   pnh_.param("sensor_model/miss", probability_miss_, 0.4);
   pnh_.param("sensor_model/min", probability_min_, 0.12);
   pnh_.param("sensor_model/max", probability_max_, 0.97);
-  pnh_.param("compress_map", do_compress_map_, true);
+  pnh_.param("compress_map", do_compress_map_, false);
 
   // paramters for publishing
   pnh_.param("frame_id", frame_id_world_, std::string("map"));
@@ -92,29 +92,34 @@ void OctomapServer::insertCloudCallback(
   Eigen::Matrix4f sensorToWorld;
   pcl_ros::transformAsMatrix(sensorToWorldTf, sensorToWorld);
 
+  // ROSMsg -> PCL
+  PCLPointCloud pc;
+  pcl::fromROSMsg(*cloud, pc);
+
+  // Transform pointcloud: sensor -> world (map)
+  pcl::transformPointCloud(pc, pc, sensorToWorld);
+
+  // ROSMsg -> OpenCV
+  cv::Mat label_ins = cv_bridge::toCvCopy(ins_msg, ins_msg->encoding)->image;
+
+  ros::Time time0 = ros::Time::now();
+#if 0
   morefusion_panda_ycb_video::RenderVoxelGridArray srv;
   tf::transformStampedTFToMsg(sensorToWorldTf, srv.request.transform);
   srv.request.camera_info = *camera_info_msg;
   srv.request.depth = *depth_msg;
   getGridsInWorldFrame(camera_info_msg->header.stamp, srv.request.grids);
   client_render_.call(srv);
-
   sensor_msgs::Image ins_rendered_msg = srv.response.label_ins;
-
-  // ROSMsg -> PCL
-  PCLPointCloud pc;
-  pcl::fromROSMsg(*cloud, pc);
-
-  // ROSMsg -> OpenCV
-  cv::Mat label_ins = cv_bridge::toCvCopy(ins_msg, ins_msg->encoding)->image;
   cv::Mat label_ins_rend = cv_bridge::toCvCopy(
     srv.response.label_ins, srv.response.label_ins.encoding)->image;
-
-  // TODO(wkentaro): compute centroid and size of each instance,
-  // and remove some of them from integration
-
-  // Transform pointcloud: sensor -> world (map)
-  pcl::transformPointCloud(pc, pc, sensorToWorld);
+#else
+  // Render
+  cv::Mat label_ins_rend = label_ins.clone();
+  render(camera_info_msg, sensorToWorldTf.getOrigin(), pc, label_ins_rend, sensorToWorld);
+#endif
+  ros::Duration elapsed_time = ros::Time::now() - time0;
+  ROS_INFO_STREAM_BLUE("Elapsed time: " << elapsed_time);
 
   // Track Instance IDs
   std::map<int, unsigned> instance_id_to_class_id;
@@ -168,6 +173,96 @@ void OctomapServer::insertCloudCallback(
   publishAll(cloud->header.stamp);
 }
 
+void OctomapServer::render(
+    const sensor_msgs::CameraInfoConstPtr& camera_info_msg,
+    const tf::Point& sensorOriginTf,
+    const PCLPointCloud& pc,
+    cv::Mat& label_ins_rend,
+    const Eigen::Matrix4f sensorToWorld) {
+  octomap::point3d sensorOrigin = octomap::pointTfToOctomap(sensorOriginTf);
+  std::vector<int> instance_ids = morefusion_panda_ycb_video::utils::keys(octrees_);
+  cv::Mat depth = cv::Mat::zeros(pc.height, pc.width, CV_32FC1);
+  depth.setTo(NAN);
+  label_ins_rend.setTo(-2);
+  #pragma omp parallel for
+  for (int instance_id : instance_ids) {
+    if (instance_id == -1) {
+      // skip background objects
+      continue;
+    }
+    OcTreeT* octree = octrees_.find(instance_id)->second;
+
+    for (size_t index = 0 ; index < pc.points.size(); index++) {
+      int width_index = index % pc.width;
+      int height_index = index / pc.width;
+      if (width_index % 2 != 0 || height_index % 2 != 0) {
+        continue;
+      }
+
+      bool check_in_bbox;
+      octomap::point3d point;
+      if (std::isnan(pc.points[index].x) ||
+          std::isnan(pc.points[index].y) ||
+          std::isnan(pc.points[index].z)) {
+        float fx = camera_info_msg->K[0];
+        float fy = camera_info_msg->K[4];
+        float cx = camera_info_msg->K[2];
+        float cy = camera_info_msg->K[5];
+
+        float z = 1;  // max depth
+        float x = z * (width_index - cx) / fx;
+        float y = z * (height_index - cy) / fy;
+        PCLPointCloud pc2;
+        pc2.push_back(PCLPoint(x, y, z));
+        pcl::transformPointCloud(pc2, pc2, sensorToWorld);
+
+        check_in_bbox = false;
+        point = octomap::point3d(pc2[0].x, pc2[0].y, pc2[0].z);
+      } else {
+        check_in_bbox = true;
+        point = octomap::point3d(pc.points[index].x, pc.points[index].y, pc.points[index].z);
+      }
+
+      octomap::point3d direction = point - sensorOrigin;
+
+      if (check_in_bbox && !octree->inBBX(point)) {
+        continue;
+      }
+
+      octomap::point3d end;
+      bool hit = octree->castRay(/*origin=*/sensorOrigin, /*direction=*/direction, /*end=*/end, /*ignoreUnknownCells=*/true, /*maxRange=*/(point - sensorOrigin).norm() * 1.1);
+      if (!hit) {
+        continue;
+      }
+
+      octomap::point3d intersection;
+#if 0
+      octree->getRayIntersection(/*origin=*/sensorOrigin, /*direction=*/direction, /*center=*/end, /*intersection=*/intersection);
+#else
+      intersection = end;
+#endif
+
+      #pragma omp critical
+      {
+        float d_old = depth.at<float>(height_index, width_index);
+        float d_new = (intersection - sensorOrigin).norm();
+        if ((d_old != d_old) || (d_new < d_old)) {
+          depth.at<float>(height_index, width_index) = d_new;
+          for (int dj = -1; dj != 1; dj++) {
+            int j = height_index + dj;
+            for (int di = -1; di != 1; di++) {
+              int i = width_index + di;
+              if (j >= 0 && i >= 0 && j < label_ins_rend.rows && i < label_ins_rend.cols) {
+                label_ins_rend.at<int32_t>(j, i) = instance_id;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
 void OctomapServer::insertScan(
     const tf::Point& sensorOriginTf,
     const PCLPointCloud& pc,
@@ -178,6 +273,7 @@ void OctomapServer::insertScan(
   std::set<int> instance_ids = morefusion_panda_ycb_video::utils::unique<int>(label_ins);
   octomap::KeySet free_cells_bg;
   std::map<int, octomap::KeySet> occupied_cells;
+  std::set<int> new_instance_ids;
   for (int instance_id : instance_ids) {
     if (instance_id == -2) {
       // -1: background, -2: uncertain (e.g., boundary)
@@ -202,6 +298,7 @@ void OctomapServer::insertScan(
       octree->setClampingThresMax(probability_max_);
       octrees_.insert(std::make_pair(instance_id, octree));
       class_ids_.insert(std::make_pair(instance_id, class_id));
+      new_instance_ids.insert(instance_id);
     }
     occupied_cells.insert(std::make_pair(instance_id, octomap::KeySet()));
   }
@@ -284,11 +381,45 @@ void OctomapServer::insertScan(
   for (std::map<int, PCLPointCloud>::iterator it = instance_id_to_points.begin();
        it != instance_id_to_points.end(); it++) {
     int instance_id = it->first;
+    PCLPointCloud points = it->second;
+    OcTreeT* octree = octrees_.find(instance_id)->second;
+
+    PCLPoint min_pt, max_pt;
+    pcl::getMinMax3D(points, min_pt, max_pt);
+
+    float min_x, min_y, min_z;
+    float max_x, max_y, max_z;
+    if (new_instance_ids.find(instance_id) == new_instance_ids.end()) {
+      // not new instance
+      octomap::point3d min_bbx = octree->getBBXMin();
+      octomap::point3d max_bbx = octree->getBBXMax();
+      min_x = std::min(min_bbx.x(), min_pt.x);
+      min_y = std::min(min_bbx.y(), min_pt.y);
+      min_z = std::min(min_bbx.z(), min_pt.z);
+      max_x = std::max(max_bbx.x(), max_pt.x);
+      max_y = std::max(max_bbx.y(), max_pt.y);
+      max_z = std::max(max_bbx.z(), max_pt.z);
+    } else {
+      min_x = min_pt.x;
+      min_y = min_pt.y;
+      min_z = min_pt.z;
+      max_x = max_pt.x;
+      max_y = max_pt.y;
+      max_z = max_pt.z;
+    }
+
+    octree->setBBXMin(octomap::point3d(min_x, min_y, min_z));
+    octree->setBBXMax(octomap::point3d(max_x, max_y, max_z));
+
+#if 0
+    centers_.insert(std::make_pair(instance_id, octree->getBBXCenter()));
+#else
     Eigen::Matrix<float, 4, 1> centroid;
     pcl::compute3DCentroid<PCLPoint, float>(
       /*cloud=*/it->second, /*centroid=*/centroid);
     octomap::point3d center(centroid(0, 0), centroid(1, 0), centroid(2, 0));
     centers_.insert(std::make_pair(instance_id, center));
+#endif
   }
 
   if (do_compress_map_) {
