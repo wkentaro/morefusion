@@ -408,8 +408,10 @@ void OctomapServer::insertScan(
       max_z = max_pt.z;
     }
 
-    octree->setBBXMin(octomap::point3d(min_x, min_y, min_z));
-    octree->setBBXMax(octomap::point3d(max_x, max_y, max_z));
+    octomap::point3d bbx_min(min_x, min_y, min_z);
+    octomap::point3d bbx_max(max_x, max_y, max_z);
+    octree->setBBXMin(bbx_min);
+    octree->setBBXMax(bbx_max);
 
 #if 0
     centers_.insert(std::make_pair(instance_id, octree->getBBXCenter()));
