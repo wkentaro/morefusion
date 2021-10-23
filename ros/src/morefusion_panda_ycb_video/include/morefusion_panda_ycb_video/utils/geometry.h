@@ -215,24 +215,24 @@ void track_instance_id(
   }
 
   // Manipulate target
-  // std::set<int> instance_ids_active = morefusion_panda_ycb_video::utils::unique<int>(*target);
-  // for (int ins_id : instance_ids_active) {
-  //   if (ins_id < 0) {
-  //     continue;
-  //   }
-  //   cv::Mat mask = (*target) == ins_id;
-  //   std::vector<std::vector<cv::Point> > contours;
-  //   std::vector<cv::Vec4i> hierarchy;
-  //   cv::findContours(
-  //     mask, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
-  //   for (size_t j = 0; j < contours.size(); j++) {
-  //     if (cv::contourArea(contours[j]) < (20 * 20)) {
-  //       cv::drawContours(*target, contours, j, /*color=*/-2, /*thickness=*/cv::FILLED);
-  //     } else {
-  //       cv::drawContours(*target, contours, j, /*color=*/-2, /*thickness=*/10);
-  //     }
-  //   }
-  // }
+  std::set<int> instance_ids_active = morefusion_panda_ycb_video::utils::unique<int>(*target);
+  for (int ins_id : instance_ids_active) {
+    if (ins_id < 0) {
+      continue;
+    }
+    cv::Mat mask = (*target) == ins_id;
+    std::vector<std::vector<cv::Point> > contours;
+    std::vector<cv::Vec4i> hierarchy;
+    cv::findContours(
+      mask, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
+    for (size_t j = 0; j < contours.size(); j++) {
+      if (cv::contourArea(contours[j]) < (20 * 20)) {
+        cv::drawContours(*target, contours, j, /*color=*/-2, /*thickness=*/cv::FILLED);
+      } else {
+        cv::drawContours(*target, contours, j, /*color=*/-2, /*thickness=*/10);
+      }
+    }
+  }
 
   // Manipulate reference
   for (int ins_id : morefusion_panda_ycb_video::utils::unique<int>(reference)) {
