@@ -22,6 +22,7 @@ OctomapServer::OctomapServer() {
   pnh_.param("sensor_model/min", probability_min_, 0.12);
   pnh_.param("sensor_model/max", probability_max_, 0.97);
   pnh_.param("compress_map", do_compress_map_, false);
+  pnh_.param("use_render_service", use_render_service_, false);
 
   // paramters for publishing
   pnh_.param("frame_id", frame_id_world_, std::string("map"));
@@ -102,24 +103,21 @@ void OctomapServer::insertCloudCallback(
   // ROSMsg -> OpenCV
   cv::Mat label_ins = cv_bridge::toCvCopy(ins_msg, ins_msg->encoding)->image;
 
-  ros::Time time0 = ros::Time::now();
-#if 0
-  morefusion_panda_ycb_video::RenderVoxelGridArray srv;
-  tf::transformStampedTFToMsg(sensorToWorldTf, srv.request.transform);
-  srv.request.camera_info = *camera_info_msg;
-  srv.request.depth = *depth_msg;
-  getGridsInWorldFrame(camera_info_msg->header.stamp, srv.request.grids);
-  client_render_.call(srv);
-  sensor_msgs::Image ins_rendered_msg = srv.response.label_ins;
-  cv::Mat label_ins_rend = cv_bridge::toCvCopy(
-    srv.response.label_ins, srv.response.label_ins.encoding)->image;
-#else
   // Render
-  cv::Mat label_ins_rend = label_ins.clone();
-  render(camera_info_msg, sensorToWorldTf.getOrigin(), pc, label_ins_rend, sensorToWorld);
-#endif
-  ros::Duration elapsed_time = ros::Time::now() - time0;
-  ROS_INFO_STREAM_BLUE("Elapsed time: " << elapsed_time);
+  if (use_render_service_) {
+    morefusion_panda_ycb_video::RenderVoxelGridArray srv;
+    tf::transformStampedTFToMsg(sensorToWorldTf, srv.request.transform);
+    srv.request.camera_info = *camera_info_msg;
+    srv.request.depth = *depth_msg;
+    getGridsInWorldFrame(camera_info_msg->header.stamp, srv.request.grids);
+    client_render_.call(srv);
+    sensor_msgs::Image ins_rendered_msg = srv.response.label_ins;
+    cv::Mat label_ins_rend = cv_bridge::toCvCopy(
+      srv.response.label_ins, srv.response.label_ins.encoding)->image;
+  } else {
+    cv::Mat label_ins_rend = label_ins.clone();
+    render(camera_info_msg, sensorToWorldTf.getOrigin(), pc, label_ins_rend, sensorToWorld);
+  }
 
   // Track Instance IDs
   std::map<int, unsigned> instance_id_to_class_id;
