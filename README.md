@@ -81,25 +81,16 @@ so several code changes may be needed to adapt to other OS (and ROS, CUDA versio
 
 ```bash
 make install
+source .anaconda3/bin/activate
 ```
 
 ### ROS project for camera demonstration
 
 ```bash
-mkdir -p ~/ros_morefusion/src
-cd ~/ros_morefusion/src
-
-git clone https://github.com/wkentaro/morefusion.git
-cd morefusion
+cd ros/
 make install
-
-cd ~/ros_morefusion
-ln -s src/ros/*.sh .
-
-./rosdep_install.sh
-./catkin_build.robot_agent.sh
-
-source .autoenv.zsh
+source ../.anaconda3/bin/activate
+source devel/setup.sh
 ```
 
 ### ROS project for robotic demonstration
@@ -115,16 +106,9 @@ Same as above instruction:
 #### @robot-node
 
 ```bash
-mkdir -p ~/ros_morefusion/src
-cd ~/ros_morefusion/src
-
-git clone https://github.com/wkentaro/morefusion.git
-
-cd ~/ros_morefusion
-ln -s src/ros/*.sh .
-
-./catkin_build.robot_node.sh
-source devel/setup.bash
+cd ros/
+catkin build morefusion_panda
+source devel/setup.sh
 
 rosrun morefusion_panda create_udev_rules.sh
 ```
