@@ -164,6 +164,7 @@ class OctomapServer {
   unsigned tree_depth_;
   unsigned tree_depth_max_;
   bool do_compress_map_;
+  bool use_render_service_;
 
   // for publishing
   std::string frame_id_world_;
