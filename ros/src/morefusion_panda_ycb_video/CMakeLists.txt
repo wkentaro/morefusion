@@ -77,7 +77,7 @@ include_directories(include ${catkin_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS} ${OCTOMAP
 
 add_executable(octomap_server src/OctomapServer.cpp)
 target_link_libraries(octomap_server ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OCTOMAP_LIBRARIES})
-add_dependencies(octomap_server ${PROJECT_NAME}_gencfg)
+add_dependencies(octomap_server ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_gencpp)
 
 # ---------------------------------------------------------------------
 
