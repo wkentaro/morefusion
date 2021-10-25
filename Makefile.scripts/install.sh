@@ -11,10 +11,10 @@ source .anaconda3/bin/activate
 # ---------------------------------------------------------------------------------------
 
 # trimesh dependency
-conda_check_installed libspatialindex || conda install libspatialindex -y
+conda_check_installed libspatialindex || conda_install libspatialindex
 
 # pygraphviz
-conda_check_installed pygraphviz || conda install -c anaconda pygraphviz -y
+conda_check_installed pygraphviz || conda_install pygraphviz
 
 if [ "$CI" = "true" ]; then
   # it fails with following error with pip install:
