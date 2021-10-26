@@ -16,6 +16,6 @@ pip install -U hacking
 echo_bold "==> Linting with flake8"
 flake8 .
 
-pip install -U mypy types-termcolor types-six types-PyYAML types-frozendict
+pip install -U mypy
 echo_bold "==> Linting with mypy"
-mypy --package morefusion --ignore-missing-imports
+mypy --package morefusion --ignore-missing-imports --install-types
