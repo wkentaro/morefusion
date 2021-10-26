@@ -1,0 +1,9 @@
+<launch>
+
+  <node name="rviz"
+        pkg="rviz" type="rviz"
+        clear_params="true"
+        args="-d $(find morefusion_ros)/rvizconfig/static.robot.rviz">
+  </node>
+
+</launch>

@@ -1,0 +1,14 @@
+<launch>
+
+  <include file="$(find morefusion_ros)/launch/rosbag_play_rs_rgbd.launch">
+    <arg name="BAG_ID" value="dynamic.desk" />
+  </include>
+
+  <include file="$(find morefusion_ros)/launch/visualize_rs_rgbd.launch">
+    <arg name="GUI" value="true" />
+  </include>
+
+  <include file="$(find morefusion_ros)/launch/mask_rcnn_instance_segmentation.launch">
+  </include>
+
+</launch>

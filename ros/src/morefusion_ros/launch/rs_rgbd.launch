@@ -1,0 +1,12 @@
+<launch>
+
+  <arg name="GUI" default="false" />
+
+  <include file="$(find realsense2_camera)/launch/rs_rgbd.launch">
+  </include>
+
+  <include file="$(find morefusion_ros)/launch/visualize_rs_rgbd.launch">
+    <arg name="GUI" value="$(arg GUI)" />
+  </include>
+
+</launch>

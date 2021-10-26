@@ -1,9 +1,0 @@
-<launch>
-
-  <node name="rviz"
-        pkg="rviz" type="rviz"
-        clear_params="true"
-        args="-d $(find morefusion_panda_ycb_video)/rvizconfig/dynamic.robot.rviz">
-  </node>
-
-</launch>

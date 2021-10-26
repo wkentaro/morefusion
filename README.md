@@ -107,10 +107,10 @@ Same as above instruction:
 
 ```bash
 cd ros/
-catkin build morefusion_panda
+catkin build morefusion_ros_panda
 source devel/setup.sh
 
-rosrun morefusion_panda create_udev_rules.sh
+rosrun morefusion_ros_panda create_udev_rules.sh
 ```
 
 ## Usage
@@ -119,8 +119,8 @@ rosrun morefusion_panda create_udev_rules.sh
 
 Pre-trained models are provided in the demos as following, so this process is
 optional to run the [demos](#full-demonstration).
-- [Pre-trained instance segmentation model](https://github.com/wkentaro/morefusion/blob/a2b9eb012fa3e67c86f81c6db872f5728699f0b9/ros/morefusion_panda_ycb_video/nodes/mask_rcnn_instance_segmentation.py#L25-L29)
-- [Pre-trained 6D pose prediction model](https://github.com/wkentaro/morefusion/blob/a2b9eb012fa3e67c86f81c6db872f5728699f0b9/ros/morefusion_panda_ycb_video/nodes/singleview_3d_pose_estimation.py#L31-L48)
+- [Pre-trained instance segmentation model](https://github.com/wkentaro/morefusion/blob/a2b9eb012fa3e67c86f81c6db872f5728699f0b9/ros/morefusion_ros/nodes/mask_rcnn_instance_segmentation.py#L25-L29)
+- [Pre-trained 6D pose prediction model](https://github.com/wkentaro/morefusion/blob/a2b9eb012fa3e67c86f81c6db872f5728699f0b9/ros/morefusion_ros/nodes/singleview_3d_pose_estimation.py#L31-L48)
 
 #### Instance Segmentation
 
@@ -166,9 +166,9 @@ cd examples/ycb_video/pose_refinement
 
 ```bash
 # using orb-slam2 for camera tracking
-roslaunch morefusion_panda_ycb_video rs_rgbd.launch
-roslaunch morefusion_panda_ycb_video rviz_static.desk.launch
-roslaunch morefusion_panda_ycb_video setup_static.desk.launch
+roslaunch morefusion_ros rs_rgbd.launch
+roslaunch morefusion_ros rviz_static.desk.launch
+roslaunch morefusion_ros setup_static.desk.launch
 ```
 
 <div>
@@ -179,9 +179,9 @@ roslaunch morefusion_panda_ycb_video setup_static.desk.launch
 
 ```bash
 # using robotic kinematics for camera tracking
-roslaunch morefusion_panda_ycb_video rs_rgbd.robot.launch
-roslaunch morefusion_panda_ycb_video rviz_static.robot.launch
-roslaunch morefusion_panda_ycb_video setup_static.robot.launch
+roslaunch morefusion_ros rs_rgbd.robot.launch
+roslaunch morefusion_ros rviz_static.robot.launch
+roslaunch morefusion_ros setup_static.robot.launch
 ```
 
 <div>
@@ -193,13 +193,13 @@ roslaunch morefusion_panda_ycb_video setup_static.robot.launch
 #### Dynamic Scene
 
 ```bash
-roslaunch morefusion_panda_ycb_video rs_rgbd.launch
-roslaunch morefusion_panda_ycb_video rviz_dynamic.desk.launch
-roslaunch morefusion_panda_ycb_video setup_dynamic.desk.launch
+roslaunch morefusion_ros rs_rgbd.launch
+roslaunch morefusion_ros rviz_dynamic.desk.launch
+roslaunch morefusion_ros setup_dynamic.desk.launch
 
-roslaunch morefusion_panda_ycb_video rs_rgbd.robot.launch
-roslaunch morefusion_panda_ycb_video rviz_dynamic.robot.launch
-roslaunch morefusion_panda_ycb_video setup_dynamic.robot.launch
+roslaunch morefusion_ros rs_rgbd.robot.launch
+roslaunch morefusion_ros rviz_dynamic.robot.launch
+roslaunch morefusion_ros setup_dynamic.robot.launch
 ```
 
 <div>
@@ -218,12 +218,12 @@ robot-node  $ sudo ntpdate 0.uk.pool.ntp.org  # for time synchronization
 
 robot-node  $ roscore
 
-robot-agent $ roslaunch morefusion_panda panda.launch
+robot-agent $ roslaunch morefusion_ros_panda panda.launch
 
-robot-node  $ roslaunch morefusion_panda_ycb_video rs_rgbd.robot.launch
-robot-node  $ roslaunch morefusion_panda_ycb_video rviz_static.launch
-robot-node  $ roslaunch morefusion_panda_ycb_video setup_static.robot.launch TARGET:=2
-robot-node  $ rosrun morefusion_panda_ycb_video robot_demo_node.py
+robot-node  $ roslaunch morefusion_ros rs_rgbd.robot.launch
+robot-node  $ roslaunch morefusion_ros rviz_static.launch
+robot-node  $ roslaunch morefusion_ros setup_static.robot.launch TARGET:=2
+robot-node  $ rosrun morefusion_ros robot_demo_node.py
 >>> ri.run()
 ```
 
