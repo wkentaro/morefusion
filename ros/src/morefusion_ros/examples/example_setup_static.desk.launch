@@ -1,0 +1,17 @@
+<launch>
+
+  <include file="$(find morefusion_ros)/launch/rosbag_play_rs_rgbd.launch">
+    <arg name="BAG_ID" value="static.desk" />
+  </include>
+
+  <include file="$(find morefusion_ros)/launch/visualize_rs_rgbd.launch">
+    <arg name="GUI" value="false" />
+  </include>
+
+  <include file="$(find morefusion_ros)/launch/rviz_static.desk.launch">
+  </include>
+
+  <include file="$(find morefusion_ros)/launch/setup_static.desk.launch">
+  </include>
+
+</launch>

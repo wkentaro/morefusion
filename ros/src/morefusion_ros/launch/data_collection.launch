@@ -1,0 +1,35 @@
+<launch>
+
+  <!--
+
+      roslaunch morefusion_ros data_collection.launch
+      rosservice call /data_collection_server/save_request "{}"
+
+  -->
+
+  <node name="data_collection_server"
+        pkg="jsk_data" type="data_collection_server.py"
+        clear_params="true">
+    <rosparam subst_value="true">
+      save_dir: ~/.ros
+      topics:
+        - name: /camera/color/camera_info
+          msg_class: sensor_msgs/CameraInfo
+          fname: camera_info.yaml
+          savetype: YAML
+        - name: /camera/color/image_rect_color
+          msg_class: sensor_msgs/Image
+          fname: image.png
+          savetype: ColorImage
+        - name: /camera/aligned_depth_to_color/image_view/output
+          msg_class: sensor_msgs/Image
+          fname: depth_viz.png
+          savetype: ColorImage
+        - name: /camera/aligned_depth_to_color/image_raw
+          msg_class: sensor_msgs/Image
+          fname: depth.npz
+          savetype: DepthImage
+    </rosparam>
+  </node>
+
+</launch>

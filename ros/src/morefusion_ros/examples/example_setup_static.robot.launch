@@ -1,0 +1,20 @@
+<launch>
+
+  <param name="robot_description" command="$(find xacro)/xacro --inorder $(find franka_description)/robots/panda_arm.urdf.xacro hand:=true" />
+
+  <include file="$(find morefusion_ros)/launch/rosbag_play_rs_rgbd.launch">
+    <arg name="BAG_ID" value="static.robot" />
+  </include>
+
+  <include file="$(find morefusion_ros)/launch/visualize_rs_rgbd.launch">
+    <arg name="GUI" value="false" />
+  </include>
+
+  <include file="$(find morefusion_ros)/launch/rviz_static.robot.launch">
+  </include>
+
+  <include file="$(find morefusion_ros)/launch/setup_static.robot.launch">
+    <arg name="USE_PASSTHROUGH" value="false" />
+  </include>
+
+</launch>
