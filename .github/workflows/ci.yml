@@ -3,30 +3,35 @@ name: ci
 on:
   push:
     branches:
-      - master
+      - main
   pull_request:
 
 jobs:
-  # python:
-  #   runs-on: ubuntu-20.04
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - name: Lint
-  #       run: |
-  #         make lint
-  #     - name: Install
-  #       run: |
-  #         make install
-  #     - name: Test
-  #       env:
-  #         CI: true
-  #       run: |
-  #         make test
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Lint
+        run: |
+          make lint
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install
+        run: |
+          make install
+      - name: Test
+        run: |
+          CI=true make test
   ros:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
-      - name: Install dependencies
+      - name: Install
+        run: |
+          make install
+      - name: Install ROS dependencies
         run: |
           sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list'
           curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | sudo apt-key add -
@@ -34,9 +39,6 @@ jobs:
           sudo apt install -y ros-noetic-ros-base python3-catkin-tools python3-rosdep python3-wstool
           sudo rosdep init
           rosdep update
-      - name: Install Python
-        run: |
-          make install
       - name: Install ROS
         run: |
           cd ros/
