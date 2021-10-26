@@ -18,4 +18,4 @@ flake8 .
 
 pip install -U mypy
 echo_bold "==> Linting with mypy"
-mypy --package morefusion --ignore-missing-imports --install-types
+mypy --install-types --non-interactive --ignore-missing-imports --package morefusion
