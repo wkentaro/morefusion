@@ -10,10 +10,7 @@ source .anaconda3/bin/activate
 
 # ---------------------------------------------------------------------------------------
 
-# trimesh dependency
-conda_check_installed libspatialindex || conda_install libspatialindex
-
-# pygraphviz
+# networkx dependency
 conda_check_installed pygraphviz || conda_install pygraphviz
 
 if [ "$CI" = "true" ]; then
