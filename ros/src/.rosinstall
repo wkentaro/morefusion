@@ -1,4 +1,8 @@
 - git:
+    local-name: imgviz_ros
+    uri: https://github.com/wkentaro/imgviz_ros.git
+    version: main
+- git:
     local-name: orb_slam_2_ros
     uri: https://github.com/appliedAI-Initiative/orb_slam_2_ros.git
     version: 94ed988
