@@ -124,7 +124,7 @@ Visualization Manager:
     - Class: jsk_rviz_plugin/OverlayImage
       Enabled: true
       Name: LabelDetected
-      Topic: /camera/label_detected_to_rgb/output/label_viz
+      Topic: /camera/label_detected_to_rgb/output
       Value: true
       alpha: 1
       height: 128
@@ -135,7 +135,7 @@ Visualization Manager:
     - Class: jsk_rviz_plugin/OverlayImage
       Enabled: true
       Name: LabelRendered
-      Topic: /camera/label_rendered_to_rgb/output/label_viz
+      Topic: /camera/label_rendered_to_rgb/output
       Value: true
       alpha: 1
       height: 128
@@ -146,7 +146,7 @@ Visualization Manager:
     - Class: jsk_rviz_plugin/OverlayImage
       Enabled: true
       Name: LabelTracked
-      Topic: /camera/label_tracked_to_rgb/output/label_viz
+      Topic: /camera/label_tracked_to_rgb/output
       Value: true
       alpha: 1
       height: 128
