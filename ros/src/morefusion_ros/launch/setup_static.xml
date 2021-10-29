@@ -90,7 +90,7 @@
             pkg="morefusion_ros" type="draw_instance_segmentation.py"
             clear_params="true">
         <remap from="~input/rgb" to="/camera/color/image_rect_color_passthrough/output" />
-        <remap from="~input/label_ins" to="output/label_rendered" />
+        <remap from="~input/label_ins" to="output/label_tracked" />
         <remap from="~input/class" to="output/class" />
         <rosparam subst_value="true">
           approximate_sync: true

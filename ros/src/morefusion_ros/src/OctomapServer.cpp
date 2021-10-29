@@ -119,6 +119,9 @@ void OctomapServer::insertCloudCallback(
     label_ins_rend = label_ins.clone();
     render(camera_info_msg, sensorToWorldTf.getOrigin(), pc, label_ins_rend, sensorToWorld);
   }
+  // Publish Rendered Instance Label
+  pub_label_rendered_.publish(
+    cv_bridge::CvImage(ins_msg->header, "32SC1", label_ins_rend).toImageMsg());
 
   // Track Instance IDs
   std::map<int, unsigned> instance_id_to_class_id;
@@ -139,9 +142,6 @@ void OctomapServer::insertCloudCallback(
       instance_id_to_class_id.insert(std::make_pair(it->first, it->second));
     }
   }
-  // Publish Rendered Instance Label
-  pub_label_rendered_.publish(
-    cv_bridge::CvImage(ins_msg->header, "32SC1", label_ins_rend).toImageMsg());
   // Publish Tracked Instance Label
   pub_label_tracked_.publish(
     cv_bridge::CvImage(ins_msg->header, "32SC1", label_ins).toImageMsg());

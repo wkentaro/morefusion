@@ -22,7 +22,7 @@
       <remap from="~input/label_ins" to="/camera/mask_rcnn_instance_segmentation/output/label_ins" unless="$(arg OCCUPANCY)" />
       <remap from="~input/class" to="/camera/mask_rcnn_instance_segmentation/output/class" unless="$(arg OCCUPANCY)" />
       <!-- OCCUPANCY: true -->
-      <remap from="~input/label_ins" to="/camera/octomap_server/output/label_rendered" if="$(arg OCCUPANCY)" />
+      <remap from="~input/label_ins" to="/camera/octomap_server/output/label_tracked" if="$(arg OCCUPANCY)" />
       <remap from="~input/class" to="/camera/octomap_server/output/class" if="$(arg OCCUPANCY)" />
       <remap from="~input/grids_noentry" to="/camera/octomap_server/output/grids_noentry" if="$(arg OCCUPANCY)" />
       <rosparam subst_value="true">
