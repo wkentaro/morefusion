@@ -69,6 +69,7 @@ class VoxelGridsToMarkers(topic_tools.LazyTransport):
             marker.color.g = color[1] / 255.0
             marker.color.b = color[2] / 255.0
             marker.color.a = 1
+            marker.pose.orientation.w = 1
             markers.markers.append(marker)
 
             if not self._show_bbox:
@@ -95,6 +96,7 @@ class VoxelGridsToMarkers(topic_tools.LazyTransport):
             marker.color.b = color[2] / 255.0
             marker.color.a = 1
             marker.scale.x = 0.005
+            marker.pose.orientation.w = 1
             markers.markers.append(marker)
         self._pub.publish(markers)
 

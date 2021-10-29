@@ -692,6 +692,7 @@ void OctomapServer::publishAll(const ros::Time& rostime) {
         occupiedNodesVis.markers[i].color =
           morefusion_ros::utils::colorCategory40(instance_id + 1);
         occupiedNodesVis.markers[i].color.a = 0.5;
+        occupiedNodesVis.markers[i].pose.orientation.w = 1;
 
         if (occupiedNodesVis.markers[i].points.size() > 0)
           occupiedNodesVis.markers[i].action = visualization_msgs::Marker::ADD;
