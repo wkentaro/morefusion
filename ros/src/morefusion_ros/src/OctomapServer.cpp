@@ -301,6 +301,8 @@ void OctomapServer::insertScan(
     }
     occupied_cells.insert(std::make_pair(instance_id, octomap::KeySet()));
   }
+  assert(octrees_.find(-1) != octrees_.end());
+  assert(occupied_cells.find(-1) != occupied_cells.end());
 
   // all other points: free on ray, occupied on endpoint:
   std::map<int, PCLPointCloud> instance_id_to_points;
@@ -329,10 +331,6 @@ void OctomapServer::insertScan(
       }
     }
 
-    if (instance_id == -2) {
-      instance_id = -1;
-    }
-
     // maxrange check
     if ((max_range_ < 0.0) || ((point - sensorOrigin).norm() <= max_range_)) {
       // free cells
@@ -344,9 +342,17 @@ void OctomapServer::insertScan(
       }
       // occupied endpoint
       octomap::OcTreeKey key;
-      if (octrees_.find(instance_id)->second->coordToKeyChecked(point, key)) {
-        #pragma omp critical
-        occupied_cells.find(instance_id)->second.insert(key);
+      if (instance_id != -2) {
+        if (octrees_.find(instance_id)->second->coordToKeyChecked(point, key)) {
+          #pragma omp critical
+          occupied_cells.find(instance_id)->second.insert(key);
+        }
+      }
+      if (instance_id != -1) {
+        if (octree_bg->coordToKeyChecked(point, key)) {
+          #pragma omp critical
+          free_cells_bg.insert(key);
+        }
       }
     } else {  // ray longer than maxrange:;
       octomap::point3d new_end = sensorOrigin + (point - sensorOrigin).normalized() * max_range_;
