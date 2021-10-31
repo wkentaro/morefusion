@@ -13,6 +13,7 @@ OctomapServer::OctomapServer() {
   instance_counter_ = 0;
   tree_depth_ = 16;
   tree_depth_max_ = 16;
+  reset_stamp_ = ros::Time::now();
 
   // parameters for mapping
   pnh_.param("resolution", resolution_, 0.05);
@@ -60,6 +61,8 @@ OctomapServer::OctomapServer() {
 
   client_render_ = pnh_.serviceClient<morefusion_ros::RenderVoxelGridArray>("render");
 
+  server_reset_ = pnh_.advertiseService("reset", &OctomapServer::resetCallback, this);
+
   dynamic_reconfigure::Server<morefusion_ros::OctomapServerConfig>::CallbackType f =
     boost::bind(&OctomapServer::configCallback, this, _1, _2);
   server_reconfig_.setCallback(f);
@@ -67,8 +70,19 @@ OctomapServer::OctomapServer() {
   ROS_INFO_BLUE("Initialized");
 }
 
+bool OctomapServer::resetCallback(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res) {
+  boost::mutex::scoped_lock lock(mutex_);
+  octrees_.clear();
+  class_ids_.clear();
+  centers_.clear();
+  instance_counter_ = 0;
+  reset_stamp_ = ros::Time::now();
+  return true;
+}
+
 void OctomapServer::configCallback(
   const morefusion_ros::OctomapServerConfig& config, const uint32_t level) {
+  boost::mutex::scoped_lock lock(mutex_);
   ROS_INFO_BLUE("configCallback");
   m_groundAsNoEntry = config.ground_as_noentry;
   m_freeAsNoEntry = config.free_as_noentry;
@@ -80,6 +94,10 @@ void OctomapServer::insertCloudCallback(
     const sensor_msgs::PointCloud2ConstPtr& cloud,
     const sensor_msgs::ImageConstPtr& ins_msg,
     const morefusion_ros::ObjectClassArrayConstPtr& class_msg) {
+  boost::mutex::scoped_lock lock(mutex_);
+  if (camera_info_msg->header.stamp < reset_stamp_) {
+    return;
+  }
   // Get TF
   tf::StampedTransform sensorToWorldTf;
   if (!tf_listener_->waitForTransform(frame_id_world_,

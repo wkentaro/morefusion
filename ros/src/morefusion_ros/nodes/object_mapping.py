@@ -3,6 +3,7 @@
 import copy
 import itertools
 import queue
+import threading
 
 import numpy as np
 import trimesh.transformations as ttf
@@ -14,6 +15,8 @@ from morefusion_ros.msg import ObjectPose
 from morefusion_ros.msg import ObjectPoseArray
 from morefusion_ros.msg import VoxelGridArray
 import rospy
+from std_srvs.srv import Empty
+from std_srvs.srv import EmptyResponse
 import tf
 
 
@@ -86,9 +89,9 @@ class ObjectMapping:
     _models = morefusion.datasets.YCBVideoModels()
 
     def __init__(self):
+        self.reset()
+
         self._n_votes = rospy.get_param("~n_votes", 3)
-        self._objects = {}  # instance_id: Object()
-        self._instance_ids_removed = set()
         self._base_frame = rospy.get_param("~frame_id", "map")
         self._pub = rospy.Publisher(
             "~output/poses", ObjectPoseArray, queue_size=1, latch=True
@@ -111,7 +114,29 @@ class ObjectMapping:
             queue_size=1,
         )
 
+        self._srv_reset = rospy.Service("~reset", Empty, self._callback_reset)
+
+        self._lock = threading.Lock()
+
+    def reset(self):
+        self._objects = {}  # instance_id: Object()
+        self._instance_ids_removed = set()
+        self._reset_stamp = rospy.Time.now()
+
+    def _callback_reset(self, req):
+        self._lock.acquire()
+        self.reset()
+        # clear latch
+        self._pub.publish(ObjectPoseArray())
+        self._pub_grids.publish(VoxelGridArray())
+        self._lock.release()
+        return EmptyResponse()
+
     def _callback_grids(self, grids_msg):
+        if grids_msg.header.stamp < self._reset_stamp:
+            return
+
+        self._lock.acquire()
         out_msg = copy.deepcopy(grids_msg)
         out_msg.grids = []
         for grid in grids_msg.grids:
@@ -122,8 +147,11 @@ class ObjectMapping:
                 continue
             out_msg.grids.append(grid)
         self._pub_grids.publish(out_msg)
+        self._lock.release()
 
     def _callback_remove(self, cls_msg):
+        if cls_msg.header.stamp < self._reset_stamp:
+            return
         for cls in cls_msg.classes:
             self._instance_ids_removed.add(cls.instance_id)
         self._publish_poses(cls_msg.header.stamp)
@@ -153,6 +181,9 @@ class ObjectMapping:
         self._pub.publish(out_msg)
 
     def _callback(self, poses_msg):
+        if poses_msg.header.stamp < self._reset_stamp:
+            return
+
         try:
             self._tf_listener.waitForTransform(
                 target_frame=self._base_frame,
@@ -176,6 +207,7 @@ class ObjectMapping:
         ).array
 
         # ---------------------------------------------------------------------
+        self._lock.acquire()
 
         for pose in poses_msg.poses:
             instance_id = pose.instance_id
@@ -199,6 +231,7 @@ class ObjectMapping:
                 self._objects[instance_id].append_pose(T_cad2base)
 
         self._publish_poses(stamp=poses_msg.header.stamp)
+        self._lock.release()
 
 
 if __name__ == "__main__":
