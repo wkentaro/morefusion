@@ -122,6 +122,8 @@ class OctomapServer {
     const morefusion_ros::OctomapServerConfig& config,
     const uint32_t level);
 
+  bool resetCallback(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
+
   ros::NodeHandle nh_;
   ros::NodeHandle pnh_;
 
@@ -146,6 +148,9 @@ class OctomapServer {
   dynamic_reconfigure::Server<morefusion_ros::OctomapServerConfig> server_reconfig_;
 
   ros::ServiceClient client_render_;
+
+  ros::ServiceServer server_reset_;
+  ros::Time reset_stamp_;
 
   tf::TransformListener* tf_listener_;
 
@@ -172,6 +177,8 @@ class OctomapServer {
   bool m_groundAsNoEntry;
   bool m_freeAsNoEntry;
   bool do_filter_speckles_;
+
+  boost::mutex mutex_;
 };
 
 }  // namespace morefusion_ros
