@@ -6,6 +6,7 @@ import chainer
 import gdown
 import imgviz
 import numpy as np
+import octomap
 import trimesh.transformations as ttf
 
 import morefusion
@@ -33,7 +34,7 @@ class SingleViewPoseEstimation3D(topic_tools.LazyTransport):
             "~confidence_threshold", 0.9
         )
         self._with_occupancy = rospy.get_param("~with_occupancy")
-        if self._with_occupancy:
+        if True:
             pretrained_model = gdown.cached_download(
                 url="https://drive.google.com/uc?id=128okGgKDJ53PlxLXw7t8a3P9iw-5mcSn",  # NOQA
                 md5="48035dddba2c6f13c0859284a1008310",
@@ -58,7 +59,7 @@ class SingleViewPoseEstimation3D(topic_tools.LazyTransport):
         self._model = contrib.models.Model(
             n_fg_class=len(args_data["class_names"][1:]),
             pretrained_resnet18=args_data["pretrained_resnet18"],
-            with_occupancy=args_data["with_occupancy"],
+            with_occupancy=True,
             # loss=args_data['loss'],
             # loss_scale=args_data['loss_scale'],
         )
@@ -183,6 +184,34 @@ class SingleViewPoseEstimation3D(topic_tools.LazyTransport):
                 example["grid_nontarget_empty"] = grids_noentry[ins_id][
                     "matrix"
                 ]
+            else:
+                dim = 32
+                pitch = self._models.get_voxel_pitch(
+                    dimension=dim, class_id=cls_id
+                )
+                center = np.nanmean(pcd_ins, axis=(0, 1))
+                origin = center - (dim / 2 - 0.5) * pitch
+
+                octree = octomap.OcTree(pitch)
+                octree.setBBXMin(center - dim / 2 * pitch)
+                octree.setBBXMax(center + dim / 2 * pitch)
+                isnan = np.isnan(pcd_ins).any(axis=2)
+                octree.insertPointCloud(
+                    pointcloud=pcd_ins[~isnan],
+                    origin=np.array([0, 0, 0], dtype=float),
+                    maxrange=2,
+                )
+                grid_nontarget_empty = np.zeros((dim, dim, dim), dtype=bool)
+                _, empty = octree.extractPointCloud()
+                indices = np.round((empty - origin) / pitch).astype(int)
+                indices = indices[
+                    ((indices >= 0) & (indices < dim)).all(axis=1)
+                ]
+                grid_nontarget_empty[indices] = True
+
+                example["origin"] = origin
+                example["pitch"] = pitch
+                example["grid_nontarget_empty"] = grid_nontarget_empty
             examples.append(example)
             keep.append(i)
         if not examples:
