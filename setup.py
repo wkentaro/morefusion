@@ -30,7 +30,6 @@ setup(
     install_requires=get_install_requires(),
     author="Kentaro Wada",
     author_email="www.kentaro.wada@gmail.com",
-    license="MIT",
     url="https://github.com/wkentaro/morefusion",
-    description="Multi-object reasoning for 6d pose estimation from volumetric fusion",  # NOQA
+    description="MoreFusion: Multi-object Reasoning for 6D Pose Estimation from Volumetric Fusion",  # NOQA
 )
