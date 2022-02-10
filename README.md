@@ -95,8 +95,8 @@ source devel/setup.sh
 
 ### ROS project for robotic demonstration
 
-- `robot-agent`: A computer for visual processing.
-- `robot-node`: A computer with real-time OS for Panda robot.
+- `robot-agent`: A computer with CUDA and a GPU for visual processing.
+- `robot-node`: A computer with a real-time OS for a Panda robot.
 
 #### @robot-agent
 
