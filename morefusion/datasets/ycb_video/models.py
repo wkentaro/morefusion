@@ -31,8 +31,8 @@ class YCBVideoModels(ModelsBase):
 
     @classmethod
     def download(cls) -> None:
-        url: str = "https://drive.google.com/uc?id=1PKEJ8SVIVLukvmeIBexp6_XmJetHoOf2"  # NOQA
-        md5: str = "540c37435e4a16546850a83690b2db9b"
+        url: str = "https://drive.google.com/uc?id=1BoXR3rNqWIoILDQK8yiB6FWgvHGpjtJe"  # NOQA
+        md5: str = "054b845708318a9d38a3f080572dcb3c"
 
         gdown.cached_download(
             url=url,
