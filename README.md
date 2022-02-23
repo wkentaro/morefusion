@@ -28,7 +28,7 @@
   <a href="#usage"><b>Usage</b></a> |
   <a href="https://arxiv.org/abs/2004.04336"><b>Paper</b></a> |
   <a href="https://www.youtube.com/watch?v=6oLUhuZL4ko"><b>Video</b></a> |
-  <a href="https://morefusion.wkentaro.com"><b>Website</b></a>
+  <a href="https://morefusion.wkentaro.com"><b>Webpage</b></a>
 </div>
 
 <p></p>
