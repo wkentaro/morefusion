@@ -21,24 +21,24 @@ a {
   -ms-transition: color 0.2s ease-in-out, border-color 0.2s ease-in-out;
   transition: color 0.2s ease-in-out, border-color 0.2s ease-in-out;
   border-bottom: dotted 1px;
-  color: #49bf9d;
+  color: #d3507a;
   text-decoration: none;
 }
 
 a:hover {
   border-bottom-color: transparent;
-  color: #49bf9d !important;
+  color: #d3507a !important;
   text-decoration: none;
 }
 a > img {
-  border: 1px solid #49bf9d;
+  border: 1px solid #d3507a;
 }
 a:hover > img {
-  border: 1.5px solid #49bf9d;
+  border: 1.5px solid #d3507a;
 }
 
 button.btn.btn-link {
-  color: #49bf9d;
+  color: #d3507a;
 }
 
 .video-container {
